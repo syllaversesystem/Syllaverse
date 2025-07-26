@@ -1,7 +1,7 @@
 <?php
 
 // File: app/Models/Syllabus.php
-// Description: Eloquent model for the syllabi table, representing faculty-created syllabus records (Syllaverse)
+// Description: Represents a syllabus created by a faculty; includes textbook and TLA relations – Syllaverse
 
 namespace App\Models;
 
@@ -17,32 +17,40 @@ class Syllabus extends Model
         'program_id',
         'course_id',
         'title',
-        'mission',
-        'vision',
         'academic_year',
         'semester',
         'year_level',
-        'textbook_file_path', // ✅ recently added
+        'mission',
+        'vision',
     ];
 
-    // 🔁 Relationships
+    // 🔁 Each syllabus belongs to one faculty
     public function faculty()
     {
         return $this->belongsTo(User::class, 'faculty_id');
     }
 
-    public function course()
-    {
-        return $this->belongsTo(Course::class);
-    }
-
+    // 🔁 Each syllabus belongs to one program
     public function program()
     {
         return $this->belongsTo(Program::class);
     }
 
+    // 🔁 Each syllabus belongs to one course
+    public function course()
+    {
+        return $this->belongsTo(Course::class);
+    }
+
+    // 🔁 A syllabus has many topic-learning activities (TLA)
     public function tla()
     {
         return $this->hasMany(TLA::class);
+    }
+
+    // ✅ A syllabus has many uploaded textbook files
+    public function textbooks()
+    {
+        return $this->hasMany(SyllabusTextbook::class);
     }
 }

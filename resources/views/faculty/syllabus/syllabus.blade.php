@@ -12,8 +12,11 @@
   'resources/css/faculty/syllabus.css',
   'resources/js/faculty/syllabus.js',
 ])
+
+{{-- ✅ Required global variables for textbook AJAX logic --}}
 <script>
   const syllabusExitUrl = @json(route('faculty.syllabi.index'));
+  const syllabusId = @json($default['id']); // ✅ Enables upload in syllabus-textbook.js
 </script>
 
 <div class="container my-4 syllabus-doc">
@@ -57,7 +60,6 @@
 
     {{-- Section IV: Teaching, Learning, and Assessment --}}
     @include('faculty.syllabus.partials.tla')
-
 
     {{-- Additional sections can be appended here --}}
   </form>

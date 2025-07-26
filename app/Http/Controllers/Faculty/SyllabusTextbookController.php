@@ -1,45 +1,100 @@
 <?php
 
 // File: app/Http/Controllers/Faculty/SyllabusTextbookController.php
-// Description: Handles AJAX upload of textbook files for Faculty syllabi – Syllaverse
+// Description: Enhanced textbook upload + delete controller with debug logging – Syllaverse
 
 namespace App\Http\Controllers\Faculty;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use App\Models\Syllabus;
+use App\Models\SyllabusTextbook;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class SyllabusTextbookController extends Controller
 {
     /**
-     * Store or replace the uploaded textbook file for a syllabus.
+     * Upload multiple textbook files and associate them with a syllabus.
      */
-    public function store(Request $request, $id)
+    public function store(Request $request, Syllabus $syllabus)
     {
-        $request->validate([
-            'textbook_file' => 'required|file|max:5120|mimes:pdf,doc,docx,xls,xlsx,csv,txt',
-        ]);
+        try {
+            Log::info('[SyllabusTextbook] Upload triggered', [
+                'syllabus_id' => $syllabus->id,
+                'has_file' => $request->hasFile('textbook_files'),
+                'file_names' => collect($request->file('textbook_files'))->pluck('name')->toArray(),
+            ]);
 
-        $syllabus = Syllabus::findOrFail($id);
+            $request->validate([
+                'textbook_files.*' => 'required|mimes:pdf,doc,docx,xls,xlsx,csv,txt|max:5120',
+            ]);
 
-        // Delete old file if exists
-        if ($syllabus->textbook_file_path && Storage::disk('public')->exists($syllabus->textbook_file_path)) {
-            Storage::disk('public')->delete($syllabus->textbook_file_path);
+            $uploaded = [];
+
+            if ($request->hasFile('textbook_files')) {
+                foreach ($request->file('textbook_files') as $file) {
+                    $path = $file->store('syllabi/textbooks', 'public');
+
+                    $textbook = $syllabus->textbooks()->create([
+                        'file_path' => $path,
+                        'original_name' => $file->getClientOriginalName(),
+                    ]);
+
+                    $uploaded[] = [
+                        'id' => $textbook->id,
+                        'name' => $textbook->original_name,
+                        'url' => Storage::url($path),
+                    ];
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Textbooks uploaded successfully.',
+                'files' => $uploaded,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('[SyllabusTextbook] Upload failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred during upload.',
+            ], 500);
         }
+    }
 
-        // Store new file
-        $path = $request->file('textbook_file')->store('syllabi/textbooks', 'public');
+    /**
+     * Delete a specific textbook file from storage and database.
+     */
+    public function destroy(SyllabusTextbook $textbook)
+    {
+        try {
+            Log::info("[SyllabusTextbook] Deleting textbook ID: {$textbook->id}");
 
-        // Update record
-        $syllabus->update([
-            'textbook_file_path' => $path,
-        ]);
+            if ($textbook->file_path && Storage::disk('public')->exists($textbook->file_path)) {
+                Storage::disk('public')->delete($textbook->file_path);
+            }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Textbook uploaded successfully.',
-            'file_url' => Storage::url($path),
-        ]);
+            $textbook->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Textbook deleted successfully.',
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('[SyllabusTextbook] Delete failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred during deletion.',
+            ], 500);
+        }
     }
 }

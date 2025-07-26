@@ -1,7 +1,7 @@
 {{-- 
 ------------------------------------------------
 * File: resources/views/faculty/syllabus/partials/textbook-upload.blade.php
-* Description: Styled like Mission and Vision section – for textbook file upload (Syllaverse)
+* Description: Textbook upload section with multi-file support and individual delete – Syllaverse
 ------------------------------------------------ 
 --}}
 
@@ -12,20 +12,38 @@
   </colgroup>
   <tbody>
     <tr>
-      <th class="align-top text-start">Textbook</th>
+      <th class="align-top text-start">Textbooks</th>
       <td>
+        {{-- Upload Input --}}
         <input 
           type="file" 
-          name="textbook_file" 
-          class="form-control border-0 p-0 bg-transparent @error('textbook_file') is-invalid @enderror"
-          style="font-size: 13px;"
-          accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt" 
-          required
+          name="textbook_files[]" 
+          id="textbook_files"
+          multiple
+          class="form-control border-0 p-0 bg-transparent @error('textbook_files') is-invalid @enderror"
+          accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt"
         >
-        @error('textbook_file')
+        @error('textbook_files')
           <div class="invalid-feedback d-block mt-1">{{ $message }}</div>
         @enderror
-        <small class="text-muted d-block mt-1">Accepted formats: PDF, Word, Excel, CSV, TXT. Max size: 5MB.</small>
+
+        <small class="text-muted d-block mt-1">
+          Accepted formats: PDF, Word, Excel, CSV, TXT. Max size per file: 5MB.
+        </small>
+
+        {{-- Uploaded File List --}}
+        <ul id="uploadedTextbookList" class="mt-3 list-unstyled">
+          @foreach ($syllabus->textbooks as $textbook)
+            <li class="mb-2 d-flex align-items-center justify-content-between" data-id="{{ $textbook->id }}">
+              <a href="{{ Storage::url($textbook->file_path) }}" target="_blank">
+                {{ $textbook->original_name }}
+              </a>
+              <button type="button" class="btn btn-sm btn-outline-danger ms-2 delete-textbook-btn">
+                🗑️
+              </button>
+            </li>
+          @endforeach
+        </ul>
       </td>
     </tr>
   </tbody>
