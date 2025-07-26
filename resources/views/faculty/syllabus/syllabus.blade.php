@@ -1,6 +1,8 @@
 {{-- 
-File: resources/views/faculty/syllabus/syllabus.blade.php
-Description: CIS-format editable syllabus page with export, aligned header, and modular assets (Syllaverse)
+------------------------------------------------
+* File: resources/views/faculty/syllabus/syllabus.blade.php
+* Description: CIS-format editable syllabus page with export, aligned header, and modular assets (Syllaverse)
+------------------------------------------------ 
 --}}
 
 @extends('layouts.faculty')
@@ -8,14 +10,17 @@ Description: CIS-format editable syllabus page with export, aligned header, and 
 @section('content')
 @vite([
   'resources/css/faculty/syllabus.css',
-  'resources/js/faculty/syllabus.js'
+  'resources/js/faculty/syllabus.js',
 ])
 <script>
   const syllabusExitUrl = @json(route('faculty.syllabi.index'));
 </script>
 
 <div class="container my-4 syllabus-doc">
-  <form id="syllabusForm" method="POST" action="{{ route('faculty.syllabi.update', $default['id']) }}">
+  <form id="syllabusForm" 
+        method="POST" 
+        action="{{ route('faculty.syllabi.update', $default['id']) }}"
+        enctype="multipart/form-data">
     @csrf
     @method('PUT')
 
@@ -41,13 +46,16 @@ Description: CIS-format editable syllabus page with export, aligned header, and 
       </div>
     </div>
 
-    {{-- Header Section --}}
+    {{-- Section I: Header --}}
     @include('faculty.syllabus.partials.header')
 
-    {{-- Section I & II – Vision and Mission --}}
+    {{-- Section II: Mission and Vision --}}
     @include('faculty.syllabus.partials.mission-vision')
 
-    {{-- Section III onward – coming soon --}}
+    {{-- Section III: Textbook Upload --}}
+    @include('faculty.syllabus.partials.textbook-upload')
+
+    {{-- Additional sections can be appended here --}}
   </form>
 </div>
 @endsection

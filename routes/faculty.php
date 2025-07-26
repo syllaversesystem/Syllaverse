@@ -2,7 +2,7 @@
 
 // ------------------------------------------------
 // File: routes/faculty.php
-// Description: Faculty-specific routes for login, dashboard, and syllabus creation/export (Syllaverse)
+// Description: Faculty-specific routes for login, dashboard, syllabus CRUD, file upload and export (Syllaverse)
 // ------------------------------------------------
 
 use Illuminate\Support\Facades\Route;
@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Faculty\AuthController as FacultyAuthController;
 use App\Http\Controllers\Faculty\ProfileController;
 use App\Http\Controllers\Faculty\SyllabusController;
+use App\Http\Controllers\Faculty\SyllabusTextbookController;
 use App\Http\Middleware\FacultyAuth;
 
 // ---------- Faculty Login Form View ----------
@@ -38,6 +39,9 @@ Route::middleware([FacultyAuth::class])->group(function () {
     Route::get('/faculty/syllabi/proceed', [SyllabusController::class, 'proceed'])->name('faculty.syllabi.proceed');
     Route::get('/faculty/syllabi/{id}', [SyllabusController::class, 'show'])->name('faculty.syllabi.show');
     Route::put('/faculty/syllabi/{id}', [SyllabusController::class, 'update'])->name('faculty.syllabi.update');
+
+    // ---------- Textbook Upload (AJAX) ----------
+    Route::post('/faculty/syllabi/{id}/textbook', [SyllabusTextbookController::class, 'store'])->name('faculty.syllabi.textbook.upload');
 
     // ---------- Export Routes ----------
     Route::get('/faculty/syllabi/{id}/export/pdf', [SyllabusController::class, 'exportPdf'])->name('faculty.syllabi.export.pdf');

@@ -15,6 +15,7 @@
   {{-- Theme Meta --}}
   <meta name="theme-color" content="#EE6F57" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="csrf-token" content="{{ csrf_token() }}">
 
   {{-- Bootstrap + Icons --}}
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
@@ -34,9 +35,7 @@
   {{-- Syllabus Module Styles & Scripts --}}
   @vite('resources/css/faculty/syllabus.css')
   @vite('resources/js/faculty/syllabus.js')
-  <script>
-    const syllabusExitUrl = @json(route('faculty.syllabi.index'));
-  </script>
+  @vite('resources/js/faculty/syllabus-textbook.js') {{-- AJAX upload handler --}}
 
   @stack('styles')
 </head>
@@ -62,9 +61,7 @@
       if (typeof feather !== 'undefined') {
         feather.replace();
       }
-    });
 
-    document.addEventListener("DOMContentLoaded", () => {
       const sidebar = document.getElementById('sidebar');
       const backdrop = document.getElementById('sidebar-backdrop');
       const mobileToggleBtn = document.getElementById('sidebarToggle');
