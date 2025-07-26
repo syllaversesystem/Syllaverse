@@ -1,7 +1,7 @@
 <?php
 
 // File: app/Http/Controllers/Faculty/SyllabusTextbookController.php
-// Description: Enhanced textbook upload + delete controller with debug logging – Syllaverse
+// Description: Enhanced textbook upload, delete, and listing controller with `type` support – Syllaverse
 
 namespace App\Http\Controllers\Faculty;
 
@@ -28,9 +28,11 @@ class SyllabusTextbookController extends Controller
 
             $request->validate([
                 'textbook_files.*' => 'required|mimes:pdf,doc,docx,xls,xlsx,csv,txt|max:5120',
+                'type' => 'nullable|in:main,other',
             ]);
 
             $uploaded = [];
+            $defaultType = $request->input('type', 'main');
 
             if ($request->hasFile('textbook_files')) {
                 foreach ($request->file('textbook_files') as $file) {
@@ -39,12 +41,14 @@ class SyllabusTextbookController extends Controller
                     $textbook = $syllabus->textbooks()->create([
                         'file_path' => $path,
                         'original_name' => $file->getClientOriginalName(),
+                        'type' => $defaultType,
                     ]);
 
                     $uploaded[] = [
                         'id' => $textbook->id,
                         'name' => $textbook->original_name,
-                        'url' => Storage::url($path),
+                        'url' => Storage::url($textbook->file_path),
+                        'type' => $textbook->type,
                     ];
                 }
             }
@@ -96,5 +100,31 @@ class SyllabusTextbookController extends Controller
                 'message' => 'An error occurred during deletion.',
             ], 500);
         }
+    }
+
+    /**
+     * List all uploaded textbooks of a given type for a syllabus.
+     */
+    public function list(Syllabus $syllabus, Request $request)
+    {
+        $type = $request->query('type', 'main');
+
+        $files = $syllabus->textbooks()
+            ->where('type', $type)
+            ->orderBy('created_at')
+            ->get()
+            ->map(function ($textbook) {
+                return [
+                    'id' => $textbook->id,
+                    'name' => $textbook->original_name,
+                    'url' => Storage::url($textbook->file_path),
+                    'type' => $textbook->type,
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'files' => $files,
+        ]);
     }
 }

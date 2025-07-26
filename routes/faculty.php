@@ -43,14 +43,16 @@ Route::middleware([FacultyAuth::class])->group(function () {
     Route::delete('/faculty/syllabi/{id}', [SyllabusController::class, 'destroy'])->name('faculty.syllabi.destroy');
 
     // ---------- ✅ Textbook Upload (AJAX) ----------
-    // Upload multiple files associated with a syllabus
     Route::post('/faculty/syllabi/{syllabus}/textbook', [SyllabusTextbookController::class, 'store'])
          ->name('faculty.syllabi.textbook.upload');
 
     // ---------- 🗑️ Textbook Delete (AJAX) ----------
-    // Delete an individual uploaded textbook file
     Route::delete('/faculty/syllabi/textbook/{textbook}', [SyllabusTextbookController::class, 'destroy'])
          ->name('faculty.syllabi.textbook.delete');
+
+    // ---------- 📄 Textbook List (AJAX) ----------
+    Route::get('/faculty/syllabi/{syllabus}/textbook/list', [SyllabusTextbookController::class, 'list'])
+         ->name('faculty.syllabi.textbook.list');
 
     // ---------- TLA Update (AJAX) ----------
     Route::post('/faculty/syllabi/{id}/tla', [SyllabusTLAController::class, 'update'])

@@ -1,100 +1,109 @@
 // File: resources/js/faculty/syllabus-textbook.js
-// Description: Handles AJAX-based upload and deletion of textbook files for Syllaverse
+// Description: Upload, delete, and rebuild textbook rows consistently (Syllaverse)
 
 document.addEventListener('DOMContentLoaded', () => {
-  const input = document.querySelector('#textbook_files');
-  const list = document.querySelector('#uploadedTextbookList');
   const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+  const mainInput = document.getElementById('textbook_main_files');
+  const otherInput = document.getElementById('textbook_other_files');
 
-  // ✅ Ensure global syllabusId is defined in Blade
-  if (!input || !list || !csrfToken || typeof syllabusId === 'undefined') return;
+  if (!csrfToken || typeof syllabusId === 'undefined') return;
 
-  // 📤 Upload Handler
-  input.addEventListener('change', async function () {
-    const files = Array.from(this.files);
-    if (files.length === 0) return;
+  // 🔁 Re-fetch section and rebuild rows
+  function refreshSection(type) {
+    const inputId = type === 'main' ? 'textbook_main_files' : 'textbook_other_files';
+    const label = type === 'main' ? 'Textbook' : 'Other Books and Articles';
+
+    fetch(`/faculty/syllabi/${syllabusId}/textbook/list?type=${type}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          rebuildSection(type, data.files, inputId, label);
+        }
+      });
+  }
+
+  // ♻️ Fully rebuild section layout after upload/delete
+  function rebuildSection(type, files, inputId, label) {
+    const inputRow = document.getElementById(inputId)?.closest('tr');
+    const tbody = inputRow?.closest('tbody');
+    if (!inputRow || !tbody) return;
+
+    // 🧹 Remove all file rows for this type
+    const sectionRows = Array.from(tbody.querySelectorAll(`tr[data-type="${type}"]`));
+    sectionRows.forEach(row => row.remove());
+
+    // 🧱 Append rows after upload input row
+    let lastRow = inputRow;
+    files.forEach((file, index) => {
+      const newRow = document.createElement('tr');
+      newRow.setAttribute('data-id', file.id);
+      newRow.setAttribute('data-type', type);
+      newRow.innerHTML = `
+        <td class="text-center">${index + 1}</td>
+        <td>
+          <a href="${file.url}" target="_blank">${file.name}</a>
+        </td>
+        <td>
+          <button type="button" class="btn btn-sm btn-outline-danger float-end delete-textbook-btn">🗑️</button>
+        </td>
+      `;
+      lastRow.insertAdjacentElement('afterend', newRow);
+      lastRow = newRow;
+    });
+
+    // 🔁 Update rowspan on section label
+    const labelCell = inputRow.querySelector('td');
+    if (labelCell) {
+      labelCell.setAttribute('rowspan', files.length + 1); // Upload row + file rows
+    }
+  }
+
+  // 📤 Upload files
+  function uploadFiles(input, type) {
+    const files = Array.from(input.files);
+    if (!files.length) return;
 
     const formData = new FormData();
     files.forEach(file => formData.append('textbook_files[]', file));
+    formData.append('type', type);
 
-    try {
-      const response = await fetch(`/faculty/syllabi/${syllabusId}/textbook`, {
-        method: 'POST',
-        headers: { 'X-CSRF-TOKEN': csrfToken },
-        body: formData,
-      });
-
-      const result = await response.json();
-
-      if (result.success && Array.isArray(result.files)) {
-        result.files.forEach(file => {
-          const li = document.createElement('li');
-          li.className = 'mb-2 d-flex align-items-center justify-content-between';
-          li.setAttribute('data-id', file.id);
-          li.innerHTML = `
-            <a href="${file.url}" target="_blank">${file.name}</a>
-            <button type="button" class="btn btn-sm btn-outline-danger ms-2 delete-textbook-btn">🗑️</button>
-          `;
-          list.appendChild(li);
-        });
-
-        showToast('✅ Files uploaded successfully.');
-        input.value = ''; // ✅ Fix: allow re-uploading the same file after deletion
-      } else {
-        showToast('❌ Upload failed.', true);
-      }
-    } catch (error) {
-      console.error('Upload error:', error);
-      showToast('❌ Error during upload.', true);
-    }
-  });
-
-  // 🗑️ Delete Handler
-  list.addEventListener('click', async function (e) {
-    const deleteBtn = e.target.closest('.delete-textbook-btn');
-    if (!deleteBtn) return;
-
-    const li = deleteBtn.closest('li');
-    const textbookId = li?.getAttribute('data-id');
-
-    if (!textbookId || !confirm('Are you sure you want to delete this file?')) return;
-
-    try {
-      const response = await fetch(`/faculty/syllabi/textbook/${textbookId}`, {
-        method: 'DELETE',
-        headers: {
-          'X-CSRF-TOKEN': csrfToken,
-          'Accept': 'application/json',
-        },
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        li.style.transition = 'opacity 0.3s ease';
-        li.style.opacity = '0';
-        setTimeout(() => li.remove(), 300);
-        showToast('🗑️ File deleted successfully.');
-      } else {
-        showToast('❌ Failed to delete file.', true);
-      }
-    } catch (error) {
-      console.error('Delete error:', error);
-      showToast('❌ Error during deletion.', true);
-    }
-  });
-
-  // ✅ Toast helper
-  function showToast(message, isError = false) {
-    const toast = document.createElement('div');
-    toast.className = `alert alert-${isError ? 'danger' : 'success'} alert-dismissible fade show position-fixed top-0 end-0 m-4`;
-    toast.role = 'alert';
-    toast.style.zIndex = 1055;
-    toast.innerHTML = `
-      ${message}
-      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    `;
-    document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 4000);
+    fetch(`/faculty/syllabi/${syllabusId}/textbook`, {
+      method: 'POST',
+      headers: { 'X-CSRF-TOKEN': csrfToken },
+      body: formData,
+    })
+      .then(res => res.json())
+      .then(result => {
+        if (result.success) {
+          refreshSection(type);
+        }
+        input.value = '';
+      })
+      .catch(err => console.error('Upload failed:', err));
   }
+
+  // 🗑️ Delete file
+  document.addEventListener('click', function (e) {
+    if (!e.target.classList.contains('delete-textbook-btn')) return;
+
+    const row = e.target.closest('tr');
+    const id = row.dataset.id;
+    const type = row.dataset.type;
+
+    fetch(`/faculty/syllabi/textbook/${id}`, {
+      method: 'DELETE',
+      headers: { 'X-CSRF-TOKEN': csrfToken },
+    })
+      .then(res => res.json())
+      .then(result => {
+        if (result.success) {
+          refreshSection(type);
+        }
+      })
+      .catch(err => console.error('Delete failed:', err));
+  });
+
+  // 📎 Bind input events
+  if (mainInput) mainInput.addEventListener('change', () => uploadFiles(mainInput, 'main'));
+  if (otherInput) otherInput.addEventListener('change', () => uploadFiles(otherInput, 'other'));
 });

@@ -16,6 +16,7 @@ class SyllabusTextbook extends Model
         'syllabus_id',
         'file_path',
         'original_name',
+        'type', // ➕ Added type to allow mass assignment of main/other classification
     ];
 
     // 🔁 Each textbook belongs to one syllabus
@@ -24,3 +25,4 @@ class SyllabusTextbook extends Model
         return $this->belongsTo(Syllabus::class);
     }
 }
+
