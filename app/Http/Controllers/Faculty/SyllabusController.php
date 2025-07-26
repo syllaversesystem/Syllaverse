@@ -1,7 +1,7 @@
 <?php
 
 // File: app/Http/Controllers/Faculty/SyllabusController.php
-// Description: Handles syllabus creation, editing, updating, viewing, and exporting (Syllaverse)
+// Description: Handles syllabus creation, viewing, editing, exporting, deletion, and default TLA insertion – Syllaverse
 
 namespace App\Http\Controllers\Faculty;
 
@@ -44,7 +44,7 @@ class SyllabusController extends Controller
         $mission = GeneralInformation::where('section', 'mission')->first()?->content ?? '';
         $vision  = GeneralInformation::where('section', 'vision')->first()?->content ?? '';
 
-        Syllabus::create([
+        $syllabus = Syllabus::create([
             'faculty_id' => Auth::id(),
             'program_id' => $request->program_id,
             'course_id' => $request->course_id,
@@ -56,7 +56,19 @@ class SyllabusController extends Controller
             'vision' => $vision,
         ]);
 
-        return redirect()->route('faculty.syllabi.index')->with('success', 'Syllabus created successfully.');
+        // ✅ Insert default TLA row
+        $syllabus->tla()->create([
+            'ch' => '1',
+            'topic' => 'Orientation & Introduction',
+            'wks' => '',
+            'outcomes' => '',
+            'ilo' => '',
+            'so' => '',
+            'delivery' => '',
+        ]);
+
+        return redirect()->route('faculty.syllabi.index')
+            ->with('success', 'Syllabus created successfully.');
     }
 
     public function show($id)
@@ -93,7 +105,17 @@ class SyllabusController extends Controller
             'vision' => $request->vision,
         ]);
 
-        return redirect()->route('faculty.syllabi.show', $syllabus->id)->with('success', 'Syllabus updated successfully.');
+        return redirect()->route('faculty.syllabi.show', $syllabus->id)
+            ->with('success', 'Syllabus updated successfully.');
+    }
+
+    public function destroy($id)
+    {
+        $syllabus = Syllabus::where('faculty_id', auth()->id())->findOrFail($id);
+        $syllabus->delete();
+
+        return redirect()->route('faculty.syllabi.index')
+            ->with('success', 'Syllabus deleted successfully.');
     }
 
     public function exportPdf($id)

@@ -35,6 +35,8 @@
   {{-- Syllabus Module Styles & Scripts --}}
   @vite('resources/css/faculty/syllabus.css')
   @vite('resources/js/faculty/syllabus.js')
+  @vite('resources/js/faculty/syllabus-tla.js')
+
   @vite('resources/js/faculty/syllabus-textbook.js') {{-- AJAX upload handler --}}
 
   @stack('styles')

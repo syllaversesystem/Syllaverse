@@ -55,6 +55,10 @@
     {{-- Section III: Textbook Upload --}}
     @include('faculty.syllabus.partials.textbook-upload')
 
+    {{-- Section IV: Teaching, Learning, and Assessment --}}
+    @include('faculty.syllabus.partials.tla')
+
+
     {{-- Additional sections can be appended here --}}
   </form>
 </div>

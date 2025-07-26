@@ -13,17 +13,17 @@ class Syllabus extends Model
     use HasFactory;
 
     protected $fillable = [
-    'faculty_id',
-    'program_id',
-    'course_id',
-    'title',
-    'mission',
-    'vision',
-    'academic_year',
-    'semester',
-    'year_level', // ✅ Add this line
-];
-
+        'faculty_id',
+        'program_id',
+        'course_id',
+        'title',
+        'mission',
+        'vision',
+        'academic_year',
+        'semester',
+        'year_level',
+        'textbook_file_path', // ✅ recently added
+    ];
 
     // 🔁 Relationships
     public function faculty()
@@ -39,5 +39,10 @@ class Syllabus extends Model
     public function program()
     {
         return $this->belongsTo(Program::class);
+    }
+
+    public function tla()
+    {
+        return $this->hasMany(TLA::class);
     }
 }

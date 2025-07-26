@@ -1,6 +1,8 @@
 {{-- 
-File: resources/views/faculty/syllabus/modals/create.blade.php
-Description: Modal for creating a syllabus (single-step) with title, program, course, AY, semester, and year level
+------------------------------------------------
+* File: resources/views/faculty/syllabus/modals/create.blade.php
+* Description: Modal for creating a syllabus with metadata fields only – Syllaverse
+------------------------------------------------ 
 --}}
 
 <div class="modal fade" id="selectSyllabusMetaModal" tabindex="-1" aria-labelledby="selectSyllabusMetaModalLabel" aria-hidden="true">
