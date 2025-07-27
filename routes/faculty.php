@@ -1,9 +1,7 @@
 <?php
 
-// ------------------------------------------------
 // File: routes/faculty.php
-// Description: Faculty-specific routes for login, dashboard, syllabus CRUD, textbook, ILO, SO, TLA, and export (Syllaverse)
-// ------------------------------------------------
+// Description: Faculty-specific routes for login, syllabus CRUD, textbook, ILO, SO, TLA, SDG mapping, and export – Syllaverse
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
@@ -13,7 +11,8 @@ use App\Http\Controllers\Faculty\SyllabusController;
 use App\Http\Controllers\Faculty\SyllabusTextbookController;
 use App\Http\Controllers\Faculty\SyllabusTLAController;
 use App\Http\Controllers\Faculty\SyllabusIloController;
-use App\Http\Controllers\Faculty\SyllabusSoController; // ✅ SO Controller
+use App\Http\Controllers\Faculty\SyllabusSoController;
+use App\Http\Controllers\Faculty\SyllabusSdgController; // ✅ New Controller for SDG Mapping
 use App\Http\Middleware\FacultyAuth;
 
 // ---------- Faculty Login Form View ----------
@@ -51,6 +50,14 @@ Route::middleware([FacultyAuth::class])->group(function () {
     // ---------- ✅ SO Update ----------
     Route::put('/faculty/syllabi/{syllabus}/sos', [SyllabusSoController::class, 'update'])
          ->name('faculty.syllabi.sos.update');
+
+    // ---------- ✅ SDG Mapping (Moved to dedicated controller) ----------
+    Route::post('/faculty/syllabi/{syllabus}/sdgs', [SyllabusSdgController::class, 'attach'])
+         ->name('faculty.syllabi.sdgs.attach');
+    Route::put('/faculty/syllabi/{syllabus}/sdgs/update/{pivot}', [SyllabusSdgController::class, 'update'])
+         ->name('faculty.syllabi.sdgs.update');
+    Route::delete('/faculty/syllabi/{syllabus}/sdgs/{sdg}', [SyllabusSdgController::class, 'detach'])
+         ->name('faculty.syllabi.sdgs.detach');
 
     // ---------- ✅ Textbook Upload (AJAX) ----------
     Route::post('/faculty/syllabi/{syllabus}/textbook', [SyllabusTextbookController::class, 'store'])

@@ -68,7 +68,12 @@
   {{-- Section V: Student Outcomes (SO) --}}
   @include('faculty.syllabus.partials.so')
 
+   {{-- Section VII: SDG Mapping --}}
+  @include('faculty.syllabus.partials.sdg')
+
   {{-- Section VI: Teaching, Learning, and Assessment --}}
   @include('faculty.syllabus.partials.tla')
+
+ 
 </div>
 @endsection

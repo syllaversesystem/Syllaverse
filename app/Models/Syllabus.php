@@ -1,7 +1,7 @@
 <?php
 
 // File: app/Models/Syllabus.php
-// Description: Represents a syllabus created by a faculty; includes textbook and TLA relations – Syllaverse
+// Description: Represents a syllabus created by a faculty; includes relationships for program, course, ILOs, SOs, TLAs, textbooks, and mapped SDGs – Syllaverse
 
 namespace App\Models;
 
@@ -48,25 +48,29 @@ class Syllabus extends Model
         return $this->hasMany(TLA::class);
     }
 
-    // ✅ A syllabus has many uploaded textbook files
+    // 🔁 A syllabus has many uploaded textbook files
     public function textbooks()
     {
         return $this->hasMany(SyllabusTextbook::class);
     }
 
-    // File: app/Models/Syllabus.php
-// Description: Represents a created syllabus (Faculty version)
+    // 🔁 A syllabus has many Intended Learning Outcomes (ILO)
+    public function ilos()
+    {
+        return $this->hasMany(SyllabusIlo::class);
+    }
 
-public function ilos()
-{
-    return $this->hasMany(SyllabusIlo::class);
+    // 🔁 A syllabus has many Student Outcomes (SO)
+    public function sos()
+    {
+        return $this->hasMany(SyllabusSo::class);
+    }
+
+    // 🔁 A syllabus maps many SDGs with editable pivot data
+    public function sdgs()
+    {
+        return $this->belongsToMany(Sdg::class, 'syllabus_sdg')
+            ->withPivot('id', 'title', 'description')
+            ->withTimestamps();
+    }
 }
-
-public function sos()
-{
-    return $this->hasMany(SyllabusSo::class);
-}
-
-}
-
-

@@ -36,6 +36,9 @@
   @vite('resources/css/faculty/syllabus.css')
   @vite('resources/js/faculty/syllabus.js')
   @vite('resources/js/faculty/syllabus-tla.js')
+@vite([
+  'resources/js/faculty/syllabus-sdg.js',
+])
 
   @vite('resources/js/faculty/syllabus-textbook.js') {{-- AJAX upload handler --}}
   @vite('resources/js/faculty/syllabus-textbook.js')

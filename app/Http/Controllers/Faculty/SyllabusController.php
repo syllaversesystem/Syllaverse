@@ -1,7 +1,7 @@
 <?php
 
 // File: app/Http/Controllers/Faculty/SyllabusController.php
-// Description: Adds SO cloning and loading logic – Syllaverse
+// Description: Full controller for faculty syllabus management (SDG logic moved to SyllabusSdgController) – Syllaverse
 
 namespace App\Http\Controllers\Faculty;
 
@@ -14,6 +14,7 @@ use App\Models\SyllabusSo;
 use App\Models\Course;
 use App\Models\Program;
 use App\Models\GeneralInformation;
+use App\Models\Sdg;
 use Barryvdh\DomPDF\Facade\Pdf;
 use PhpOffice\PhpWord\PhpWord;
 
@@ -58,7 +59,6 @@ class SyllabusController extends Controller
             'vision' => $vision,
         ]);
 
-        // ✅ Clone ILOs
         $course = Course::with('ilos')->find($request->course_id);
         foreach ($course->ilos as $ilo) {
             SyllabusIlo::create([
@@ -67,7 +67,6 @@ class SyllabusController extends Controller
             ]);
         }
 
-        // ✅ Clone default SOs (static list, or from course if available)
         $defaultSos = [
             'Ability to analyze a complex computing problem and to apply principles of computing and other relevant disciplines to identify solutions.',
             'Ability to design, implement, and evaluate a computing-based solution to meet a given set of computing requirements.',
@@ -84,7 +83,6 @@ class SyllabusController extends Controller
             ]);
         }
 
-        // ✅ Default TLA row
         $syllabus->tla()->create([
             'ch' => '1',
             'topic' => 'Orientation & Introduction',
@@ -101,23 +99,23 @@ class SyllabusController extends Controller
 
     public function show($id)
     {
-        $syllabus = Syllabus::with(['course', 'program', 'ilos', 'sos'])->findOrFail($id);
+        $syllabus = Syllabus::with(['course', 'program', 'ilos', 'sos', 'sdgs'])->findOrFail($id);
         $programs = Program::all();
         $courses = Course::all();
+        $sdgs = Sdg::all();
 
         return view('faculty.syllabus.syllabus', [
             'syllabus' => $syllabus,
             'default' => $syllabus->only([
-                'id',
-                'title', 'program_id', 'course_id',
+                'id', 'title', 'program_id', 'course_id',
                 'academic_year', 'semester', 'year_level',
-                'mission', 'vision',
-                'description', 'instructor', 'contact_hours'
-            ]),
+                'mission', 'vision', 'description', 'instructor', 'contact_hours'
+            ]) + ['sdgs' => $syllabus->sdgs],
             'programs' => $programs,
             'courses' => $courses,
             'ilos' => $syllabus->ilos,
             'sos' => $syllabus->sos,
+            'sdgs' => $sdgs,
         ]);
     }
 
