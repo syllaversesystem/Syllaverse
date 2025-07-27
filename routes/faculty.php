@@ -2,7 +2,7 @@
 
 // ------------------------------------------------
 // File: routes/faculty.php
-// Description: Faculty-specific routes for login, dashboard, syllabus CRUD, textbook & TLA AJAX, and export (Syllaverse)
+// Description: Faculty-specific routes for login, dashboard, syllabus CRUD, textbook, ILO, SO, TLA, and export (Syllaverse)
 // ------------------------------------------------
 
 use Illuminate\Support\Facades\Route;
@@ -12,6 +12,8 @@ use App\Http\Controllers\Faculty\ProfileController;
 use App\Http\Controllers\Faculty\SyllabusController;
 use App\Http\Controllers\Faculty\SyllabusTextbookController;
 use App\Http\Controllers\Faculty\SyllabusTLAController;
+use App\Http\Controllers\Faculty\SyllabusIloController;
+use App\Http\Controllers\Faculty\SyllabusSoController; // ✅ SO Controller
 use App\Http\Middleware\FacultyAuth;
 
 // ---------- Faculty Login Form View ----------
@@ -41,6 +43,14 @@ Route::middleware([FacultyAuth::class])->group(function () {
     Route::get('/faculty/syllabi/{id}', [SyllabusController::class, 'show'])->name('faculty.syllabi.show');
     Route::put('/faculty/syllabi/{id}', [SyllabusController::class, 'update'])->name('faculty.syllabi.update');
     Route::delete('/faculty/syllabi/{id}', [SyllabusController::class, 'destroy'])->name('faculty.syllabi.destroy');
+
+    // ---------- ✅ ILO Update ----------
+    Route::put('/faculty/syllabi/{syllabus}/ilos', [SyllabusIloController::class, 'update'])
+         ->name('faculty.syllabi.ilos.update');
+
+    // ---------- ✅ SO Update ----------
+    Route::put('/faculty/syllabi/{syllabus}/sos', [SyllabusSoController::class, 'update'])
+         ->name('faculty.syllabi.sos.update');
 
     // ---------- ✅ Textbook Upload (AJAX) ----------
     Route::post('/faculty/syllabi/{syllabus}/textbook', [SyllabusTextbookController::class, 'store'])

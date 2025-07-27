@@ -53,4 +53,20 @@ class Syllabus extends Model
     {
         return $this->hasMany(SyllabusTextbook::class);
     }
+
+    // File: app/Models/Syllabus.php
+// Description: Represents a created syllabus (Faculty version)
+
+public function ilos()
+{
+    return $this->hasMany(SyllabusIlo::class);
 }
+
+public function sos()
+{
+    return $this->hasMany(SyllabusSo::class);
+}
+
+}
+
+

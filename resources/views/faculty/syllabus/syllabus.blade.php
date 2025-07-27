@@ -11,15 +11,18 @@
 @vite([
   'resources/css/faculty/syllabus.css',
   'resources/js/faculty/syllabus.js',
+  'resources/js/faculty/syllabus-ilo.js', // ✅ ILO AJAX handler
+  'resources/js/faculty/syllabus-so.js',  // ✅ SO AJAX handler
 ])
 
-{{-- ✅ Required global variables for textbook AJAX logic --}}
+{{-- ✅ Required global variables --}}
 <script>
   const syllabusExitUrl = @json(route('faculty.syllabi.index'));
-  const syllabusId = @json($default['id']); // ✅ Enables upload in syllabus-textbook.js
+  const syllabusId = @json($default['id']);
 </script>
 
 <div class="container my-4 syllabus-doc">
+  {{-- Main General Syllabus Form --}}
   <form id="syllabusForm" 
         method="POST" 
         action="{{ route('faculty.syllabi.update', $default['id']) }}"
@@ -57,11 +60,15 @@
 
     {{-- Section III: Textbook Upload --}}
     @include('faculty.syllabus.partials.textbook-upload')
-
-    {{-- Section IV: Teaching, Learning, and Assessment --}}
-    @include('faculty.syllabus.partials.tla')
-
-    {{-- Additional sections can be appended here --}}
   </form>
+
+  {{-- Section IV: Intended Learning Outcomes (ILO) --}}
+  @include('faculty.syllabus.partials.ilo')
+
+  {{-- Section V: Student Outcomes (SO) --}}
+  @include('faculty.syllabus.partials.so')
+
+  {{-- Section VI: Teaching, Learning, and Assessment --}}
+  @include('faculty.syllabus.partials.tla')
 </div>
 @endsection
