@@ -1,9 +1,10 @@
 {{-- 
 ------------------------------------------------
 * File: resources/views/admin/master-data/tabs/ilo.blade.php
-* Description: ILO Tab Content (Admin Master Data) – with edit support
+* Description: ILO Tab Content (Admin Master Data) – auto-code & auto-position (no manual inputs)
 ------------------------------------------------ 
 --}}
+
 <h5>Intended Learning Outcomes (ILO)</h5>
 
 {{-- Course Filter --}}
@@ -26,13 +27,10 @@
     {{-- Add New ILO Form --}}
     <form method="POST" action="{{ route('admin.master-data.store', ['type' => 'ilo']) }}">
         @csrf
-        <input type="hidden" name="course_id" value="{{ old('course_id', request('course_id')) }}">
+        <input type="hidden" name="course_id" value="{{ request('course_id') }}">
 
         <div class="mb-3">
-            <input type="text" name="code" class="form-control" placeholder="ILO Code (e.g., ILO1)" required value="{{ old('code') }}">
-        </div>
-        <div class="mb-3">
-            <textarea name="description" class="form-control" placeholder="Description" required>{{ old('description') }}</textarea>
+            <textarea name="description" class="form-control" placeholder="ILO Description" required>{{ old('description') }}</textarea>
         </div>
         <button type="submit" class="btn btn-danger">Add ILO</button>
     </form>
@@ -41,17 +39,23 @@
 
     {{-- ILO List --}}
     <ul class="list-group mt-3">
-        @forelse ($intendedLearningOutcomes as $ilo)
+        @forelse ($intendedLearningOutcomes->sortBy('position') as $ilo)
             <li class="list-group-item">
                 <form method="POST" action="{{ route('admin.master-data.update', ['type' => 'ilo', 'id' => $ilo->id]) }}" class="row g-2 align-items-center">
                     @csrf @method('PUT')
                     <input type="hidden" name="course_id" value="{{ request('course_id') }}">
-                    <div class="col-md-2">
-                        <input type="text" name="code" class="form-control form-control-sm" value="{{ $ilo->code }}" required>
+
+                    {{-- Code (readonly) --}}
+                    <div class="col-md-3">
+                        <input type="text" name="code" class="form-control form-control-sm" value="{{ $ilo->code }}" readonly>
                     </div>
-                    <div class="col-md-7">
+
+                    {{-- Description --}}
+                    <div class="col-md-6">
                         <textarea name="description" class="form-control form-control-sm" rows="1" required>{{ $ilo->description }}</textarea>
                     </div>
+
+                    {{-- Action Buttons --}}
                     <div class="col-md-3 d-flex gap-1 justify-content-end">
                         <button type="submit" class="btn btn-sm btn-outline-primary">Save</button>
                         <form method="POST" action="{{ route('admin.master-data.destroy', ['type' => 'ilo', 'id' => $ilo->id]) }}">
@@ -68,4 +72,3 @@
 @else
     <p class="text-muted">Please select a course to manage its ILOs.</p>
 @endif
-    

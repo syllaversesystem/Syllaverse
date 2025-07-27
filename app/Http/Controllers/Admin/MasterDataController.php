@@ -1,7 +1,8 @@
 <?php
 
 // File: app/Http/Controllers/Admin/MasterDataController.php
-// Description: Handles SO, ILO, Programs, and Courses management (Syllaverse)
+// Description: Handles SO, ILO, Programs, and Courses management – auto-insert logic for ILOs removed (Syllaverse)
+
 
 namespace App\Http\Controllers\Admin;
 
@@ -23,7 +24,7 @@ class MasterDataController extends Controller
         return view('admin.master-data.index', [
             'studentOutcomes' => StudentOutcome::all(),
             'intendedLearningOutcomes' => $selectedCourseId
-                ? IntendedLearningOutcome::where('course_id', $selectedCourseId)->get()
+                ? IntendedLearningOutcome::where('course_id', $selectedCourseId)->orderBy('position')->get()
                 : collect(),
             'courses' => Course::where('department_id', $user->department_id)->get(),
             'programs' => Program::where('department_id', $user->department_id)->get(),
@@ -33,7 +34,6 @@ class MasterDataController extends Controller
     public function store(Request $request, $type)
     {
         $rules = [
-            'code' => 'required|string|max:10|unique:' . ($type === 'so' ? 'student_outcomes' : 'intended_learning_outcomes'),
             'description' => 'required|string',
         ];
 
@@ -44,20 +44,32 @@ class MasterDataController extends Controller
         $validated = $request->validate($rules);
 
         if ($type === 'so') {
-            StudentOutcome::create($validated);
-            return back()->with('success', 'SO added successfully!');
+            $count = StudentOutcome::count();
+            $nextCode = 'SO' . ($count + 1);
+
+            StudentOutcome::create([
+                'code' => $nextCode,
+                'description' => $validated['description'],
+            ]);
+
+            return back()->with('success', "SO '{$nextCode}' added successfully!");
         }
 
         if ($type === 'ilo') {
+            $count = IntendedLearningOutcome::where('course_id', $validated['course_id'])->count();
+            $nextCode = 'ILO' . ($count + 1);
+            $nextPosition = $count + 1;
+
             IntendedLearningOutcome::create([
-                'code' => $validated['code'],
+                'code' => $nextCode,
                 'description' => $validated['description'],
                 'course_id' => $validated['course_id'],
+                'position' => $nextPosition,
             ]);
 
             return redirect()
                 ->route('admin.master-data.index', ['course_id' => $validated['course_id']])
-                ->with('success', 'ILO added successfully!');
+                ->with('success', "ILO '{$nextCode}' added successfully!");
         }
 
         return back();
@@ -65,16 +77,22 @@ class MasterDataController extends Controller
 
     public function update(Request $request, $type, $id)
     {
-        $request->validate([
+        $rules = [
             'code' => 'required|string|max:10',
             'description' => 'required|string',
-        ]);
+        ];
+
+        if ($type === 'ilo') {
+            $rules['position'] = 'required|integer|min:1';
+        }
+
+        $request->validate($rules);
 
         $model = $type === 'so'
             ? StudentOutcome::findOrFail($id)
             : IntendedLearningOutcome::findOrFail($id);
 
-        $model->update($request->only('code', 'description'));
+        $model->update($request->only('code', 'description', 'position'));
 
         return back()->with('success', strtoupper($type) . ' updated successfully!');
     }
