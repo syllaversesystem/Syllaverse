@@ -13,6 +13,7 @@
   'resources/js/faculty/syllabus.js',
   'resources/js/faculty/syllabus-ilo.js', // ✅ ILO AJAX handler
   'resources/js/faculty/syllabus-so.js',  // ✅ SO AJAX handler
+  'resources/js/faculty/syllabus-textbook.js', // ✅ SDG AJAX handler
 ])
 
 {{-- ✅ Required global variables --}}
