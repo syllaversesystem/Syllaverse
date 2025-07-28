@@ -1,0 +1,148 @@
+// -----------------------------------------------------------------------------
+// File: public/js/superadmin/departments.js
+// Description: Handles feather icons, modal data setup, and draggable FAB on Manage Departments page – Syllaverse
+// -----------------------------------------------------------------------------
+// 📜 Log:
+// [2025-07-28] Initial creation – extracted inline scripts from blade, added draggable FAB and modal setup logic.
+// [2025-07-28] Updated feather.replace() with safety check to prevent JS crash if feather is undefined.
+// -----------------------------------------------------------------------------
+
+document.addEventListener('DOMContentLoaded', function () {
+    // 🪶 Replace all feather icons safely (if feather is available)
+    if (typeof feather !== 'undefined') {
+        feather.replace();
+    } else {
+        console.warn("⚠️ Feather icons not loaded: skipping feather.replace()");
+    }
+
+    // 📝 Sets form values for editing a department
+    window.setEditDepartment = function (button) {
+        const id = button.dataset.id;
+        const name = button.dataset.name;
+        const code = button.dataset.code;
+        const form = document.getElementById('editDepartmentForm');
+
+        form.action = `/superadmin/departments/${id}`;
+        form.querySelector('#editDepartmentName').value = name;
+        form.querySelector('#editDepartmentCode').value = code;
+    };
+
+    // 🗑️ Sets form action to delete the department
+    window.setDeleteDepartment = function (button) {
+        const id = button.dataset.id;
+        document.getElementById('deleteDepartmentForm').action = `/superadmin/departments/${id}`;
+    };
+
+    // 🔧 FAB drag setup (mobile: hold 1s to drag)
+    const fab = document.getElementById("draggableAddFab");
+    if (!fab) return;
+
+    let offsetX = 0, offsetY = 0;
+    let isDragging = false;
+    let isDraggableMode = false;
+    let holdTimeout, dragStartEvent, holdStarted = false;
+
+    function onHoldStart(e) {
+        if (e.type === 'mousedown' && e.button !== 0) return;
+        holdStarted = true;
+        dragStartEvent = e;
+        holdTimeout = setTimeout(() => {
+            isDraggableMode = true;
+            fab.classList.add('draggable-mode');
+            startDrag(dragStartEvent);
+        }, 1000);
+    }
+
+    function onHoldEnd() {
+        clearTimeout(holdTimeout);
+        holdStarted = false;
+        dragStartEvent = null;
+    }
+
+    function startDrag(e) {
+        if (!isDraggableMode) return;
+
+        isDragging = true;
+        fab.classList.add('dragging');
+        const rect = fab.getBoundingClientRect();
+
+        let clientX, clientY;
+        if (e.type?.startsWith('touch')) {
+            clientX = e.touches[0].clientX;
+            clientY = e.touches[0].clientY;
+        } else {
+            clientX = e.clientX;
+            clientY = e.clientY;
+        }
+
+        offsetX = clientX - rect.left;
+        offsetY = clientY - rect.top;
+        fab.setAttribute('data-bs-toggle', '');
+        fab.setAttribute('data-bs-target', '');
+    }
+
+    function onDragMove(e) {
+        if (!isDragging || !isDraggableMode) return;
+        e.preventDefault();
+
+        let x, y;
+        if (e.type.startsWith('touch')) {
+            x = e.touches[0].clientX;
+            y = e.touches[0].clientY;
+        } else {
+            x = e.clientX;
+            y = e.clientY;
+        }
+
+        const winW = window.innerWidth;
+        const winH = window.innerHeight;
+
+        const left = Math.min(Math.max(0, x - offsetX), winW - fab.offsetWidth);
+        const top = Math.min(Math.max(0, y - offsetY), winH - fab.offsetHeight);
+
+        fab.style.left = `${left}px`;
+        fab.style.top = `${top}px`;
+        fab.style.right = "auto";
+        fab.style.bottom = "auto";
+    }
+
+    function onDragEnd() {
+        if (isDragging || isDraggableMode) {
+            isDragging = false;
+            isDraggableMode = false;
+            fab.classList.remove('dragging', 'draggable-mode');
+            fab.setAttribute('data-bs-toggle', 'modal');
+            fab.setAttribute('data-bs-target', '#addDepartmentModal');
+        }
+        clearTimeout(holdTimeout);
+        holdStarted = false;
+        dragStartEvent = null;
+    }
+
+    // Prevent modal open if dragging
+    fab.addEventListener('click', e => {
+        if (isDraggableMode || isDragging || holdStarted) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    });
+
+    // Hold listeners
+    fab.addEventListener('mousedown', onHoldStart);
+    fab.addEventListener('touchstart', onHoldStart);
+    fab.addEventListener('mouseup', onHoldEnd);
+    fab.addEventListener('mouseleave', onHoldEnd);
+    fab.addEventListener('touchend', onHoldEnd);
+
+    // Start drag only in draggable mode
+    fab.addEventListener('mousedown', e => { if (isDraggableMode) startDrag(e); });
+    fab.addEventListener('touchstart', e => { if (isDraggableMode) startDrag(e); });
+
+    // Drag movement
+    window.addEventListener('mousemove', onDragMove);
+    window.addEventListener('touchmove', onDragMove);
+
+    // End drag
+    window.addEventListener('mouseup', onDragEnd);
+    window.addEventListener('touchend', onDragEnd);
+});
