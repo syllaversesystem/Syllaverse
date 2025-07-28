@@ -42,7 +42,7 @@ Route::middleware([FacultyAuth::class])->group(function () {
     Route::get('/faculty/syllabi/{id}', [SyllabusController::class, 'show'])->name('faculty.syllabi.show');
     Route::put('/faculty/syllabi/{id}', [SyllabusController::class, 'update'])->name('faculty.syllabi.update');
     Route::delete('/faculty/syllabi/{id}', [SyllabusController::class, 'destroy'])->name('faculty.syllabi.destroy');
-
+     
     // ---------- ✅ ILO Update ----------
     Route::put('/faculty/syllabi/{syllabus}/ilos', [SyllabusIloController::class, 'update'])
          ->name('faculty.syllabi.ilos.update');
@@ -74,6 +74,12 @@ Route::middleware([FacultyAuth::class])->group(function () {
     // ---------- TLA Update (AJAX) ----------
     Route::post('/faculty/syllabi/{id}/tla', [SyllabusTLAController::class, 'update'])
          ->name('faculty.syllabi.tla.update');
+         
+     Route::post('/faculty/syllabi/{id}/tla/append', [SyllabusTLAController::class, 'append'])
+     ->name('faculty.syllabi.tla.append');
+
+     Route::delete('/faculty/syllabi/tla/{id}', [SyllabusTLAController::class, 'destroy'])
+     ->name('faculty.syllabi.tla.delete');
 
     // ---------- Export Routes ----------
     Route::get('/faculty/syllabi/{id}/export/pdf', [SyllabusController::class, 'exportPdf'])->name('faculty.syllabi.export.pdf');

@@ -1,16 +1,23 @@
 <?php
 
+// -----------------------------------------------------------------------------
 // File: app/Http/Controllers/Faculty/SyllabusTLAController.php
-// Description: Handles AJAX updates of TLA rows for a syllabus – Syllaverse
+// Description: Handles AJAX updates of TLA rows and appending blank rows – Syllaverse
+// -----------------------------------------------------------------------------
+// 📜 Log:
+// [2025-07-28] Added append() method for inserting new row immediately on "Add Row" click.
+// -----------------------------------------------------------------------------
 
 namespace App\Http\Controllers\Faculty;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Syllabus;
+use App\Models\TLA;
 
 class SyllabusTLAController extends Controller
 {
+    // 🔄 Handles full TLA array save (manual form submission)
     public function update(Request $request, $id)
     {
         $request->validate([
@@ -24,30 +31,70 @@ class SyllabusTLAController extends Controller
             'tla.*.delivery' => 'nullable|string|max:255',
         ]);
 
-        // Get the syllabus with ownership check
         $syllabus = Syllabus::where('faculty_id', auth()->id())->findOrFail($id);
 
-        // Delete existing TLA entries
+        // Clear old entries
         $syllabus->tla()->delete();
 
-        // Save the new TLA rows
         foreach ($request->tla as $row) {
-            if (!empty(array_filter($row))) { // skip empty rows
-                $syllabus->tla()->create([
-                    'ch' => $row['ch'] ?? null,
-                    'topic' => $row['topic'] ?? null,
-                    'wks' => $row['wks'] ?? null,
-                    'outcomes' => $row['outcomes'] ?? null,
-                    'ilo' => $row['ilo'] ?? null,
-                    'so' => $row['so'] ?? null,
-                    'delivery' => $row['delivery'] ?? null,
+            if (!empty(array_filter($row))) {
+                TLA::create([
+                    'syllabus_id' => $syllabus->id,
+                    'ch' => $row['ch'] ?? '',
+                    'topic' => $row['topic'] ?? '',
+                    'wks' => $row['wks'] ?? '',
+                    'outcomes' => $row['outcomes'] ?? '',
+                    'ilo' => $row['ilo'] ?? '',
+                    'so' => $row['so'] ?? '',
+                    'delivery' => $row['delivery'] ?? '',
                 ]);
             }
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'TLA updated successfully.',
+            'message' => 'TLA rows saved successfully.',
         ]);
     }
+
+    // ➕ Immediately inserts a new blank TLA row
+    public function append(Request $request, $id)
+    {
+        $syllabus = Syllabus::where('faculty_id', auth()->id())->findOrFail($id);
+
+        $tla = TLA::create([
+            'syllabus_id' => $syllabus->id,
+            'ch' => '',
+            'topic' => '',
+            'wks' => '',
+            'outcomes' => '',
+            'ilo' => '',
+            'so' => '',
+            'delivery' => '',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'row' => $tla,
+            'message' => 'New TLA row added and saved to database.',
+        ]);
+    }
+
+
+    public function destroy($id)
+{
+    $tla = \App\Models\TLA::findOrFail($id);
+
+    // Optional: check ownership via syllabus
+    if ($tla->syllabus->faculty_id !== auth()->id()) {
+        return response()->json(['success' => false, 'message' => 'Unauthorized.'], 403);
+    }
+
+    $tla->delete();
+
+    return response()->json([
+        'success' => true,
+        'message' => 'TLA row deleted successfully.',
+    ]);
+}
 }

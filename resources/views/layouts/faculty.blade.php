@@ -41,7 +41,7 @@
 ])
 
   @vite('resources/js/faculty/syllabus-textbook.js') {{-- AJAX upload handler --}}
-  @vite('resources/js/faculty/syllabus-textbook.js')
+  @vite('resources/js/faculty/syllabus-tla.js')
 
   @stack('styles')
 </head>
