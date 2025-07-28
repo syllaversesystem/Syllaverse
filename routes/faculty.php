@@ -42,44 +42,35 @@ Route::middleware([FacultyAuth::class])->group(function () {
     Route::get('/faculty/syllabi/{id}', [SyllabusController::class, 'show'])->name('faculty.syllabi.show');
     Route::put('/faculty/syllabi/{id}', [SyllabusController::class, 'update'])->name('faculty.syllabi.update');
     Route::delete('/faculty/syllabi/{id}', [SyllabusController::class, 'destroy'])->name('faculty.syllabi.destroy');
-     
-    // ---------- ✅ ILO Update ----------
-    Route::put('/faculty/syllabi/{syllabus}/ilos', [SyllabusIloController::class, 'update'])
-         ->name('faculty.syllabi.ilos.update');
+
+    // ---------- ✅ ILO (Syllabus) CRUD + Sortable ----------
+    Route::put('/faculty/syllabi/{syllabus}/ilos', [SyllabusIloController::class, 'update'])->name('faculty.syllabi.ilos.update');
+    Route::post('/faculty/syllabi/ilos/store', [SyllabusIloController::class, 'store'])->name('faculty.syllabi.ilos.store');
+    Route::put('/faculty/syllabi/ilos/{syllabus}/{ilo}', [SyllabusIloController::class, 'inlineUpdate'])->name('faculty.syllabi.ilos.inline');
+    Route::delete('/faculty/syllabi/ilos/{id}', [SyllabusIloController::class, 'destroy'])->name('faculty.syllabi.ilos.destroy');
+    Route::post('/faculty/syllabi/reorder/ilo', [SyllabusIloController::class, 'reorder'])->name('faculty.syllabi.ilos.reorder');
 
     // ---------- ✅ SO Update ----------
-    Route::put('/faculty/syllabi/{syllabus}/sos', [SyllabusSoController::class, 'update'])
-         ->name('faculty.syllabi.sos.update');
+    Route::put('/faculty/syllabi/{syllabus}/sos', [SyllabusSoController::class, 'update'])->name('faculty.syllabi.sos.update');
 
     // ---------- ✅ SDG Mapping (Moved to dedicated controller) ----------
-    Route::post('/faculty/syllabi/{syllabus}/sdgs', [SyllabusSdgController::class, 'attach'])
-         ->name('faculty.syllabi.sdgs.attach');
-    Route::put('/faculty/syllabi/{syllabus}/sdgs/update/{pivot}', [SyllabusSdgController::class, 'update'])
-         ->name('faculty.syllabi.sdgs.update');
-    Route::delete('/faculty/syllabi/{syllabus}/sdgs/{sdg}', [SyllabusSdgController::class, 'detach'])
-         ->name('faculty.syllabi.sdgs.detach');
+    Route::post('/faculty/syllabi/{syllabus}/sdgs', [SyllabusSdgController::class, 'attach'])->name('faculty.syllabi.sdgs.attach');
+    Route::put('/faculty/syllabi/{syllabus}/sdgs/update/{pivot}', [SyllabusSdgController::class, 'update'])->name('faculty.syllabi.sdgs.update');
+    Route::delete('/faculty/syllabi/{syllabus}/sdgs/{sdg}', [SyllabusSdgController::class, 'detach'])->name('faculty.syllabi.sdgs.detach');
 
-    // ---------- ✅ Textbook Upload (AJAX) ----------
-    Route::post('/faculty/syllabi/{syllabus}/textbook', [SyllabusTextbookController::class, 'store'])
-         ->name('faculty.syllabi.textbook.upload');
+    // ---------- 📄 Textbook Upload (AJAX) ----------
+    Route::post('/faculty/syllabi/{syllabus}/textbook', [SyllabusTextbookController::class, 'store'])->name('faculty.syllabi.textbook.upload');
 
     // ---------- 🗑️ Textbook Delete (AJAX) ----------
-    Route::delete('/faculty/syllabi/textbook/{textbook}', [SyllabusTextbookController::class, 'destroy'])
-         ->name('faculty.syllabi.textbook.delete');
+    Route::delete('/faculty/syllabi/textbook/{textbook}', [SyllabusTextbookController::class, 'destroy'])->name('faculty.syllabi.textbook.delete');
 
     // ---------- 📄 Textbook List (AJAX) ----------
-    Route::get('/faculty/syllabi/{syllabus}/textbook/list', [SyllabusTextbookController::class, 'list'])
-         ->name('faculty.syllabi.textbook.list');
+    Route::get('/faculty/syllabi/{syllabus}/textbook/list', [SyllabusTextbookController::class, 'list'])->name('faculty.syllabi.textbook.list');
 
     // ---------- TLA Update (AJAX) ----------
-    Route::post('/faculty/syllabi/{id}/tla', [SyllabusTLAController::class, 'update'])
-         ->name('faculty.syllabi.tla.update');
-         
-     Route::post('/faculty/syllabi/{id}/tla/append', [SyllabusTLAController::class, 'append'])
-     ->name('faculty.syllabi.tla.append');
-
-     Route::delete('/faculty/syllabi/tla/{id}', [SyllabusTLAController::class, 'destroy'])
-     ->name('faculty.syllabi.tla.delete');
+    Route::post('/faculty/syllabi/{id}/tla', [SyllabusTLAController::class, 'update'])->name('faculty.syllabi.tla.update');
+    Route::post('/faculty/syllabi/{id}/tla/append', [SyllabusTLAController::class, 'append'])->name('faculty.syllabi.tla.append');
+    Route::delete('/faculty/syllabi/tla/{id}', [SyllabusTLAController::class, 'destroy'])->name('faculty.syllabi.tla.delete');
 
     // ---------- Export Routes ----------
     Route::get('/faculty/syllabi/{id}/export/pdf', [SyllabusController::class, 'exportPdf'])->name('faculty.syllabi.export.pdf');

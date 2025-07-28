@@ -1,7 +1,11 @@
 <?php
 
 // File: app/Http/Controllers/Faculty/SyllabusIloController.php
-// Description: Handles AJAX-based update of ILOs (per syllabus) – Syllaverse
+// Description: Handles CRUD and sorting for syllabus-specific ILOs – Syllaverse
+// -----------------------------------------------------------------------------
+// 📜 Log:
+// [2025-07-29] Regenerated to support inline updates, drag-reorder, add and delete.
+// -----------------------------------------------------------------------------
 
 namespace App\Http\Controllers\Faculty;
 
@@ -13,6 +17,7 @@ use Illuminate\Support\Facades\Auth;
 
 class SyllabusIloController extends Controller
 {
+    // 🔄 Bulk replace of ILOs (classic form)
     public function update(Request $request, $syllabusId)
     {
         $syllabus = Syllabus::where('faculty_id', Auth::id())->findOrFail($syllabusId);
@@ -22,17 +27,79 @@ class SyllabusIloController extends Controller
             'ilos.*' => 'required|string|max:1000',
         ]);
 
-        // Clear old ILOs and insert new ones
         $syllabus->ilos()->delete();
 
-        foreach ($request->ilos as $description) {
+        foreach ($request->ilos as $index => $description) {
             SyllabusIlo::create([
                 'syllabus_id' => $syllabus->id,
+                'code' => 'ILO' . ($index + 1),
                 'description' => $description,
+                'position' => $index + 1,
             ]);
         }
 
-        // Return JSON response for AJAX
-        return response()->json(['message' => 'Intended Learning Outcomes updated successfully.']);
+        return response()->json(['message' => 'ILOs updated successfully.']);
+    }
+
+    // ➕ Add a new blank/filled ILO
+    public function store(Request $request)
+    {
+        $request->validate([
+            'syllabus_id' => 'required|exists:syllabi,id',
+            'description' => 'nullable|string|max:1000'
+        ]);
+
+        $max = SyllabusIlo::where('syllabus_id', $request->syllabus_id)->max('position');
+
+        $ilo = SyllabusIlo::create([
+            'syllabus_id' => $request->syllabus_id,
+            'code' => 'ILO' . (($max ?? 0) + 1),
+            'description' => $request->description,
+            'position' => ($max ?? 0) + 1
+        ]);
+
+        return response()->json(['message' => 'ILO added.', 'id' => $ilo->id]);
+    }
+
+    // 🔄 Inline save of a single ILO
+    public function inlineUpdate(Request $request, $syllabusId, $iloId)
+    {
+        $request->validate([
+            'description' => 'nullable|string|max:1000',
+        ]);
+
+        $ilo = SyllabusIlo::where('syllabus_id', $syllabusId)->findOrFail($iloId);
+        $ilo->update(['description' => $request->description]);
+
+        return back()->with('success', 'ILO updated.');
+    }
+
+    // ❌ Delete a single ILO
+    public function destroy($id)
+    {
+        $ilo = SyllabusIlo::findOrFail($id);
+        $ilo->delete();
+
+        return response()->json(['message' => 'ILO deleted.']);
+    }
+
+    // 🔍 Reorder via drag-and-drop
+    public function reorder(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array',
+            'syllabus_id' => 'required|exists:syllabi,id'
+        ]);
+
+        foreach ($request->ids as $index => $id) {
+            SyllabusIlo::where('id', $id)
+                ->where('syllabus_id', $request->syllabus_id)
+                ->update([
+                    'position' => $index + 1,
+                    'code' => 'ILO' . ($index + 1)
+                ]);
+        }
+
+        return response()->json(['message' => 'ILO order updated successfully.']);
     }
 }

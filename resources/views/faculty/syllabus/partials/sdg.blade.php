@@ -1,91 +1,100 @@
 {{-- 
-------------------------------------------------
+-------------------------------------------------------------------------------
 * File: resources/views/faculty/syllabus/partials/sdg.blade.php
-* Description: SDG Mapping (CIS-style) with AJAX updates – Syllaverse
------------------------------------------------- 
+* Description: SDG Mapping (CIS-style layout, compact height and narrow actions) – Syllaverse
+-------------------------------------------------------------------------------
+📜 Log:
+[2025-07-29] Refactored layout to match CIS format.
+[2025-07-29] Reduced textarea and button height; made action column smaller; icon-only compact buttons.
+-------------------------------------------------------------------------------
 --}}
 
-<table class="table table-bordered mb-4" style="font-family: Georgia, serif; font-size: 13px; line-height: 1.4;">
+<table class="table table-bordered mb-4" style="font-family: Georgia, serif; font-size: 13px; line-height: 1.2;">
   <colgroup>
-    <col style="width: 15%;">
-    <col style="width: 85%;">
+    <col style="width: 25%;">
+    <col style="width: 65%;">
+    <col style="width: 10%;">
   </colgroup>
   <thead class="table-light">
     <tr>
-      <th colspan="2" class="bg-light">
+      <th colspan="3" class="bg-light">
         <div class="d-flex justify-content-between align-items-center">
           <span class="fw-bold">Sustainable Development Goals (SDG) Mapping</span>
           <button type="button" class="btn btn-sm btn-danger fw-semibold" data-bs-toggle="modal" data-bs-target="#addSdgModal">
-            <i class="bi bi-plus-circle"></i> Add SDG
+            <i class="bi bi-plus-circle"></i>
           </button>
         </div>
       </th>
     </tr>
+    <tr class="text-center fw-semibold">
+      <th>SDG Title</th>
+      <th>Description</th>
+      <th>Actions</th>
+    </tr>
   </thead>
   <tbody id="sdg-table-body">
-    {{-- 🔁 Existing SDGs --}}
     @forelse ($default['sdgs'] as $sdg)
       <tr>
-        <td class="align-top text-start">
-          <form data-sdg-form="update" action="{{ route('faculty.syllabi.sdgs.update', [$default['id'], $sdg->pivot->id]) }}">
-            @csrf
+        <form data-sdg-form="update" action="{{ route('faculty.syllabi.sdgs.update', [$default['id'], $sdg->pivot->id]) }}">
+          @csrf
+          <td class="align-top py-1">
             <input type="text" name="title" value="{{ $sdg->pivot->title }}"
-                   class="form-control border-0 p-0 bg-transparent fw-bold mb-1"
+                   class="form-control border-0 p-1 bg-transparent fw-bold"
                    style="font-family: Georgia, serif; font-size: 13px;" required>
-        </td>
-        <td class="align-top">
-          <div class="d-flex justify-content-between align-items-start gap-2">
+          </td>
+          <td class="align-top py-1">
             <textarea name="description"
-                      class="form-control border-0 p-0 bg-transparent"
-                      style="font-family: Georgia, serif; font-size: 13px;" rows="2"
+                      class="form-control border-0 p-1 bg-transparent"
+                      style="font-family: Georgia, serif; font-size: 13px; resize: none;" rows="1"
                       required>{{ $sdg->pivot->description }}</textarea>
-            <div class="d-flex flex-column gap-1 align-items-end">
-              <button type="submit" class="btn btn-sm btn-outline-primary">
-                <i class="bi bi-save"></i> Save
+          </td>
+          <td class="align-top text-end py-1">
+            <div class="d-flex justify-content-end align-items-center gap-1">
+              <button type="submit" class="btn btn-sm btn-outline-primary px-2" title="Save">
+                <i class="bi bi-save"></i>
               </button>
-          </form>
-          <form data-sdg-form="delete" action="{{ route('faculty.syllabi.sdgs.detach', [$default['id'], $sdg->id]) }}" method="POST">
-            @csrf
-            @method('DELETE')
-            <button type="submit" class="btn btn-sm btn-outline-danger">
-              <i class="bi bi-x-circle"></i> Remove
-            </button>
-          </form>
+        </form>
+        <form data-sdg-form="delete" action="{{ route('faculty.syllabi.sdgs.detach', [$default['id'], $sdg->id]) }}" method="POST">
+          @csrf
+          @method('DELETE')
+              <button type="submit" class="btn btn-sm btn-outline-danger px-2" title="Remove">
+                <i class="bi bi-x-circle"></i>
+              </button>
             </div>
-          </div>
-        </td>
+          </td>
+        </form>
       </tr>
     @empty
-      <tr><td colspan="2" class="text-muted fst-italic">No SDGs mapped yet.</td></tr>
+      <tr><td colspan="3" class="text-muted fst-italic text-center">No SDGs mapped yet.</td></tr>
     @endforelse
 
     {{-- 🆕 Hidden template row for JS clone --}}
     <tr id="sdg-template-row" class="d-none">
-      <td class="align-top text-start">
-        <form data-sdg-form="update">
+      <form data-sdg-form="update">
+        <td class="align-top py-1">
           <input type="text" name="title"
-                 class="form-control border-0 p-0 bg-transparent fw-bold mb-1"
+                 class="form-control border-0 p-1 bg-transparent fw-bold"
                  style="font-family: Georgia, serif; font-size: 13px;" required>
-      </td>
-      <td class="align-top">
-        <div class="d-flex justify-content-between align-items-start gap-2">
+        </td>
+        <td class="align-top py-1">
           <textarea name="description"
-                    class="form-control border-0 p-0 bg-transparent"
-                    style="font-family: Georgia, serif; font-size: 13px;" rows="2"
+                    class="form-control border-0 p-1 bg-transparent"
+                    style="font-family: Georgia, serif; font-size: 13px; resize: none;" rows="1"
                     required></textarea>
-          <div class="d-flex flex-column gap-1 align-items-end">
-            <button type="submit" class="btn btn-sm btn-outline-primary">
-              <i class="bi bi-save"></i> Save
+        </td>
+        <td class="align-top text-end py-1">
+          <div class="d-flex justify-content-end align-items-center gap-1">
+            <button type="submit" class="btn btn-sm btn-outline-primary px-2" title="Save">
+              <i class="bi bi-save"></i>
             </button>
-        </form>
-        <form data-sdg-form="delete">
-          <button type="submit" class="btn btn-sm btn-outline-danger">
-            <i class="bi bi-x-circle"></i> Remove
-          </button>
-        </form>
+      </form>
+      <form data-sdg-form="delete">
+            <button type="submit" class="btn btn-sm btn-outline-danger px-2" title="Remove">
+              <i class="bi bi-x-circle"></i>
+            </button>
           </div>
-        </div>
-      </td>
+        </td>
+      </form>
     </tr>
   </tbody>
 </table>
