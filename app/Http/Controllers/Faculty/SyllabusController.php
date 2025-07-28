@@ -1,7 +1,13 @@
 <?php
 
-// File: app/Http/Controllers/Faculty/SyllabusController.php
-// Description: Full controller for faculty syllabus management (SDG logic moved to SyllabusSdgController) – Syllaverse
+// -------------------------------------------------------------------------------
+// * File: app/Http/Controllers/Faculty/SyllabusController.php
+// * Description: Full controller for faculty syllabus management (SDG logic moved to SyllabusSdgController) – Syllaverse
+// -------------------------------------------------------------------------------
+// 📜 Log:
+// [2025-07-28] Initial creation – faculty syllabus controller with create/edit/export logic.
+// [2025-07-29] Updated ILO and SO cloning to include `code` and `position` for compliance with new schema.
+// -------------------------------------------------------------------------------
 
 namespace App\Http\Controllers\Faculty;
 
@@ -11,6 +17,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\Syllabus;
 use App\Models\SyllabusIlo;
 use App\Models\SyllabusSo;
+use App\Models\StudentOutcome;
 use App\Models\Course;
 use App\Models\Program;
 use App\Models\GeneralInformation;
@@ -59,30 +66,28 @@ class SyllabusController extends Controller
             'vision' => $vision,
         ]);
 
+        // ✅ Clone ILOs (code + description)
         $course = Course::with('ilos')->find($request->course_id);
         foreach ($course->ilos as $ilo) {
             SyllabusIlo::create([
                 'syllabus_id' => $syllabus->id,
+                'code' => $ilo->code,
                 'description' => $ilo->description,
             ]);
         }
 
-        $defaultSos = [
-            'Ability to analyze a complex computing problem and to apply principles of computing and other relevant disciplines to identify solutions.',
-            'Ability to design, implement, and evaluate a computing-based solution to meet a given set of computing requirements.',
-            'Ability to communicate effectively in a variety of professional contexts.',
-            'Ability to recognize professional responsibilities and make informed judgments in computing practice.',
-            'Ability to function effectively as a member or leader of a team.',
-            'Ability to identify and analyze user needs and take them into account in computing systems.',
-        ];
-
-        foreach ($defaultSos as $desc) {
+        // ✅ Clone SOs (code + description + position)
+        $masterSOs = StudentOutcome::orderBy('position')->get();
+        foreach ($masterSOs as $index => $so) {
             SyllabusSo::create([
                 'syllabus_id' => $syllabus->id,
-                'description' => $desc,
+                'code' => $so->code,
+                'description' => $so->description,
+                'position' => $index + 1,
             ]);
         }
 
+        // ✅ Create default TLA row
         $syllabus->tla()->create([
             'ch' => '1',
             'topic' => 'Orientation & Introduction',

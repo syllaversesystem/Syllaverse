@@ -1,0 +1,41 @@
+// -----------------------------------------------------------------------------
+// File: resources/js/faculty/syllabus-so.js
+// Description: Handles AJAX save for Student Outcomes (SO) – Syllaverse
+// -----------------------------------------------------------------------------
+// 📜 Log:
+// [2025-07-29] Adapted from ILO script – handles save for `sos[]` and `code[]` via AJAX.
+// -----------------------------------------------------------------------------
+
+document.addEventListener('DOMContentLoaded', () => {
+  const soForm = document.querySelector('#soForm');
+  if (!soForm) return;
+
+  soForm.addEventListener('submit', async function (e) {
+    e.preventDefault();
+
+    const formData = new FormData(soForm);
+    const url = soForm.getAttribute('action');
+    const csrf = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'X-CSRF-TOKEN': csrf,
+          'Accept': 'application/json'
+        },
+        body: formData
+      });
+
+      if (response.ok) {
+        alert('✅ Student Outcomes updated successfully.');
+      } else {
+        const data = await response.json();
+        alert('❌ Failed to update SOs:\n' + (data.message || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('SO Save Error:', error);
+      alert('❌ Error while saving Student Outcomes.');
+    }
+  });
+});

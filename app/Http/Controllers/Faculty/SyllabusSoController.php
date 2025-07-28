@@ -1,7 +1,13 @@
 <?php
 
-// File: app/Http/Controllers/Faculty/SyllabusSoController.php
-// Description: Handles AJAX-based updates of syllabus-specific SOs – Syllaverse
+// -------------------------------------------------------------------------------
+// * File: app/Http/Controllers/Faculty/SyllabusSoController.php
+// * Description: Handles AJAX-based updates, reordering, and deletion of syllabus-specific SOs – Syllaverse
+// -------------------------------------------------------------------------------
+// 📜 Log:
+// [2025-07-29] Added reorder() and destroy() methods; update() now saves code[] and position.
+// -------------------------------------------------------------------------------
+
 
 namespace App\Http\Controllers\Faculty;
 
@@ -13,27 +19,69 @@ use App\Models\SyllabusSo;
 
 class SyllabusSoController extends Controller
 {
+    // ✅ Save updated SO list (code + description)
     public function update(Request $request, $syllabusId)
     {
         $syllabus = Syllabus::where('faculty_id', Auth::id())->findOrFail($syllabusId);
 
         $request->validate([
             'sos' => 'required|array',
-            'sos.*' => 'required|string|max:1000'
+            'sos.*' => 'required|string|max:1000',
+            'code' => 'required|array',
+            'code.*' => 'required|string|max:20',
         ]);
 
-        // Delete existing SOs
+        // Delete old SOs
         $syllabus->sos()->delete();
 
-        // Insert new ones
-        foreach ($request->sos as $description) {
+        // Insert updated SOs
+        foreach ($request->sos as $index => $description) {
             SyllabusSo::create([
                 'syllabus_id' => $syllabus->id,
+                'code' => $request->code[$index] ?? 'SO' . ($index + 1),
                 'description' => $description,
+                'position' => $index + 1,
             ]);
         }
 
-        // AJAX JSON Response
         return response()->json(['message' => 'Student Outcomes updated successfully.']);
+    }
+
+    // ✅ Save reordered SOs via drag-and-drop
+    public function reorder(Request $request, $syllabusId)
+{
+    $request->validate([
+        'positions' => 'required|array',
+        'positions.*.id' => 'required|integer|exists:syllabus_sos,id',
+        'positions.*.position' => 'required|integer',
+    ]);
+
+    foreach ($request->positions as $item) {
+        $code = 'SO' . $item['position']; // 👈 auto-regenerate code from position
+        SyllabusSo::where('id', $item['id'])
+            ->where('syllabus_id', $syllabusId)
+            ->update([
+                'position' => $item['position'],
+                'code' => $code,
+            ]);
+    }
+
+    return response()->json(['message' => 'SO order and codes saved successfully.']);
+}
+
+
+    // ✅ Delete a single SO via AJAX
+    public function destroy($id)
+    {
+        $so = SyllabusSo::findOrFail($id);
+
+        // Only allow delete if owned by current faculty
+        if ($so->syllabus->faculty_id !== Auth::id()) {
+            return response()->json(['message' => 'Unauthorized.'], 403);
+        }
+
+        $so->delete();
+
+        return response()->json(['message' => 'SO deleted successfully.']);
     }
 }

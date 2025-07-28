@@ -69,3 +69,4 @@
 @push('scripts')
   @vite('resources/js/faculty/syllabus-ilo-sortable.js')
 @endpush
+  

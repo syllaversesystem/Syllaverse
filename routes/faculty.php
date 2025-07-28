@@ -12,7 +12,7 @@ use App\Http\Controllers\Faculty\SyllabusTextbookController;
 use App\Http\Controllers\Faculty\SyllabusTLAController;
 use App\Http\Controllers\Faculty\SyllabusIloController;
 use App\Http\Controllers\Faculty\SyllabusSoController;
-use App\Http\Controllers\Faculty\SyllabusSdgController; // ✅ New Controller for SDG Mapping
+use App\Http\Controllers\Faculty\SyllabusSdgController;
 use App\Http\Middleware\FacultyAuth;
 
 // ---------- Faculty Login Form View ----------
@@ -52,6 +52,8 @@ Route::middleware([FacultyAuth::class])->group(function () {
 
     // ---------- ✅ SO Update ----------
     Route::put('/faculty/syllabi/{syllabus}/sos', [SyllabusSoController::class, 'update'])->name('faculty.syllabi.sos.update');
+    Route::post('/faculty/syllabi/{syllabus}/sos/reorder', [SyllabusSoController::class, 'reorder'])->name('faculty.syllabi.sos.reorder');
+    Route::delete('/faculty/syllabi/sos/{id}', [SyllabusSoController::class, 'destroy'])->name('faculty.syllabi.sos.destroy');
 
     // ---------- ✅ SDG Mapping (Moved to dedicated controller) ----------
     Route::post('/faculty/syllabi/{syllabus}/sdgs', [SyllabusSdgController::class, 'attach'])->name('faculty.syllabi.sdgs.attach');
