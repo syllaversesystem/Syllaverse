@@ -16,6 +16,11 @@
   <meta name="theme-color" content="#EE6F57" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
 
+    {{-- ✅ CSRF Token for AJAX --}}
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  
+  
+
   {{-- Bootstrap + Icons --}}
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js" defer></script>
@@ -30,6 +35,7 @@
   @vite('resources/css/admin/admin-navbar.css')
   @vite('resources/css/admin/admin-layout.css')
   @vite('resources/css/syllaverse-colors.css')
+   @vite('resources/js/admin/master-data/ilo-sortable.js')
 
   @stack('styles')
 </head>

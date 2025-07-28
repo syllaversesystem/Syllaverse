@@ -2,7 +2,12 @@
 
 // File: app/Http/Controllers/Admin/MasterDataController.php
 // Description: Handles SO, ILO, Programs, and Courses management – auto-insert logic for ILOs removed (Syllaverse)
-
+// -----------------------------------------------------------------------------
+// 📜 Log:
+// [2025-07-29] Added reorderIlo() with safe 3-pass logic using request order directly.
+// [2025-07-29] Updated redirects to retain tab and subtab state for ILO CRUD actions.
+// [2025-07-29] Added 'open_modal' session flash to reopen ILO form after redirect.
+// -----------------------------------------------------------------------------
 
 namespace App\Http\Controllers\Admin;
 
@@ -52,7 +57,10 @@ class MasterDataController extends Controller
                 'description' => $validated['description'],
             ]);
 
-            return back()->with('success', "SO '{$nextCode}' added successfully!");
+            return redirect()->route('admin.master-data.index', [
+                'tab' => 'soilo',
+                'subtab' => 'so'
+            ])->with('success', "SO '{$nextCode}' added successfully!");
         }
 
         if ($type === 'ilo') {
@@ -67,9 +75,12 @@ class MasterDataController extends Controller
                 'position' => $nextPosition,
             ]);
 
-            return redirect()
-                ->route('admin.master-data.index', ['course_id' => $validated['course_id']])
-                ->with('success', "ILO '{$nextCode}' added successfully!");
+            return redirect()->route('admin.master-data.index', [
+                'course_id' => $validated['course_id'],
+                'tab' => 'soilo',
+                'subtab' => 'ilo'
+            ])->with('open_modal', 'add-ilo')
+              ->with('success', "ILO '{$nextCode}' added successfully!");
         }
 
         return back();
@@ -82,19 +93,26 @@ class MasterDataController extends Controller
             'description' => 'required|string',
         ];
 
-        if ($type === 'ilo') {
-            $rules['position'] = 'required|integer|min:1';
-        }
-
         $request->validate($rules);
 
         $model = $type === 'so'
             ? StudentOutcome::findOrFail($id)
             : IntendedLearningOutcome::findOrFail($id);
 
-        $model->update($request->only('code', 'description', 'position'));
+        $model->update($request->only('code', 'description'));
 
-        return back()->with('success', strtoupper($type) . ' updated successfully!');
+        $redirectParams = ['tab' => 'soilo'];
+        if ($type === 'ilo') {
+            $redirectParams += [
+                'course_id' => $request->input('course_id'),
+                'subtab' => 'ilo'
+            ];
+        } else {
+            $redirectParams['subtab'] = 'so';
+        }
+
+        return redirect()->route('admin.master-data.index', $redirectParams)
+            ->with('success', strtoupper($type) . ' updated successfully!');
     }
 
     public function destroy($type, $id)
@@ -107,12 +125,81 @@ class MasterDataController extends Controller
 
         $model->delete();
 
+        $redirectParams = ['tab' => 'soilo'];
         if ($type === 'ilo' && $courseId) {
-            return redirect()
-                ->route('admin.master-data.index', ['course_id' => $courseId])
-                ->with('success', 'ILO deleted successfully!');
+            $redirectParams += [
+                'course_id' => $courseId,
+                'subtab' => 'ilo'
+            ];
+        } else {
+            $redirectParams['subtab'] = 'so';
         }
 
-        return back()->with('success', strtoupper($type) . ' deleted successfully!');
+        return redirect()->route('admin.master-data.index', $redirectParams)
+            ->with('success', strtoupper($type) . ' deleted successfully!');
     }
+
+    public function reorderIlo(Request $request)
+    {
+        try {
+            $request->validate([
+                'ids' => 'required|array',
+                'course_id' => 'required|exists:courses,id',
+            ]);
+
+            $ilos = IntendedLearningOutcome::whereIn('id', $request->ids)
+                ->where('course_id', $request->course_id)
+                ->get()
+                ->keyBy('id');
+
+            // Step 1: Temporarily assign unique placeholder codes
+            foreach ($ilos as $ilo) {
+                $ilo->forceFill(['code' => '__TEMP__' . $ilo->id])->save();
+            }
+
+            // Step 2: Update position and real code
+            foreach ($request->ids as $index => $id) {
+                if ($ilos->has($id)) {
+                    $ilos[$id]->forceFill([
+                        'position' => $index + 1,
+                        'code' => 'ILO' . ($index + 1)
+                    ])->save();
+                }
+            }
+
+            return response()->json(['message' => 'ILO order updated successfully.']);
+
+        } catch (\Throwable $e) {
+            \Log::error('ILO reorder failed: ' . $e->getMessage(), [
+                'stack' => $e->getTraceAsString()
+            ]);
+            return response()->json(['message' => 'Server error.'], 500);
+        }
+    }
+
+
+    // 🧩 Handles AJAX call to reorder Student Outcomes
+public function reorderSo(Request $request)
+{
+    try {
+        $data = $request->validate([
+            'orderedIds' => 'required|array',
+            'orderedIds.*' => 'integer|exists:student_outcomes,id',
+        ]);
+
+        foreach ($data['orderedIds'] as $index => $id) {
+            $newCode = 'SO' . ($index + 1);
+            StudentOutcome::where('id', $id)->update([
+                'position' => $index + 1,
+                'code' => $newCode,
+            ]);
+        }
+
+        return response()->json(['message' => 'Student Outcomes reordered successfully.']);
+    } catch (\Exception $e) {
+        \Log::error('SO reorder failed: ' . $e->getMessage());
+        return response()->json(['message' => 'Reordering failed.'], 500);
+    }
+}
+
 }

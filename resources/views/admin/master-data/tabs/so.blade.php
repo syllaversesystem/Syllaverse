@@ -10,6 +10,9 @@
 {{-- Add SO Form --}}
 <form method="POST" action="{{ route('admin.master-data.store', 'so') }}">
     @csrf
+    <input type="hidden" name="tab" value="soilo">
+    <input type="hidden" name="subtab" value="so">
+
     <div class="mb-3">
         <textarea name="description" class="form-control" placeholder="SO Description" required>{{ old('description') }}</textarea>
     </div>
@@ -24,6 +27,8 @@
         <li class="list-group-item">
             <form method="POST" action="{{ route('admin.master-data.update', ['type' => 'so', 'id' => $so->id]) }}" class="row g-2 align-items-center">
                 @csrf @method('PUT')
+                <input type="hidden" name="tab" value="soilo">
+                <input type="hidden" name="subtab" value="so">
 
                 {{-- Code (readonly) --}}
                 <div class="col-md-2">
@@ -47,3 +52,5 @@
         </li>
     @endforeach
 </ul>
+
+

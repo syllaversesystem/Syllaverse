@@ -12,5 +12,5 @@ class StudentOutcome extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['code', 'description'];
+    protected $fillable = ['code', 'description', 'position'];
 }

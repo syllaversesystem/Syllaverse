@@ -14,57 +14,65 @@
     {{-- Main Tabs --}}
     <ul class="nav nav-pills mb-4" id="mainMasterTabs" role="tablist">
         <li class="nav-item">
-            <button class="nav-link active" id="soilo-tab" data-bs-toggle="pill" data-bs-target="#soilo" type="button" role="tab">
+            <a class="nav-link {{ request('tab', 'soilo') === 'soilo' ? 'active' : '' }}" href="{{ route('admin.master-data.index', ['tab' => 'soilo'] + request()->except('page')) }}">
                 Student & Intended Learning Outcomes
-            </button>
+            </a>
         </li>
         <li class="nav-item">
-            <button class="nav-link" id="programcourse-tab" data-bs-toggle="pill" data-bs-target="#programcourse" type="button" role="tab">
+            <a class="nav-link {{ request('tab') === 'programcourse' ? 'active' : '' }}" href="{{ route('admin.master-data.index', ['tab' => 'programcourse'] + request()->except('page')) }}">
                 Programs & Courses
-            </button>
+            </a>
         </li>
     </ul>
 
     <div class="tab-content" id="mainMasterTabsContent">
         {{-- SO & ILO Section --}}
-        <div class="tab-pane fade show active" id="soilo" role="tabpanel">
+        <div class="tab-pane fade {{ request('tab', 'soilo') === 'soilo' ? 'show active' : '' }}" id="soilo" role="tabpanel">
             <ul class="nav nav-tabs mb-3" id="soIloSubTabs" role="tablist">
                 <li class="nav-item">
-                    <button class="nav-link active" id="so-tab" data-bs-toggle="tab" data-bs-target="#so" type="button" role="tab">
+                    <a class="nav-link {{ request('subtab', 'so') === 'so' ? 'active' : '' }}" href="{{ route('admin.master-data.index', ['tab' => 'soilo', 'subtab' => 'so'] + request()->except('page')) }}">
                         Student Outcomes (SO)
-                    </button>
+                    </a>
                 </li>
                 <li class="nav-item">
-                    <button class="nav-link" id="ilo-tab" data-bs-toggle="tab" data-bs-target="#ilo" type="button" role="tab">
+                    <a class="nav-link {{ request('subtab') === 'ilo' ? 'active' : '' }}" href="{{ route('admin.master-data.index', ['tab' => 'soilo', 'subtab' => 'ilo'] + request()->except('page')) }}">
                         Intended Learning Outcomes (ILO)
-                    </button>
+                    </a>
                 </li>
             </ul>
 
             <div class="tab-content" id="soIloTabContent">
-                <div class="tab-pane fade show active" id="so" role="tabpanel">@include('admin.master-data.tabs.so')</div>
-                <div class="tab-pane fade" id="ilo" role="tabpanel">@include('admin.master-data.tabs.ilo')</div>
+                <div class="tab-pane fade {{ request('subtab', 'so') === 'so' ? 'show active' : '' }}" id="so" role="tabpanel">
+                    @include('admin.master-data.tabs.so')
+                </div>
+                <div class="tab-pane fade {{ request('subtab') === 'ilo' ? 'show active' : '' }}" id="ilo" role="tabpanel">
+                    @include('admin.master-data.tabs.ilo')
+                </div>
             </div>
         </div>
 
         {{-- Program & Course Section --}}
-        <div class="tab-pane fade" id="programcourse" role="tabpanel">
+        <div class="tab-pane fade {{ request('tab') === 'programcourse' ? 'show active' : '' }}" id="programcourse" role="tabpanel">
             <ul class="nav nav-tabs mb-3" id="progCourseSubTabs" role="tablist">
                 <li class="nav-item">
-                    <button class="nav-link active" id="programs-tab" data-bs-toggle="tab" data-bs-target="#programs" type="button" role="tab">
+                    <a class="nav-link {{ request('subtab', 'programs') === 'programs' ? 'active' : '' }}" href="{{ route('admin.master-data.index', ['tab' => 'programcourse', 'subtab' => 'programs'] + request()->except('page')) }}">
                         Programs
-                    </button>
+                    </a>
                 </li>
                 <li class="nav-item">
-                    <button class="nav-link" id="courses-tab" data-bs-toggle="tab" data-bs-target="#courses" type="button" role="tab">
+                    <a class="nav-link {{ request('subtab') === 'courses' ? 'active' : '' }}" href="{{ route('admin.master-data.index', ['tab' => 'programcourse', 'subtab' => 'courses'] + request()->except('page')) }}">
                         Courses
-                    </button>
+                    </a>
                 </li>
             </ul>
 
             <div class="tab-content" id="progCourseTabContent">
-                <div class="tab-pane fade show active" id="programs" role="tabpanel">@include('admin.master-data.tabs.programs-tab')</div>
-                <div class="tab-pane fade" id="courses" role="tabpanel">@include('admin.master-data.tabs.courses-tab')</div>
+                <div class="tab-pane fade {{ request('subtab', 'programs') === 'programs' ? 'show active' : '' }}" id="programs" role="tabpanel">
+                    @include('admin.master-data.tabs.programs-tab')
+                </div>
+                <div class="tab-pane fade {{ request('subtab') === 'courses' ? 'show active' : '' }}" id="courses" role="tabpanel">
+                    @include('admin.master-data.tabs.courses-tab')
+                </div>
             </div>
         </div>
     </div>
@@ -76,7 +84,3 @@
 @include('admin.master-data.modals.add-course-modal')
 @include('admin.master-data.modals.edit-course-modal')
 @endsection
-
-@push('scripts')
-    @vite('resources/js/admin/master-data.js')
-@endpush

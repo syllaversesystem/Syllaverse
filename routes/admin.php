@@ -2,6 +2,10 @@
 
 // File: routes/admin.php
 // Description: Admin specific routes for Syllaverse
+// -----------------------------------------------------------------------------
+// 📜 Log:
+// [2025-07-29] Added POST route for ILO reordering.
+// -----------------------------------------------------------------------------
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
@@ -64,6 +68,8 @@ Route::middleware([AdminAuth::class])->group(function () {
     Route::post('/master-data/{type}', [MasterDataController::class, 'store'])->name('admin.master-data.store');
     Route::put('/master-data/{type}/{id}', [MasterDataController::class, 'update'])->name('admin.master-data.update');
     Route::delete('/master-data/{type}/{id}', [MasterDataController::class, 'destroy'])->name('admin.master-data.destroy');
+    Route::post('/master-data/reorder/ilo', [MasterDataController::class, 'reorderIlo'])->name('admin.master-data.reorder.ilo');
+    Route::post('/master-data/reorder/so', [MasterDataController::class, 'reorderSo'])->name('admin.master-data.reorder.so');
 
     // Logout
     Route::post('/logout', function () {
