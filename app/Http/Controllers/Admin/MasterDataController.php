@@ -37,54 +37,56 @@ class MasterDataController extends Controller
     }
 
     public function store(Request $request, $type)
-    {
-        $rules = [
-            'description' => 'required|string',
-        ];
+{
+    $rules = [
+        'description' => 'required|string',
+    ];
 
-        if ($type === 'ilo') {
-            $rules['course_id'] = 'required|exists:courses,id';
-        }
-
-        $validated = $request->validate($rules);
-
-        if ($type === 'so') {
-            $count = StudentOutcome::count();
-            $nextCode = 'SO' . ($count + 1);
-
-            StudentOutcome::create([
-                'code' => $nextCode,
-                'description' => $validated['description'],
-            ]);
-
-            return redirect()->route('admin.master-data.index', [
-                'tab' => 'soilo',
-                'subtab' => 'so'
-            ])->with('success', "SO '{$nextCode}' added successfully!");
-        }
-
-        if ($type === 'ilo') {
-            $count = IntendedLearningOutcome::where('course_id', $validated['course_id'])->count();
-            $nextCode = 'ILO' . ($count + 1);
-            $nextPosition = $count + 1;
-
-            IntendedLearningOutcome::create([
-                'code' => $nextCode,
-                'description' => $validated['description'],
-                'course_id' => $validated['course_id'],
-                'position' => $nextPosition,
-            ]);
-
-            return redirect()->route('admin.master-data.index', [
-                'course_id' => $validated['course_id'],
-                'tab' => 'soilo',
-                'subtab' => 'ilo'
-            ])->with('open_modal', 'add-ilo')
-              ->with('success', "ILO '{$nextCode}' added successfully!");
-        }
-
-        return back();
+    if ($type === 'ilo') {
+        $rules['course_id'] = 'required|exists:courses,id';
     }
+
+    $validated = $request->validate($rules);
+
+    if ($type === 'so') {
+        // ✅ Use max position to avoid duplicate codes
+        $nextPosition = StudentOutcome::max('position') + 1;
+        $nextCode = 'SO' . $nextPosition;
+
+        StudentOutcome::create([
+            'code' => $nextCode,
+            'description' => $validated['description'],
+            'position' => $nextPosition,
+        ]);
+
+        return redirect()->route('admin.master-data.index', [
+            'tab' => 'soilo',
+            'subtab' => 'so'
+        ])->with('success', "SO '{$nextCode}' added successfully!");
+    }
+
+    if ($type === 'ilo') {
+        $count = IntendedLearningOutcome::where('course_id', $validated['course_id'])->count();
+        $nextCode = 'ILO' . ($count + 1);
+        $nextPosition = $count + 1;
+
+        IntendedLearningOutcome::create([
+            'code' => $nextCode,
+            'description' => $validated['description'],
+            'course_id' => $validated['course_id'],
+            'position' => $nextPosition,
+        ]);
+
+        return redirect()->route('admin.master-data.index', [
+            'course_id' => $validated['course_id'],
+            'tab' => 'soilo',
+            'subtab' => 'ilo'
+        ])->with('open_modal', 'add-ilo')
+          ->with('success', "ILO '{$nextCode}' added successfully!");
+    }
+
+    return back();
+}
 
     public function update(Request $request, $type, $id)
     {
@@ -179,27 +181,45 @@ class MasterDataController extends Controller
 
 
     // 🧩 Handles AJAX call to reorder Student Outcomes
+// 🧩 Handles AJAX call to reorder Student Outcomes
 public function reorderSo(Request $request)
 {
     try {
         $data = $request->validate([
             'orderedIds' => 'required|array',
-            'orderedIds.*' => 'integer|exists:student_outcomes,id',
+            'orderedIds.*' => 'integer',
         ]);
 
+        $studentOutcomes = StudentOutcome::whereIn('id', $data['orderedIds'])
+            ->get()
+            ->keyBy('id');
+
+        // 🔁 STEP 1: Assign temporary placeholder codes to prevent conflicts
+        foreach ($studentOutcomes as $so) {
+            $so->forceFill(['code' => '__TEMP__' . $so->id])->save();
+        }
+
+        // 🔁 STEP 2: Assign correct codes and positions
         foreach ($data['orderedIds'] as $index => $id) {
-            $newCode = 'SO' . ($index + 1);
-            StudentOutcome::where('id', $id)->update([
-                'position' => $index + 1,
-                'code' => $newCode,
-            ]);
+            if (isset($studentOutcomes[$id])) {
+                $studentOutcomes[$id]->forceFill([
+                    'position' => $index + 1,
+                    'code' => 'SO' . ($index + 1),
+                ])->save();
+            }
         }
 
         return response()->json(['message' => 'Student Outcomes reordered successfully.']);
-    } catch (\Exception $e) {
-        \Log::error('SO reorder failed: ' . $e->getMessage());
-        return response()->json(['message' => 'Reordering failed.'], 500);
+    } catch (\Throwable $e) {
+        \Log::error('SO reorder failed: ' . $e->getMessage(), [
+            'stack' => $e->getTraceAsString(),
+        ]);
+        return response()->json(['message' => 'Server error.'], 500);
     }
 }
+
+
+
+
 
 }
