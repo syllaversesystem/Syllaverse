@@ -1,8 +1,12 @@
 {{-- 
-------------------------------------------------
+------------------------------------------------------------------------------
 * File: resources/views/includes/superadmin-navbar.blade.php
 * Description: Responsive, glassmorphic Super Admin Navbar – Syllaverse
------------------------------------------------- 
+------------------------------------------------------------------------------
+📜 Log:
+[2025-07-28] Initial version – responsive layout with dropdown and dark theme toggle.
+[2025-07-28] Removed inline theme toggle JS; migrated logic to `layout.js`.
+------------------------------------------------------------------------------
 --}}
 <nav class="navbar navbar-expand-lg shadow-sm bg-white border-bottom px-4 py-3 glass-navbar sticky-top" role="navigation" aria-label="Top navbar" style="z-index:1000;">
   <div class="container-fluid d-flex justify-content-between align-items-center">
@@ -49,16 +53,3 @@
     </div>
   </div>
 </nav>
-
-@push('scripts')
-<script>
-  document.getElementById('themeToggleBtn')?.addEventListener('click', function () {
-    document.body.classList.toggle('dark-theme');
-    const icon = this.querySelector('i');
-    icon.classList.toggle('bi-moon');
-    icon.classList.toggle('bi-brightness-high');
-    icon.classList.add('theme-anim');
-    setTimeout(() => icon.classList.remove('theme-anim'), 300);
-  });
-</script>
-@endpush
