@@ -1,7 +1,13 @@
 <?php
 
+// -----------------------------------------------------------------------------
 // File: routes/faculty.php
 // Description: Faculty-specific routes for login, syllabus CRUD, textbook, ILO, SO, TLA, SDG mapping, and export – Syllaverse
+// -----------------------------------------------------------------------------
+// 📜 Log:
+// [2025-07-29] Integrated TLA ↔ ILO and SO sync routes into full faculty route structure.
+// [2025-07-29] Fixed sync-ilo and sync-so to accept both GET and POST methods.
+// -----------------------------------------------------------------------------
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
@@ -43,36 +49,34 @@ Route::middleware([FacultyAuth::class])->group(function () {
     Route::put('/faculty/syllabi/{id}', [SyllabusController::class, 'update'])->name('faculty.syllabi.update');
     Route::delete('/faculty/syllabi/{id}', [SyllabusController::class, 'destroy'])->name('faculty.syllabi.destroy');
 
-    // ---------- ✅ ILO (Syllabus) CRUD + Sortable ----------
+    // ---------- ✅ ILO CRUD + Sortable ----------
     Route::put('/faculty/syllabi/{syllabus}/ilos', [SyllabusIloController::class, 'update'])->name('faculty.syllabi.ilos.update');
     Route::post('/faculty/syllabi/ilos/store', [SyllabusIloController::class, 'store'])->name('faculty.syllabi.ilos.store');
     Route::put('/faculty/syllabi/ilos/{syllabus}/{ilo}', [SyllabusIloController::class, 'inlineUpdate'])->name('faculty.syllabi.ilos.inline');
     Route::delete('/faculty/syllabi/ilos/{id}', [SyllabusIloController::class, 'destroy'])->name('faculty.syllabi.ilos.destroy');
     Route::post('/faculty/syllabi/reorder/ilo', [SyllabusIloController::class, 'reorder'])->name('faculty.syllabi.ilos.reorder');
 
-    // ---------- ✅ SO Update ----------
+    // ---------- ✅ SO CRUD + Sortable ----------
     Route::put('/faculty/syllabi/{syllabus}/sos', [SyllabusSoController::class, 'update'])->name('faculty.syllabi.sos.update');
     Route::post('/faculty/syllabi/{syllabus}/sos/reorder', [SyllabusSoController::class, 'reorder'])->name('faculty.syllabi.sos.reorder');
     Route::delete('/faculty/syllabi/sos/{id}', [SyllabusSoController::class, 'destroy'])->name('faculty.syllabi.sos.destroy');
 
-    // ---------- ✅ SDG Mapping (Moved to dedicated controller) ----------
+    // ---------- ✅ SDG Mapping ----------
     Route::post('/faculty/syllabi/{syllabus}/sdgs', [SyllabusSdgController::class, 'attach'])->name('faculty.syllabi.sdgs.attach');
     Route::put('/faculty/syllabi/{syllabus}/sdgs/update/{pivot}', [SyllabusSdgController::class, 'update'])->name('faculty.syllabi.sdgs.update');
     Route::delete('/faculty/syllabi/{syllabus}/sdgs/{sdg}', [SyllabusSdgController::class, 'detach'])->name('faculty.syllabi.sdgs.detach');
 
-    // ---------- 📄 Textbook Upload (AJAX) ----------
+    // ---------- 📄 Textbook Upload / Delete / List ----------
     Route::post('/faculty/syllabi/{syllabus}/textbook', [SyllabusTextbookController::class, 'store'])->name('faculty.syllabi.textbook.upload');
-
-    // ---------- 🗑️ Textbook Delete (AJAX) ----------
     Route::delete('/faculty/syllabi/textbook/{textbook}', [SyllabusTextbookController::class, 'destroy'])->name('faculty.syllabi.textbook.delete');
-
-    // ---------- 📄 Textbook List (AJAX) ----------
     Route::get('/faculty/syllabi/{syllabus}/textbook/list', [SyllabusTextbookController::class, 'list'])->name('faculty.syllabi.textbook.list');
 
-    // ---------- TLA Update (AJAX) ----------
+    // ---------- TLA CRUD + Mapping ----------
     Route::post('/faculty/syllabi/{id}/tla', [SyllabusTLAController::class, 'update'])->name('faculty.syllabi.tla.update');
     Route::post('/faculty/syllabi/{id}/tla/append', [SyllabusTLAController::class, 'append'])->name('faculty.syllabi.tla.append');
     Route::delete('/faculty/syllabi/tla/{id}', [SyllabusTLAController::class, 'destroy'])->name('faculty.syllabi.tla.delete');
+    Route::match(['get', 'post'], '/faculty/syllabi/tla/{id}/sync-ilo', [SyllabusTLAController::class, 'syncIlo'])->name('faculty.syllabi.tla.sync-ilo');
+    Route::match(['get', 'post'], '/faculty/syllabi/tla/{id}/sync-so', [SyllabusTLAController::class, 'syncSo'])->name('faculty.syllabi.tla.sync-so');
 
     // ---------- Export Routes ----------
     Route::get('/faculty/syllabi/{id}/export/pdf', [SyllabusController::class, 'exportPdf'])->name('faculty.syllabi.export.pdf');

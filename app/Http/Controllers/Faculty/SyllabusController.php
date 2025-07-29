@@ -7,6 +7,7 @@
 // 📜 Log:
 // [2025-07-28] Initial creation – faculty syllabus controller with create/edit/export logic.
 // [2025-07-29] Updated ILO and SO cloning to include `code` and `position` for compliance with new schema.
+// [2025-07-29] Eager-loaded TLA ILO/SO relationships to display mapped codes in Blade.
 // -------------------------------------------------------------------------------
 
 namespace App\Http\Controllers\Faculty;
@@ -66,7 +67,6 @@ class SyllabusController extends Controller
             'vision' => $vision,
         ]);
 
-        // ✅ Clone ILOs (code + description)
         $course = Course::with('ilos')->find($request->course_id);
         foreach ($course->ilos as $ilo) {
             SyllabusIlo::create([
@@ -76,7 +76,6 @@ class SyllabusController extends Controller
             ]);
         }
 
-        // ✅ Clone SOs (code + description + position)
         $masterSOs = StudentOutcome::orderBy('position')->get();
         foreach ($masterSOs as $index => $so) {
             SyllabusSo::create([
@@ -87,7 +86,6 @@ class SyllabusController extends Controller
             ]);
         }
 
-        // ✅ Create default TLA row
         $syllabus->tla()->create([
             'ch' => '1',
             'topic' => 'Orientation & Introduction',
@@ -104,7 +102,12 @@ class SyllabusController extends Controller
 
     public function show($id)
     {
-        $syllabus = Syllabus::with(['course', 'program', 'ilos', 'sos', 'sdgs'])->findOrFail($id);
+        $syllabus = Syllabus::with([
+            'course', 'program', 'ilos', 'sos', 'sdgs',
+            'tla.ilos:id,code',
+            'tla.sos:id,code'
+        ])->findOrFail($id);
+
         $programs = Program::all();
         $courses = Course::all();
         $sdgs = Sdg::all();

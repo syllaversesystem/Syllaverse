@@ -5,6 +5,8 @@
 // -----------------------------------------------------------------------------
 // 📜 Log:
 // [2025-07-29] Regenerated to support inline updates, drag-reorder, add and delete.
+// [2025-07-29] Updated reorder method to accept structured payload: id, position, code.
+// [2025-07-29] Synced reorder() structure to match SO sortable logic.
 // -----------------------------------------------------------------------------
 
 namespace App\Http\Controllers\Faculty;
@@ -17,7 +19,6 @@ use Illuminate\Support\Facades\Auth;
 
 class SyllabusIloController extends Controller
 {
-    // 🔄 Bulk replace of ILOs (classic form)
     public function update(Request $request, $syllabusId)
     {
         $syllabus = Syllabus::where('faculty_id', Auth::id())->findOrFail($syllabusId);
@@ -41,7 +42,6 @@ class SyllabusIloController extends Controller
         return response()->json(['message' => 'ILOs updated successfully.']);
     }
 
-    // ➕ Add a new blank/filled ILO
     public function store(Request $request)
     {
         $request->validate([
@@ -61,7 +61,6 @@ class SyllabusIloController extends Controller
         return response()->json(['message' => 'ILO added.', 'id' => $ilo->id]);
     }
 
-    // 🔄 Inline save of a single ILO
     public function inlineUpdate(Request $request, $syllabusId, $iloId)
     {
         $request->validate([
@@ -74,7 +73,6 @@ class SyllabusIloController extends Controller
         return back()->with('success', 'ILO updated.');
     }
 
-    // ❌ Delete a single ILO
     public function destroy($id)
     {
         $ilo = SyllabusIlo::findOrFail($id);
@@ -83,20 +81,22 @@ class SyllabusIloController extends Controller
         return response()->json(['message' => 'ILO deleted.']);
     }
 
-    // 🔍 Reorder via drag-and-drop
     public function reorder(Request $request)
     {
         $request->validate([
-            'ids' => 'required|array',
+            'positions' => 'required|array',
+            'positions.*.id' => 'required|integer|exists:syllabus_ilos,id',
+            'positions.*.code' => 'required|string',
+            'positions.*.position' => 'required|integer',
             'syllabus_id' => 'required|exists:syllabi,id'
         ]);
 
-        foreach ($request->ids as $index => $id) {
-            SyllabusIlo::where('id', $id)
+        foreach ($request->positions as $item) {
+            SyllabusIlo::where('id', $item['id'])
                 ->where('syllabus_id', $request->syllabus_id)
                 ->update([
-                    'position' => $index + 1,
-                    'code' => 'ILO' . ($index + 1)
+                    'code' => $item['code'],
+                    'position' => $item['position']
                 ]);
         }
 

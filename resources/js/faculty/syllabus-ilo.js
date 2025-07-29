@@ -1,5 +1,11 @@
+// -----------------------------------------------------------------------------
 // File: resources/js/faculty/syllabus-ilo.js
-// Description: Handles AJAX save for Intended Learning Outcomes (ILO) – Syllaverse
+// Description: Handles AJAX save for Intended Learning Outcomes (ILO) including sort-order – Syllaverse
+// -----------------------------------------------------------------------------
+// 📜 Log:
+// [2025-07-29] Fixed to support saving ILO sort order via form submission.
+// [2025-07-29] Synced selectors to match ilo.blade.php (code[] and ilos[]).
+// -----------------------------------------------------------------------------
 
 document.addEventListener('DOMContentLoaded', () => {
   const iloForm = document.querySelector('#iloForm');
@@ -8,25 +14,37 @@ document.addEventListener('DOMContentLoaded', () => {
   iloForm.addEventListener('submit', async function (e) {
     e.preventDefault();
 
-    const formData = new FormData(iloForm);
+    const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
     const url = iloForm.getAttribute('action');
-    const csrf = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+    const iloRows = Array.from(iloForm.querySelectorAll('tr[data-id]'));
+
+    const payload = iloRows.map((row, index) => {
+      return {
+        id: row.getAttribute('data-id'),
+        code: row.querySelector('input[name="code[]"]')?.value,
+        description: row.querySelector('textarea[name="ilos[]"]')?.value,
+        position: index + 1
+      };
+    });
 
     try {
       const response = await fetch(url, {
-        method: 'POST',
+        method: 'PUT',
         headers: {
+          'Content-Type': 'application/json',
           'X-CSRF-TOKEN': csrf,
           'Accept': 'application/json'
         },
-        body: formData
+        body: JSON.stringify({ ilos: payload })
       });
 
-      if (response.ok) {
-        alert('✅ ILOs updated successfully.');
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        alert('✅ ILOs saved and reordered successfully.');
       } else {
-        const data = await response.json();
-        alert('❌ Failed to update ILOs:\n' + (data.message || 'Unknown error'));
+        alert('❌ Failed to save ILOs: ' + (result.message || 'Unknown error'));
       }
     } catch (error) {
       console.error('ILO Save Error:', error);

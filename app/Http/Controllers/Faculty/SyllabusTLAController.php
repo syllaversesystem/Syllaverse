@@ -6,6 +6,7 @@
 // -----------------------------------------------------------------------------
 // 📜 Log:
 // [2025-07-28] Added append() method for inserting new row immediately on "Add Row" click.
+// [2025-07-29] Updated syncIlo and syncSo to return ILO/SO codes for Blade table injection.
 // -----------------------------------------------------------------------------
 
 namespace App\Http\Controllers\Faculty;
@@ -80,21 +81,66 @@ class SyllabusTLAController extends Controller
         ]);
     }
 
-
     public function destroy($id)
-{
-    $tla = \App\Models\TLA::findOrFail($id);
+    {
+        $tla = TLA::findOrFail($id);
 
-    // Optional: check ownership via syllabus
-    if ($tla->syllabus->faculty_id !== auth()->id()) {
-        return response()->json(['success' => false, 'message' => 'Unauthorized.'], 403);
+        if ($tla->syllabus->faculty_id !== auth()->id()) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized.'], 403);
+        }
+
+        $tla->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'TLA row deleted successfully.',
+        ]);
     }
 
-    $tla->delete();
+    // 🧩 Sync ILOs to a TLA row (GET = fetch mapped IDs + codes, POST = sync)
+public function syncIlo(Request $request, $id)
+{
+    $tla = TLA::with('ilos')->findOrFail($id);
 
-    return response()->json([
-        'success' => true,
-        'message' => 'TLA row deleted successfully.',
+    // GET → fetch current mappings
+    if ($request->isMethod('get')) {
+        return response()->json([
+            'ilos' => $tla->ilos->pluck('id'),
+            'ilo_codes' => $tla->ilos->pluck('code')
+        ]);
+    }
+
+    // POST → update mappings
+    $validated = $request->validate([
+        'ilo_ids' => 'array',
+        'ilo_ids.*' => 'exists:syllabus_ilos,id'
     ]);
+
+    $tla->ilos()->sync($validated['ilo_ids']);
+
+    return response()->json(['success' => true]);
 }
+
+
+    // 🧩 Sync SOs to a TLA row (GET = fetch, POST = sync)
+    public function syncSo(Request $request, $id)
+    {
+        $tla = TLA::with('sos')->findOrFail($id);
+
+        if ($request->isMethod('get')) {
+            return response()->json([
+                'sos' => $tla->sos->pluck('id'),
+                'so_codes' => $tla->sos->pluck('code')
+            ]);
+        }
+
+        $validated = $request->validate([
+            'so_ids' => 'array',
+            'so_ids.*' => 'exists:syllabus_sos,id'
+        ]);
+
+        $tla->sos()->sync($validated['so_ids']);
+
+        return response()->json(['success' => true]);
+    }
 }

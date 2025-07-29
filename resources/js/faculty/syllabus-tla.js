@@ -4,6 +4,7 @@
 // -----------------------------------------------------------------------------
 // 📜 Log:
 // [2025-07-28] Added delete-to-DB functionality via DELETE /tla/{id} with AJAX.
+// [2025-07-29] Fixed addTlaRow to clear mapped ILO/SO displays and assign correct tla_id.
 // -----------------------------------------------------------------------------
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -40,8 +41,29 @@ document.addEventListener('DOMContentLoaded', () => {
         // Clear any hidden TLA ID for new rows
         const idInput = newRow.querySelector('.tla-id-field');
         if (idInput) idInput.value = '';
-        const deleteBtn = newRow.querySelector('.remove-tla-row');
-        if (deleteBtn) deleteBtn.setAttribute('data-id', '');
+
+        // Clear ILO/SO visual displays
+        const iloDisplay = newRow.querySelector('.ilo-mapped-codes');
+        if (iloDisplay) iloDisplay.textContent = '';
+
+        const soDisplay = newRow.querySelector('.so-mapped-codes');
+        if (soDisplay) soDisplay.textContent = '';
+
+        // Clear modal button data-tlaid
+        newRow.querySelectorAll('.map-ilo-btn, .map-so-btn').forEach(btn => {
+          btn.dataset.tlaid = '';
+        });
+
+        // 🔗 Assign actual new TLA ID from backend so it can be deleted later
+        if (result.row?.id) {
+          if (idInput) idInput.setAttribute('value', result.row.id);
+          const deleteBtn = newRow.querySelector('.remove-tla-row');
+          if (deleteBtn) deleteBtn.setAttribute('data-id', result.row.id);
+
+          newRow.querySelectorAll('.map-ilo-btn, .map-so-btn').forEach(btn => {
+            btn.dataset.tlaid = result.row.id;
+          });
+        }
 
         tlaBody.appendChild(newRow);
         updateTlaIndices();
