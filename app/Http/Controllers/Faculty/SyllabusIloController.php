@@ -1,13 +1,16 @@
 <?php
 
-// File: app/Http/Controllers/Faculty/SyllabusIloController.php
-// Description: Handles CRUD and sorting for syllabus-specific ILOs – Syllaverse
-// -----------------------------------------------------------------------------
+// -------------------------------------------------------------------------------
+// * File: app/Http/Controllers/Faculty/SyllabusIloController.php
+// * Description: Handles CRUD and sorting for syllabus-specific ILOs – Syllaverse
+// -------------------------------------------------------------------------------
 // 📜 Log:
 // [2025-07-29] Regenerated to support inline updates, drag-reorder, add and delete.
 // [2025-07-29] Updated reorder method to accept structured payload: id, position, code.
 // [2025-07-29] Synced reorder() structure to match SO sortable logic.
-// -----------------------------------------------------------------------------
+// [2025-07-29] Refactored update() method to accept structured object array (id, code, description, position).
+// -------------------------------------------------------------------------------
+
 
 namespace App\Http\Controllers\Faculty;
 
@@ -19,29 +22,43 @@ use Illuminate\Support\Facades\Auth;
 
 class SyllabusIloController extends Controller
 {
+    // 📝 Updates all ILOs in batch with id, code, description, position
     public function update(Request $request, $syllabusId)
     {
         $syllabus = Syllabus::where('faculty_id', Auth::id())->findOrFail($syllabusId);
 
         $request->validate([
             'ilos' => 'required|array',
-            'ilos.*' => 'required|string|max:1000',
+            'ilos.*.id' => 'nullable|integer|exists:syllabus_ilos,id',
+            'ilos.*.code' => 'required|string',
+            'ilos.*.description' => 'required|string|max:1000',
+            'ilos.*.position' => 'required|integer',
         ]);
 
-        $syllabus->ilos()->delete();
+        $incomingIds = collect($request->ilos)->pluck('id')->filter();
+        $existingIds = SyllabusIlo::where('syllabus_id', $syllabus->id)->pluck('id');
 
-        foreach ($request->ilos as $index => $description) {
-            SyllabusIlo::create([
-                'syllabus_id' => $syllabus->id,
-                'code' => 'ILO' . ($index + 1),
-                'description' => $description,
-                'position' => $index + 1,
-            ]);
+        // 🔥 Delete ILOs that were removed in frontend
+        $toDelete = $existingIds->diff($incomingIds);
+        SyllabusIlo::whereIn('id', $toDelete)->delete();
+
+        // 🔄 Upsert ILOs based on submitted payload
+        foreach ($request->ilos as $iloData) {
+            SyllabusIlo::updateOrCreate(
+                ['id' => $iloData['id'] ?? null],
+                [
+                    'syllabus_id' => $syllabus->id,
+                    'code' => $iloData['code'],
+                    'description' => $iloData['description'],
+                    'position' => $iloData['position'],
+                ]
+            );
         }
 
-        return response()->json(['message' => 'ILOs updated successfully.']);
+        return response()->json(['success' => true, 'message' => 'ILOs updated successfully.']);
     }
 
+    // ➕ Adds a new ILO
     public function store(Request $request)
     {
         $request->validate([
@@ -61,6 +78,7 @@ class SyllabusIloController extends Controller
         return response()->json(['message' => 'ILO added.', 'id' => $ilo->id]);
     }
 
+    // ✏️ Updates only the description (used for inline update)
     public function inlineUpdate(Request $request, $syllabusId, $iloId)
     {
         $request->validate([
@@ -73,6 +91,7 @@ class SyllabusIloController extends Controller
         return back()->with('success', 'ILO updated.');
     }
 
+    // ❌ Deletes one ILO
     public function destroy($id)
     {
         $ilo = SyllabusIlo::findOrFail($id);
@@ -81,6 +100,7 @@ class SyllabusIloController extends Controller
         return response()->json(['message' => 'ILO deleted.']);
     }
 
+    // 🔁 Reorder endpoint (optional if you split order from save)
     public function reorder(Request $request)
     {
         $request->validate([

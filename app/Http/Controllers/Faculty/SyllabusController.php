@@ -87,7 +87,7 @@ class SyllabusController extends Controller
         }
 
         $syllabus->tla()->create([
-            'ch' => '1',
+            'ch' => '',
             'topic' => 'Orientation & Introduction',
             'wks' => '',
             'outcomes' => '',
