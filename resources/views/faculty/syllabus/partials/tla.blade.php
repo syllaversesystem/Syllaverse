@@ -8,6 +8,7 @@
 [2025-07-29] Integrated modal-based many-to-many ILO and SO mapping.
 [2025-07-29] Added display spans for mapped ILO/SO codes under each button.
 [2025-07-29] Show mapped ILO/SO codes in table on initial Blade render.
+[2025-07-30] Added "Generate TLA Plan (AI)" button to trigger Gemini-based generation.
 -------------------------------------------------------------------------------
 --}}
 
@@ -74,9 +75,13 @@
   </tbody>
 </table>
 
-<div class="mb-4">
+<div class="mb-4 d-flex gap-2">
   <button type="button" class="btn btn-sm btn-outline-primary" id="add-tla-row">
     <i class="bi bi-plus-circle"></i> Add Row
+  </button>
+
+  <button type="button" class="btn btn-sm btn-outline-danger ms-auto" id="generate-tla-ai">
+    <i class="bi bi-stars"></i> Generate TLA Plan (AI)
   </button>
 </div>
 
@@ -85,6 +90,8 @@
 {{-- ░░░ START: ILO/SO Mapping Modals ░░░ --}}
 @include('faculty.syllabus.modals.map-ilo')
 @include('faculty.syllabus.modals.map-so')
-@vite('resources/js/faculty/syllabus-tla-mapping.js')
-
+@vite([
+  'resources/js/faculty/syllabus-tla-mapping.js',
+  'resources/js/faculty/syllabus-tla-ai.js',
+])
 {{-- ░░░ END: ILO/SO Mapping Modals ░░░ --}}

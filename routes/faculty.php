@@ -81,6 +81,10 @@ Route::middleware([FacultyAuth::class])->group(function () {
     // ---------- Export Routes ----------
     Route::get('/faculty/syllabi/{id}/export/pdf', [SyllabusController::class, 'exportPdf'])->name('faculty.syllabi.export.pdf');
     Route::get('/faculty/syllabi/{id}/export/word', [SyllabusController::class, 'exportWord'])->name('faculty.syllabi.export.word');
+
+    Route::post('/faculty/syllabi/{syllabus}/generate-tla', [SyllabusTLAController::class, 'generateWithAI'])
+     ->name('faculty.syllabi.tla.generate');
+
 });
 
 // ---------- Logout ----------

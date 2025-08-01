@@ -86,16 +86,6 @@ class SyllabusController extends Controller
             ]);
         }
 
-        $syllabus->tla()->create([
-            'ch' => '',
-            'topic' => 'Orientation & Introduction',
-            'wks' => '',
-            'outcomes' => '',
-            'ilo' => '',
-            'so' => '',
-            'delivery' => '',
-        ]);
-
         return redirect()->route('faculty.syllabi.index')
             ->with('success', 'Syllabus created successfully.');
     }
