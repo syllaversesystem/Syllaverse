@@ -31,9 +31,6 @@
 </head>
 
 <body>
-  {{-- START: Background Shape --}}
-  <div class="accent-bg"></div>
-  {{-- END: Background Shape --}}
 
   {{-- START: Login Card --}}
   <div class="login-card">

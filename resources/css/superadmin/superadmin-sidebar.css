@@ -1,40 +1,24 @@
-/* 
-------------------------------------------------
+/*
+-------------------------------------------------------------------------------
 * File: resources/css/superadmin/superadmin-sidebar.css
-* Description: Sidebar styles for Syllaverse Super Admin (reduced separator spacing around collapse button)
------------------------------------------------- 
+* Description: Sidebar styles for Syllaverse Super Admin (responsive and glassmorphic, with mobile-collapsed support)
+-------------------------------------------------------------------------------
+📜 Log:
+[2025-08-01] Initial formatting and logical reorganization – grouped sections, cleaned spacing, clarified selectors.
+-------------------------------------------------------------------------------
 */
 
-/* Sidebar Links – Expanded (Glassmorphic States) */
+/* ░░░ START: Sidebar – Expanded (Default) ░░░ */
 #sidebar .nav-link {
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.5rem 0.75rem;
   color: #333;
-  font-size: 0.95rem;
-  padding: 12px 16px;
-  border-radius: 8px;
-  margin-bottom: 8px;
-  transition: all 0.2s ease;
   display: flex;
   align-items: center;
-  gap: 10px;
-  background: transparent;
-}
-
-#sidebar .nav-link:hover {
-  background: linear-gradient(135deg, rgba(255, 240, 235, 0.8), rgba(255, 255, 255, 0.4));
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  color: #CB3737;
-  box-shadow: 0 4px 8px rgba(204, 55, 55, 0.1);
-  transform: none;
-}
-
-#sidebar .nav-link.active {
-  background: linear-gradient(135deg, rgba(255, 230, 225, 0.9), rgba(255, 255, 255, 0.5));
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  color: #CB3737;
-  font-weight: 600;
-  box-shadow: inset 2px 2px 4px rgba(204, 55, 55, 0.08);
+  gap: 0.5rem;
+  border-radius: 0.375rem;
+  transition: all 0.2s ease;
 }
 
 #sidebar .nav-link i {
@@ -42,38 +26,129 @@
   color: inherit;
 }
 
-#sidebar .label {
-  flex-grow: 1;
+#sidebar .nav-link:hover {
+  background: linear-gradient(135deg, rgba(255, 240, 235, 0.8), rgba(255, 255, 255, 0.4));
+  backdrop-filter: blur(6px);
+  color: #CB3737;
+  box-shadow: 0 4px 8px rgba(204, 55, 55, 0.1);
+}
+
+#sidebar .nav-link.active {
+  background: linear-gradient(135deg, rgba(255, 230, 225, 0.9), rgba(255, 255, 255, 0.5));
+  backdrop-filter: blur(8px);
+  color: #CB3737;
+  font-weight: 600;
+  box-shadow: inset 2px 2px 4px rgba(204, 55, 55, 0.08);
 }
 
 #sidebar .nav-link.active::before {
   display: none;
 }
 
-/* Sidebar Separator (reduced spacing around collapse button) */
+#sidebar .label {
+  flex-grow: 1;
+}
+/* ░░░ END: Sidebar – Expanded (Default) ░░░ */
+
+
+/* ░░░ START: Sidebar – Collapsed (Desktop) ░░░ */
+body.sidebar-collapsed #sidebar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 70px;
+  min-width: 70px;
+  max-width: 70px;
+  height: 100vh;
+  background-color: #FAFAFA;
+  opacity: 0.95;
+  transition: width 0.3s, background-color 0.3s, opacity 0.3s;
+}
+
+body.sidebar-collapsed #sidebar .nav-link {
+  width: 48px;
+  height: 48px;
+  justify-content: center;
+  margin-bottom: 12px;
+  border-radius: 14px;
+}
+
+body.sidebar-collapsed #sidebar .nav-link i {
+  font-size: 1.3rem;
+}
+
+body.sidebar-collapsed #sidebar .label {
+  display: none !important;
+}
+
+body.sidebar-collapsed .sidebar-logo-expanded {
+  display: none !important;
+  opacity: 0;
+}
+
+body.sidebar-collapsed .sidebar-logo-collapsed {
+  display: inline-block !important;
+  opacity: 1;
+}
+/* ░░░ END: Sidebar – Collapsed (Desktop) ░░░ */
+
+
+/* ░░░ START: Collapse Button Styles ░░░ */
+#sidebarCollapseBtn {
+  border: none;
+  background-color: #F8F8F8;
+  color: #CB3737;
+  padding: 10px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+#sidebarCollapseBtn:hover,
+body.sidebar-collapsed #sidebarCollapseBtn:hover {
+  background: linear-gradient(135deg, rgba(255, 240, 235, 0.8), rgba(255, 255, 255, 0.4));
+  backdrop-filter: blur(6px);
+  box-shadow: 0 4px 8px rgba(204, 55, 55, 0.1);
+}
+
+#sidebarCollapseBtn:active,
+body.sidebar-collapsed #sidebarCollapseBtn:active {
+  background: linear-gradient(135deg, rgba(255, 230, 225, 0.9), rgba(255, 255, 255, 0.5));
+  backdrop-filter: blur(8px);
+  box-shadow: inset 2px 2px 4px rgba(204, 55, 55, 0.08);
+}
+
+.rotate-icon {
+  transition: transform 0.3s ease;
+  display: inline-block;
+}
+
+body.sidebar-collapsed #sidebarCollapseBtn .rotate-icon {
+  transform: rotate(180deg);
+}
+/* ░░░ END: Collapse Button Styles ░░░ */
+
+
+/* ░░░ START: Sidebar Separator ░░░ */
 .sidebar-separator {
   border-bottom: 1.5px solid #e3e3e3;
+  margin: 8px 0;
   width: 100%;
-  margin-top: 8px;
-  margin-bottom: 8px;
 }
 
 body.sidebar-collapsed .sidebar-separator {
   width: 40px;
-  margin-left: auto;
-  margin-right: auto;
-  margin-top: 8px;
-  margin-bottom: 8px;
+  margin: 8px auto;
 }
 
-/* Hide bottom separator on mobile */
 @media (max-width: 991.98px) {
   .sidebar-separator {
     display: none;
   }
 }
+/* ░░░ END: Sidebar Separator ░░░ */
 
-/* Drawer Sidebar (Responsive - Mobile) */
+
+/* ░░░ START: Drawer Sidebar (Mobile Responsive) ░░░ */
 @media (max-width: 991.98px) {
   #sidebar {
     position: fixed;
@@ -85,158 +160,51 @@ body.sidebar-collapsed .sidebar-separator {
     opacity: 0;
     box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
     transition: transform 0.3s ease, opacity 0.2s ease;
+    min-width: 70px !important;
+    max-width: 70px !important;
+    width: 70px !important;
+    align-items: center !important;
   }
+
   #sidebar.collapsed {
     transform: translateX(0);
     opacity: 1;
   }
+
   .sidebar-backdrop {
     position: fixed;
     inset: 0;
     background-color: rgba(0, 0, 0, 0.3);
     z-index: 1039;
   }
-}
 
-/* Collapsed Sidebar – Styles (Desktop) */
-body.sidebar-collapsed #sidebar {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  height: 100vh;
-  width: 70px;
-  min-width: 70px;
-  max-width: 70px;
-  padding-left: 0 !important;
-  padding-right: 0 !important;
-  background-color: #FAFAFA;
-  opacity: 0.95;
-  transition: width 0.3s, background-color 0.3s, opacity 0.3s;
-}
+  #sidebar .nav-link {
+    width: 48px;
+    height: 48px;
+    justify-content: center;
+    padding: 0;
+    margin-bottom: 12px;
+    border-radius: 14px;
+  }
 
-body.sidebar-collapsed #sidebar .px-3 {
-  padding-left: 0 !important;
-  padding-right: 0 !important;
-}
+  #sidebar .label,
+  #sidebar .sidebar-logo-expanded {
+    display: none !important;
+    opacity: 0;
+  }
 
-body.sidebar-collapsed #sidebar ul.nav {
-  display: flex;
-  flex-direction: column;
-  align-items: center !important;
-  justify-content: flex-start;
-  width: 100%;
-  padding-left: 0 !important;
-  padding-right: 0 !important;
-  margin: 0 !important;
-  gap: 0.5rem;
+  #sidebar .sidebar-logo-collapsed {
+    display: inline-block !important;
+    opacity: 1;
+  }
 }
+/* ░░░ END: Drawer Sidebar (Mobile Responsive) ░░░ */
 
-body.sidebar-collapsed #sidebar .nav-link {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 48px;
-  height: 48px;
-  margin: 0 auto 12px;
-  border-radius: 14px;
-  transition: all 0.3s ease;
-  background: transparent;
-}
 
-body.sidebar-collapsed #sidebar .nav-link i {
-  font-size: 1.3rem;
-}
-
-body.sidebar-collapsed #sidebar .nav-link:hover {
-  background: linear-gradient(135deg, rgba(255, 240, 235, 0.8), rgba(255, 255, 255, 0.4));
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  color: #CB3737;
-  box-shadow: 0 4px 8px rgba(204, 55, 55, 0.1);
-}
-
-body.sidebar-collapsed #sidebar .nav-link.active {
-  background: linear-gradient(135deg, rgba(255, 230, 225, 0.9), rgba(255, 255, 255, 0.5));
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  color: #CB3737;
-  font-weight: 600;
-  box-shadow: inset 2px 2px 4px rgba(204, 55, 55, 0.08);
-}
-
-body.sidebar-collapsed #sidebar .nav-link.active::before {
-  display: none;
-}
-
-/* Hide nav labels in collapsed mode */
-body.sidebar-collapsed #sidebar .label {
-  display: none !important;
-}
-
+/* ░░░ START: Utility & Motion Settings ░░░ */
 .fade-logo {
   opacity: 1;
   transition: opacity 0.3s ease;
-}
-
-body.sidebar-collapsed .sidebar-logo-expanded {
-  opacity: 0;
-  display: none !important;
-}
-
-body.sidebar-collapsed .sidebar-logo-collapsed {
-  display: inline-block !important;
-  opacity: 1;
-}
-
-#sidebarCollapseBtn {
-  border: none;
-  background-color: #F8F8F8;
-  color: #CB3737;
-  transition: all 0.2s ease;
-  padding: 10px;
-  border-radius: 8px;
-  box-shadow: none;
-}
-
-#sidebarCollapseBtn:hover {
-  background: linear-gradient(135deg, rgba(255, 240, 235, 0.8), rgba(255, 255, 255, 0.4));
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  color: #CB3737;
-  box-shadow: 0 4px 8px rgba(204, 55, 55, 0.1);
-}
-
-#sidebarCollapseBtn:active {
-  background: linear-gradient(135deg, rgba(255, 230, 225, 0.9), rgba(255, 255, 255, 0.5));
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  color: #CB3737;
-  box-shadow: inset 2px 2px 4px rgba(204, 55, 55, 0.08);
-}
-
-body.sidebar-collapsed #sidebarCollapseBtn:hover {
-  background: linear-gradient(135deg, rgba(255, 240, 235, 0.8), rgba(255, 255, 255, 0.4));
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  color: #CB3737;
-  box-shadow: 0 4px 8px rgba(204, 55, 55, 0.1);
-}
-
-body.sidebar-collapsed #sidebarCollapseBtn:active {
-  background: linear-gradient(135deg, rgba(255, 230, 225, 0.9), rgba(255, 255, 255, 0.5));
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  color: #CB3737;
-  box-shadow: inset 2px 2px 4px rgba(204, 55, 55, 0.08);
-}
-
-.rotate-icon {
-  transition: transform 0.3s ease;
-  display: inline-block;
-}
-
-body.sidebar-collapsed #sidebarCollapseBtn .rotate-icon {
-  transform: rotate(180deg);
 }
 
 .sidebar-header {
@@ -263,40 +231,4 @@ body.sidebar-collapsed .sidebar-header {
     transition: none !important;
   }
 }
-
-/* 
----------------------------
-* MOBILE: Sidebar always collapsed version
----------------------------
-*/
-@media (max-width: 991.98px) {
-  #sidebar .label {
-    display: none !important;
-  }
-  #sidebar {
-    min-width: 70px !important;
-    max-width: 70px !important;
-    width: 70px !important;
-    align-items: center !important;
-  }
-  #sidebar ul.nav {
-    align-items: center !important;
-    justify-content: flex-start;
-  }
-  #sidebar .nav-link {
-    width: 48px;
-    height: 48px;
-    justify-content: center;
-    padding: 0;
-    margin-bottom: 12px;
-    border-radius: 14px;
-  }
-  #sidebar .sidebar-logo-expanded {
-    display: none !important;
-    opacity: 0;
-  }
-  #sidebar .sidebar-logo-collapsed {
-    display: inline-block !important;
-    opacity: 1;
-  }
-}
+/* ░░░ END: Utility & Motion Settings ░░░ */

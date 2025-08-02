@@ -18,16 +18,13 @@ body {
   overflow: hidden;
 }
 
-.accent-bg {
-  position: absolute;
-  top: -20%;
-  right: -30%;
-  width: 80vw;
-  height: 120vh;
-  background: linear-gradient(135deg, #EE6F57, #CB3737);
-  transform: rotate(30deg);
-  z-index: -1;
-}
+
+
+
+
+
+
+
 
 .login-card {
   background: #fff;
@@ -130,9 +127,7 @@ footer {
 }
 
 @media (max-width: 576px) {
-  .accent-bg {
-    display: none;
-  }
+
 
   .login-card {
     padding: 2rem 1.5rem;
@@ -143,16 +138,7 @@ footer {
   }
 }
 
-@media (max-width: 991.98px) and (min-width: 577px) {
-  .accent-bg {
-    top: -20%;
-    right: -30%;
-    width: 80vw;
-    height: 120vh;
-    transform: rotate(30deg);
-    opacity: 1;
-  }
-
+@media (max-width: 991.98px) and (min-width: 577px) {s
   .login-card {
     padding: 2.5rem;
     max-width: 420px;
