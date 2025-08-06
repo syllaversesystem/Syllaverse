@@ -2,9 +2,9 @@
 // File: resources/js/superadmin/layout.js
 // Description: Handles Super Admin layout behavior – toggles, theme, feather icons
 // -----------------------------------------------------------------------------
-
 // 📜 Log:
 // [2025-07-28] Initial version – moved all inline layout JS into Vite-compatible external script
+// [2025-08-05] Added sidebar logo toggle logic to remove logo gap when collapsed.
 // -----------------------------------------------------------------------------
 
 import feather from 'feather-icons';
@@ -26,10 +26,30 @@ document.addEventListener("DOMContentLoaded", () => {
   const desktopCollapseBtn = document.getElementById('sidebarCollapseBtn');
   const headers = document.querySelectorAll(".collapsible-header");
 
+  // Logo visibility toggle based on sidebar state
+  function updateSidebarLogos() {
+    const expandedLogo = document.querySelector('.sidebar-logo-expanded');
+    const collapsedLogo = document.querySelector('.sidebar-logo-collapsed');
+    const isCollapsed = document.body.classList.contains('sidebar-collapsed');
+
+    if (expandedLogo && collapsedLogo) {
+      if (isCollapsed) {
+        expandedLogo.classList.add('d-none');
+        collapsedLogo.classList.remove('d-none');
+      } else {
+        expandedLogo.classList.remove('d-none');
+        collapsedLogo.classList.add('d-none');
+      }
+    }
+  }
+
   // Restore collapse state from localStorage
   if (localStorage.getItem('sidebar') === 'collapsed') {
     document.body.classList.add('sidebar-collapsed');
   }
+
+  // Initial logo setup on load
+  updateSidebarLogos();
 
   // Mobile drawer toggle
   function toggleMobileSidebar() {
@@ -60,6 +80,9 @@ document.addEventListener("DOMContentLoaded", () => {
       const isCollapsed = document.body.classList.contains('sidebar-collapsed');
       localStorage.setItem('sidebar', isCollapsed ? 'collapsed' : 'expanded');
       desktopCollapseBtn.setAttribute('aria-expanded', String(!isCollapsed));
+
+      // 🔁 Update logos immediately on toggle
+      updateSidebarLogos();
     });
   }
 

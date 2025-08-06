@@ -30,16 +30,6 @@
             <i class="bi bi-person me-2"></i> Profile
           </a>
         </li>
-        <li>
-          <a class="dropdown-item d-flex align-items-center" href="#">
-            <i class="bi bi-question-circle me-2"></i> Help
-          </a>
-        </li>
-        <li>
-          <button class="dropdown-item d-flex align-items-center" id="themeToggleBtn" type="button">
-            <i class="bi bi-moon me-2"></i> Toggle Theme
-          </button>
-        </li>
         <li><hr class="dropdown-divider"></li>
         <li>
           <form action="{{ route('superadmin.logout') }}" method="POST" class="d-inline">
