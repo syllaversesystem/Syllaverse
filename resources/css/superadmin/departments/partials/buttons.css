@@ -1,0 +1,178 @@
+/* 
+-------------------------------------------------------------------------------
+* File: resources/css/superadmin/departments/partials/buttons.css
+* Description: Brand buttons and action buttons for department controls – Syllaverse
+-------------------------------------------------------------------------------
+📜 Log:
+[2025-08-06] Extracted action buttons and modal buttons from main stylesheet.
+-------------------------------------------------------------------------------
+*/
+
+/* ░░░ START: Primary Brand Button ░░░ */
+.btn-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  font-size: 1rem;
+  color: #ffffff;
+  background: linear-gradient(90deg, var(--sv-primary), var(--sv-primary-dark));
+  border: none;
+  border-radius: 12px;
+  padding: 0.8rem 2rem;
+  box-shadow: 0 6px 12px rgba(238, 111, 87, 0.4);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: pointer;
+}
+
+.btn-brand:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 16px rgba(238, 111, 87, 0.5);
+}
+
+.btn-brand:active {
+  transform: translateY(0) scale(0.98);
+  box-shadow: 0 3px 8px rgba(238, 111, 87, 0.3);
+}
+
+.btn-brand i,
+.btn-brand svg {
+  stroke: #ffffff;
+  width: 1.2rem;
+  height: 1.2rem;
+}
+/* ░░░ END: Primary Brand Button ░░░ */
+
+
+/* ░░░ START: Mini Add Button (Desktop Add Button & FAB) ░░░ */
+.btn-brand-sm {
+  padding: 0;
+  width: 2.75rem;
+  height: 2.75rem;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  border-radius: 50%;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  background: var(--sv-card-bg);
+  border: none;
+  transition: all 0.2s ease-in-out;
+  box-shadow: none;
+  color: #000;
+}
+
+.btn-brand-sm i,
+.btn-brand-sm svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  stroke: var(--sv-text); /* black icon by default */
+  stroke-width: 2px;
+  transition: stroke 0.2s ease-in-out;
+}
+
+.btn-brand-sm:hover,
+.btn-brand-sm:focus {
+  background: linear-gradient(135deg, rgba(255, 240, 235, 0.88), rgba(255, 255, 255, 0.46));
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+  box-shadow: 0 4px 10px rgba(204, 55, 55, 0.12);
+  color: #CB3737;
+}
+
+.btn-brand-sm:hover i,
+.btn-brand-sm:hover svg,
+.btn-brand-sm:focus i,
+.btn-brand-sm:focus svg {
+  stroke: #CB3737;
+}
+
+.btn-brand-sm:active {
+  background: linear-gradient(135deg, rgba(255, 230, 225, 0.98), rgba(255, 255, 255, 0.62));
+  box-shadow: 0 1px 8px rgba(204, 55, 55, 0.16);
+}
+
+.btn-brand-sm:active i,
+.btn-brand-sm:active svg {
+  stroke: #CB3737;
+}
+/* ░░░ END: Mini Add Button ░░░ */
+
+
+/* ░░░ START: Action Buttons (Edit/Delete) ░░░ */
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  background: var(--sv-card-bg);
+  border: none;
+  border-radius: 50%;
+  transition: background 0.23s, color 0.23s, box-shadow 0.23s, filter 0.23s;
+  cursor: pointer;
+}
+
+.action-btn i,
+.action-btn svg {
+  stroke-width: 2px;
+  width: 1.25rem;
+  height: 1.25rem;
+  stroke: var(--sv-text);
+  transition: stroke 0.2s, color 0.2s;
+}
+
+/* Edit */
+.action-btn.edit:hover,
+.action-btn.edit:focus {
+  background: linear-gradient(135deg, rgba(255, 240, 235, 0.88), rgba(255, 255, 255, 0.46));
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+  color: #CB3737;
+  box-shadow: 0 4px 10px rgba(204, 55, 55, 0.12);
+}
+.action-btn.edit:hover i, .action-btn.edit:focus i,
+.action-btn.edit:hover svg, .action-btn.edit:focus svg {
+  stroke: #CB3737;
+}
+.action-btn.edit:active {
+  background: linear-gradient(135deg, rgba(255, 230, 225, 0.98), rgba(255, 255, 255, 0.62));
+  box-shadow: 0 1px 8px rgba(204, 55, 55, 0.16);
+}
+
+/* Delete */
+.action-btn.delete:hover,
+.action-btn.delete:focus {
+  background: linear-gradient(135deg, rgba(255, 220, 220, 0.92), rgba(255, 255, 255, 0.5));
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+  color: #CB3737;
+  box-shadow: 0 4px 12px rgba(203, 55, 55, 0.13);
+}
+.action-btn.delete:hover i, .action-btn.delete:focus i,
+.action-btn.delete:hover svg, .action-btn.delete:focus svg {
+  stroke: #CB3737;
+}
+.action-btn.delete:active {
+  background: linear-gradient(135deg, rgba(255, 230, 230, 0.99), rgba(255, 255, 255, 0.62));
+  box-shadow: 0 1px 9px rgba(203, 55, 55, 0.15);
+}
+
+.action-btn:active {
+  transform: scale(0.95);
+  filter: brightness(0.98);
+}
+/* ░░░ END: Action Buttons ░░░ */
+
+/* ░░░ START: Action Button Icons (Edit/Delete) – Refined Size ░░░ */
+.action-btn i,
+.action-btn svg {
+  stroke-width: 2px;
+  width: 1.05rem; /* 🔽 from 1.25rem */
+  height: 1.05rem; /* 🔽 from 1.25rem */
+  stroke: var(--sv-text);
+  transition: stroke 0.2s, color 0.2s;
+}
+/* ░░░ END: Action Button Icons ░░░ */
+

@@ -1,0 +1,108 @@
+/* 
+-------------------------------------------------------------------------------
+* File: resources/css/superadmin/departments/partials/modals.css
+* Description: Modal styling for Add, Edit, and Delete Department modals – Syllaverse
+-------------------------------------------------------------------------------
+📜 Log:
+[2025-08-06] Extracted modal component styles (inputs, buttons, headers) from master stylesheet.
+-------------------------------------------------------------------------------
+*/
+
+/* ░░░ START: Modal Containers ░░░ */
+.add-modal-content,
+.edit-modal-content,
+.delete-modal-content {
+  border-radius: 18px;
+  box-shadow: 0 6px 32px rgba(0, 0, 0, 0.12);
+  font-family: 'Poppins', sans-serif;
+}
+
+.delete-modal-content {
+  box-shadow: 0 6px 32px rgba(0, 0, 0, 0.11);
+}
+/* ░░░ END: Modal Containers ░░░ */
+
+
+/* ░░░ START: Modal Close Button ░░░ */
+.custom-modal-close {
+  filter: grayscale(100%);
+  opacity: 0.7;
+  transition: opacity 0.2s, filter 0.2s;
+}
+
+.custom-modal-close:hover {
+  opacity: 1;
+  filter: none;
+}
+/* ░░░ END: Modal Close Button ░░░ */
+
+
+/* ░░░ START: Modal Input Fields ░░░ */
+.modal-input {
+  border-radius: 10px;
+  border: 1px solid var(--sv-border);
+  font-family: 'Poppins', sans-serif;
+  font-size: 1rem;
+  transition: border 0.2s, box-shadow 0.2s;
+}
+
+.modal-input:focus {
+  border: 1.5px solid var(--sv-primary-dark);
+  box-shadow: 0 0 0 0.13rem rgba(203, 55, 55, 0.10);
+  background: #fff;
+  outline: none;
+}
+/* ░░░ END: Modal Input Fields ░░░ */
+
+
+/* ░░░ START: Modal Footer Buttons ░░░ */
+.modal-cancel-btn {
+  background: #f8f8f8;
+  color: var(--sv-text-muted);
+  border-radius: 8px;
+  border: none;
+  padding: 0.65rem 1.2rem;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 500;
+  transition: background 0.2s, color 0.2s;
+}
+
+.modal-cancel-btn:hover {
+  background: #ededed;
+  color: var(--sv-primary-dark);
+}
+
+.modal-save-btn {
+  background: linear-gradient(90deg, var(--sv-primary), var(--sv-primary-dark));
+  color: #fff;
+  border-radius: 8px;
+  border: none;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 500;
+  padding: 0.65rem 1.2rem;
+  box-shadow: 0 4px 14px rgba(238, 111, 87, 0.12);
+  transition: background 0.2s, box-shadow 0.2s;
+}
+
+.modal-save-btn:hover {
+  background: linear-gradient(90deg, var(--sv-primary-dark), var(--sv-primary));
+  box-shadow: 0 6px 18px rgba(238, 111, 87, 0.19);
+}
+
+.modal-delete-btn {
+  background: linear-gradient(90deg, var(--sv-primary-dark), var(--sv-primary));
+  color: #fff;
+  border-radius: 8px;
+  border: none;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 500;
+  padding: 0.65rem 1.2rem;
+  box-shadow: 0 4px 14px rgba(203, 55, 55, 0.11);
+  transition: background 0.2s, box-shadow 0.2s;
+}
+
+.modal-delete-btn:hover {
+  background: linear-gradient(90deg, var(--sv-primary), var(--sv-primary-dark));
+  box-shadow: 0 6px 18px rgba(203, 55, 55, 0.19);
+}
+/* ░░░ END: Modal Footer Buttons ░░░ */

@@ -1,0 +1,20 @@
+/* 
+-------------------------------------------------------------------------------
+* File: resources/css/superadmin/departments/departments.css
+* Description: Master stylesheet for Syllaverse Department Module – imports all partials
+-------------------------------------------------------------------------------
+📜 Log:
+[2025-08-06] Moved to /departments folder and corrected all relative import paths.
+-------------------------------------------------------------------------------
+*/
+
+/* ░░░ START: Department CSS Imports ░░░ */
+@import './partials/variables.css';
+@import './partials/card.css';
+@import './partials/toolbar.css';
+@import './partials/table.css';
+@import './partials/buttons.css';
+@import './partials/modals.css';
+@import './partials/fab.css';
+@import './partials/media.css';
+/* ░░░ END: Department CSS Imports ░░░ */

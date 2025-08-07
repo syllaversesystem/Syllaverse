@@ -12,27 +12,34 @@ use App\Models\User;
 class DepartmentController extends Controller
 {
     // Show all departments
-    public function index()
-    {
-        $departments = Department::with('creator')->latest()->get();
-        return view('superadmin.departments.index', compact('departments'));
-    }
+ public function index()
+{
+   $departments = Department::with(['admin', 'programs'])->latest()->get();
+
+
+    return view('superadmin.departments.index', compact('departments'));
+}
+
 
     // Store a new department
-    public function store(Request $request)
-    {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'code' => 'required|string|max:25|unique:departments,code',
-        ]);
+public function store(Request $request)
+{
+    $exists = Department::where('name', $request->name)
+                        ->orWhere('code', $request->code)
+                        ->exists();
 
-        Department::create([
-            'name' => $request->name,
-            'code' => $request->code
-        ]);
-
-        return redirect()->back()->with('success', 'Department added successfully!');
+    if ($exists) {
+        return back()->with('info', 'Department already exists.');
     }
+
+    // Proceed to store if not existing
+    Department::create([
+        'name' => $request->name,
+        'code' => $request->code,
+    ]);
+
+    return back()->with('success', 'Department created successfully.');
+}
 
     // Update a department
     public function update(Request $request, $id)
@@ -74,4 +81,7 @@ class DepartmentController extends Controller
 
         return redirect()->back()->with('success', 'Admin assigned to department successfully!');
     }
+
+
+    
 }

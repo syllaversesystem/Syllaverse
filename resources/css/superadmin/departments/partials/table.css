@@ -1,0 +1,162 @@
+/* -------------------------------------------------------------------------------
+* File: resources/css/superadmin/departments/partials/table.css
+* Description: Refined department table with centered empty overlay – Syllaverse
+-------------------------------------------------------------------------------
+📜 Log:
+[2025-08-06] Decreased font size, padding, row spacing – optimized for admin usability.
+[2025-08-06] Refined layout: aligned icons/text, added zebra striping, rounded rows, hover accent border.
+[2025-08-06] Added overlay-based empty state centering with `.empty-overlay`.
+-------------------------------------------------------------------------------
+*/
+
+/* ░░░ START: Table Container ░░░ */
+.table-responsive {
+  border: 1px solid var(--sv-border);
+  border-radius: 14px;
+  overflow: hidden;
+  background: #fff;
+  position: relative;
+  z-index: 1;
+}
+/* ░░░ END: Table Container ░░░ */
+
+/* ░░░ START: Base Table Layout ░░░ */
+.table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.85rem;
+  font-family: 'Poppins', sans-serif;
+}
+
+.table thead {
+  background: var(--sv-bg);
+}
+
+.table thead th {
+  font-weight: 600;
+  color: var(--sv-text-muted);
+  padding: 0.65rem 0.9rem;
+  text-align: left;
+  vertical-align: middle;
+  background-color: #fff;
+  white-space: nowrap;
+}
+
+.table thead th i,
+.table thead th svg {
+  margin-right: 0.45rem;
+  stroke: var(--sv-text-muted);
+  width: 1rem;
+  height: 1rem;
+  vertical-align: text-bottom;
+  
+}
+
+.table tbody tr { 
+  transition: background-color 0.2s ease;
+  background-color: #fff;
+  border-radius: 10px;
+}
+
+.table tbody tr:hover {
+  background-color: #fff5f4;
+  border-left: 4px solid var(--sv-primary);
+}
+
+.table td {
+  color: var(--sv-text);
+  padding: 0.01rem 0.75rem; /* 🔽 reduced vertical padding */
+  border-bottom: 0px solid var(--sv-border);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+
+.table td:first-child {
+  font-weight: 500;
+  color: var(--sv-primary-dark);
+}
+
+.table td:last-child {
+  text-align: right;
+  padding-right: 1rem;
+}
+/* ░░░ END: Base Table Layout ░░░ */
+
+/* ░░░ START: Zebra Striping (Soft) ░░░ */
+.table tbody tr:nth-child(odd) {
+  background-color: #FDFDFD;
+}
+.table tbody tr:nth-child(even) {
+  background-color: #FAFAFA;
+}
+/* ░░░ END: Zebra Striping ░░░ */
+
+/* ░░░ START: Inline Empty Row ░░░ */
+.empty-row {
+  padding: 0;
+  background-color: #fff;
+  border-radius: 0 0 12px 12px;
+  border-top: 1px solid var(--sv-border);
+  height: 220px; /* or adjust based on your design */
+  text-align: center;
+  vertical-align: middle;
+}
+
+.empty-table {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  max-width: 360px;
+  margin: 1.5rem auto 0 auto; /* ⬅️ added top margin */
+  padding: 0 1rem;
+}
+
+
+.empty-table .empty-icon {
+  margin-bottom: 0.75rem;
+}
+
+.empty-table .empty-icon i,
+.empty-table .empty-icon svg {
+  width: 2rem;
+  height: 2rem;
+  stroke: #CB3737;
+  opacity: 0.8;
+}
+
+.empty-table h6 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #CB3737;
+  margin-bottom: 0.3rem;
+  font-family: 'Poppins', sans-serif;
+}
+
+.empty-table p {
+  font-size: 0.85rem;
+  color: #777;
+  line-height: 1.4;
+  margin-bottom: 0;
+}
+/* ░░░ END: Inline Empty Row ░░░ */
+
+
+
+/* ░░░ START: Force Table Header on Desktop ░░░ */
+@media (min-width: 768px) {
+  .table thead {
+    display: table-header-group !important;
+  }
+}
+/* ░░░ END: Force Table Header on Desktop ░░░ */
+
+
+
+
+
+
+

@@ -1,0 +1,20 @@
+/* -------------------------------------------------------------------------------
+* File: resources/css/superadmin/departments/partials/variables.css
+* Description: CSS root variables for department module (Syllaverse theme tokens)
+-------------------------------------------------------------------------------
+📜 Log:
+[2025-08-06] Initial modularization – extracted color and font-related CSS variables.
+-------------------------------------------------------------------------------
+*/
+
+/* ░░░ START: Syllaverse Design Tokens ░░░ */
+:root {
+  --sv-bg: #FAFAFA;
+  --sv-card-bg: #FFFFFF;
+  --sv-border: #E3E3E3;
+  --sv-primary: #EE6F57;
+  --sv-primary-dark: #CB3737;
+  --sv-text: #333333;
+  --sv-text-muted: #777777;
+}
+/* ░░░ END: Syllaverse Design Tokens ░░░ */

@@ -5,17 +5,25 @@
 // 📜 Log:
 // [2025-07-28] Initial creation – extracted inline scripts from blade, added draggable FAB and modal setup logic.
 // [2025-07-28] Updated feather.replace() with safety check to prevent JS crash if feather is undefined.
+// [2025-08-07] Refined: feather icons now re-render inside dropdowns; modal toggle restored after FAB drag.
 // -----------------------------------------------------------------------------
 
 document.addEventListener('DOMContentLoaded', function () {
-    // 🪶 Replace all feather icons safely (if feather is available)
+    // 🪶 Replace all feather icons safely
     if (typeof feather !== 'undefined') {
         feather.replace();
     } else {
         console.warn("⚠️ Feather icons not loaded: skipping feather.replace()");
     }
 
-    // 📝 Sets form values for editing a department
+    // 🔁 Refresh feather icons when dropdowns open (for action menus)
+    document.querySelectorAll('.dropdown').forEach(dropdown => {
+        dropdown.addEventListener('shown.bs.dropdown', function () {
+            if (typeof feather !== 'undefined') feather.replace();
+        });
+    });
+
+    // 📝 Setup Edit Department modal
     window.setEditDepartment = function (button) {
         const id = button.dataset.id;
         const name = button.dataset.name;
@@ -27,13 +35,13 @@ document.addEventListener('DOMContentLoaded', function () {
         form.querySelector('#editDepartmentCode').value = code;
     };
 
-    // 🗑️ Sets form action to delete the department
+    // 🗑️ Setup Delete Department modal
     window.setDeleteDepartment = function (button) {
         const id = button.dataset.id;
         document.getElementById('deleteDepartmentForm').action = `/superadmin/departments/${id}`;
     };
 
-    // 🔧 FAB drag setup (mobile: hold 1s to drag)
+    // 🎯 Setup draggable FAB
     const fab = document.getElementById("draggableAddFab");
     if (!fab) return;
 
@@ -111,15 +119,18 @@ document.addEventListener('DOMContentLoaded', function () {
             isDragging = false;
             isDraggableMode = false;
             fab.classList.remove('dragging', 'draggable-mode');
+
+            // ✅ Restore modal attributes after drag ends
             fab.setAttribute('data-bs-toggle', 'modal');
             fab.setAttribute('data-bs-target', '#addDepartmentModal');
         }
+
         clearTimeout(holdTimeout);
         holdStarted = false;
         dragStartEvent = null;
     }
 
-    // Prevent modal open if dragging
+    // 🚫 Prevent accidental modal open during drag
     fab.addEventListener('click', e => {
         if (isDraggableMode || isDragging || holdStarted) {
             e.preventDefault();
@@ -127,22 +138,22 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // Hold listeners
+    // 👆 Hold to drag listeners
     fab.addEventListener('mousedown', onHoldStart);
     fab.addEventListener('touchstart', onHoldStart);
     fab.addEventListener('mouseup', onHoldEnd);
     fab.addEventListener('mouseleave', onHoldEnd);
     fab.addEventListener('touchend', onHoldEnd);
 
-    // Start drag only in draggable mode
+    // 🧲 Drag start (in draggable mode only)
     fab.addEventListener('mousedown', e => { if (isDraggableMode) startDrag(e); });
     fab.addEventListener('touchstart', e => { if (isDraggableMode) startDrag(e); });
 
-    // Drag movement
+    // 🔄 Drag move events
     window.addEventListener('mousemove', onDragMove);
     window.addEventListener('touchmove', onDragMove);
 
-    // End drag
+    // 🧷 Drag end
     window.addEventListener('mouseup', onDragEnd);
     window.addEventListener('touchend', onDragEnd);
 });

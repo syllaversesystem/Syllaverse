@@ -17,9 +17,20 @@ class Department extends Model
         'code',
     ];
 
-    // Relationship: Department was created by a user (super admin)
-    public function creator()
-    {
-        return $this->belongsTo(User::class, 'created_by');
-    }
+
+    // Get the admin who handles this department
+// Get the first admin user assigned to this department
+public function admin()
+{
+    return $this->hasOne(User::class, 'department_id')->where('role', 'admin');
+}
+
+
+
+// Get all programs under this department
+public function programs()
+{
+    return $this->hasMany(Program::class);
+}
+
 }

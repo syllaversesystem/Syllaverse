@@ -1,0 +1,71 @@
+/* 
+-------------------------------------------------------------------------------
+* File: resources/css/superadmin/departments/partials/toolbar.css
+* Description: Responsive toolbar with search and right-aligned add button – Syllaverse
+-------------------------------------------------------------------------------
+📜 Log:
+[2025-08-06] Finalized layout using flex gap + flex-spacer for clean alignment.
+-------------------------------------------------------------------------------
+*/
+
+/* ░░░ START: Toolbar Layout ░░░ */
+.toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem; /* tight spacing between search and spacer */
+  margin-bottom: 1.5rem;
+}
+
+/* Pushes the add button to the far right */
+.flex-spacer {
+  flex-grow: 1;
+}
+
+.toolbar .input-group {
+  flex: 1;
+  max-width: 320px;
+  background: var(--sv-bg);
+  border: 1px solid var(--sv-border);
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.toolbar .input-group .form-control {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.88rem;
+  font-family: 'Poppins', sans-serif;
+  border: none;
+  background: transparent;
+  color: var(--sv-text);
+  height: 2.2rem;
+}
+
+.toolbar .input-group .form-control::placeholder {
+  color: var(--sv-text-muted);
+  font-size: 0.87rem;
+}
+
+.toolbar .input-group .form-control:focus {
+  outline: none;
+  box-shadow: none;
+  background: transparent;
+}
+
+.toolbar .input-group .input-group-text {
+  background: transparent;
+  border: none;
+  padding-left: 0.7rem;
+  padding-right: 0.4rem;
+  display: flex;
+  align-items: center;
+}
+
+.toolbar .input-group-text i,
+.toolbar .input-group-text svg {
+  stroke: var(--sv-text-muted);
+  width: 0.95rem;
+  height: 0.95rem;
+}
+/* ░░░ END: Toolbar Layout ░░░ */

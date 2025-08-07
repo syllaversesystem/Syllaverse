@@ -1,11 +1,13 @@
 {{-- 
 -------------------------------------------------------------------------------
 * File: resources/views/superadmin/departments/index.blade.php
-* Description: Manage Departments Page (mobile: cards, icon labels, larger actions, 1s hold-to-drag FAB) – Syllaverse
+* Description: Manage Departments Page (with responsive table, modals, and FAB) – Syllaverse
 -------------------------------------------------------------------------------
 📜 Log:
 [2025-07-28] Initial creation – department management page with responsive layout and modals.
-[2025-07-28] Extracted inline scripts to external JS, added Vite asset loading.
+[2025-08-06] Added “Handled By” and “Programs” columns; removed “Created On” column.
+[2025-08-06] Removed alert block – now handled globally via <x-alert-overlay /> component.
+[2025-08-07] Fully customized mobile card layout with split dropdown column – refined spacing & typography.
 -------------------------------------------------------------------------------
 --}}
 
@@ -14,35 +16,19 @@
 @section('title', 'Departments • Super Admin • Syllaverse')
 @section('page-title', 'Manage Departments')
 
-
 @section('content')
 <div class="department-card">
 
-    {{-- Alerts --}}
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-    @if($errors->any())
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <ul class="mb-0">
-                @foreach($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    @endif
-
     {{-- ░░░ START: Toolbar Section ░░░ --}}
-    <div class="toolbar mb-4">
+    <div class="toolbar">
         <div class="input-group">
             <span class="input-group-text"><i data-feather="search"></i></span>
             <input type="search" class="form-control" placeholder="Search departments..." aria-label="Search departments">
         </div>
-        <button class="btn-brand btn-brand-sm d-none d-md-inline-flex"
+
+        <span class="flex-spacer"></span>
+
+        <button class="btn-brand-sm d-none d-md-inline-flex"
             data-bs-toggle="modal"
             data-bs-target="#addDepartmentModal"
             aria-label="Add Department"
@@ -52,60 +38,116 @@
     </div>
     {{-- ░░░ END: Toolbar Section ░░░ --}}
 
-    {{-- ░░░ START: Departments Table ░░░ --}}
-    <div class="table-responsive">
-        <table class="table mb-0">
-            <thead>
-                <tr>
-                    <th><i data-feather="hash"></i></th>
-                    <th><i data-feather="briefcase"></i> Name</th>
-                    <th><i data-feather="code"></i> Code</th>
-                    <th><i data-feather="calendar"></i> Created On</th>
-                    <th class="text-end"><i data-feather="more-vertical"></i></th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse($departments as $index => $department)
-                <tr>
-                    <td data-label-icon="hash">{{ $index + 1 }}</td>
-                    <td data-label-icon="briefcase">{{ $department->name }}</td>
-                    <td data-label-icon="code">{{ $department->code }}</td>
-                    <td data-label-icon="calendar">{{ $department->created_at->format('Y-m-d') }}</td>
-                    <td data-label-icon="more-vertical" class="text-end">
-                        <button class="btn action-btn edit me-2"
-                            data-bs-toggle="modal"
-                            data-bs-target="#editDepartmentModal"
-                            data-id="{{ $department->id }}"
-                            data-name="{{ $department->name }}"
-                            data-code="{{ $department->code }}"
-                            aria-label="Edit {{ $department->name }}"
-                            onclick="setEditDepartment(this)">
-                            <i data-feather="edit"></i>
-                        </button>
-                        <button class="btn action-btn delete"
-                            data-bs-toggle="modal"
-                            data-bs-target="#deleteDepartmentModal"
-                            data-id="{{ $department->id }}"
-                            aria-label="Delete {{ $department->name }}"
-                            onclick="setDeleteDepartment(this)">
-                            <i data-feather="trash"></i>
-                        </button>
-                    </td>
-                </tr>
-                @empty
-                <tr>
-                    <td colspan="5" class="empty-state">No departments available.</td>
-                </tr>
-                @endforelse
-            </tbody>
-        </table>
+    {{-- ░░░ START: Table Section ░░░ --}}
+    <div class="table-wrapper position-relative">
+        <div class="table-responsive">
+            <table class="table mb-0">
+                <thead class="d-none d-md-table-header-group">
+                    <tr>
+                        <th><i data-feather="code"></i> Code</th>
+                        <th><i data-feather="briefcase"></i> Name</th>
+                        <th><i data-feather="user"></i> Handled By</th>
+                        <th><i data-feather="layers"></i> Programs</th>
+                        <th class="text-end"><i data-feather="more-vertical"></i></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if($departments->isEmpty())
+                    <tr class="empty-row">
+                        <td colspan="6">
+                            <div class="empty-table">
+                                <h6>No departments found</h6>
+                                <p>Click the <i data-feather="plus"></i> button to add one.</p>
+                            </div>
+                        </td>
+                    </tr>
+                    @else
+                        @foreach($departments as $department)
+                        <tr>
+
+                            {{-- ░░░ START: Mobile Card Layout ░░░ --}}
+                            <td colspan="6" class="d-table-cell d-md-none p-0 border-0">
+                                <div class="dept-card-rowed">
+
+                                    <div class="dept-header-row">
+                                        <div class="dept-code">{{ $department->code }}</div>
+                                        <div class="dept-programs">
+                                            {{ $department->programs->count() }} {{ Str::plural('program', $department->programs->count()) }}
+                                        </div>
+                                        <div class="dropdown dept-card-dropdown">
+                                            <button class="btn btn-action-icon" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                <i data-feather="more-vertical"></i>
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end">
+                                                <li>
+                                                    <button class="dropdown-item"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#editDepartmentModal"
+                                                        data-id="{{ $department->id }}"
+                                                        data-name="{{ $department->name }}"
+                                                        data-code="{{ $department->code }}"
+                                                        onclick="setEditDepartment(this)">
+                                                        <i data-feather="edit" class="me-2"></i> Edit
+                                                    </button>
+                                                </li>
+                                                <li>
+                                                    <button class="dropdown-item text-danger"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#deleteDepartmentModal"
+                                                        data-id="{{ $department->id }}"
+                                                        onclick="setDeleteDepartment(this)">
+                                                        <i data-feather="trash" class="me-2"></i> Delete
+                                                    </button>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+
+                                    <div class="dept-name">{{ $department->name }}</div>
+                                    <div class="dept-handled-by">{{ $department->admin->name ?? '—' }}</div>
+                                </div>
+                            </td>
+                            {{-- ░░░ END: Mobile Card Layout ░░░ --}}
+
+                            {{-- ░░░ START: Desktop Row Layout (hidden on mobile) ░░░ --}}
+                            <td class="d-none d-md-table-cell">{{ $department->code }}</td>
+                            <td class="d-none d-md-table-cell">{{ $department->name }}</td>
+                            <td class="d-none d-md-table-cell">{{ $department->admin->name ?? '—' }}</td>
+                            <td class="d-none d-md-table-cell">
+                                {{ $department->programs->count() }} {{ Str::plural('program', $department->programs->count()) }}
+                            </td>
+                            <td class="d-none d-md-table-cell text-end">
+                                <button class="btn action-btn edit me-2"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#editDepartmentModal"
+                                    data-id="{{ $department->id }}"
+                                    data-name="{{ $department->name }}"
+                                    data-code="{{ $department->code }}"
+                                    onclick="setEditDepartment(this)">
+                                    <i data-feather="edit"></i>
+                                </button>
+                                <button class="btn action-btn delete"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#deleteDepartmentModal"
+                                    data-id="{{ $department->id }}"
+                                    onclick="setDeleteDepartment(this)">
+                                    <i data-feather="trash"></i>
+                                </button>
+                            </td>
+                            {{-- ░░░ END: Desktop Row Layout ░░░ --}}
+
+                        </tr>
+                        @endforeach
+                    @endif
+                </tbody>
+            </table>
+        </div>
     </div>
-    {{-- ░░░ END: Departments Table ░░░ --}}
+    {{-- ░░░ END: Table Section ░░░ --}}
 </div>
 
 {{-- ░░░ START: Floating Action Button (Mobile Only) ░░░ --}}
-<button class="btn-brand btn-brand-sm add-dept-fab d-md-none"
-    id="draggableAddFab"
+<button class="btn-brand-sm add-dept-fab d-md-none"
     data-bs-toggle="modal"
     data-bs-target="#addDepartmentModal"
     aria-label="Add Department"
@@ -120,4 +162,3 @@
 @include('superadmin.departments.modals.deleteDepartmentModal')
 {{-- ░░░ END: Modals Section ░░░ --}}
 @endsection
-
