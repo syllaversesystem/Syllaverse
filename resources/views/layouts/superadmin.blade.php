@@ -68,6 +68,8 @@
   @vite('resources/js/superadmin/layout.js')
   @vite('resources/js/superadmin/departments.js')
   @vite('resources/js/superadmin/alert-timer.js') {{-- ✅ Include alert timer script --}}
+  @vite('resources/js/superadmin/chair-requests.js')
+  @vite('resources/js/superadmin/appointments.js')
   {{-- END: Vite JS --}}
 
 </body>

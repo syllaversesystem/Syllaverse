@@ -1,7 +1,12 @@
 <?php
 
-// File: app/Models/User.php
-// Description: User model for all roles (admin, faculty, student) in Syllaverse
+// -------------------------------------------------------------------------------
+// * File: app/Models/User.php
+// * Description: User model for all roles (admin, faculty, student) in Syllaverse
+// -------------------------------------------------------------------------------
+// 📜 Log:
+// [2025-08-08] Added 'designation' and 'employee_code' to $fillable so Admin profile saves HR fields.
+// -------------------------------------------------------------------------------
 
 namespace App\Models;
 
@@ -16,6 +21,9 @@ class User extends Authenticatable
     /**
      * The attributes that are mass assignable.
      *
+     * This lets us safely mass-assign HR fields from the profile form.
+     * (Without this, Laravel would ignore those inputs.)
+     *
      * @var list<string>
      */
     protected $fillable = [
@@ -25,10 +33,14 @@ class User extends Authenticatable
         'google_id',
         'role',
         'status',
+        'designation',     // ✅ Added
+        'employee_code',   // ✅ Added
     ];
 
     /**
      * The attributes that should be hidden for serialization.
+     *
+     * Keep sensitive auth fields out of arrays/JSON.
      *
      * @var list<string>
      */
@@ -38,7 +50,9 @@ class User extends Authenticatable
     ];
 
     /**
-     * The attributes that should be cast.
+     * Casts for specific attributes.
+     *
+     * This ensures email verification is a DateTime and the password is hashed.
      *
      * @return array<string, string>
      */
@@ -49,4 +63,21 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    // ░░░ START: Relationships for manage-accounts ░░░
+
+/** All chair-role requests this user has submitted. */
+public function chairRequests()
+{
+    return $this->hasMany(\App\Models\ChairRequest::class);
+}
+
+/** All chair appointments (authority) granted to this user. */
+public function appointments()
+{
+    return $this->hasMany(\App\Models\Appointment::class);
+}
+
+// ░░░ END: Relationships ░░░
+
 }

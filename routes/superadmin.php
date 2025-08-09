@@ -10,6 +10,8 @@ use App\Http\Controllers\SuperAdmin\AuthController;
 use App\Http\Controllers\SuperAdmin\DepartmentController;
 use App\Http\Controllers\SuperAdmin\MasterDataController;
 use App\Http\Controllers\SuperAdmin\ManageAdminController;
+use App\Http\Controllers\SuperAdmin\ChairRequestController;
+use App\Http\Controllers\SuperAdmin\AppointmentController; // ✅ NEW
 use App\Http\Middleware\SuperAdminAuth;
 
 // ---------- Public Super Admin Login ----------
@@ -40,7 +42,15 @@ Route::middleware([SuperAdminAuth::class])->prefix('superadmin')->group(function
     // ---------- Manage Admin Accounts ----------
     Route::post('/manage-accounts/admins/{id}/approve', [ManageAdminController::class, 'approve'])->name('superadmin.approve.admin');
     Route::post('/manage-accounts/admins/{id}/reject', [ManageAdminController::class, 'reject'])->name('superadmin.reject.admin');
-    Route::post('/manage-accounts/admins/{id}/assign-department', [DepartmentController::class, 'assignAdmin'])->name('superadmin.assign.department');
+
+    // ---------- Chair Requests (Approve/Reject) ----------
+    Route::post('/chair-requests/{id}/approve', [ChairRequestController::class, 'approve'])->name('superadmin.chair-requests.approve');
+    Route::post('/chair-requests/{id}/reject',  [ChairRequestController::class, 'reject'])->name('superadmin.chair-requests.reject');
+
+    // ---------- Appointments (Create/Update/End) ----------
+    Route::post('/appointments',                [AppointmentController::class, 'store'])->name('superadmin.appointments.store');   // ✅ NEW
+    Route::put('/appointments/{id}',            [AppointmentController::class, 'update'])->name('superadmin.appointments.update'); // ✅ NEW
+    Route::post('/appointments/{id}/end',       [AppointmentController::class, 'end'])->name('superadmin.appointments.end');       // ✅ NEW
 
     // ---------- Master Data ----------
     Route::prefix('master-data')->group(function () {

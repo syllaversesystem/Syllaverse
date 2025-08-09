@@ -160,5 +160,6 @@
 @include('superadmin.departments.modals.addDepartmentModal')
 @include('superadmin.departments.modals.editDepartmentModal')
 @include('superadmin.departments.modals.deleteDepartmentModal')
+
 {{-- ░░░ END: Modals Section ░░░ --}}
 @endsection

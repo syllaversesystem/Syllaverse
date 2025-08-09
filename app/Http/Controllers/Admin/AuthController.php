@@ -1,6 +1,13 @@
 <?php
-// File: app/Http/Controllers/Admin/AuthController.php
-// Description: Handles Google login authentication for Admin with approval and role check (Syllaverse)
+
+// -------------------------------------------------------------------------------
+// * File: app/Http/Controllers/Admin/AuthController.php
+// * Description: Handles Google login for Admin with approval flow + pending redirect – Syllaverse
+// -------------------------------------------------------------------------------
+// 📜 Log:
+// [2025-08-08] Updated: allow pending admins to log in and redirect to Complete Profile instead of blocking.
+// [2025-08-08] Change: if pending AND profile already completed, do NOT login; show "pending approval" alert.
+// -------------------------------------------------------------------------------
 
 namespace App\Http\Controllers\Admin;
 
@@ -12,9 +19,6 @@ use Illuminate\Http\RedirectResponse;
 
 class AuthController extends Controller
 {
-    /**
-     * Redirect the Admin to Google's OAuth page.
-     */
     public function redirectToGoogle(): RedirectResponse
     {
         return Socialite::driver('google')
@@ -22,9 +26,6 @@ class AuthController extends Controller
             ->redirect();
     }
 
-    /**
-     * Handle the callback from Google OAuth for Admin login.
-     */
     public function handleGoogleCallback(): RedirectResponse
     {
         try {
@@ -42,7 +43,7 @@ class AuthController extends Controller
                 ]);
             }
 
-            // Check if user already exists
+            // Find or create Admin user
             $user = User::where('email', $email)->first();
 
             if ($user) {
@@ -52,32 +53,46 @@ class AuthController extends Controller
                     ]);
                 }
             } else {
-                // Register new user as admin (pending approval)
+                // First-time signup → create pending admin (no HR fields yet)
                 $user = User::create([
-                    'name' => $googleUser->getName(),
-                    'email' => $email,
+                    'name'      => $googleUser->getName(),
+                    'email'     => $email,
                     'google_id' => $googleUser->getId(),
-                    'role' => 'admin',
-                    'status' => 'pending',
+                    'role'      => 'admin',
+                    'status'    => 'pending',
                 ]);
             }
 
-            // Handle rejected admins
+            // Hard stop if explicitly rejected
             if ($user->status === 'rejected') {
                 return redirect()->route('admin.login.form')->withErrors([
                     'rejected' => 'Your account has been rejected. Please contact the Super Admin.',
                 ]);
             }
 
-            // Handle pending admins
-            if ($user->status !== 'active') {
-                return redirect()->route('admin.login.form')->withErrors([
-                    'approval' => 'Your account is pending approval by the Super Admin.',
-                ]);
+            // If active → normal login
+            if ($user->status === 'active') {
+                Auth::login($user);
+                return redirect()->route('admin.dashboard');
             }
 
-            Auth::login($user);
-            return redirect()->route('admin.dashboard');
+            // Status is PENDING here:
+            $needsProfile = empty($user->designation) || empty($user->employee_code);
+
+            if ($needsProfile) {
+                // First-time (or incomplete) profile → allow login and send to Complete Profile
+                Auth::login($user);
+                return redirect()
+                    ->route('admin.complete-profile')
+                    ->with('info', 'Please complete your profile and submit your chair role request for Superadmin review.');
+            }
+
+            // Already completed profile but still pending → DO NOT LOG IN; show pending alert
+// Pending + needs profile (inside handleGoogleCallback)
+return redirect()
+  ->route('admin.complete-profile')
+  ->with('info', 'Please complete your profile and submit your chair role request for Superadmin review.');
+
 
         } catch (\Exception $e) {
             return redirect()->route('admin.login.form')->withErrors([
