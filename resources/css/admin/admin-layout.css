@@ -1,68 +1,63 @@
 /* 
-------------------------------------------------
+-------------------------------------------------------------------------------
 * File: resources/css/admin/admin-layout.css
-* Description: Admin layout structure with fixed sidebar + navbar (Syllaverse)
------------------------------------------------- 
+* Description: Scrollable layout with fixed sidebar and navbar (matches Super Admin)
+-------------------------------------------------------------------------------
+📜 Log:
+[2025-08-09] Synced layout spacing/padding/margins with Super Admin (body/html/wrapper/main/nav). 
+-------------------------------------------------------------------------------
 */
 
+/* ░░░ START: Base Document Setup ░░░ */
+html { height: 100%; }
 body {
   background-color: #FAFAFA;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   color: #333;
   margin: 0;
   height: 100%;
-  overflow: hidden;
+  overflow: hidden; /* match superadmin: scroll only inside <main> */
 }
+/* ░░░ END: Base Document Setup ░░░ */
 
-html {
-  height: 100%;
-}
-
-/* Main wrapper contains sidebar and content */
+/* ░░░ START: Wrapper & Columns ░░░ */
 #wrapper {
   display: flex;
   height: 100vh;
   overflow: hidden;
 }
 
-/* Sidebar */
 #sidebar {
-  width: 250px;
+  width: 250px;               /* same rail width */
   flex-shrink: 0;
   background-color: #FAFAFA;
   border-right: 1px solid #E3E3E3;
 }
 
-/* Page content container */
 #page-content-wrapper {
   flex-grow: 1;
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
+/* ░░░ END: Wrapper & Columns ░░░ */
 
-/* Navbar */
+/* ░░░ START: Top Navbar (sticky, glass) ░░░ */
 nav.navbar {
   flex-shrink: 0;
   background-color: #ffffff;
   border-bottom: 1px solid #E3E3E3;
+  position: sticky;
+  top: 0;
   z-index: 1000;
 }
+/* ░░░ END: Top Navbar ░░░ */
 
-/* Main scrollable content */
+/* ░░░ START: Main Scroll Area & Spacing ░░░ */
 main {
   flex-grow: 1;
   overflow-y: auto;
-  padding: 1.5rem;
+  padding: 1.5rem !important; /* exact spacing as Super Admin */
   background-color: #FAFAFA;
 }
-
-/* Mobile Handling */
-@media (max-width: 991.98px) {
-  #sidebar {
-    display: none;
-  }
-  .sidebar-backdrop {
-    display: none;
-  }
-}
+/* ░░░ END: Main Scroll Area & Spacing ░░░ */
