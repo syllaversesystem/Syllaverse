@@ -1,0 +1,50 @@
+/* 
+-------------------------------------------------------------------------------
+* File: resources/css/superadmin/manage-accounts/partials/buttons.css
+* Description: Icon-only Approve/Reject buttons (mirror Department edit/delete style)
+-------------------------------------------------------------------------------
+📜 Log:
+[2025-08-11] Initial creation – .action-btn.approve / .action-btn.reject variants with icon-only UI.
+-------------------------------------------------------------------------------
+*/
+
+/* NOTE: Base .action-btn styles already come from the Department module.
+   These variants just set the hover/active accents for Approve/Reject. */
+
+/* ░░░ START: Approve (check icon) ░░░ */
+.action-btn.approve:hover,
+.action-btn.approve:focus {
+  background: linear-gradient(135deg, rgba(255, 240, 235, 0.88), rgba(255, 255, 255, 0.46));
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+  color: #CB3737;
+  box-shadow: 0 4px 10px rgba(204, 55, 55, 0.12);
+}
+.action-btn.approve:hover i, .action-btn.approve:hover svg,
+.action-btn.approve:focus i, .action-btn.approve:focus svg {
+  stroke: #CB3737; /* brand accent */
+}
+.action-btn.approve:active {
+  background: linear-gradient(135deg, rgba(255, 230, 225, 0.98), rgba(255, 255, 255, 0.62));
+  box-shadow: 0 1px 8px rgba(204, 55, 55, 0.16);
+}
+/* ░░░ END: Approve ░░░ */
+
+/* ░░░ START: Reject (x icon) ░░░ */
+.action-btn.reject:hover,
+.action-btn.reject:focus {
+  background: linear-gradient(135deg, rgba(255, 220, 220, 0.92), rgba(255, 255, 255, 0.5));
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+  color: #CB3737;
+  box-shadow: 0 4px 12px rgba(203, 55, 55, 0.13);
+}
+.action-btn.reject:hover i, .action-btn.reject:hover svg,
+.action-btn.reject:focus i, .action-btn.reject:focus svg {
+  stroke: #CB3737;
+}
+.action-btn.reject:active {
+  background: linear-gradient(135deg, rgba(255, 230, 230, 0.99), rgba(255, 255, 255, 0.62));
+  box-shadow: 0 1px 9px rgba(203, 55, 55, 0.15);
+}
+/* ░░░ END: Reject ░░░ */

@@ -1,0 +1,29 @@
+/* 
+-------------------------------------------------------------------------------
+* File: resources/css/superadmin/manage-accounts/manage-accounts.css
+* Description: Master stylesheet for Manage Accounts – imports all partials
+-------------------------------------------------------------------------------
+📜 Log:
+[2025-08-11] Initial creation – split out tabs UI into partials and added a master bundle.
+-------------------------------------------------------------------------------
+*/
+
+/* ░░░ START: Manage Accounts CSS Imports ░░░ */
+/* Uses global tokens from departments bundle already included in the layout. */
+/* resources/css/superadmin/manage-accounts/manage-accounts.css */
+/* resources/css/superadmin/manage-accounts/manage-accounts.css */
+/* resources/css/superadmin/manage-accounts/manage-accounts.css */
+/* resources/css/superadmin/manage-accounts/manage-accounts.css */
+@import './partials/tabs.css';
+@import './partials/table.css';
+@import './partials/buttons.css';
+@import './partials/pills.css';
+@import './partials/details.css'; /* ⬅️ NEW */
+
+
+
+
+/* (Future) @import './partials/chips.css';      // approval/status/role chips
+   (Future) @import './partials/table.css';      // account table tweaks if needed
+   (Future) @import './partials/cards.css';      // unique card patterns if added */
+/* ░░░ END: Manage Accounts CSS Imports ░░░ */

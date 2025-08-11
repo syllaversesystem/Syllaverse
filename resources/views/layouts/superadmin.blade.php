@@ -34,9 +34,11 @@
   @vite('resources/css/superadmin/layouts/superadmin-navbar.css')
   @vite('resources/css/superadmin/layouts/superadmin-layout.css')
   @vite('resources/css/superadmin/alerts.css') {{-- ✅ Include floating alert styles --}}
-  @vite('resources/css/superadmin/manage-account.css')
   @vite('resources/css/superadmin/master-data.css')
   @vite('resources/css/superadmin/departments/departments.css')
+  @vite('resources/css/superadmin/manage-accounts/manage-accounts.css')
+
+
   
   {{-- END: Custom Vite CSS --}}
 

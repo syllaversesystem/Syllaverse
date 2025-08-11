@@ -7,6 +7,7 @@
 // 📜 Log:
 // [2025-08-08] Initial creation – approval with override support, conflict replacement, and audited decisions.
 // [2025-08-08] Removed undefined 'superadmin' guard; resolve decider from request/default guard; allow null decider.
+// [2025-08-11] Auto-reject admin account when all their pending chair-requests are rejected and signup is still pending.
 // -------------------------------------------------------------------------------
 
 namespace App\Http\Controllers\SuperAdmin;
@@ -81,6 +82,7 @@ class ChairRequestController extends Controller
 
             $chairRequest->markApproved($deciderId, $notes);
 
+            // If user was still pending, activating any chair request should accept the account
             if ($chairRequest->user && $chairRequest->user->status !== 'active') {
                 $chairRequest->user->status = 'active';
                 $chairRequest->user->save();
@@ -104,6 +106,20 @@ class ChairRequestController extends Controller
 
         $deciderId = $this->resolveDeciderId($request); // may be null
         $chairRequest->markRejected($deciderId, $request->input('notes'));
+
+        // 🔁 NEW: If this user is an admin whose signup is still pending, and there are no more pending chair-requests,
+        // auto-reject the account (per product rule).
+        $user = $chairRequest->user;
+        if ($user && $user->role === 'admin' && $user->status === 'pending') {
+            $remaining = ChairRequest::where('user_id', $user->id)
+                ->where('status', ChairRequest::STATUS_PENDING)
+                ->count();
+
+            if ($remaining === 0) {
+                $user->status = 'rejected';
+                $user->save();
+            }
+        }
 
         return back()->with('success', 'Chair request rejected.');
     }

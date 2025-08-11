@@ -1,0 +1,206 @@
+/* 
+-------------------------------------------------------------------------------
+* File: resources/css/superadmin/manage-accounts/partials/table.css
+* Description: Manage Accounts tables – mirrors Department module (wrapper, icons, compact rows, zebra, hover accent)
+-------------------------------------------------------------------------------
+📜 Log:
+[2025-08-11] Initial creation – matched Department table style; added column widths, actions alignment, and empty state.
+[2025-08-11] Header icons – aligned and muted like Department module.
+[2025-08-11] Match Departments: reduced td padding to 0.01rem 0.75rem.
+[2025-08-11] Override: Name column uses standard text color (no brand accent).
+-------------------------------------------------------------------------------
+*/
+
+/* ░░░ START: Table Container (scoped to Approvals tab) ░░░ */
+#admins-approvals .table-responsive {
+  border: 1px solid var(--sv-border);
+  border-radius: 14px;
+  overflow: hidden;
+  background: #fff;
+  position: relative;
+  z-index: 1;
+}
+/* ░░░ END: Table Container ░░░ */
+
+
+/* ░░░ START: Base Table Layout ░░░ */
+#svMergedApprovalsTable,
+.sv-accounts-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.85rem;
+  font-family: 'Poppins', sans-serif;
+  background: #fff;
+}
+
+#svMergedApprovalsTable thead,
+.sv-accounts-table thead {
+  background: var(--sv-bg);
+}
+
+#svMergedApprovalsTable thead th,
+.sv-accounts-table thead th {
+  font-weight: 600;
+  color: var(--sv-text-muted);
+  padding: 0.65rem 0.9rem;
+  text-align: left;
+  vertical-align: middle;
+  background-color: #fff;
+  white-space: nowrap;
+}
+
+/* Header icons (match Departments) */
+#svMergedApprovalsTable thead th i,
+#svMergedApprovalsTable thead th svg,
+.sv-accounts-table thead th i,
+.sv-accounts-table thead th svg {
+  margin-right: 0.45rem;
+  stroke: var(--sv-text-muted);
+  width: 1rem;
+  height: 1rem;
+  vertical-align: text-bottom;
+}
+
+#svMergedApprovalsTable tbody tr,
+.sv-accounts-table tbody tr {
+  transition: background-color 0.2s ease;
+  background-color: #fff;
+}
+
+#svMergedApprovalsTable tbody tr:hover,
+.sv-accounts-table tbody tr:hover {
+  background-color: #fff5f4;
+  border-left: 4px solid var(--sv-primary);
+}
+
+#svMergedApprovalsTable td,
+.sv-accounts-table td {
+  color: var(--sv-text);
+  padding: 0.01rem 0.75rem; /* match Departments: ultra-compact */
+  border-bottom: 0px solid var(--sv-border);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+/* Name column: keep bold, use normal text color (not brand red) */
+#svMergedApprovalsTable td:first-child,
+.sv-accounts-table td:first-child {
+  font-weight: 500;
+  color: var(--sv-text);
+}
+
+/* Actions column */
+#svMergedApprovalsTable td:last-child,
+.sv-accounts-table td:last-child {
+  text-align: right;
+  padding-right: 1rem;
+}
+/* ░░░ END: Base Table Layout ░░░ */
+
+
+/* ░░░ START: Zebra Striping (Soft) ░░░ */
+#svMergedApprovalsTable tbody tr:nth-child(odd),
+.sv-accounts-table tbody tr:nth-child(odd) { background-color: #FDFDFD; }
+
+#svMergedApprovalsTable tbody tr:nth-child(even),
+.sv-accounts-table tbody tr:nth-child(even) { background-color: #FAFAFA; }
+/* ░░░ END: Zebra Striping ░░░ */
+
+
+/* ░░░ START: Column Width Hints (Approvals) ░░░ */
+#svMergedApprovalsTable thead th:nth-child(1) { width: 22%; } /* Name */
+#svMergedApprovalsTable thead th:nth-child(2) { width: 24%; } /* Email */
+#svMergedApprovalsTable thead th:nth-child(3) { width: 12%; } /* Type */
+#svMergedApprovalsTable thead th:nth-child(4) { width: 14%; } /* Role */
+#svMergedApprovalsTable thead th:nth-child(5) { width: 14%; } /* Department */
+#svMergedApprovalsTable thead th:nth-child(6) { width: 14%; } /* Program */
+#svMergedApprovalsTable thead th:nth-child(7) { width: 140px; } /* Actions */
+/* ░░░ END: Column Width Hints ░░░ */
+
+
+/* ░░░ START: Actions cell spacing ░░░ */
+#svMergedApprovalsTable td form + form,
+.sv-accounts-table td form + form {
+  margin-left: 0.35rem; /* small gap between inline forms/buttons */
+}
+
+#svMergedApprovalsTable td .btn,
+.sv-accounts-table td .btn {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.78rem;
+  line-height: 1.1;
+  border-radius: 8px;
+}
+/* ░░░ END: Actions cell spacing ░░░ */
+
+
+/* ░░░ START: Inline Empty Row (centered message) ░░░ */
+#svMergedApprovalsTable .sv-empty-row td,
+.sv-accounts-table .sv-empty-row td {
+  padding: 0;
+  background-color: #fff;
+  border-radius: 0 0 12px 12px;
+  border-top: 1px solid var(--sv-border);
+  height: 220px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+#svMergedApprovalsTable .sv-empty,
+#svMergedApprovalsTable .sv-empty *[class^="empty-"],
+.sv-accounts-table .sv-empty,
+.sv-accounts-table .sv-empty *[class^="empty-"] {
+  /* Structure mirrors Departments empty state */
+}
+
+#svMergedApprovalsTable .sv-empty,
+.sv-accounts-table .sv-empty {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  max-width: 360px;
+  margin: 1.5rem auto 0 auto;
+  padding: 0 1rem;
+}
+
+#svMergedApprovalsTable .sv-empty h6,
+.sv-accounts-table .sv-empty h6 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #CB3737;
+  margin-bottom: 0.3rem;
+  font-family: 'Poppins', sans-serif;
+}
+
+#svMergedApprovalsTable .sv-empty p,
+.sv-accounts-table .sv-empty p {
+  font-size: 0.85rem;
+  color: #777;
+  line-height: 1.4;
+  margin-bottom: 0;
+}
+/* ░░░ END: Inline Empty Row ░░░ */
+
+
+/* ░░░ START: Desktop header enforcement (match Departments) ░░░ */
+@media (min-width: 768px) {
+  #svMergedApprovalsTable thead,
+  .sv-accounts-table thead {
+    display: table-header-group !important;
+  }
+}
+/* ░░░ END: Desktop header enforcement ░░░ */
+
+
+/* ░░░ START: Mobile tweaks ░░░ */
+@media (max-width: 768px) {
+  #svMergedApprovalsTable,
+  .sv-accounts-table { font-size: 0.84rem; }
+
+  #svMergedApprovalsTable td,
+  .sv-accounts-table td { padding: 0.42rem 0.6rem; }
+}
+/* ░░░ END: Mobile tweaks ░░░ */
