@@ -5,6 +5,7 @@
 -------------------------------------------------------------------------------
 📜 Log:
 [2025-08-06] Created universal alert overlay module with success/info/error styles
+[2025-08-11] Fix: Raised z-index above Bootstrap modal/backdrop; added show/hide transitions
 -------------------------------------------------------------------------------
 */
 
@@ -14,11 +15,16 @@
   top: 1.25rem;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 1050;
+  z-index: 2000;                /* ⬆️ above .modal (1055) and backdrop (1050) */
   width: 100%;
   max-width: 360px;
   padding: 0 1rem;
   pointer-events: none;
+}
+
+/* Extra safety when a modal is open */
+.modal-open .alert-overlay { 
+  z-index: 2006;
 }
 /* ░░░ END: Overlay Container ░░░ */
 
@@ -36,6 +42,17 @@
   display: flex;
   align-items: center;
   gap: 0.6rem;
+
+  /* Smooth appear/disappear */
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity .18s ease, transform .18s ease;
+}
+
+.alert-overlay-style.hide,
+.alert-overlay-style.fade {
+  opacity: 0;
+  transform: translateY(-6px);
 }
 /* ░░░ END: Base Alert Box ░░░ */
 
@@ -78,20 +95,12 @@
   animation: shrink-bar 1.5s linear forwards;
 }
 
-.loading-bar.green {
-  background-color: #218739;
-}
-
-.loading-bar.blue {
-  background-color: #2c6fb7;
-}
-
-.loading-bar.red {
-  background-color: #cb3737;
-}
+.loading-bar.green { background-color: #218739; }
+.loading-bar.blue  { background-color: #2c6fb7; }
+.loading-bar.red   { background-color: #cb3737; }
 
 @keyframes shrink-bar {
   from { width: 100%; }
-  to { width: 0%; }
+  to   { width: 0%; }
 }
 /* ░░░ END: Animated Loading Bar ░░░ */

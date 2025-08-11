@@ -4,6 +4,10 @@
 // File: routes/superadmin.php
 // Description: Super Admin specific routes for Syllaverse
 // ------------------------------------------------
+// 📜 Log:
+// [2025-08-11] Update – switched Appointments routes to model binding {appointment},
+//              added DELETE /appointments/{appointment} (destroy) and standardized names.
+// ------------------------------------------------
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\SuperAdmin\AuthController;
@@ -11,7 +15,8 @@ use App\Http\Controllers\SuperAdmin\DepartmentController;
 use App\Http\Controllers\SuperAdmin\MasterDataController;
 use App\Http\Controllers\SuperAdmin\ManageAdminController;
 use App\Http\Controllers\SuperAdmin\ChairRequestController;
-use App\Http\Controllers\SuperAdmin\AppointmentController; // ✅ NEW
+use App\Http\Controllers\SuperAdmin\AppointmentController; // ✅
+
 use App\Http\Middleware\SuperAdminAuth;
 
 // ---------- Public Super Admin Login ----------
@@ -41,23 +46,24 @@ Route::middleware([SuperAdminAuth::class])->prefix('superadmin')->group(function
 
     // ---------- Manage Admin Accounts ----------
     Route::post('/manage-accounts/admins/{id}/approve', [ManageAdminController::class, 'approve'])->name('superadmin.approve.admin');
-    Route::post('/manage-accounts/admins/{id}/reject', [ManageAdminController::class, 'reject'])->name('superadmin.reject.admin');
+    Route::post('/manage-accounts/admins/{id}/reject',  [ManageAdminController::class, 'reject'])->name('superadmin.reject.admin');
 
     // ---------- Chair Requests (Approve/Reject) ----------
     Route::post('/chair-requests/{id}/approve', [ChairRequestController::class, 'approve'])->name('superadmin.chair-requests.approve');
     Route::post('/chair-requests/{id}/reject',  [ChairRequestController::class, 'reject'])->name('superadmin.chair-requests.reject');
 
-    // ---------- Appointments (Create/Update/End) ----------
-    Route::post('/appointments',                [AppointmentController::class, 'store'])->name('superadmin.appointments.store');   // ✅ NEW
-    Route::put('/appointments/{id}',            [AppointmentController::class, 'update'])->name('superadmin.appointments.update'); // ✅ NEW
-    Route::post('/appointments/{id}/end',       [AppointmentController::class, 'end'])->name('superadmin.appointments.end');       // ✅ NEW
+    // ---------- Appointments (Create/Update/End/Destroy) ----------
+    Route::post('/appointments',                         [AppointmentController::class, 'store'])->name('superadmin.appointments.store');
+    Route::put('/appointments/{appointment}',            [AppointmentController::class, 'update'])->name('superadmin.appointments.update');   // ✅ model binding
+    Route::post('/appointments/{appointment}/end',       [AppointmentController::class, 'end'])->name('superadmin.appointments.end');         // ✅ model binding
+    Route::delete('/appointments/{appointment}',         [AppointmentController::class, 'destroy'])->name('superadmin.appointments.destroy'); // ✅ new
 
     // ---------- Master Data ----------
     Route::prefix('master-data')->group(function () {
-        Route::get('/', [MasterDataController::class, 'index'])->name('superadmin.master-data');
-        Route::post('/{type}', [MasterDataController::class, 'store'])->name('superadmin.master-data.store');
-        Route::put('/{type}/{id}', [MasterDataController::class, 'update'])->name('superadmin.master-data.update');
-        Route::delete('/{type}/{id}', [MasterDataController::class, 'destroy'])->name('superadmin.master-data.destroy');
+        Route::get('/',                   [MasterDataController::class, 'index'])->name('superadmin.master-data');
+        Route::post('/{type}',            [MasterDataController::class, 'store'])->name('superadmin.master-data.store');
+        Route::put('/{type}/{id}',        [MasterDataController::class, 'update'])->name('superadmin.master-data.update');
+        Route::delete('/{type}/{id}',     [MasterDataController::class, 'destroy'])->name('superadmin.master-data.destroy');
     });
 
     // ---------- General Academic Information ----------
@@ -65,9 +71,9 @@ Route::middleware([SuperAdminAuth::class])->prefix('superadmin')->group(function
 
     // ---------- Departments ----------
     Route::prefix('departments')->group(function () {
-        Route::get('/', [DepartmentController::class, 'index'])->name('superadmin.departments.index');
-        Route::post('/', [DepartmentController::class, 'store'])->name('superadmin.departments.store');
-        Route::put('/{id}', [DepartmentController::class, 'update'])->name('superadmin.departments.update');
+        Route::get('/',        [DepartmentController::class, 'index'])->name('superadmin.departments.index');
+        Route::post('/',       [DepartmentController::class, 'store'])->name('superadmin.departments.store');
+        Route::put('/{id}',    [DepartmentController::class, 'update'])->name('superadmin.departments.update');
         Route::delete('/{id}', [DepartmentController::class, 'destroy'])->name('superadmin.departments.destroy');
     });
 });

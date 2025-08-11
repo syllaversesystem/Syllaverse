@@ -2,10 +2,12 @@
 
 // -------------------------------------------------------------------------------
 // * File: app/Http/Controllers/SuperAdmin/AppointmentController.php
-// * Description: Superadmin tools to grant/change/end chair appointments (Dept/Program) – Syllaverse
+// * Description: Create/Update/End/Destroy chair appointments – JSON payload for AJAX DOM updates
 // -------------------------------------------------------------------------------
 // 📜 Log:
-// [2025-08-08] Initial creation – create/update/end appointments with conflict replacement and audit-friendly flow.
+// [2025-08-11] AJAX – JSON responses for XHR; redirect+flash for normal posts.
+// [2025-08-11] Robust – tolerant role parsing (dept/prog variants) + one-active-per-scope guard.
+// [2025-08-11] DOM – returns { admin_id, appointments[] } for client-side rendering (no Blade fragments).
 // -------------------------------------------------------------------------------
 
 namespace App\Http\Controllers\SuperAdmin;
@@ -15,189 +17,230 @@ use App\Models\Appointment;
 use App\Models\Department;
 use App\Models\Program;
 use App\Models\User;
-use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
 class AppointmentController extends Controller
 {
-    // ░░░ START: Create Appointment ░░░
-    /**
-     * Create a new chair appointment for an Admin.
-     * Plain-English: This grants Dept/Program Chair power to the chosen admin, ending any conflicting active chair.
-     */
-    public function store(Request $request): RedirectResponse
+    protected function wantsJson(Request $request): bool
     {
-        $data = $request->validate([
+        return $request->expectsJson() || $request->wantsJson() || $request->ajax();
+    }
+
+    /** Normalize various role inputs to model constants or null if unknown. */
+    protected function normalizeRole(mixed $role): ?string
+    {
+        $r = strtoupper(trim((string) $role));
+        if (in_array($r, [Appointment::ROLE_DEPT, Appointment::ROLE_PROG], true)) return $r;
+        if (in_array($r, ['DEPT','DEPARTMENT','DEPARTMENT_CHAIR','0'], true)) return Appointment::ROLE_DEPT;
+        if (in_array($r, ['PROG','PROGRAM','PROGRAM_CHAIR','1'], true)) return Appointment::ROLE_PROG;
+        if (str_contains($r, 'PROG')) return Appointment::ROLE_PROG;
+        if (str_contains($r, 'DEPT')) return Appointment::ROLE_DEPT;
+        return null;
+    }
+
+    /** Format active appointments for one admin into a lightweight JSON array. */
+    protected function buildAppointmentsPayload(User $admin): array
+    {
+        $admin->loadMissing('appointments');
+        $active = $admin->appointments()->active()->get();
+
+        $deptNames = Department::pluck('name', 'id');                                 // id => name
+        $progRows  = Program::select('id', 'name', 'department_id')->get()->keyBy('id'); // id => row
+
+        return $active->map(function (Appointment $a) use ($deptNames, $progRows) {
+            $isDept = $a->role === Appointment::ROLE_DEPT;
+
+            if ($isDept) {
+                $scopeLabel = (string) ($deptNames[$a->scope_id] ?? ('Dept #'.$a->scope_id));
+                $deptId     = (int) $a->scope_id;
+
+                return [
+                    'id'          => (int) $a->id,
+                    'role'        => $a->role,
+                    'role_label'  => 'Dept Chair',
+                    'is_dept'     => true,
+                    'scope_id'    => (int) $a->scope_id,
+                    'scope_label' => $scopeLabel,
+                    'dept_id'     => $deptId,
+                    'program_id'  => null,
+                ];
+            }
+
+            $prog       = $progRows[$a->scope_id] ?? null;
+            $scopeLabel = $prog ? $prog->name : ('Prog #'.$a->scope_id);
+            $deptId     = (int) ($prog->department_id ?? 0);
+
+            return [
+                'id'          => (int) $a->id,
+                'role'        => $a->role,
+                'role_label'  => 'Program Chair',
+                'is_dept'     => false,
+                'scope_id'    => (int) $a->scope_id,
+                'scope_label' => $scopeLabel,
+                'dept_id'     => $deptId,
+                'program_id'  => (int) $a->scope_id,
+            ];
+        })->values()->all();
+    }
+
+    /** Unified responder. */
+    protected function respond(Request $request, bool $ok, string $message, int $status = 200, array $errors = null, array $extra = []): JsonResponse|RedirectResponse
+    {
+        if ($this->wantsJson($request)) {
+            $payload = array_merge(['ok' => $ok, 'message' => $message], $extra);
+            if ($errors !== null) $payload['errors'] = $errors;
+            return response()->json($payload, $status);
+        }
+
+        if ($status === 422 && $errors) {
+            return back()->withErrors($errors)->withInput();
+        }
+
+        return $ok ? back()->with('success', $message) : back()->with('error', $message);
+    }
+
+    // ── CRUD ──────────────────────────────────────────────────────────────────
+
+    public function store(Request $request): JsonResponse|RedirectResponse
+    {
+        $v = Validator::make($request->all(), [
             'user_id'       => ['required', 'integer', 'exists:users,id'],
-            'role'          => ['required', 'in:' . Appointment::ROLE_DEPT . ',' . Appointment::ROLE_PROG],
-            'department_id' => ['required', 'integer', 'exists:departments,id'],
+            'role'          => ['required'],
+            'department_id' => ['nullable', 'integer', 'exists:departments,id'],
             'program_id'    => ['nullable', 'integer', 'exists:programs,id'],
-            'start_at'      => ['nullable', 'date'],
         ]);
-
-        // Ensure user is an admin
-        $user = User::findOrFail($data['user_id']);
-        if ($user->role !== 'admin') {
-            return back()->with('error', 'Only Admin accounts can receive chair appointments.');
+        if ($v->fails()) {
+            return $this->respond($request, false, 'Validation failed.', 422, $v->errors()->toArray());
         }
 
-        // If role is Program Chair, program is required and must belong to department
-        if ($data['role'] === Appointment::ROLE_PROG) {
-            if (empty($data['program_id'])) {
-                return back()->withErrors(['program_id' => 'Program is required for a Program Chair appointment.']);
-            }
-            $program = Program::findOrFail((int) $data['program_id']);
-            if ((int) $program->department_id !== (int) $data['department_id']) {
-                return back()->withErrors(['program_id' => 'Selected program does not belong to the selected department.']);
-            }
-        } else {
-            // Department Chair must not specify a program
-            $data['program_id'] = null;
-            Department::findOrFail((int) $data['department_id']); // ensure exists
+        $data = $v->validated();
+        $role = $this->normalizeRole($data['role']);
+        if (!$role) {
+            return $this->respond($request, false, 'Invalid role.', 422, ['role' => ['Invalid role value.']]);
         }
 
-        $startAt   = $data['start_at'] ? Carbon::parse($data['start_at']) : now();
-        $deciderId = $this->resolveDeciderId($request); // nullable is OK
+        $isProg  = $role === Appointment::ROLE_PROG;
+        $scopeId = $isProg ? ($data['program_id'] ?? null) : ($data['department_id'] ?? null);
 
-        DB::transaction(function () use ($data, $user, $startAt, $deciderId) {
-            [$scopeType, $scopeId] = $this->mapRoleToScope($data['role'], (int) $data['department_id'], $data['program_id']);
-
-            // End any conflicting active appointment on this scope before granting
-            $this->endConflictingActive($data['role'], $scopeType, $scopeId);
-
-            Appointment::create([
-                'user_id'     => $user->id,
-                'role'        => $data['role'],
-                'scope_type'  => $scopeType,
-                'scope_id'    => $scopeId,
-                'status'      => 'active',
-                'start_at'    => $startAt,
-                'end_at'      => null,
-                'assigned_by' => $deciderId,
-            ]);
-        });
-
-        return back()->with('success', 'Appointment created successfully.');
-    }
-    // ░░░ END: Create Appointment ░░░
-
-
-    // ░░░ START: Update Appointment (End + Recreate) ░░░
-    /**
-     * Change an existing appointment (role and/or scope).
-     * Plain-English: We end the current appointment now and create a new one with the new role/scope.
-     * This preserves history instead of silently mutating past records.
-     */
-    public function update(Request $request, int $id): RedirectResponse
-    {
-        $appointment = Appointment::findOrFail($id);
-
-        $data = $request->validate([
-            'role'          => ['required', 'in:' . Appointment::ROLE_DEPT . ',' . Appointment::ROLE_PROG],
-            'department_id' => ['required', 'integer', 'exists:departments,id'],
-            'program_id'    => ['nullable', 'integer', 'exists:programs,id'],
-            'start_at'      => ['nullable', 'date'], // start of the NEW appointment
-        ]);
-
-        if ($data['role'] === Appointment::ROLE_PROG) {
-            if (empty($data['program_id'])) {
-                return back()->withErrors(['program_id' => 'Program is required for a Program Chair appointment.']);
-            }
-            $program = Program::findOrFail((int) $data['program_id']);
-            if ((int) $program->department_id !== (int) $data['department_id']) {
-                return back()->withErrors(['program_id' => 'Selected program does not belong to the selected department.']);
-            }
-        } else {
-            $data['program_id'] = null;
-            Department::findOrFail((int) $data['department_id']);
+        if ($isProg && !$scopeId) {
+            return $this->respond($request, false, 'Program is required for Program Chair.', 422, ['program_id' => ['Program is required for Program Chair.']]);
+        }
+        if (!$isProg && !$scopeId) {
+            return $this->respond($request, false, 'Department is required for Department Chair.', 422, ['department_id' => ['Department is required for Department Chair.']]);
         }
 
-        $startAt   = $data['start_at'] ? Carbon::parse($data['start_at']) : now();
-        $deciderId = $this->resolveDeciderId($request); // nullable is OK
-
-        DB::transaction(function () use ($appointment, $data, $startAt, $deciderId) {
-            // End the current appointment (if not already)
-            if ($appointment->status === 'active') {
-                $appointment->endNow();
-            }
-
-            // Prepare target scope
-            [$scopeType, $scopeId] = $this->mapRoleToScope($data['role'], (int) $data['department_id'], $data['program_id']);
-
-            // End conflicting active appointment at the NEW target
-            $this->endConflictingActive($data['role'], $scopeType, $scopeId);
-
-            // Create the new appointment for the same user
-            Appointment::create([
-                'user_id'     => $appointment->user_id,
-                'role'        => $data['role'],
-                'scope_type'  => $scopeType,
-                'scope_id'    => $scopeId,
-                'status'      => 'active',
-                'start_at'    => $startAt,
-                'end_at'      => null,
-                'assigned_by' => $deciderId,
-            ]);
-        });
-
-        return back()->with('success', 'Appointment updated: previous ended and new appointment created.');
-    }
-    // ░░░ END: Update Appointment (End + Recreate) ░░░
-
-
-    // ░░░ START: End Appointment Now ░░░
-    /**
-     * End an appointment immediately (e.g., turnover or removal).
-     * Plain-English: This removes the admin’s chair power for that scope from now onward.
-     */
-    public function end(Request $request, int $id): RedirectResponse
-    {
-        $appointment = Appointment::findOrFail($id);
-
-        if ($appointment->status !== 'active') {
-            return back()->with('info', 'This appointment is already ended.');
-        }
-
-        $appointment->endNow();
-
-        return back()->with('success', 'Appointment ended successfully.');
-    }
-    // ░░░ END: End Appointment Now ░░░
-
-
-    // ░░░ START: Helpers ░░░
-    /** Map logical role to polymorphic scope pair. */
-    protected function mapRoleToScope(string $role, int $departmentId, ?int $programId): array
-    {
-        if ($role === Appointment::ROLE_DEPT) {
-            return [Appointment::SCOPE_DEPT, $departmentId];
-        }
-        // ROLE_PROG
-        return [Appointment::SCOPE_PROG, (int) $programId];
-    }
-
-    /** Ensure uniqueness: only ONE active chair per (role, scope_type, scope_id). */
-    protected function endConflictingActive(string $role, string $scopeType, int $scopeId): void
-    {
-        $conflicts = Appointment::query()
-            ->active()
+        // One active per role+scope
+        $exists = Appointment::active()
             ->where('role', $role)
-            ->where('scope_type', $scopeType)
-            ->where('scope_id', $scopeId)
-            ->get();
+            ->where('scope_type', $isProg ? Appointment::SCOPE_PROG : Appointment::SCOPE_DEPT)
+            ->where('scope_id', (int) $scopeId)
+            ->exists();
 
-        foreach ($conflicts as $conflict) {
-            $conflict->endNow();
+        if ($exists) {
+            $field = $isProg ? 'program_id' : 'department_id';
+            return $this->respond($request, false, 'An active chair already exists for this selection.', 422, [
+                $field => ['An active chair already exists for this selection.'],
+            ]);
         }
+
+        $appt = new Appointment([
+            'user_id' => (int) $data['user_id'],
+            'role'    => $role,
+            'status'  => 'active',
+        ]);
+        $appt->setRoleAndScope($role, $data['department_id'] ?? null, $data['program_id'] ?? null);
+        $appt->save();
+
+        $admin = User::findOrFail((int) $data['user_id']);
+        $appointments = $this->buildAppointmentsPayload($admin);
+
+        return $this->respond($request, true, 'Appointment created.', 200, null, [
+            'admin_id'     => $admin->id,
+            'appointments' => $appointments,
+        ]);
     }
 
-    /** Resolve the acting superadmin’s user id if available; may return null (columns are nullable). */
-    protected function resolveDeciderId(Request $request): ?int
+    public function update(Request $request, Appointment $appointment): JsonResponse|RedirectResponse
     {
-        return $request->user()?->id ?? Auth::id() ?? null;
+        $v = Validator::make($request->all(), [
+            'role'          => ['required'],
+            'department_id' => ['nullable', 'integer', 'exists:departments,id'],
+            'program_id'    => ['nullable', 'integer', 'exists:programs,id'],
+        ]);
+        if ($v->fails()) {
+            return $this->respond($request, false, 'Validation failed.', 422, $v->errors()->toArray());
+        }
+
+        $data = $v->validated();
+        $role = $this->normalizeRole($data['role']);
+        if (!$role) {
+            return $this->respond($request, false, 'Invalid role.', 422, ['role' => ['Invalid role value.']]);
+        }
+
+        $isProg  = $role === Appointment::ROLE_PROG;
+        $scopeId = $isProg ? ($data['program_id'] ?? null) : ($data['department_id'] ?? null);
+
+        if ($isProg && !$scopeId) {
+            return $this->respond($request, false, 'Program is required for Program Chair.', 422, ['program_id' => ['Program is required for Program Chair.']]);
+        }
+        if (!$isProg && !$scopeId) {
+            return $this->respond($request, false, 'Department is required for Department Chair.', 422, ['department_id' => ['Department is required for Department Chair.']]);
+        }
+
+        $exists = Appointment::active()
+            ->where('role', $role)
+            ->where('scope_type', $isProg ? Appointment::SCOPE_PROG : Appointment::SCOPE_DEPT)
+            ->where('scope_id', (int) $scopeId)
+            ->where('id', '!=', $appointment->id)
+            ->exists();
+
+        if ($exists) {
+            $field = $isProg ? 'program_id' : 'department_id';
+            return $this->respond($request, false, 'An active chair already exists for this selection.', 422, [
+                $field => ['An active chair already exists for this selection.'],
+            ]);
+        }
+
+        $appointment->setRoleAndScope($role, $data['department_id'] ?? null, $data['program_id'] ?? null);
+        $appointment->save();
+
+        $admin = $appointment->user()->firstOrFail();
+        $appointments = $this->buildAppointmentsPayload($admin);
+
+        return $this->respond($request, true, 'Appointment updated.', 200, null, [
+            'admin_id'     => $admin->id,
+            'appointments' => $appointments,
+        ]);
     }
-    // ░░░ END: Helpers ░░░
+
+    public function end(Request $request, Appointment $appointment): JsonResponse|RedirectResponse
+    {
+        if ($appointment->status !== 'ended') {
+            $appointment->endNow();
+        }
+
+        $admin = $appointment->user()->firstOrFail();
+        $appointments = $this->buildAppointmentsPayload($admin);
+
+        return $this->respond($request, true, 'Appointment ended.', 200, null, [
+            'admin_id'     => $admin->id,
+            'appointments' => $appointments,
+        ]);
+    }
+
+    public function destroy(Request $request, Appointment $appointment): JsonResponse|RedirectResponse
+    {
+        $admin = $appointment->user()->firstOrFail();
+        $appointment->delete();
+
+        $appointments = $this->buildAppointmentsPayload($admin);
+
+        return $this->respond($request, true, 'Appointment removed.', 200, null, [
+            'admin_id'     => $admin->id,
+            'appointments' => $appointments,
+        ]);
+    }
 }

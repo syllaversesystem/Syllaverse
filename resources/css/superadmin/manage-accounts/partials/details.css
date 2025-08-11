@@ -1,69 +1,52 @@
 /* 
 -------------------------------------------------------------------------------
 * File: resources/css/superadmin/manage-accounts/partials/details.css
-* Description: Styles for expandable table detail rows listing chair requests
+* Description: Detail rows and request list patterns (extended for Manage Admin modal)
 -------------------------------------------------------------------------------
 📜 Log:
-[2025-08-11] Initial creation – detail row container, list items, actions, and toggle rotation.
+[2025-08-11] Add – modal polish: list spacing, action alignment, inline edit panel styling for .sv-appt-modal.
 -------------------------------------------------------------------------------
 */
 
-/* ░░░ START: Detail row container ░░░ */
-.sv-detail-row .sv-details-cell {
-  background: #fff;
-  border-top: 1px solid var(--sv-border);
+/* ░░░ START: Manage Admin modal polish ░░░ */
+.sv-appt-modal .modal-body {
+  padding-top: 1rem;
 }
 
-.sv-details {
-  padding: 0.75rem 0.9rem 0.9rem;
-  background: #fff;
-}
-
-.sv-request-list {
+.sv-appt-modal .sv-request-list {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
 }
 
-/* ░░░ START: Request item ░░░ */
-.sv-request-item {
+.sv-appt-modal .sv-request-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: .75rem;
+  padding: .5rem .75rem;
   border: 1px solid var(--sv-border);
   border-radius: 12px;
   background: #fff;
-  padding: 0.5rem 0.75rem;
 }
 
-.sv-request-meta {
+.sv-appt-modal .sv-request-meta {
   display: flex;
-  align-items: center;
   flex-wrap: wrap;
-  gap: 0.4rem;
+  gap: .35rem;
 }
 
-.sv-request-actions .action-btn + .action-btn {
-  margin-left: 0.35rem;
-}
-/* ░░░ END: Request item ░░░ */
-
-/* ░░░ START: Toggle rotation ░░░ */
-.sv-row-toggle i,
-.sv-row-toggle svg {
-  transition: transform 0.18s ease;
+.sv-appt-modal .sv-request-actions .action-btn + .action-btn,
+.sv-appt-modal .sv-request-actions form + form,
+.sv-appt-modal .sv-request-actions form + .action-btn {
+  margin-left: .35rem;
 }
 
-.sv-row-toggle[aria-expanded="true"] i,
-.sv-row-toggle[aria-expanded="true"] svg {
-  transform: rotate(180deg);
+.sv-appt-modal .sv-details {
+  border: 1px dashed var(--sv-border);
+  border-radius: 12px;
+  background: #fffaf9;
+  padding: .75rem;
+  margin-top: .35rem;
 }
-/* ░░░ END: Toggle rotation ░░░ */
-
-/* ░░░ START: Mobile tweaks ░░░ */
-@media (max-width: 768px) {
-  .sv-request-item { align-items: flex-start; }
-  .sv-request-actions { white-space: nowrap; }
-}
-/* ░░░ END: Mobile tweaks ░░░ */
+/* ░░░ END: Manage Admin modal polish ░░░ */

@@ -19,6 +19,9 @@
 @import './partials/buttons.css';
 @import './partials/pills.css';
 @import './partials/details.css'; /* ⬅️ NEW */
+/* resources/css/superadmin/manage-accounts/manage-accounts.css */
+@import './partials/modal.css';
+
 
 
 

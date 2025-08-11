@@ -1,68 +1,235 @@
 // -------------------------------------------------------------------------------
 // * File: resources/js/superadmin/appointments.js
-// * Description: Per-form role toggle + Department→Program filtering for Approved Admins tab – Syllaverse
+// * Description: Drives role → department → program linkage in Manage Admin modal
+//                and bridges AJAX notifications to the floating alert overlay.
 // -------------------------------------------------------------------------------
 // 📜 Log:
-// [2025-08-08] Initial creation – supports Add and Edit forms using .sv-appt-form with sv-role/sv-dept/sv-prog.
+// [2025-08-11] Initial creation – enable/disable Program by role, filter by department,
+//              init on DOM ready and on modal show, supports Add + inline Edit forms.
+// [2025-08-11] Alert bridge – listens to window "sv:alert" from AJAX layer and shows the
+//              popup overlay (uses SV.alert → showAlertOverlay → inline fallback).
 // -------------------------------------------------------------------------------
 
-document.addEventListener('DOMContentLoaded', () => {
-  const pane = document.querySelector('#admins-approved');
-  if (!pane) return;
+(function () {
+  // ░░░ START: Alert Bridge Utilities ░░░
 
-  // For each inline appointment form (add or edit)
-  pane.querySelectorAll('.sv-appt-form').forEach((form) => {
-    const roleSel = form.querySelector('.sv-role');
-    const deptSel = form.querySelector('.sv-dept');
-    const progSel = form.querySelector('.sv-prog');
+  /**
+   * This tries SV.alert first (if your global helper exists), then falls back to
+   * showAlertOverlay(), and finally to a tiny inline renderer so you always see a popup.
+   * Use types: 'success' | 'info' | 'error'.
+   */
+  function showAlertBridge(message, type) {
+    // Preferred: global helper (if you added it elsewhere)
+    if (window.SV && typeof window.SV.alert === 'function') {
+      window.SV.alert(message, type);
+      return;
+    }
 
-    if (!roleSel || !deptSel || !progSel) return;
+    // Secondary: our earlier helper from alert-timer.js
+    if (typeof window.showAlertOverlay === 'function') {
+      window.showAlertOverlay(type || 'info', message || '');
+      return;
+    }
 
-    // Initial state
-    applyRoleToggle(roleSel, progSel);
-    filterProgramsByDepartment(deptSel, progSel);
+    // Last resort: inline minimal overlay (keeps UX working even if other files aren’t loaded)
+    // NOTE: This uses your existing CSS classes from alert-overlay.css.
+    try {
+      document.querySelectorAll('.alert-overlay').forEach(el => el.remove());
 
-    // Events
-    roleSel.addEventListener('change', () => {
-      applyRoleToggle(roleSel, progSel);
-      // If switching away from Program Chair, clear program
-      if (roleSel.value !== roleProgValue()) {
-        progSel.value = '';
+      const overlay = document.createElement('div');
+      overlay.className = 'alert-overlay';
+
+      const alertEl = document.createElement('div');
+      const t = type || 'info';
+      alertEl.className = `alert alert-overlay-style alert-${t} d-flex align-items-center gap-2 show`;
+      alertEl.setAttribute('role', 'alert');
+
+      const icon = document.createElement('i');
+      icon.setAttribute('data-feather', t === 'success' ? 'check-circle' : (t === 'error' ? 'x-circle' : 'info'));
+
+      const msgDiv = document.createElement('div');
+      msgDiv.textContent = message || '';
+
+      const bar = document.createElement('div');
+      bar.className = 'loading-bar ' + (t === 'success' ? 'green' : (t === 'error' ? 'red' : 'blue'));
+
+      alertEl.appendChild(icon);
+      alertEl.appendChild(msgDiv);
+      alertEl.appendChild(bar);
+      overlay.appendChild(alertEl);
+      document.body.appendChild(overlay);
+
+      // Feather icons (safe-guarded)
+      try { window.feather?.replace?.(); } catch {}
+
+      // Auto-dismiss to mirror your timer (1.5s + small fade)
+      setTimeout(() => {
+        alertEl.classList.remove('show');
+        alertEl.classList.add('fade');
+        setTimeout(() => overlay.remove(), 200);
+      }, 1500);
+    } catch (e) {
+      // As a last fallback, log to console so something is visible during dev
+      console[(type === 'error' ? 'error' : 'log')]((type || 'info').toUpperCase() + ': ' + (message || ''));
+    }
+  }
+
+  /**
+   * This listens for the global "sv:alert" event that your AJAX layer dispatches.
+   * manage-accounts.js already does `window.dispatchEvent(new CustomEvent('sv:alert', { detail: { type, message } }))`
+   * so we just render it here.
+   */
+  function bindGlobalAlertListener() {
+    window.addEventListener('sv:alert', (ev) => {
+      const detail = ev?.detail || {};
+      const type = detail.type || 'info';
+      const message = String(detail.message || '').trim();
+      if (message) showAlertBridge(message, type);
+    });
+  }
+
+  // ░░░ END: Alert Bridge Utilities ░░░
+
+
+  // ░░░ START: Form-State Utilities (role → dept → program) ░░░
+
+  /**
+   * This returns the key controls within a given appointment form.
+   * It makes selectors resilient and avoids null errors.
+   */
+  function getFormEls(form) {
+    return {
+      role: form.querySelector('.sv-role'),
+      dept: form.querySelector('.sv-dept'),
+      prog: form.querySelector('.sv-prog'),
+    };
+  }
+
+  /**
+   * This detects if the selected role is "Program Chair" using the option's label,
+   * so it works whether your backend uses strings or ints for values.
+   */
+  function isProgramRole(roleSelect) {
+    if (!roleSelect) return false;
+    const opt = roleSelect.options[roleSelect.selectedIndex];
+    const label = (opt && (opt.text || opt.label) || '').toLowerCase();
+    return label.includes('program'); // robust against numeric values
+  }
+
+  /**
+   * This filters Program options by department.
+   * It keeps the placeholder (empty value) always visible.
+   */
+  function filterProgramsByDept(progSelect, deptId) {
+    if (!progSelect) return;
+
+    const want = String(deptId || '');
+
+    Array.from(progSelect.options).forEach((opt) => {
+      const isPlaceholder = opt.value === '';
+      if (isPlaceholder) {
+        opt.hidden = false;
+        opt.disabled = false;
+        return;
       }
+      const optDept = String(opt.getAttribute('data-dept') || '');
+      const show = want !== '' && optDept === want;
+      opt.hidden = !show;
+      opt.disabled = !show;
     });
 
-    deptSel.addEventListener('change', () => {
-      filterProgramsByDepartment(deptSel, progSel);
+    // If current selection is now hidden, clear it
+    const selectedOpt = progSelect.options[progSelect.selectedIndex];
+    if (selectedOpt && (selectedOpt.hidden || selectedOpt.disabled)) {
+      progSelect.value = '';
+    }
+  }
+
+  /**
+   * This enables/disables the Program select based on role + department,
+   * and applies the filtering.
+   */
+  function updateFormState(form) {
+    const { role, dept, prog } = getFormEls(form);
+    if (!role || !dept || !prog) return;
+
+    const programMode = isProgramRole(role);
+    const deptId = dept.value;
+
+    if (programMode && deptId) {
+      prog.disabled = false;
+      prog.removeAttribute('disabled');
+      filterProgramsByDept(prog, deptId);
+    } else {
+      // Not in Program mode, or no department yet — keep Program off
+      prog.value = '';
+      prog.disabled = true;
+      prog.setAttribute('disabled', 'disabled');
+      filterProgramsByDept(prog, ''); // unhide placeholder, hide others
+    }
+  }
+
+  /**
+   * This wires listeners for a single form (Add or Edit) and applies the initial state.
+   */
+  function bindForm(form) {
+    const { role, dept } = getFormEls(form);
+    if (role) role.addEventListener('change', () => updateFormState(form));
+    if (dept) dept.addEventListener('change', () => updateFormState(form));
+    // Initial state
+    updateFormState(form);
+  }
+
+  /**
+   * This initializes all appointment forms currently in the DOM.
+   */
+  function initAllForms() {
+    document.querySelectorAll('.sv-appt-form').forEach(bindForm);
+  }
+
+  // ░░░ END: Form-State Utilities ░░░
+
+
+  // ░░░ START: Bootstrap Lifecycle Hooks ░░░
+
+  /**
+   * This initializes forms on page load and whenever a Manage Admin modal opens.
+   */
+  function bindLifecycle() {
+    // On DOM ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initAllForms, { once: true });
+    } else {
+      initAllForms();
+    }
+
+    // On modal shown (re-bind inside that modal)
+    document.addEventListener('shown.bs.modal', (ev) => {
+      const modal = ev.target;
+      if (!modal || !modal.classList.contains('sv-appt-modal')) return;
+      modal.querySelectorAll('.sv-appt-form').forEach(bindForm);
     });
-  });
-});
+  }
 
-function applyRoleToggle(roleSelect, progSelect) {
-  const isProgramChair = roleSelect.value === roleProgValue();
-  progSelect.disabled = !isProgramChair;
-}
+  // ░░░ END: Bootstrap Lifecycle Hooks ░░░
 
-function roleProgValue() {
-  // Keep in sync with PHP constant \App\Models\Appointment::ROLE_PROG
-  return 'PROG_CHAIR';
-}
 
-function filterProgramsByDepartment(deptSelect, progSelect) {
-  const deptId = (deptSelect.value || '').toString();
-  const options = Array.from(progSelect.options);
-  const placeholder = options.shift(); // first is placeholder
+  // ░░░ START: Init ░░░
 
-  let validSelected = false;
+  /**
+   * This kicks off both the alert bridge and the form-state logic.
+   */
+  function init() {
+    bindGlobalAlertListener(); // listen for AJAX-driven alerts (sv:alert)
+    bindLifecycle();           // keep the role→dept→program UX working
+  }
 
-  options.forEach((opt) => {
-    const belongsTo = (opt.getAttribute('data-dept') || '').toString();
-    const show = deptId && belongsTo === deptId;
+  // Fire immediately or on DOMContentLoaded
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init, { once: true });
+  } else {
+    init();
+  }
 
-    opt.hidden = !show;
-    opt.disabled = !show;
-
-    if (opt.selected && show) validSelected = true;
-  });
-
-  if (!validSelected) progSelect.value = '';
-}
+  // ░░░ END: Init ░░░
+})();

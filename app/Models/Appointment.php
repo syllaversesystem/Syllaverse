@@ -6,6 +6,9 @@
 // -------------------------------------------------------------------------------
 // 📜 Log:
 // [2025-08-08] Initial creation – relationships, active scopes, and utility helpers.
+// [2025-08-11] Defaults & safety – auto-set start_at=now() and status=active on create;
+//              infer scope_type from role on create/save; added role mutator and
+//              a convenience setter for role+scope to keep data consistent.
 // -------------------------------------------------------------------------------
 
 namespace App\Models;
@@ -18,11 +21,24 @@ class Appointment extends Model
 {
     use HasFactory;
 
-    // This lets us mass-assign fields when approving requests.
+    // ░░░ START: Constants & Attributes ░░░
+
+    /** Role constants to avoid string typos. */
+    public const ROLE_DEPT = 'DEPT_CHAIR';
+    public const ROLE_PROG = 'PROG_CHAIR';
+
+    /** Scope type constants (polymorphic-ish discriminator). */
+    public const SCOPE_DEPT = 'Department';
+    public const SCOPE_PROG = 'Program';
+
+    /**
+     * Mass-assignable attributes.
+     * This lets controllers safely create/update records without touching guarded fields.
+     */
     protected $fillable = [
         'user_id',
         'role',         // 'DEPT_CHAIR' | 'PROG_CHAIR'
-        'scope_type',   // 'Department' | 'Program'
+        'scope_type',   // 'Department' | 'Program' (inferred automatically from role if missing)
         'scope_id',
         'status',       // 'active' | 'ended'
         'start_at',
@@ -30,17 +46,14 @@ class Appointment extends Model
         'assigned_by',
     ];
 
-    // Cast timestamps to Carbon for easy date math.
+    /** Cast timestamps to Carbon for easy date math/comparisons. */
     protected $casts = [
         'start_at' => 'datetime',
         'end_at'   => 'datetime',
     ];
 
-    // Simple constants to avoid string typos around the codebase.
-    public const ROLE_DEPT = 'DEPT_CHAIR';
-    public const ROLE_PROG = 'PROG_CHAIR';
-    public const SCOPE_DEPT = 'Department';
-    public const SCOPE_PROG = 'Program';
+    // ░░░ END: Constants & Attributes ░░░
+
 
     // ░░░ START: Relationships ░░░
 
@@ -107,6 +120,63 @@ class Appointment extends Model
     // ░░░ END: Query Scopes ░░░
 
 
+    // ░░░ START: Model Events (Defaults & Invariants) ░░░
+
+    /**
+     * Ensure sane defaults and internal consistency when creating/saving.
+     * - start_at defaults to now()
+     * - status defaults to 'active'
+     * - scope_type is inferred from role if missing
+     */
+    protected static function booted(): void
+    {
+        static::creating(function (Appointment $appt) {
+            // Default start time if UI doesn't supply it
+            if (empty($appt->start_at)) {
+                $appt->start_at = now();
+            }
+
+            // Default lifecycle status
+            if (empty($appt->status)) {
+                $appt->status = 'active';
+            }
+
+            // Infer scope_type from role if not set
+            if (empty($appt->scope_type)) {
+                $appt->scope_type = $appt->role === self::ROLE_PROG
+                    ? self::SCOPE_PROG
+                    : self::SCOPE_DEPT;
+            }
+        });
+
+        static::saving(function (Appointment $appt) {
+            // Keep scope_type aligned with role on every save unless explicitly set
+            if (empty($appt->scope_type)) {
+                $appt->scope_type = $appt->role === self::ROLE_PROG
+                    ? self::SCOPE_PROG
+                    : self::SCOPE_DEPT;
+            }
+        });
+    }
+
+    /**
+     * Mutator: whenever role changes, keep scope_type in sync.
+     * This takes effect before validation on save.
+     */
+    public function setRoleAttribute($value): void
+    {
+        $this->attributes['role'] = $value;
+        // Only auto-infer when consumer didn't set scope_type explicitly in the same payload
+        if (!array_key_exists('scope_type', $this->attributes)) {
+            $this->attributes['scope_type'] = $value === self::ROLE_PROG
+                ? self::SCOPE_PROG
+                : self::SCOPE_DEPT;
+        }
+    }
+
+    // ░░░ END: Model Events (Defaults & Invariants) ░░░
+
+
     // ░░░ START: Helpers ░░░
 
     /** True if this appointment is currently active (based on status/end_at). */
@@ -115,6 +185,7 @@ class Appointment extends Model
         if ($this->status !== 'active') {
             return false;
         }
+
         return is_null($this->end_at) || $this->end_at->isFuture();
     }
 
@@ -130,14 +201,27 @@ class Appointment extends Model
     }
 
     /**
-     * End this appointment "now" (for turnover). Keeps history via end_at and status.
-     * This takes the appointment out of play without deleting it.
+     * Convenience: set role + scope in one go from controller/service.
+     * This picks scope_id based on role and ensures scope_type matches.
+     *
+     * @param  string     $role           One of ROLE_DEPT | ROLE_PROG
+     * @param  int|null   $departmentId   Required for ROLE_DEPT
+     * @param  int|null   $programId      Required for ROLE_PROG
+     * @return $this
      */
-    public function endNow(): void
+    public function setRoleAndScope(string $role, ?int $departmentId, ?int $programId): self
     {
-        $this->end_at = Carbon::now();
-        $this->status = 'ended';
-        $this->save();
+        $this->role = $role;
+
+        if ($role === self::ROLE_PROG) {
+            $this->scope_type = self::SCOPE_PROG;
+            $this->scope_id   = (int) $programId;
+        } else {
+            $this->scope_type = self::SCOPE_DEPT;
+            $this->scope_id   = (int) $departmentId;
+        }
+
+        return $this;
     }
 
     /**
@@ -163,9 +247,11 @@ class Appointment extends Model
         if ($this->isDeptChair() && $this->relationLoaded('department') && $this->department) {
             return $this->department->name;
         }
+
         if ($this->isProgChair() && $this->relationLoaded('program') && $this->program) {
             return $this->program->name;
         }
+
         return "{$this->scope_type} #{$this->scope_id}";
     }
 
@@ -179,10 +265,23 @@ class Appointment extends Model
         if ($this->isProgChair() && $this->scope_id === $program->id) {
             return true;
         }
+
         if ($this->isDeptChair() && $program->department_id === $this->scope_id) {
             return true;
         }
+
         return false;
+    }
+
+    /**
+     * End this appointment "now" (for turnover). Keeps history via end_at and status.
+     * This takes the appointment out of play without deleting it.
+     */
+    public function endNow(): void
+    {
+        $this->end_at = Carbon::now();
+        $this->status = 'ended';
+        $this->save();
     }
 
     // ░░░ END: Helpers ░░░

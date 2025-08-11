@@ -8,11 +8,13 @@
 [2025-08-11] Header icons – aligned and muted like Department module.
 [2025-08-11] Match Departments: reduced td padding to 0.01rem 0.75rem.
 [2025-08-11] Override: Name column uses standard text color (no brand accent).
+[2025-08-11] Refactor – extend container style to Approved tab; add column width hints for #svApprovedAdminsTable.
 -------------------------------------------------------------------------------
 */
 
-/* ░░░ START: Table Container (scoped to Approvals tab) ░░░ */
-#admins-approvals .table-responsive {
+/* ░░░ START: Table Container (Approvals + Approved tabs) ░░░ */
+#admins-approvals .table-responsive,
+#admins-approved .table-responsive {
   border: 1px solid var(--sv-border);
   border-radius: 14px;
   overflow: hidden;
@@ -116,7 +118,14 @@
 #svMergedApprovalsTable thead th:nth-child(5) { width: 14%; } /* Department */
 #svMergedApprovalsTable thead th:nth-child(6) { width: 14%; } /* Program */
 #svMergedApprovalsTable thead th:nth-child(7) { width: 140px; } /* Actions */
-/* ░░░ END: Column Width Hints ░░░ */
+/* ░░░ END: Column Width Hints (Approvals) ░░░ */
+
+/* ░░░ START: Column Width Hints (Approved) ░░░ */
+#svApprovedAdminsTable thead th:nth-child(1) { width: 26%; } /* Name */
+#svApprovedAdminsTable thead th:nth-child(2) { width: 28%; } /* Email */
+/* Active Appointments column will flex (auto) */
+#svApprovedAdminsTable thead th:nth-child(4) { width: 140px; } /* Actions */
+/* ░░░ END: Column Width Hints (Approved) ░░░ */
 
 
 /* ░░░ START: Actions cell spacing ░░░ */

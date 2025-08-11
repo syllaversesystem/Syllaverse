@@ -7,6 +7,7 @@
 [2025-07-28] Initial layout with sidebar/nav includes and responsive scripts.
 [2025-07-28] Removed inline JS; added `layout.js` for sidebar, collapse, theme.
 [2025-08-06] Added floating alert component <x-alert-overlay /> above all content.
+[2025-08-11] Fix – load Bootstrap JS via Vite (@vite('resources/js/app.js')) and render @stack('modals') at body end to avoid z-index traps.
 -------------------------------------------------------------------------------
 --}}
 
@@ -23,7 +24,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   {{-- END: Meta & Core Setup --}}
 
-  {{-- START: CDN & Fonts --}}
+  {{-- START: CDN & Fonts (CSS only; JS is handled by Vite) --}}
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet" />
   {{-- END: CDN & Fonts --}}
@@ -33,13 +34,10 @@
   @vite('resources/css/superadmin/layouts/superadmin-sidebar.css')
   @vite('resources/css/superadmin/layouts/superadmin-navbar.css')
   @vite('resources/css/superadmin/layouts/superadmin-layout.css')
-  @vite('resources/css/superadmin/alerts.css') {{-- ✅ Include floating alert styles --}}
+  @vite('resources/css/superadmin/alerts.css') {{-- ✅ Floating alert styles --}}
   @vite('resources/css/superadmin/master-data.css')
   @vite('resources/css/superadmin/departments/departments.css')
   @vite('resources/css/superadmin/manage-accounts/manage-accounts.css')
-
-
-  
   {{-- END: Custom Vite CSS --}}
 
   @stack('styles')
@@ -64,15 +62,23 @@
     </div>
   </div>
 
-  @stack('scripts')
+  {{-- ░░░ START: Core JS (Bootstrap via Vite) ░░░ --}}
+  @vite('resources/js/app.js')
+  {{-- ░░░ END: Core JS ░░░ --}}
 
-  {{-- START: Vite JS --}}
+  {{-- ░░░ START: Page bundles (must run after app.js so Bootstrap is ready) ░░░ --}}
   @vite('resources/js/superadmin/layout.js')
   @vite('resources/js/superadmin/departments.js')
-  @vite('resources/js/superadmin/alert-timer.js') {{-- ✅ Include alert timer script --}}
+  @vite('resources/js/superadmin/alert-timer.js')   {{-- ✅ Alert timer --}}
   @vite('resources/js/superadmin/chair-requests.js')
   @vite('resources/js/superadmin/appointments.js')
-  {{-- END: Vite JS --}}
+  @vite('resources/js/superadmin/manage-accounts/manage-accounts.js')
+  {{-- ░░░ END: Page bundles ░░░ --}}
 
+  {{-- Let pages push extra scripts after page bundles --}}
+  @stack('scripts')
+
+  {{-- ░░░ Global modal stack: render OUTSIDE cards/drawers so z-index works ░░░ --}}
+  @stack('modals')
 </body>
 </html>

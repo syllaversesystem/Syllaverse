@@ -1,30 +1,54 @@
-// -----------------------------------------------------------------------------
-// File: resources/js/superadmin/layout.js
-// Description: Handles Super Admin layout behavior – toggles, theme, feather icons
-// -----------------------------------------------------------------------------
-// 📜 Log:
-// [2025-07-28] Initial version – moved all inline layout JS into Vite-compatible external script
-// [2025-08-05] Added sidebar logo toggle logic to remove logo gap when collapsed.
-// -----------------------------------------------------------------------------
+/* 
+-------------------------------------------------------------------------------
+* File: resources/js/superadmin/layout.js
+* Description: Handles Super Admin layout behavior – toggles, theme, feather icons
+-------------------------------------------------------------------------------
+📜 Log:
+[2025-07-28] Initial version – moved all inline layout JS into Vite-compatible external script
+[2025-08-05] Added sidebar logo toggle logic to remove logo gap when collapsed.
+[2025-08-11] Feather – Vite import + global init; refresh on tabs/modals/collapses and custom sv:dom:update; expose helpers.
+-------------------------------------------------------------------------------
+*/
 
 import feather from 'feather-icons';
 import 'bootstrap';
 
-// START: Feather Icon Replacement
-document.addEventListener('DOMContentLoaded', function () {
-  if (typeof feather !== 'undefined') {
-    feather.replace();
-  }
-});
-// END: Feather Icon Replacement
+// ░░░ START: Feather Icons (global) ░░░
+// Plain-English: Make <i data-feather="..."> swap to SVG on load and after UI changes.
+function replaceFeatherIcons() {
+  try { feather.replace(); } catch { /* noop */ }
+}
 
-// START: Sidebar Behavior and Collapsible Logic
-document.addEventListener("DOMContentLoaded", () => {
+/** Public helpers for other modules */
+window.feather = feather;                 // allow window.feather?.replace?.() in feature files
+window.svRefreshIcons = replaceFeatherIcons; // optional hook other scripts can call
+
+function initFeather() {
+  const run = () => setTimeout(replaceFeatherIcons, 0);
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', run, { once: true });
+  } else {
+    run();
+  }
+
+  // Refresh after common Bootstrap lifecycle events
+  ['shown.bs.tab', 'shown.bs.modal', 'hidden.bs.modal', 'shown.bs.collapse', 'hidden.bs.collapse']
+    .forEach(evt => document.addEventListener(evt, run));
+
+  // Custom hook for any AJAX DOM updates in the app
+  window.addEventListener('sv:dom:update', run);
+}
+// ░░░ END: Feather Icons (global) ░░░
+
+
+// ░░░ START: Sidebar Behavior and Collapsible Logic ░░░
+function initSidebarAndCollapsibles() {
   const sidebar = document.getElementById('sidebar');
   const backdrop = document.getElementById('sidebar-backdrop');
   const mobileToggleBtn = document.getElementById('sidebarToggle');
   const desktopCollapseBtn = document.getElementById('sidebarCollapseBtn');
-  const headers = document.querySelectorAll(".collapsible-header");
+  const headers = document.querySelectorAll('.collapsible-header');
 
   // Logo visibility toggle based on sidebar state
   function updateSidebarLogos() {
@@ -53,6 +77,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Mobile drawer toggle
   function toggleMobileSidebar() {
+    if (!sidebar || !backdrop) return;
     sidebar.classList.toggle('collapsed');
     backdrop.classList.toggle('d-none');
   }
@@ -81,32 +106,34 @@ document.addEventListener("DOMContentLoaded", () => {
       localStorage.setItem('sidebar', isCollapsed ? 'collapsed' : 'expanded');
       desktopCollapseBtn.setAttribute('aria-expanded', String(!isCollapsed));
 
-      // 🔁 Update logos immediately on toggle
+      // Update logos immediately on toggle
       updateSidebarLogos();
+      // Icons may shift; refresh just in case
+      replaceFeatherIcons();
     });
   }
 
   // Collapsible nav section headers
   headers.forEach(header => {
-    const targetId = header.getAttribute("data-target");
+    const targetId = header.getAttribute('data-target');
     const body = document.getElementById(targetId);
-
     if (!body) return;
 
     header.setAttribute('aria-expanded', String(!body.classList.contains('collapsed')));
     header.setAttribute('aria-controls', targetId);
 
-    header.addEventListener("click", () => {
-      const isCollapsed = body.classList.contains("collapsed");
-      body.classList.toggle("collapsed");
-      header.setAttribute("aria-expanded", String(!isCollapsed));
+    header.addEventListener('click', () => {
+      const isCollapsed = body.classList.contains('collapsed');
+      body.classList.toggle('collapsed');
+      header.setAttribute('aria-expanded', String(!isCollapsed));
     });
   });
-});
-// END: Sidebar Behavior and Collapsible Logic
+}
+// ░░░ END: Sidebar Behavior and Collapsible Logic ░░░
 
-// START: Theme Toggle Logic (Navbar)
-document.addEventListener('DOMContentLoaded', () => {
+
+// ░░░ START: Theme Toggle Logic (Navbar) ░░░
+function initThemeToggle() {
   const themeBtn = document.getElementById('themeToggleBtn');
   if (!themeBtn) return;
 
@@ -121,6 +148,24 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
       icon?.classList.remove('theme-anim');
     }, 300);
+
+    // Theme change may alter contrast around icons; refresh to be safe
+    replaceFeatherIcons();
   });
-});
-// END: Theme Toggle Logic
+}
+// ░░░ END: Theme Toggle Logic (Navbar) ░░░
+
+
+// ░░░ START: Bootstrapper ░░░
+function start() {
+  initFeather();
+  initSidebarAndCollapsibles();
+  initThemeToggle();
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', start);
+} else {
+  start();
+}
+// ░░░ END: Bootstrapper ░░░
