@@ -1,36 +1,14 @@
 /* 
-------------------------------------------------
+-------------------------------------------------------------------------------
 * File: resources/css/superadmin/master-data.css
-* Description: Styles for Master Data sub-tab navigation (SDG, IGA, CDIO) – Syllaverse
-------------------------------------------------
+* Description: Master Data styles (imports table, forms, etc.) – Syllaverse
+-------------------------------------------------------------------------------
+📜 Log:
+[2025-08-12] Add – import sortable-ready table UI for SDG/IGA/CDIO.
+-------------------------------------------------------------------------------
 */
 
-/* -----------------------------------------------
-   Sub-Tab Navigation: SDG / IGA / CDIO
-   Applies to sub-tabs inside Skills & Outcomes section
--------------------------------------------------- */
+/* Existing imports (keep yours here)… */
 
-/* Default styling for sub-tab links */
-#masterDataSubTabs .nav-link {
-    color: #4A4A4A; /* Neutral dark gray for base state */
-    font-weight: 500;
-    background: transparent;
-    border: none;
-    border-bottom: 3px solid transparent; /* Placeholder for underline effect */
-    border-radius: 0;
-    padding: 0.5rem 1rem;
-    transition: all 0.2s ease; /* Smooth hover/active transitions */
-}
-
-/* Hover state for sub-tabs */
-#masterDataSubTabs .nav-link:hover {
-    border-bottom: 3px solid #E3E3E3; /* Light gray underline on hover */
-    color: #CB3737; /* Accent red for hover text */
-}
-
-/* Active state for sub-tabs */
-#masterDataSubTabs .nav-link.active {
-    border-bottom: 3px solid #CB3737; /* Bold red underline for active tab */
-    color: #CB3737; /* Highlight active tab with primary red */
-    font-weight: 600; /* Emphasize selected tab */
-}
+/* NEW: Master Data table visuals (drag handle, zebra, wrapper, headers, codes) */
+@import './master-data/partials/table.css';

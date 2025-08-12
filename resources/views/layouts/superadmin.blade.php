@@ -8,6 +8,7 @@
 [2025-07-28] Removed inline JS; added `layout.js` for sidebar, collapse, theme.
 [2025-08-06] Added floating alert component <x-alert-overlay /> above all content.
 [2025-08-11] Fix – load Bootstrap JS via Vite (@vite('resources/js/app.js')) and render @stack('modals') at body end to avoid z-index traps.
+[2025-08-12] Add – wire Master Data scripts via Vite (@vite('resources/js/superadmin/master-data/index.js')).
 -------------------------------------------------------------------------------
 --}}
 
@@ -21,7 +22,8 @@
   <link rel="icon" href="{{ asset('images/favicon.png') }}" type="image/png" />
 
   <meta name="theme-color" content="#EE6F57" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes">
+
   {{-- END: Meta & Core Setup --}}
 
   {{-- START: CDN & Fonts (CSS only; JS is handled by Vite) --}}
@@ -34,7 +36,7 @@
   @vite('resources/css/superadmin/layouts/superadmin-sidebar.css')
   @vite('resources/css/superadmin/layouts/superadmin-navbar.css')
   @vite('resources/css/superadmin/layouts/superadmin-layout.css')
-  @vite('resources/css/superadmin/alerts.css') {{-- ✅ Floating alert styles --}}
+ @vite('resources/css/components/alert-overlay.css')
   @vite('resources/css/superadmin/master-data.css')
   @vite('resources/css/superadmin/departments/departments.css')
   @vite('resources/css/superadmin/manage-accounts/manage-accounts.css')
@@ -73,6 +75,12 @@
   @vite('resources/js/superadmin/chair-requests.js')
   @vite('resources/js/superadmin/appointments.js')
   @vite('resources/js/superadmin/manage-accounts/manage-accounts.js')
+  @vite('resources/js/superadmin/master-data/sortable.js')
+  @vite('resources/js/superadmin/master-data/index.js')
+
+
+  {{-- ✅ NEW: Master Data (tables + sortable split: index.js imports sortable.js) --}}
+  @vite('resources/js/superadmin/master-data/index.js')
   {{-- ░░░ END: Page bundles ░░░ --}}
 
   {{-- Let pages push extra scripts after page bundles --}}

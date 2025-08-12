@@ -1,0 +1,23 @@
+/* 
+-------------------------------------------------------------------------------
+* File: resources/css/superadmin/master-data/master-data.css
+* Description: Master stylesheet for Master Data module – reuses Manage Accounts
+*              UI/UX (tabs, pills, buttons, modal) + Master-Data-specific table.
+-------------------------------------------------------------------------------
+📜 Log:
+[2025-08-12] Initial creation – wired shared UI partials and Master Data table.
+[2025-08-12] Update – includes 6-dot grip + DnD states via table.css.
+-------------------------------------------------------------------------------
+*/
+
+/* ░░░ START: Shared UI (reuse Manage Accounts partials) ░░░
+   These keep the look identical across modules without duplicating code. */
+@import '../manage-accounts/partials/tabs.css';     /* underline tabs + subtabs */
+@import '../manage-accounts/partials/pills.css';    /* small status pills       */
+@import '../manage-accounts/partials/buttons.css';  /* .action-btn variants     */
+@import '../manage-accounts/partials/modal.css';    /* .sv-appt-modal polish    */
+/* ░░░ END: Shared UI ░░░ */
+
+/* ░░░ START: Master Data specifics ░░░ */
+@import './partials/table.css'; /* includes 6-dot grip + DnD states */
+/* ░░░ END: Master Data specifics ░░░ */

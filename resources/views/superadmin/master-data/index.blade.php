@@ -1,31 +1,87 @@
-{{-- ------------------------------------------------
+{{-- 
+-------------------------------------------------------------------------------
 * File: resources/views/superadmin/master-data/index.blade.php
-* Description: Super Admin Master Data Page (Modularized)
------------------------------------------------- --}}
+* Description: Master Data page using Syllaverse module layout + underline tabs (matches Manage Accounts UI)
+-------------------------------------------------------------------------------
+📜 Log:
+[2025-08-12] Realigned structure to Manage Accounts: added `.sv-tabs`, wrapped panes, standardized IDs/ARIA, kept includes.
+[2025-08-12] Moved “Information” include inside its own tab-pane; set “Skills & Outcomes” as default active pane.
+[2025-08-12] Fix – restored `@include('superadmin.master-data.modals.add-modals')` so Add buttons open modals.
+[2025-08-12] Add – included Vite script `resources/js/superadmin/master-data/sortable.js`.
+[2025-08-12] Add – included Vite styles `resources/css/superadmin/master-data/master-data.css` to apply shared UI/UX.
+-------------------------------------------------------------------------------
+--}}
+
 @extends('layouts.superadmin')
 
 @section('title', 'Master Data • Super Admin • Syllaverse')
 @section('page-title', 'Master Data')
 
 @section('content')
-<meta name="csrf-token" content="{{ csrf_token() }}">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
 
-{{-- Main Tabs --}}
-<ul class="nav nav-tabs mb-4" id="mainMasterTabs" role="tablist">
-    <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="skills-tab" data-bs-toggle="tab" data-bs-target="#masterdata" type="button" role="tab">Skills and Outcomes</button>
-    </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link" id="info-tab" data-bs-toggle="tab" data-bs-target="#info" type="button" role="tab">Information</button>
-    </li>
-</ul>
+  <div class="department-card"><!-- Reuses the polished glass card container -->
 
-<div class="tab-content">
-    <div class="tab-pane fade show active" id="masterdata" role="tabpanel">
+    {{-- ░░░ START: Top Tabs (Skills & Outcomes / Information) ░░░ --}}
+    <ul class="nav sv-tabs" id="masterDataTabs" role="tablist" aria-label="Master Data tabs">
+      <li class="nav-item" role="presentation">
+        <button
+          class="nav-link sv-tab active"
+          id="skills-outcomes-tab"
+          data-bs-toggle="tab"
+          data-bs-target="#skills-outcomes"
+          type="button"
+          role="tab"
+          aria-controls="skills-outcomes"
+          aria-selected="true">
+          Skills & Outcomes
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button
+          class="nav-link sv-tab"
+          id="information-tab"
+          data-bs-toggle="tab"
+          data-bs-target="#information"
+          type="button"
+          role="tab"
+          aria-controls="information"
+          aria-selected="false">
+          Information
+        </button>
+      </li>
+    </ul>
+    {{-- ░░░ END: Top Tabs ░░░ --}}
+
+    {{-- ░░░ START: Tab Content ░░░ --}}
+    <div class="tab-content">
+      {{-- ░░░ START: Skills & Outcomes Pane ░░░ --}}
+      <div class="tab-pane fade show active" id="skills-outcomes" role="tabpanel" aria-labelledby="skills-outcomes-tab">
         @include('superadmin.master-data.tabs.skills-outcomes')
-    </div>
-    @include('superadmin.master-data.tabs.information')
-</div>
+      </div>
+      {{-- ░░░ END: Skills & Outcomes Pane ░░░ --}}
 
+      {{-- ░░░ START: Information Pane ░░░ --}}
+      <div class="tab-pane fade" id="information" role="tabpanel" aria-labelledby="information-tab">
+        @include('superadmin.master-data.tabs.information')
+      </div>
+      {{-- ░░░ END: Information Pane ░░░ --}}
+    </div>
+    {{-- ░░░ END: Tab Content ░░░ --}}
+
+  </div>
+
+{{-- in resources/views/superadmin/master-data/index.blade.php --}}
+{{-- ░░░ START: Modals (Add + Shared) ░░░ --}}
 @include('superadmin.master-data.modals.add-modals')
+@include('superadmin.master-data.modals.edit-modal')
+@include('superadmin.master-data.modals.delete-modal')
+{{-- ░░░ END: Modals (Add + Shared) ░░░ --}}
+
+
+  {{-- ░░░ START: Module Assets (CSS + JS) ░░░ --}}
+  @vite('resources/css/superadmin/master-data/master-data.css')
+  @vite('resources/js/superadmin/master-data/sortable.js')
+  {{-- ░░░ END: Module Assets ░░░ --}}
+
 @endsection
