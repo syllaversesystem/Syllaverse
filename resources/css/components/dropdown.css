@@ -1,0 +1,40 @@
+/* 
+-------------------------------------------------------------------------------
+* File: resources/css/components/dropdown.css
+* Description: Custom dropdown styling aligned with Syllaverse theme
+-------------------------------------------------------------------------------
+*/
+
+.sv-dropdown {
+  --sv-dropdown-bg: #fff;
+  --sv-dropdown-border: #e3e3e3;
+  --sv-dropdown-radius: 12px;
+  --sv-dropdown-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+
+  background: var(--sv-dropdown-bg);
+  border: 1px solid var(--sv-dropdown-border);
+  border-radius: var(--sv-dropdown-radius);
+  box-shadow: var(--sv-dropdown-shadow);
+  padding: 0.25rem 0;
+  font-size: 0.875rem;
+  min-width: 180px;
+  z-index: 1050;
+}
+
+.sv-dropdown .dropdown-item {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  color: #333;
+  transition: background 0.15s ease;
+}
+
+.sv-dropdown .dropdown-item:hover,
+.sv-dropdown .dropdown-item:focus {
+  background: #f6f6f6;
+  color: #000;
+}
+
+.sv-dropdown .dropdown-divider {
+  margin: 0.25rem 0;
+  border-top: 1px solid #eaeaea;
+}

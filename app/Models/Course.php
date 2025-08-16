@@ -1,7 +1,13 @@
 <?php
-
+// -----------------------------------------------------------------------------
 // File: app/Models/Course.php
-// Description: Represents a course and its related prerequisites, department, and ILOs (Syllaverse)
+// Description: Represents a course and its related prerequisites, department, 
+//              and ILOs (Syllaverse) – refactored to only use contact hours.
+// -----------------------------------------------------------------------------
+// 📜 Log:
+// [2025-08-16] Original version with lec/lab units.
+// [2025-08-17] Refactor – removed units_lec/lab, only contact hours remain.
+// -----------------------------------------------------------------------------
 
 namespace App\Models;
 
@@ -16,9 +22,6 @@ class Course extends Model
         'department_id',
         'code',
         'title',
-        'units_lec',
-        'units_lab',
-        'total_units',
         'contact_hours_lec',
         'contact_hours_lab',
         'description',
@@ -30,21 +33,37 @@ class Course extends Model
         return $this->belongsTo(Department::class);
     }
 
-    // 🔁 Many-to-Many: This course requires other courses as prerequisites
+    // 🔁 Many-to-Many: prerequisites
     public function prerequisites()
     {
-        return $this->belongsToMany(Course::class, 'course_prerequisite', 'course_id', 'prerequisite_id');
+        return $this->belongsToMany(
+            Course::class,
+            'course_prerequisite',
+            'course_id',
+            'prerequisite_id'
+        );
     }
 
-    // 🔁 Reverse: This course is a prerequisite for other courses
+    // 🔁 Reverse: this course is a prerequisite for others
     public function isPrerequisiteFor()
     {
-        return $this->belongsToMany(Course::class, 'course_prerequisite', 'prerequisite_id', 'course_id');
+        return $this->belongsToMany(
+            Course::class,
+            'course_prerequisite',
+            'prerequisite_id',
+            'course_id'
+        );
     }
 
-    // ✅ One-to-Many: ILOs defined in the master data for this course
-  public function ilos()
-{
-    return $this->hasMany(\App\Models\IntendedLearningOutcome::class);
-}
+    // ✅ One-to-Many: ILOs
+    public function ilos()
+    {
+        return $this->hasMany(\App\Models\IntendedLearningOutcome::class);
+    }
+
+    // ⚡ Helper: total contact hours
+    public function getTotalContactHoursAttribute()
+    {
+        return $this->contact_hours_lec + $this->contact_hours_lab;
+    }
 }

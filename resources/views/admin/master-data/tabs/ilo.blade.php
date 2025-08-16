@@ -1,103 +1,139 @@
 {{-- 
-------------------------------------------------
+-------------------------------------------------------------------------------
 * File: resources/views/admin/master-data/tabs/ilo.blade.php
-* Description: ILO Tab Content (Admin Master Data) – auto-code & auto-position (no manual inputs)
------------------------------------------------- 
+* Description: Intended Learning Outcomes (ILO) Tab – matches Program/Course table UI (with drag + Save Order)
+-------------------------------------------------------------------------------
+📜 Log:
+[2025-08-18] Refactor – table columns now mirror Program/Course tabs (Code, Description, Created, Actions).
+[2025-08-18] Kept drag-to-reorder via small grip in Code cell; Save Order uses ILO controller route.
+-------------------------------------------------------------------------------
 --}}
 
-<h5>Intended Learning Outcomes (ILO)</h5>
+<div class="table-wrapper position-relative">
 
-{{-- Course Filter --}}
-<form method="GET" action="{{ route('admin.master-data.index') }}" class="mb-4">
+  {{-- ░░░ START: Course Filter ░░░ --}}
+  <form id="iloFilterForm" method="GET" action="{{ route('admin.master-data.index') }}" class="mb-3">
     <input type="hidden" name="tab" value="soilo">
     <input type="hidden" name="subtab" value="ilo">
 
-    <div class="row g-2 align-items-center">
-        <div class="col-md-6">
-            <select name="course_id" class="form-select" onchange="this.form.submit()">
-                <option value="">Select a Course</option>
-                @foreach ($courses as $course)
-                    <option value="{{ $course->id }}" {{ request('course_id') == $course->id ? 'selected' : '' }}>
-                        {{ $course->code }} - {{ $course->title }}
-                    </option>
-                @endforeach
-            </select>
-        </div>
+    <div class="input-group input-group-sm" style="max-width:320px;">
+      <span class="input-group-text"><i data-feather="book-open"></i></span>
+      <select name="course_id" class="form-select form-select-sm">
+        <option value="">Select a Course</option>
+        @foreach ($courses as $course)
+          <option value="{{ $course->id }}" {{ request('course_id') == $course->id ? 'selected' : '' }}>
+            {{ $course->code }} – {{ $course->title }}
+          </option>
+        @endforeach
+      </select>
     </div>
-</form>
+  </form>
+  {{-- ░░░ END: Course Filter ░░░ --}}
 
-@if (request('course_id'))
-    {{-- Add New ILO Form --}}
-    <form method="POST" action="{{ route('admin.master-data.store', ['type' => 'ilo']) }}" class="d-flex justify-content-between align-items-center mb-2" id="addIloModal">
-        @csrf
-        <input type="hidden" name="course_id" value="{{ request('course_id') }}">
+  @if (request('course_id'))
+    {{-- ░░░ START: Toolbar (aligned with Program/Course tabs) ░░░ --}}
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+      <h6 class="mb-0 fw-semibold" style="font-size:.95rem;">Intended Learning Outcomes</h6>
 
-        <div class="flex-grow-1 me-3">
-            <textarea name="description" class="form-control" placeholder="ILO Description" required>{{ old('description') }}</textarea>
-        </div>
+      <div class="d-flex align-items-center gap-2">
+        {{-- Save Order (wired to ILO controller) --}}
+        <button type="button"
+                class="btn btn-light btn-sm border rounded-pill sv-save-order-btn"
+                data-sv-type="ilo"
+                data-reorder-url="{{ route('admin.ilo.reorder') }}"
+                disabled
+                title="Save current order">
+          <i data-feather="save"></i><span class="d-none d-md-inline ms-1">Save Order</span>
+        </button>
 
-        <button type="submit" class="btn btn-danger">Add ILO</button>
-        <button type="button" class="btn btn-outline-primary ms-2" id="save-ilo-order">Save Order</button>
-    </form>
+        {{-- Add ILO --}}
+        <button type="button"
+                class="btn-brand-sm"
+                data-bs-toggle="modal"
+                data-bs-target="#addIloModal"
+                title="Add ILO">
+          <i data-feather="plus"></i>
+        </button>
+      </div>
+    </div>
+    {{-- ░░░ END: Toolbar ░░░ --}}
 
-    <hr>
+    {{-- ░░░ START: Table (mirrors Program/Course structure) ░░░ --}}
+    <div class="table-responsive">
+      <table class="table mb-0 sv-accounts-table" id="svTable-ilo" data-course-id="{{ request('course_id') }}">
+        <thead>
+          <tr>
+            <th><i data-feather="code"></i> Code</th>
+            <th><i data-feather="align-left"></i> Description</th>
+            <th><i data-feather="calendar"></i> Created</th>
+            <th class="text-end"><i data-feather="more-vertical"></i></th>
+          </tr>
+        </thead>
+        <tbody>
+          @forelse ($intendedLearningOutcomes->sortBy('position') as $ilo)
+            <tr data-id="{{ $ilo->id }}">
+              <td class="sv-code fw-semibold">
+                <span class="d-inline-flex align-items-center gap-2">
+                  {{-- Small grip inside code cell to keep layout like Program/Course tables --}}
+                  <i class="sv-row-grip bi bi-grip-vertical fs-6 text-muted" title="Drag to reorder" style="cursor:move;"></i>
+                  <span>{{ $ilo->code }}</span>
+                </span>
+              </td>
+              <td class="text-muted">{{ $ilo->description }}</td>
+              <td class="text-muted">{{ optional($ilo->created_at)->format('Y-m-d') }}</td>
+              <td class="text-end">
+                {{-- Edit --}}
+                <button type="button"
+                        class="btn action-btn rounded-circle edit me-2 editIloBtn"
+                        data-bs-toggle="modal"
+                        data-bs-target="#editIloModal"
+                        data-id="{{ $ilo->id }}"
+                        data-code="{{ $ilo->code }}"
+                        data-description="{{ $ilo->description }}"
+                        title="Edit" aria-label="Edit">
+                  <i data-feather="edit"></i>
+                </button>
 
-    {{-- ILO List --}}
-    <ul class="list-group mt-3" id="ilo-sortable" data-course-id="{{ request('course_id') }}">
-        @forelse ($intendedLearningOutcomes->sortBy('position') as $ilo)
-            <li class="list-group-item d-flex align-items-center justify-content-between" data-id="{{ $ilo->id }}">
-                <div class="d-flex align-items-center w-100">
-                    {{-- Drag Handle --}}
-                    <span class="me-3 cursor-move text-muted" title="Drag to reorder">
-                        <i class="bi bi-grip-vertical fs-5"></i>
-                    </span>
-
-                    {{-- ILO Update Form --}}
-                    <form method="POST" action="{{ route('admin.master-data.update', ['type' => 'ilo', 'id' => $ilo->id]) }}" class="row g-2 align-items-center flex-grow-1">
-                        @csrf @method('PUT')
-                        <input type="hidden" name="course_id" value="{{ request('course_id') }}">
-
-                        {{-- Code (readonly) --}}
-                        <div class="col-md-3">
-                            <input type="text" name="code" class="form-control form-control-sm" value="{{ $ilo->code }}" readonly>
-                        </div>
-
-                        {{-- Description --}}
-                        <div class="col-md-6">
-                            <textarea name="description" class="form-control form-control-sm" rows="1" required>{{ $ilo->description }}</textarea>
-                        </div>
-
-                        {{-- Save Button --}}
-                        <div class="col-md-3 d-flex gap-1 justify-content-end">
-                            <button type="submit" class="btn btn-sm btn-outline-primary">Save</button>
-                        </div>
-                    </form>
+                {{-- Delete --}}
+                <button type="button"
+                        class="btn action-btn rounded-circle delete deleteIloBtn"
+                        data-bs-toggle="modal"
+                        data-bs-target="#deleteIloModal"
+                        data-id="{{ $ilo->id }}"
+                        data-code="{{ $ilo->code }}"
+                        title="Delete" aria-label="Delete">
+                  <i data-feather="trash"></i>
+                </button>
+              </td>
+            </tr>
+          @empty
+            <tr class="sv-empty-row">
+              <td colspan="4">
+                <div class="sv-empty">
+                  <h6>No ILOs found</h6>
+                  <p>Select a course and click the <i data-feather="plus"></i> button to add one.</p>
                 </div>
+              </td>
+            </tr>
+          @endforelse
+        </tbody>
+      </table>
+    </div>
+    {{-- ░░░ END: Table ░░░ --}}
+  @else
+    <div class="sv-empty my-4">
+      <h6>Please select a course</h6>
+      <p>Choose a course from the dropdown above to view and manage its ILOs.</p>
+    </div>
+  @endif
+</div>
 
-                {{-- Separate Delete Form --}}
-                <form method="POST" action="{{ route('admin.master-data.destroy', ['type' => 'ilo', 'id' => $ilo->id]) }}">
-                    @csrf @method('DELETE')
-                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete ILO">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </form>
-            </li>
-        @empty
-            <li class="list-group-item text-muted">No ILOs found for this course.</li>
-        @endforelse
-    </ul>
-@else
-    <p class="text-muted">Please select a course to manage its ILOs.</p>
-@endif
-
-@if (session('open_modal') === 'add-ilo')
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            document.getElementById('addIloModal')?.scrollIntoView({ behavior: 'smooth' });
-        });
-    </script>
-@endif
+{{-- ░░░ START: Modals (consistent with Program/Course modals) ░░░ --}}
+@include('admin.master-data.modals.add-ilo-modal')
+@include('admin.master-data.modals.edit-ilo-modal')
+@include('admin.master-data.modals.delete-ilo-modal')
+{{-- ░░░ END: Modals ░░░ --}}
 
 @push('scripts')
-    @vite('resources/js/admin/master-data/ilo-sortable.js')
+  @vite('resources/js/admin/master-data/ilo.js')
 @endpush

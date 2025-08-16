@@ -5,6 +5,7 @@
 -------------------------------------------------------------------------------
 📜 Log:
 [2025-08-09] Aligned structure with Super Admin; added <x-alert-overlay />, included alerts CSS/JS, externalized sidebar logic to resources/js/admin/layout.js, moved page JS includes to bottom.
+[2025-08-16] Fixed modal.js error – cleaned up Bootstrap imports, switched to single bootstrap.bundle.min.js (5.3.3).
 -------------------------------------------------------------------------------
 --}}
 <!DOCTYPE html>
@@ -24,8 +25,8 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet" />
   <script src="https://unpkg.com/feather-icons" defer></script>
-  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js" defer></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js" defer></script>
+  {{-- ✅ Use only bundle version (includes Popper) --}}
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" defer></script>
   {{-- ░░░ END: CDN & Fonts ░░░ --}}
 
   {{-- ░░░ START: Custom Vite CSS ░░░ --}}
@@ -33,7 +34,6 @@
   @vite('resources/css/admin/admin-sidebar.css')
   @vite('resources/css/admin/admin-navbar.css')
   @vite('resources/css/admin/admin-layout.css')
-  @vite('resources/css/superadmin/alerts.css') {{-- reuse shared alert styles --}}
 
   @vite('resources/css/superadmin/manage-accounts/manage-accounts.css')
   @vite('resources/css/superadmin/departments/departments.css')
@@ -74,7 +74,15 @@
   {{-- ░░░ START: Vite JS (Global) ░░░ --}}
   @vite('resources/js/admin/layout.js')                {{-- Sidebar/drawer + ARIA + feather.replace --}}
   @vite('resources/js/superadmin/alert-timer.js')      {{-- Shared alert auto-hide --}}
-  @vite('resources/js/admin/master-data/ilo-sortable.js') {{-- page-specific example --}}
+  @vite('resources/js/admin/master-data/ilo-sortable.js') {{-- Example page-specific --}}
+  @vite('resources/js/admin/master-data/so-sortable.js') {{-- Example page-specific --}}
+  @vite('resources/js/admin/master-data/programs.js')
+  @vite('resources/js/admin/master-data/courses.js')
+  @vite('resources/js/admin/master-data/so.js')
+
+
   {{-- ░░░ END: Vite JS (Global) ░░░ --}}
+
+
 </body>
 </html>

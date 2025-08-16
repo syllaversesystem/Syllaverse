@@ -80,4 +80,26 @@ public function appointments()
 
 // ░░░ END: Relationships ░░░
 
+
+// In User.php
+public function isDeptChair(): bool
+{
+    return $this->appointments()
+        ->active()
+        ->where('role', \App\Models\Appointment::ROLE_DEPT)
+        ->exists();
 }
+
+public function isProgChair(): bool
+{
+    return $this->appointments()
+        ->active()
+        ->where('role', \App\Models\Appointment::ROLE_PROG)
+        ->exists();
+}
+
+
+}
+
+
+

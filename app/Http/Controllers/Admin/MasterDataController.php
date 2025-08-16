@@ -1,225 +1,172 @@
 <?php
-
-// File: app/Http/Controllers/Admin/MasterDataController.php
-// Description: Handles SO, ILO, Programs, and Courses management – auto-insert logic for ILOs removed (Syllaverse)
+// -----------------------------------------------------------------------------
+// * File: app/Http/Controllers/Admin/MasterDataController.php
+// * Description: Handles Master Data page composition (SO, ILO, Programs, Courses)
+//                – view-only loader scoped by the acting user's appointments.
 // -----------------------------------------------------------------------------
 // 📜 Log:
-// [2025-07-29] Added reorderIlo() with safe 3-pass logic using request order directly.
-// [2025-07-29] Updated redirects to retain tab and subtab state for ILO CRUD actions.
-// [2025-07-29] Added 'open_modal' session flash to reopen ILO form after redirect.
+// [2025-07-29] Added reorderIlo(), reorderSo(), store/update/destroy for SO/ILO.
+// [2025-08-18] ✂️ Cleanup – removed all SO/ILO CRUD & reorder methods; this
+//              controller now only composes data for the Master Data index.
+//              (SO CRUD moved to StudentOutcomeController; ILO TBD.)
 // -----------------------------------------------------------------------------
 
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use App\Models\StudentOutcome;
+use App\Models\Appointment;
+use App\Models\Course;
 use App\Models\IntendedLearningOutcome;
 use App\Models\Program;
-use App\Models\Course;
+use App\Models\StudentOutcome;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class MasterDataController extends Controller
 {
+    /**
+     * Show the Master Data page (SO, ILO, Programs, Courses).
+     * - Admin: sees all Programs/Courses.
+     * - Dept Chair / Faculty: sees items under their department scope_id(s).
+     * - Program Chair: sees items under their program's department.
+     * - ILO list is returned only for a course within the user's accessible set.
+     */
     public function index(Request $request)
     {
         $user = Auth::user();
-        $selectedCourseId = $request->input('course_id');
+        $selectedCourseId = (int) $request->input('course_id');
+
+        // Admin: no restriction; load all programs & courses.
+        if ($user->role === 'admin') {
+            $programs = Program::with('department')->get();
+
+            $courses = Course::with(['prerequisites:id,code'])
+                ->orderBy('code')
+                ->get();
+
+            $iloList = $selectedCourseId
+                ? IntendedLearningOutcome::where('course_id', $selectedCourseId)->orderBy('position')->get()
+                : collect();
+
+            return view('admin.master-data.index', [
+                'studentOutcomes'          => StudentOutcome::all(),
+                'intendedLearningOutcomes' => $iloList,
+                'programs'                 => $programs,
+                'courses'                  => $courses,
+            ]);
+        }
+
+        // Non-admin: gather department ids from DEPT/FACULTY roles
+        $deptIds = $user->appointments()
+            ->active()
+            ->whereIn('role', [Appointment::ROLE_DEPT, Appointment::ROLE_FACULTY])
+            ->pluck('scope_id')
+            ->values();
+
+        // Also include department ids implied by PROG chair roles
+        $progIds = $user->appointments()
+            ->active()
+            ->where('role', Appointment::ROLE_PROG)
+            ->pluck('scope_id')
+            ->values();
+
+        if ($progIds->isNotEmpty()) {
+            $deptFromProg = Program::whereIn('id', $progIds)->pluck('department_id');
+            $deptIds = $deptIds->merge($deptFromProg)->unique()->values();
+        }
+
+        // If user has no scoped departments, show empty lists
+        if ($deptIds->isEmpty()) {
+            return view('admin.master-data.index', [
+                'studentOutcomes'          => StudentOutcome::all(),
+                'intendedLearningOutcomes' => collect(),
+                'programs'                 => collect(),
+                'courses'                  => collect(),
+            ]);
+        }
+
+        // Load programs/courses for accessible departments
+        $programs = Program::whereIn('department_id', $deptIds)->with('department')->get();
+
+        $courses = Course::with(['prerequisites:id,code'])
+            ->whereIn('department_id', $deptIds)
+            ->orderBy('code')
+            ->get();
+
+        // Only load ILOs for a course the user can access
+        $iloList = collect();
+        if ($selectedCourseId) {
+            $canAccessCourse = $courses->contains(fn ($c) => (int) $c->id === $selectedCourseId);
+            if ($canAccessCourse) {
+                $iloList = IntendedLearningOutcome::where('course_id', $selectedCourseId)
+                    ->orderBy('position')
+                    ->get();
+            }
+        }
 
         return view('admin.master-data.index', [
-            'studentOutcomes' => StudentOutcome::all(),
-            'intendedLearningOutcomes' => $selectedCourseId
-                ? IntendedLearningOutcome::where('course_id', $selectedCourseId)->orderBy('position')->get()
-                : collect(),
-            'courses' => Course::where('department_id', $user->department_id)->get(),
-            'programs' => Program::where('department_id', $user->department_id)->get(),
+            'studentOutcomes'          => StudentOutcome::all(),
+            'intendedLearningOutcomes' => $iloList,
+            'programs'                 => $programs,
+            'courses'                  => $courses,
         ]);
     }
 
-    public function store(Request $request, $type)
+
+    /**
+ * AJAX: Return ILOs for a given course_id as JSON.
+ * Plain-English: Verify the user can access the course, then return its ILOs ordered by position.
+ */
+public function fetchIlos(Request $request)
 {
-    $rules = [
-        'description' => 'required|string',
-    ];
+    $request->validate([
+        'course_id' => 'required|integer|exists:courses,id',
+    ]);
 
-    if ($type === 'ilo') {
-        $rules['course_id'] = 'required|exists:courses,id';
+    $user = Auth::user();
+    $courseId = (int) $request->course_id;
+
+    // Determine accessible department IDs for the user (admin can see all)
+    if ($user->role !== 'admin') {
+        $deptIds = $user->appointments()
+            ->active()
+            ->whereIn('role', [\App\Models\Appointment::ROLE_DEPT, \App\Models\Appointment::ROLE_FACULTY])
+            ->pluck('scope_id')
+            ->values();
+
+        $progIds = $user->appointments()
+            ->active()
+            ->where('role', \App\Models\Appointment::ROLE_PROG)
+            ->pluck('scope_id')
+            ->values();
+
+        if ($progIds->isNotEmpty()) {
+            $deptFromProg = \App\Models\Program::whereIn('id', $progIds)->pluck('department_id');
+            $deptIds = $deptIds->merge($deptFromProg)->unique()->values();
+        }
+
+        // If user has no dept scope, deny
+        if ($deptIds->isEmpty()) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        // Ensure the requested course belongs to an accessible department
+        $canAccess = \App\Models\Course::where('id', $courseId)
+            ->whereIn('department_id', $deptIds)
+            ->exists();
+
+        if (!$canAccess) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
     }
 
-    $validated = $request->validate($rules);
+    // Load ILOs
+    $ilos = \App\Models\IntendedLearningOutcome::where('course_id', $courseId)
+        ->orderBy('position')
+        ->get(['id','code','description','position']);
 
-    if ($type === 'so') {
-        // ✅ Use max position to avoid duplicate codes
-        $nextPosition = StudentOutcome::max('position') + 1;
-        $nextCode = 'SO' . $nextPosition;
-
-        StudentOutcome::create([
-            'code' => $nextCode,
-            'description' => $validated['description'],
-            'position' => $nextPosition,
-        ]);
-
-        return redirect()->route('admin.master-data.index', [
-            'tab' => 'soilo',
-            'subtab' => 'so'
-        ])->with('success', "SO '{$nextCode}' added successfully!");
-    }
-
-    if ($type === 'ilo') {
-        $count = IntendedLearningOutcome::where('course_id', $validated['course_id'])->count();
-        $nextCode = 'ILO' . ($count + 1);
-        $nextPosition = $count + 1;
-
-        IntendedLearningOutcome::create([
-            'code' => $nextCode,
-            'description' => $validated['description'],
-            'course_id' => $validated['course_id'],
-            'position' => $nextPosition,
-        ]);
-
-        return redirect()->route('admin.master-data.index', [
-            'course_id' => $validated['course_id'],
-            'tab' => 'soilo',
-            'subtab' => 'ilo'
-        ])->with('open_modal', 'add-ilo')
-          ->with('success', "ILO '{$nextCode}' added successfully!");
-    }
-
-    return back();
+    return response()->json([
+        'ilos' => $ilos,
+    ]);
 }
-
-    public function update(Request $request, $type, $id)
-    {
-        $rules = [
-            'code' => 'required|string|max:10',
-            'description' => 'required|string',
-        ];
-
-        $request->validate($rules);
-
-        $model = $type === 'so'
-            ? StudentOutcome::findOrFail($id)
-            : IntendedLearningOutcome::findOrFail($id);
-
-        $model->update($request->only('code', 'description'));
-
-        $redirectParams = ['tab' => 'soilo'];
-        if ($type === 'ilo') {
-            $redirectParams += [
-                'course_id' => $request->input('course_id'),
-                'subtab' => 'ilo'
-            ];
-        } else {
-            $redirectParams['subtab'] = 'so';
-        }
-
-        return redirect()->route('admin.master-data.index', $redirectParams)
-            ->with('success', strtoupper($type) . ' updated successfully!');
-    }
-
-    public function destroy($type, $id)
-    {
-        $model = $type === 'so'
-            ? StudentOutcome::findOrFail($id)
-            : IntendedLearningOutcome::findOrFail($id);
-
-        $courseId = $model->course_id ?? null;
-
-        $model->delete();
-
-        $redirectParams = ['tab' => 'soilo'];
-        if ($type === 'ilo' && $courseId) {
-            $redirectParams += [
-                'course_id' => $courseId,
-                'subtab' => 'ilo'
-            ];
-        } else {
-            $redirectParams['subtab'] = 'so';
-        }
-
-        return redirect()->route('admin.master-data.index', $redirectParams)
-            ->with('success', strtoupper($type) . ' deleted successfully!');
-    }
-
-    public function reorderIlo(Request $request)
-    {
-        try {
-            $request->validate([
-                'ids' => 'required|array',
-                'course_id' => 'required|exists:courses,id',
-            ]);
-
-            $ilos = IntendedLearningOutcome::whereIn('id', $request->ids)
-                ->where('course_id', $request->course_id)
-                ->get()
-                ->keyBy('id');
-
-            // Step 1: Temporarily assign unique placeholder codes
-            foreach ($ilos as $ilo) {
-                $ilo->forceFill(['code' => '__TEMP__' . $ilo->id])->save();
-            }
-
-            // Step 2: Update position and real code
-            foreach ($request->ids as $index => $id) {
-                if ($ilos->has($id)) {
-                    $ilos[$id]->forceFill([
-                        'position' => $index + 1,
-                        'code' => 'ILO' . ($index + 1)
-                    ])->save();
-                }
-            }
-
-            return response()->json(['message' => 'ILO order updated successfully.']);
-
-        } catch (\Throwable $e) {
-            \Log::error('ILO reorder failed: ' . $e->getMessage(), [
-                'stack' => $e->getTraceAsString()
-            ]);
-            return response()->json(['message' => 'Server error.'], 500);
-        }
-    }
-
-
-    // 🧩 Handles AJAX call to reorder Student Outcomes
-// 🧩 Handles AJAX call to reorder Student Outcomes
-public function reorderSo(Request $request)
-{
-    try {
-        $data = $request->validate([
-            'orderedIds' => 'required|array',
-            'orderedIds.*' => 'integer',
-        ]);
-
-        $studentOutcomes = StudentOutcome::whereIn('id', $data['orderedIds'])
-            ->get()
-            ->keyBy('id');
-
-        // 🔁 STEP 1: Assign temporary placeholder codes to prevent conflicts
-        foreach ($studentOutcomes as $so) {
-            $so->forceFill(['code' => '__TEMP__' . $so->id])->save();
-        }
-
-        // 🔁 STEP 2: Assign correct codes and positions
-        foreach ($data['orderedIds'] as $index => $id) {
-            if (isset($studentOutcomes[$id])) {
-                $studentOutcomes[$id]->forceFill([
-                    'position' => $index + 1,
-                    'code' => 'SO' . ($index + 1),
-                ])->save();
-            }
-        }
-
-        return response()->json(['message' => 'Student Outcomes reordered successfully.']);
-    } catch (\Throwable $e) {
-        \Log::error('SO reorder failed: ' . $e->getMessage(), [
-            'stack' => $e->getTraceAsString(),
-        ]);
-        return response()->json(['message' => 'Server error.'], 500);
-    }
-}
-
-
-
-
-
 }

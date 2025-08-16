@@ -1,71 +1,104 @@
 {{-- 
 -------------------------------------------------------------------------------
 * File: resources/views/admin/master-data/tabs/so.blade.php
-* Description: SO Tab Content (Admin Master Data) – sortable with live code update
+* Description: Student Outcomes (SO) Tab – aligned with modal UX (Edit/Delete)
 -------------------------------------------------------------------------------
 📜 Log:
-[2025-07-29] Added drag-and-drop reordering and Save Order button for SOs.
+[2025-08-16] Synced markup with JS (svTable-so, .sv-row-grip, sv-save-order-btn).
+[2025-08-18] Route fix – delete now uses admin.so.destroy; switched to Delete modal.
 -------------------------------------------------------------------------------
 --}}
 
-<h5>Student Outcomes (SO)</h5>
+<div class="tab-pane fade show active" id="so" role="tabpanel" aria-labelledby="so-tab">
 
-{{-- Add SO Form --}}
-<form method="POST" action="{{ route('admin.master-data.store', 'so') }}" class="d-flex justify-content-between align-items-center mb-2">
-    @csrf
-    <div class="flex-grow-1 me-3">
-        <textarea name="description" class="form-control" placeholder="SO Description" required>{{ old('description') }}</textarea>
+  {{-- Toolbar --}}
+  <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-3">
+    <h6 class="mb-0 fw-semibold" style="font-size:.95rem;">Student Outcomes</h6>
+
+    <div class="d-flex align-items-center gap-2">
+      {{-- Save Order --}}
+      <button type="button"
+              class="btn btn-light btn-sm border rounded-pill sv-save-order-btn"
+              data-sv-type="so"
+              disabled
+              title="Save current order">
+        <i data-feather="save"></i><span class="d-none d-md-inline ms-1">Save Order</span>
+      </button>
+
+      {{-- Add --}}
+      <button type="button"
+              class="btn-brand-sm"
+              data-bs-toggle="modal"
+              data-bs-target="#addSoModal"
+              aria-label="Add SO"
+              title="Add SO">
+        <i data-feather="plus"></i>
+      </button>
     </div>
-    <button type="submit" class="btn btn-danger">Add SO</button>
-    <button type="button" class="btn btn-outline-primary ms-2" id="save-so-order">Save Order</button>
-</form>
+  </div>
 
-<hr>
-
-{{-- SO List --}}
-<ul class="list-group mt-3" id="so-sortable">
-    @forelse ($studentOutcomes->sortBy('position') as $so)
-        <li class="list-group-item d-flex align-items-center justify-content-between" data-id="{{ $so->id }}">
-            <div class="d-flex align-items-center w-100">
-                {{-- Drag Handle --}}
-                <span class="me-3 cursor-move text-muted" title="Drag to reorder">
-                    <i class="bi bi-grip-vertical fs-5"></i>
-                </span>
-
-                {{-- SO Update Form --}}
-                <form method="POST" action="{{ route('admin.master-data.update', ['type' => 'so', 'id' => $so->id]) }}" class="row g-2 align-items-center flex-grow-1">
-                    @csrf @method('PUT')
-
-                    {{-- Code (readonly) --}}
-                    <div class="col-md-3">
-                        <input type="text" name="code" class="form-control form-control-sm" value="{{ $so->code }}" readonly>
-                    </div>
-
-                    {{-- Description --}}
-                    <div class="col-md-6">
-                        <textarea name="description" class="form-control form-control-sm" rows="1" required>{{ $so->description }}</textarea>
-                    </div>
-
-                    {{-- Save Button --}}
-                    <div class="col-md-3 d-flex gap-1 justify-content-end">
-                        <button type="submit" class="btn btn-sm btn-outline-primary">Save</button>
-                    </div>
-                </form>
-            </div>
-
-            {{-- Delete Form --}}
-            <form method="POST" action="{{ route('admin.master-data.destroy', ['type' => 'so', 'id' => $so->id]) }}" onsubmit="return confirm('Are you sure you want to delete this SO?')">
-                @csrf @method('DELETE')
-                <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete SO">
-                    <i class="bi bi-trash"></i>
+  {{-- Table --}}
+  <div class="table-wrapper position-relative">
+    <div class="table-responsive">
+      <table class="table mb-0" id="svTable-so" data-sv-type="so">
+        <thead>
+          <tr>
+            <th></th>
+            <th><i data-feather="code"></i> Code</th>
+            <th><i data-feather="align-left"></i> Description</th>
+            <th class="text-end"><i data-feather="more-vertical"></i></th>
+          </tr>
+        </thead>
+        <tbody>
+          @forelse ($studentOutcomes->sortBy('position') as $so)
+            <tr data-id="{{ $so->id }}">
+              <td class="text-muted">
+                <i class="sv-row-grip bi bi-grip-vertical fs-5" title="Drag to reorder"></i>
+              </td>
+              <td class="sv-code fw-semibold">{{ $so->code }}</td>
+              <td class="text-muted">{{ $so->description }}</td>
+              <td class="text-end">
+                {{-- Edit --}}
+                <button type="button"
+                        class="btn action-btn rounded-circle edit me-2"
+                        data-bs-toggle="modal"
+                        data-bs-target="#editSoModal"
+                        data-sv-id="{{ $so->id }}"
+                        data-sv-code="{{ $so->code }}"
+                        data-sv-description="{{ $so->description }}"
+                        title="Edit">
+                  <i data-feather="edit"></i>
                 </button>
-            </form>
-        </li>
-    @empty
-        <li class="list-group-item text-muted">No Student Outcomes defined yet.</li>
-    @endforelse
-</ul>
 
-@push('scripts')
-    @vite('resources/js/admin/master-data/so-sortable.js')
-@endpush
+                {{-- Delete (opens modal) --}}
+                <button type="button"
+                        class="btn action-btn rounded-circle delete deleteSoBtn"
+                        data-bs-toggle="modal"
+                        data-bs-target="#deleteSoModal"
+                        data-id="{{ $so->id }}"
+                        data-code="{{ $so->code }}"
+                        title="Delete">
+                  <i data-feather="trash"></i>
+                </button>
+              </td>
+            </tr>
+          @empty
+            <tr class="sv-empty-row">
+              <td colspan="4">
+                <div class="sv-empty">
+                  <h6>No Student Outcomes</h6>
+                  <p>Click <i data-feather="plus"></i> to add one.</p>
+                </div>
+              </td>
+            </tr>
+          @endforelse
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{{-- Include Modals --}}
+@include('admin.master-data.modals.add-so-modal')
+@include('admin.master-data.modals.edit-so-modal')
+@include('admin.master-data.modals.delete-so-modal')
