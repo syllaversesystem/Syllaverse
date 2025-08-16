@@ -1,22 +1,31 @@
 /* 
-------------------------------------------------
+-------------------------------------------------------------------------------
 * File: resources/css/faculty/faculty-sidebar.css
-* Description: Sidebar styles for Faculty – collapsible and responsive (Syllaverse)
------------------------------------------------- 
+* Description: Sidebar styles for Faculty – aligned pixel-perfect with Admin/Super Admin
+-------------------------------------------------------------------------------
+📜 Log:
+[2025-08-16] Refined to exact Admin parity: logo size fixed to 28px, nav-link padding/margin synced, separators always visible, collapse width set to 70px.
+-------------------------------------------------------------------------------
 */
 
-/* Sidebar Links – Expanded State */
+/* ░░░ START: Sidebar Links – Shared Styles ░░░ */
 #sidebar .nav-link {
+  font-size: 0.875rem;              /* compact, matches Admin */
+  font-weight: 500;
+  padding: 0.25rem 0.5rem;          /* consistent padding */
   color: #333;
-  font-size: 0.95rem;
-  padding: 12px 16px;
-  border-radius: 8px;
-  margin-bottom: 8px;
-  transition: all 0.2s ease;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 0.5rem;
+  border-radius: 0.375rem;
+  transition: all 0.2s ease;
+  margin-bottom: 0.25rem;           /* tighter vertical spacing */
   background: transparent;
+}
+
+#sidebar .nav-link i {
+  font-size: 1.2rem;
+  color: inherit;
 }
 
 #sidebar .nav-link:hover {
@@ -34,116 +43,64 @@
   box-shadow: inset 2px 2px 4px rgba(204, 55, 55, 0.08);
 }
 
-#sidebar .nav-link i {
-  font-size: 1.2rem;
-  color: inherit;
-}
-
 #sidebar .label {
   flex-grow: 1;
-}
-
-.sidebar-separator {
-  border-bottom: 1.5px solid #e3e3e3;
-  width: 100%;
-  margin-top: 8px;
-  margin-bottom: 8px;
-}
-
-/* Hide separator on mobile */
-@media (max-width: 991.98px) {
-  .sidebar-separator {
-    display: none;
-  }
-}
-
-/* Drawer (Mobile) */
-@media (max-width: 991.98px) {
-  #sidebar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    height: 100vh;
-    z-index: 1040;
-    transform: translateX(-100%);
-    opacity: 0;
-    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
-    transition: transform 0.3s ease, opacity 0.2s ease;
-  }
-
-  #sidebar.collapsed {
-    transform: translateX(0);
-    opacity: 1;
-  }
-
-  .sidebar-backdrop {
-    position: fixed;
-    inset: 0;
-    background-color: rgba(0, 0, 0, 0.3);
-    z-index: 1039;
-  }
-}
-
-/* Collapsed (Desktop) */
-body.sidebar-collapsed #sidebar {
-  width: 70px;
-  min-width: 70px;
-  max-width: 70px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding-left: 0 !important;
-  padding-right: 0 !important;
-  background-color: #FAFAFA;
-  transition: width 0.3s, background-color 0.3s;
-}
-
-body.sidebar-collapsed #sidebar .nav-link {
-  width: 48px;
-  height: 48px;
-  padding: 0;
-  justify-content: center;
-  margin-bottom: 12px;
-  border-radius: 14px;
 }
 
 body.sidebar-collapsed #sidebar .label {
   display: none !important;
 }
+/* ░░░ END: Sidebar Links ░░░ */
 
-.fade-logo {
-  opacity: 1;
-  transition: opacity 0.3s ease;
+/* ░░░ START: Logo Switching ░░░ */
+.sidebar-logo-expanded,
+.sidebar-logo-collapsed {
+  display: block;
+  margin: 0;
+  padding: 0;
+  line-height: 0;
+  max-height: 28px;       /* unified logo size */
+  width: auto;
+  vertical-align: bottom;
 }
 
-body.sidebar-collapsed .sidebar-logo-expanded {
-  opacity: 0;
-  display: none !important;
+.sidebar-header {
+  margin: 1rem 0 0 0 !important;  /* same as Admin */
+  padding: 0 !important;
+  height: auto !important;
+  display: flex !important;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 0 !important;
+  font-size: 0 !important;
 }
 
-body.sidebar-collapsed .sidebar-logo-collapsed {
-  display: inline-block !important;
-  opacity: 1;
+@media (max-width: 991.98px) {
+  .sidebar-logo-expanded { display: none !important; }
+  .sidebar-logo-collapsed { display: block !important; }
 }
+/* ░░░ END: Logo Switching ░░░ */
 
-/* Collapse Button */
+/* ░░░ START: Collapse Button ░░░ */
 #sidebarCollapseBtn {
   border: none;
   background-color: #F8F8F8;
   color: #CB3737;
+  padding: 6px 8px;        /* compact size */
+  border-radius: 6px;
   transition: all 0.2s ease;
-  padding: 10px;
-  border-radius: 8px;
 }
 
 #sidebarCollapseBtn:hover {
   background: linear-gradient(135deg, rgba(255, 240, 235, 0.8), rgba(255, 255, 255, 0.4));
-  color: #CB3737;
+  backdrop-filter: blur(6px);
   box-shadow: 0 4px 8px rgba(204, 55, 55, 0.1);
 }
 
 #sidebarCollapseBtn:active {
   background: linear-gradient(135deg, rgba(255, 230, 225, 0.9), rgba(255, 255, 255, 0.5));
+  backdrop-filter: blur(8px);
   box-shadow: inset 2px 2px 4px rgba(204, 55, 55, 0.08);
 }
 
@@ -155,3 +112,59 @@ body.sidebar-collapsed .sidebar-logo-collapsed {
 body.sidebar-collapsed #sidebarCollapseBtn .rotate-icon {
   transform: rotate(180deg);
 }
+/* ░░░ END: Collapse Button ░░░ */
+
+/* ░░░ START: Sidebar Separators ░░░ */
+.sidebar-separator {
+  border-bottom: 1.5px solid #e3e3e3;
+  margin: 8px 0;
+  width: 100%;
+  display: block !important;
+}
+
+@media (max-width: 991.98px) {
+  /* hide the bottom separator under collapse button on mobile */
+  #sidebar .px-3.py-2 .sidebar-separator:last-child {
+    display: none !important;
+  }
+}
+/* ░░░ END: Sidebar Separators ░░░ */
+
+/* ░░░ START: Sidebar Collapse Width ░░░ */
+body.sidebar-collapsed #sidebar {
+  width: 70px;
+  min-width: 70px;
+  max-width: 70px;
+}
+/* ░░░ END: Sidebar Collapse Width ░░░ */
+
+/* ░░░ START: Mobile Drawer Behavior ░░░ */
+@media (max-width: 991.98px) {
+  #sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    z-index: 1050;
+    background-color: #FAFAFA;
+    width: 70px;
+    min-width: 70px;
+    max-width: 70px;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+  }
+
+  #sidebar.collapsed { transform: translateX(0); }
+
+  #sidebar .label { display: none !important; }
+
+  #sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: 1049;
+    transition: opacity 0.3s ease;
+  }
+}
+/* ░░░ END: Mobile Drawer Behavior ░░░ */

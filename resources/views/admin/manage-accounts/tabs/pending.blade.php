@@ -1,42 +1,49 @@
 {{-- 
-------------------------------------------------
+-------------------------------------------------------------------------------
 * File: resources/views/admin/manage-accounts/tabs/pending.blade.php
-* Description: Shows pending faculty accounts for approval (Syllaverse)
------------------------------------------------- 
+* Description: Pending Faculty – Super Admin style table
+-------------------------------------------------------------------------------
 --}}
 
-@if($pendingFaculty->isEmpty())
-    <div class="alert alert-info">
-        <i class="bi bi-info-circle-fill me-2"></i> No pending faculty accounts in your department.
-    </div>
-@else
-    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-        @foreach($pendingFaculty as $faculty)
-            <div class="col">
-                <div class="card h-100 shadow-sm border-danger">
-                    <div class="card-body">
-                        <h5 class="card-title text-danger fw-semibold">{{ $faculty->name }}</h5>
-                        <p class="mb-1"><strong>Email:</strong> {{ $faculty->email }}</p>
-                        <p class="mb-1"><strong>Employee Code:</strong> {{ $faculty->employee_code }}</p>
-                        <p class="mb-1"><strong>Designation:</strong> {{ $faculty->designation }}</p>
-                        <p class="mb-1"><strong>Department ID:</strong> {{ $faculty->department_id }}</p>
-                    </div>
-                    <div class="card-footer d-flex justify-content-between">
-                        <form method="POST" action="{{ route('admin.manage-accounts.approve', $faculty->id) }}">
-                            @csrf
-                            <button type="submit" class="btn btn-success btn-sm">
-                                <i class="bi bi-check-circle"></i> Approve
-                            </button>
-                        </form>
-                        <form method="POST" action="{{ route('admin.manage-accounts.reject', $faculty->id) }}">
-                            @csrf
-                            <button type="submit" class="btn btn-outline-danger btn-sm">
-                                <i class="bi bi-x-circle"></i> Reject
-                            </button>
-                        </form>
-                    </div>
+<div class="tab-pane fade show active" id="faculty-pending" role="tabpanel" aria-labelledby="faculty-pending-tab">
+
+  <div class="table-wrapper position-relative">
+    <div class="table-responsive">
+      <table class="table mb-0 sv-accounts-table" id="svPendingFacultyTable">
+        <thead>
+          <tr>
+            <th><i data-feather="user-plus"></i> Name</th>
+            <th><i data-feather="mail"></i> Email</th>
+            <th class="text-end"><i data-feather="more-vertical"></i></th>
+          </tr>
+        </thead>
+        <tbody>
+          @forelse ($pendingFaculty ?? [] as $faculty)
+            <tr>
+              <td>{{ $faculty->name }}</td>
+              <td class="text-muted">{{ $faculty->email }}</td>
+              <td class="text-end">
+                <form method="POST" action="{{ route('admin.manage-accounts.approve', $faculty->id) }}" class="d-inline">@csrf
+                  <button type="submit" class="action-btn approve" title="Approve"><i data-feather="check"></i></button>
+                </form>
+                <form method="POST" action="{{ route('admin.manage-accounts.reject', $faculty->id) }}" class="d-inline">@csrf
+                  <button type="submit" class="action-btn reject" title="Reject"><i data-feather="x"></i></button>
+                </form>
+              </td>
+            </tr>
+          @empty
+            <tr class="sv-empty-row">
+              <td colspan="3">
+                <div class="sv-empty">
+                  <h6>No pending faculty</h6>
+                  <p>New faculty signups will appear here for approval.</p>
                 </div>
-            </div>
-        @endforeach
+              </td>
+            </tr>
+          @endforelse
+        </tbody>
+      </table>
     </div>
-@endif
+  </div>
+
+</div>

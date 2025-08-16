@@ -34,6 +34,10 @@
   @vite('resources/css/admin/admin-navbar.css')
   @vite('resources/css/admin/admin-layout.css')
   @vite('resources/css/superadmin/alerts.css') {{-- reuse shared alert styles --}}
+
+  @vite('resources/css/superadmin/manage-accounts/manage-accounts.css')
+  @vite('resources/css/superadmin/departments/departments.css')
+  @vite('resources/css/components/alert-overlay.css')
   {{-- ░░░ END: Custom Vite CSS ░░░ --}}
 
   @stack('styles')

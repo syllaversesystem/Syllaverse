@@ -8,6 +8,7 @@
 📜 Log:
 [2025-08-08] Updated flow: allow pending admins to log in and access Complete Profile; fixed controller method; added auth middleware to profile routes.
 [2025-08-08] Restored Master Data routes (index/store/update/destroy + ILO/SO reorder).
+[2025-08-16] Added explicit approve/reject faculty routes with correct names for manage-accounts tabs.
 -------------------------------------------------------------------------------
 */
 
@@ -28,23 +29,19 @@ Route::get('/login', function () {
 })->name('admin.login.form');
 /* ░░░ END: Admin Login (View) ░░░ */
 
-
 /* ░░░ START: Google OAuth ░░░ */
 Route::get('/login/google', [AuthController::class, 'redirectToGoogle'])->name('admin.google.login');
 Route::get('/google/callback', [AuthController::class, 'handleGoogleCallback'])->name('admin.google.callback');
 /* ░░░ END: Google OAuth ░░░ */
 
-
-/* ░░░ START: Complete Profile (accessible to logged-in PENDING or ACTIVE admins) ░░░
-   Note: Must be behind 'auth' so only the Google-authenticated user can view/submit. */
+/* ░░░ START: Complete Profile (PENDING or ACTIVE admins) ░░░ */
 Route::middleware('auth')->group(function () {
     Route::get('/complete-profile', [ProfileController::class, 'showCompleteProfile'])->name('admin.complete-profile');
     Route::post('/complete-profile', [ProfileController::class, 'submitProfile'])->name('admin.submit-profile');
 });
 /* ░░░ END: Complete Profile ░░░ */
 
-
-/* ░░░ START: Protected Admin Routes (requires AdminAuth: role=admin + status=active) ░░░ */
+/* ░░░ START: Protected Admin Routes ░░░ */
 Route::middleware([AdminAuth::class])->group(function () {
 
     // Admin Dashboard
@@ -54,7 +51,7 @@ Route::middleware([AdminAuth::class])->group(function () {
     Route::get('/academic-structure', [AcademicStructureController::class, 'index'])
         ->name('admin.academic-structure.index');
 
-    // Program Management (CRUD)
+    // Program Management
     Route::resource('programs', ProgramController::class)->names([
         'index'   => 'admin.programs.index',
         'create'  => 'admin.programs.create',
@@ -65,7 +62,7 @@ Route::middleware([AdminAuth::class])->group(function () {
         'show'    => 'admin.programs.show',
     ]);
 
-    // Course Management (CRUD)
+    // Course Management
     Route::resource('courses', CourseController::class)->only(['store', 'update', 'destroy'])->names([
         'store'   => 'admin.courses.store',
         'update'  => 'admin.courses.update',
@@ -73,9 +70,12 @@ Route::middleware([AdminAuth::class])->group(function () {
     ]);
 
     // Manage Faculty Accounts (Pending, Approve, Reject)
-    Route::get('/manage-accounts', [ManageFacultyAccountController::class, 'index'])->name('admin.manage-accounts');
-    Route::post('/manage-accounts/{id}/approve', [ManageFacultyAccountController::class, 'approve'])->name('admin.manage-accounts.approve');
-    Route::post('/manage-accounts/{id}/reject', [ManageFacultyAccountController::class, 'reject'])->name('admin.manage-accounts.reject');
+    Route::get('/manage-accounts', [ManageFacultyAccountController::class, 'index'])
+        ->name('admin.manage-accounts');
+    Route::post('/manage-accounts/{id}/approve', [ManageFacultyAccountController::class, 'approve'])
+        ->name('admin.manage-accounts.approve');
+    Route::post('/manage-accounts/{id}/reject', [ManageFacultyAccountController::class, 'reject'])
+        ->name('admin.manage-accounts.reject');
 
     // ✅ Master Data (SO & ILO)
     Route::get('/master-data', [MasterDataController::class, 'index'])->name('admin.master-data.index');

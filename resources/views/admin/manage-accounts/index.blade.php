@@ -1,44 +1,54 @@
 {{-- 
-------------------------------------------------
+-------------------------------------------------------------------------------
 * File: resources/views/admin/manage-accounts/index.blade.php
-* Description: Admin Manage Faculty Accounts Page with tabbed layout (Syllaverse)
------------------------------------------------- 
+* Description: Admin Manage Accounts – styled to match Super Admin's Manage Accounts
+-------------------------------------------------------------------------------
 --}}
+
 @extends('layouts.admin')
 
-@section('title', 'Manage Faculty Accounts • Admin • Syllaverse')
+@section('title', 'Manage Accounts • Admin • Syllaverse')
 @section('page-title', 'Manage Faculty Accounts')
 
 @section('content')
 
-<ul class="nav nav-tabs mb-4" id="accountTabs" role="tablist">
-    <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="pending-tab" data-bs-toggle="tab" data-bs-target="#pending" type="button" role="tab">
-            Pending
-        </button>
-    </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link" id="approved-tab" data-bs-toggle="tab" data-bs-target="#approved" type="button" role="tab">
-            Approved
-        </button>
-    </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link" id="rejected-tab" data-bs-toggle="tab" data-bs-target="#rejected" type="button" role="tab">
-            Rejected
-        </button>
-    </li>
-</ul>
+<div class="manage-accounts">
 
-<div class="tab-content" id="accountTabsContent">
-    <div class="tab-pane fade show active" id="pending" role="tabpanel" aria-labelledby="pending-tab">
-        @include('admin.manage-accounts.tabs.pending')
-    </div>
-    <div class="tab-pane fade" id="approved" role="tabpanel" aria-labelledby="approved-tab">
-        @include('admin.manage-accounts.tabs.approved')
-    </div>
-    <div class="tab-pane fade" id="rejected" role="tabpanel" aria-labelledby="rejected-tab">
-        @include('admin.manage-accounts.tabs.rejected')
-    </div>
+  {{-- ░░░ START: Tabs Navigation ░░░ --}}
+  <ul class="nav nav-tabs sv-tabs" id="facultyAccountsTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" id="faculty-pending-tab" data-bs-toggle="tab" data-bs-target="#faculty-pending" type="button" role="tab" aria-controls="faculty-pending" aria-selected="true">
+        <i data-feather="clock"></i> Pending
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="faculty-approved-tab" data-bs-toggle="tab" data-bs-target="#faculty-approved" type="button" role="tab" aria-controls="faculty-approved" aria-selected="false">
+        <i data-feather="check-circle"></i> Approved
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="faculty-rejected-tab" data-bs-toggle="tab" data-bs-target="#faculty-rejected" type="button" role="tab" aria-controls="faculty-rejected" aria-selected="false">
+        <i data-feather="x-circle"></i> Rejected
+      </button>
+    </li>
+  </ul>
+  {{-- ░░░ END: Tabs Navigation ░░░ --}}
+
+  {{-- ░░░ START: Tab Contents ░░░ --}}
+  <div class="tab-content mt-3" id="facultyAccountsTabsContent">
+    
+    {{-- Pending Tab --}}
+    @include('admin.manage-accounts.tabs.pending')
+
+    {{-- Approved Tab --}}
+    @include('admin.manage-accounts.tabs.approved')
+
+    {{-- Rejected Tab --}}
+    @include('admin.manage-accounts.tabs.rejected')
+
+  </div>
+  {{-- ░░░ END: Tab Contents ░░░ --}}
+
 </div>
 
 @endsection

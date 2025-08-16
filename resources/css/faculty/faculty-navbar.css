@@ -1,105 +1,115 @@
 /* 
-------------------------------------------------
+-------------------------------------------------------------------------------
 * File: resources/css/faculty/faculty-navbar.css
-* Description: Navbar styles for Faculty – glassmorphic, responsive, and animated
------------------------------------------------- 
+* Description: Navbar styles for Faculty – glassmorphic, responsive, accent title, with theme toggle animation
+-------------------------------------------------------------------------------
+📜 Log:
+[2025-08-16] Synced with Admin navbar styles: unified glass/shadows, page title, caret logic; retained Faculty theme toggle micro-animation.
+-------------------------------------------------------------------------------
 */
 
-.navbar {
-    background: rgba(255, 255, 255, 0.80);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    box-shadow: 0 2px 12px rgba(204, 55, 55, 0.09), 0 1.5px 8px rgba(0,0,0,0.07);
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-}
-
+/* ░░░ START: Top Navbar (glassmorphism) ░░░ */
+.navbar,
 .glass-navbar {
-    background: rgba(255, 255, 255, 0.80);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    box-shadow: 0 2px 12px rgba(204, 55, 55, 0.09), 0 1.5px 8px rgba(0,0,0,0.07);
+  background: rgba(255, 255, 255, 0.80);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 2px 12px rgba(204, 55, 55, 0.09), 0 1.5px 8px rgba(0,0,0,0.07);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
 }
+/* ░░░ END: Top Navbar ░░░ */
 
+/* ░░░ START: Page Title Accent ░░░ */
 .navbar-title, .navbar h5 {
-    color: #CB3737;
-    letter-spacing: 0.2px;
-    font-size: 1.23rem;
-    font-weight: 700;
-    text-shadow: 0 2px 8px rgba(203,55,55,0.07);
-    transition: color 0.18s, text-shadow 0.18s;
+  color: #CB3737;
+  letter-spacing: 0.2px;
+  font-size: 1.23rem;
+  font-weight: 700;
+  text-shadow: 0 2px 8px rgba(203,55,55,0.07);
+  transition: color 0.18s, text-shadow 0.18s;
 }
 
 .hamburger-btn {
-    margin-left: -8px;
-    margin-right: 8px;
-}
-@media (max-width: 575.98px) {
-    .hamburger-btn {
-        margin-left: -25px;
-        margin-right: 5px;
-    }
-    .navbar-title, .navbar h5 {
-        font-size: 1.13rem;
-        letter-spacing: 0.1px;
-    }
+  margin-left: -8px;
+  margin-right: 8px;
 }
 
-/* Profile dropdown name and caret toggle logic */
+@media (max-width: 575.98px) {
+  .hamburger-btn {
+    margin-left: -25px;
+    margin-right: 5px;
+  }
+  .navbar-title, .navbar h5 {
+    font-size: 1.13rem;
+    letter-spacing: 0.1px;
+  }
+}
+/* ░░░ END: Page Title Accent ░░░ */
+
+/* ░░░ START: Caret + Label Logic (mobile vs desktop) ░░░ */
 @media (max-width: 991.98px) {
-    .faculty-dropdown .fw-semibold {
-        display: none !important;
-    }
-    .faculty-dropdown.dropdown-toggle::after {
-        display: inline-block !important;
-    }
+  .faculty-dropdown .fw-semibold {
+    display: none !important;   /* Hide name on mobile */
+  }
+  .faculty-dropdown.dropdown-toggle::after {
+    display: inline-block !important; /* Always show caret */
+  }
 }
 @media (min-width: 992px) {
-    .faculty-dropdown .fw-semibold {
-        display: inline !important;
-    }
-    .faculty-dropdown.dropdown-toggle::after {
-        display: inline-block !important;
-    }
+  .faculty-dropdown .fw-semibold {
+    display: inline !important; /* Show name on desktop */
+  }
+  .faculty-dropdown.dropdown-toggle::after {
+    display: inline-block !important;
+  }
 }
+/* ░░░ END: Caret + Label Logic ░░░ */
 
-.navbar .dropdown-toggle {
-    font-weight: 500;
-    color: #333;
-    transition: color 0.3s;
-}
-
-.navbar .dropdown-toggle:hover {
-    color: #CB3737;
-}
-
-/* Dropdown Menu */
+/* ░░░ START: Dropdown Menu Styling ░░░ */
 .dropdown-menu {
-    border-radius: 10px;
-    font-size: 0.95rem;
-    padding: 10px 0;
-    border: 1px solid #E3E3E3;
-    animation-duration: 0.2s;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  padding: 10px 0;
+  border: 1px solid #E3E3E3;
+  animation-duration: 0.2s;
 }
 
 .dropdown-menu .dropdown-item {
-    padding: 8px 20px;
-    transition: all 0.2s;
+  padding: 8px 20px;
+  transition: all 0.2s;
 }
 
 .dropdown-menu .dropdown-item:hover {
-    background-color: #FFE5E0;
-    color: #CB3737;
+  background-color: #FFE5E0;
+  color: #CB3737;
+}
+/* ░░░ END: Dropdown Menu Styling ░░░ */
+
+/* ░░░ START: Dropdown Toggle Hover ░░░ */
+.navbar .dropdown-toggle {
+  font-weight: 500;
+  color: #333;
+  transition: color 0.3s;
 }
 
-/* Theme toggle icon animation */
+.navbar .dropdown-toggle:hover {
+  color: #CB3737;
+}
+/* ░░░ END: Dropdown Toggle Hover ░░░ */
+
+/* ░░░ START: Theme Toggle Animation ░░░ */
 #themeToggleBtn i {
-    transition: color 0.23s, transform 0.23s;
+  transition: color 0.23s, transform 0.23s;
 }
 
 #themeToggleBtn:active i,
 #themeToggleBtn .theme-anim {
-    transform: rotate(-20deg) scale(1.22);
-    color: #EE6F57;
+  transform: rotate(-20deg) scale(1.22);
+  color: #EE6F57;
 }
+/* ░░░ END: Theme Toggle Animation ░░░ */
+
+/* Utilities */
+.sticky-top { top: 0 !important; z-index: 1030 !important; }

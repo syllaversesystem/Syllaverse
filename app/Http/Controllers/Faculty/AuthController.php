@@ -1,6 +1,12 @@
 <?php
-// File: app/Http/Controllers/Faculty/AuthController.php
-// Description: Handles Google Login for Faculty (Syllaverse)
+
+// -------------------------------------------------------------------------------
+// * File: app/Http/Controllers/Faculty/AuthController.php
+// * Description: Handles Google Login for Faculty (Syllaverse)
+// -------------------------------------------------------------------------------
+// 📜 Log:
+// [2025-08-16] Added google_id capture, skip profile completion if already complete and approved.
+// -------------------------------------------------------------------------------
 
 namespace App\Http\Controllers\Faculty;
 
@@ -36,20 +42,37 @@ class AuthController extends Controller
         $user = User::where('email', $email)->first();
 
         if ($user) {
+            // Check if the account is a faculty
             if ($user->role !== 'faculty') {
                 return redirect()->route('faculty.login.form')
                     ->with('error', 'This account is already registered as a different role.');
             }
+
+            // Update google_id if missing
+            if (empty($user->google_id)) {
+                $user->google_id = $googleUser->getId();
+                $user->save();
+            }
         } else {
+            // New faculty registration
             $user = User::create([
-                'name' => $googleUser->getName(),
-                'email' => $email,
-                'role' => 'faculty',
-                'status' => 'active',
+                'name'       => $googleUser->getName(),
+                'email'      => $email,
+                'google_id'  => $googleUser->getId(),
+                'role'       => 'faculty',
+                'status'     => 'active', // Will be set to pending after profile completion
             ]);
         }
 
         Auth::login($user);
+
+        // Redirect logic
+        if ($user->status === 'pending') {
+            // Needs profile completion
+            return redirect()->route('faculty.complete-profile.show');
+        }
+
+        // Approved & complete
         return redirect()->route('faculty.dashboard');
     }
 }

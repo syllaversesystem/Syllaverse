@@ -1,97 +1,170 @@
 {{-- 
 ------------------------------------------------
 * File: resources/views/auth/faculty-login.blade.php
-* Description: Faculty Login Page (Syllaverse) with Google OAuth and session alerts
+* Description: Faculty Login Page (Syllaverse) – Updated UI aligned with Admin login (centered card, triangle background, Poppins font)
 ------------------------------------------------ 
 --}}
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Faculty Login • Syllaverse</title>
-    <link rel="icon" type="image/png" href="{{ asset('images/favicon.png') }}" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Faculty Login • Syllaverse</title>
+  <link rel="icon" href="{{ asset('images/favicon.png') }}" type="image/png" />
 
-    {{-- Bootstrap --}}
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  {{-- Bootstrap & Fonts --}}
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
 
-    {{-- Custom CSS via Vite --}}
-    @vite('resources/css/admin-faculty.css')
+  {{-- Feather Icons --}}
+  <script src="https://unpkg.com/feather-icons"></script>
+
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: #FAFAFA;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      overflow: hidden;
+    }
+
+    .accent-bg {
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #EE6F57, #CB3737);
+      clip-path: polygon(100% 100%, 100% 0%, 0% 100%);
+      z-index: -1;
+    }
+
+    .login-card {
+      background: #fff;
+      border-radius: 20px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+      max-width: 420px;
+      width: 90%;
+      padding: 2.5rem;
+      text-align: center;
+      animation: fadeInUp 0.8s ease both;
+      z-index: 2;
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .login-card img.logo {
+      max-width: 120px;
+      margin-bottom: 0.5rem;
+    }
+
+    .login-card h4 {
+      color: #CB3737;
+      margin-bottom: 1.5rem;
+      font-weight: 600;
+    }
+
+    .btn-google {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      border: 1px solid #E3E3E3;
+      border-radius: 10px;
+      padding: 10px;
+      width: 100%;
+      transition: 0.3s;
+      font-weight: 500;
+      background: #fff;
+      text-decoration: none;
+      color: #333;
+    }
+
+    .btn-google:hover {
+      border-color: #CB3737;
+      background-color: #fef3f2;
+      color: #CB3737;
+    }
+
+    footer {
+      font-size: 0.85rem;
+      color: #777;
+      margin-top: 1.5rem;
+    }
+
+    input:focus,
+    button:focus,
+    a:focus,
+    select:focus,
+    textarea:focus {
+      outline: none !important;
+      box-shadow: none !important;
+      border-color: #CB3737 !important;
+    }
+
+    ::selection {
+      background: #FFE5E0;
+      color: #CB3737;
+    }
+
+    @media (max-width: 576px) {
+      .accent-bg {
+        display: none;
+      }
+      .login-card {
+        padding: 2rem 1.5rem;
+      }
+      .login-card h4 {
+        font-size: 1.2rem;
+      }
+    }
+  </style>
 </head>
-
 <body>
-    <div class="container-fluid">
-        <div class="row g-0">
+  {{-- Triangle Background --}}
+  <div class="accent-bg"></div>
 
-            {{-- Left Branding --}}
-            <div class="col-md-6 left-section d-none d-md-flex flex-column justify-content-center align-items-center text-center px-5 position-relative overflow-hidden">
-                <div class="w-100 position-relative">
+  {{-- Faculty Login Card --}}
+  <div class="login-card">
+    <img src="{{ asset('images/syllaverse-logo.png') }}" alt="Syllaverse Logo" class="logo">
+    <h4>Faculty Login</h4>
 
-                    <div class="position-absolute top-0 start-0 opacity-10" style="z-index: 0;">
-                        <img src="{{ asset('images/decor-academic.svg') }}" alt="Decor" style="width: 180px;" />
-                    </div>
+    {{-- Alerts --}}
+    @if(session('error'))
+      <div class="alert alert-danger d-flex align-items-center gap-2" role="alert">
+        <i class="bi bi-exclamation-circle-fill"></i>
+        <div>{{ session('error') }}</div>
+      </div>
+    @endif
 
-                    <img src="{{ asset('images/syllaverse-logo.png') }}" alt="Syllaverse Logo" class="mb-4 logo position-relative" />
+    @if(session('success'))
+      <div class="alert alert-success d-flex align-items-center gap-2" role="alert">
+        <i class="bi bi-check-circle-fill"></i>
+        <div>{{ session('success') }}</div>
+      </div>
+    @endif
 
-                    <hr class="border-light opacity-50 mb-4" style="max-width: 400px; margin-inline: auto; z-index: 1;" />
+    {{-- Google Sign In --}}
+    <a href="{{ route('faculty.google.login') }}" class="btn-google" aria-label="Login with Google (Faculty)">
+      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google Logo" width="20" height="20">
+      Sign in with Google
+    </a>
 
-                    <h2 class="fw-bold mb-3 position-relative">Streamline Your Syllabus Management</h2>
-                    <p class="px-3 position-relative">
-                        Syllaverse helps faculty members <strong>create, organize, and track</strong> syllabi and class progress for a smooth academic experience.
-                    </p>
+    <p class="text-muted mt-3 mb-0" style="font-size: 13px;">
+      Use your BSU GSuite account to access the faculty dashboard.
+    </p>
 
-                    <blockquote class="text-light mt-4 fst-italic position-relative">
-                        "Empowering educators, one syllabus at a time."
-                    </blockquote>
+    <footer>&copy; Batangas State University • 2025</footer>
+  </div>
 
-                    <small class="d-block mt-5 text-light opacity-75 position-relative">
-                        © Batangas State University • 2025
-                    </small>
-                </div>
-            </div>
-
-            {{-- Right Login Panel --}}
-            <div class="col-md-6 d-flex align-items-center justify-content-center p-4">
-                <div class="login-box text-center w-100" style="max-width: 360px;">
-
-                    <h5 class="mb-4 text-muted fw-semibold">Faculty Login</h5>
-
-                    {{-- Alerts --}}
-                    @if(session('error'))
-                        <div class="alert alert-danger d-flex align-items-center gap-2" role="alert">
-                            <i class="bi bi-exclamation-circle-fill"></i>
-                            <div>{{ session('error') }}</div>
-                        </div>
-                    @endif
-
-                    @if(session('success'))
-                        <div class="alert alert-success d-flex align-items-center gap-2" role="alert">
-                            <i class="bi bi-check-circle-fill"></i>
-                            <div>{{ session('success') }}</div>
-                        </div>
-                    @endif
-
-                    {{-- Google Sign In --}}
-                    <a href="{{ route('faculty.google.login') }}" class="btn google-btn d-flex align-items-center justify-content-center rounded-3 p-2 text-decoration-none">
-                        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google Logo" class="me-2" />
-                        <span class="fw-semibold text-dark">Sign in with Google</span>
-                    </a>
-
-                    <p class="text-muted mt-3 mb-0" style="font-size: 13px;">
-                        Use your BSU GSuite account to access the faculty dashboard.
-                    </p>
-
-                    <footer class="mt-4">
-                        <hr />
-                        Syllaverse v1.0 • BSU IT Capstone 2025
-                    </footer>
-                </div>
-            </div>
-
-        </div>
-    </div>
+  <script>
+    feather.replace();
+  </script>
 </body>
-
 </html>
-    

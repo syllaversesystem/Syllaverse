@@ -1,31 +1,46 @@
 {{-- 
-------------------------------------------------
+-------------------------------------------------------------------------------
 * File: resources/views/admin/manage-accounts/tabs/approved.blade.php
-* Description: Displays approved faculty accounts managed by the admin (Syllaverse)
------------------------------------------------- 
+* Description: Approved Faculty – Super Admin style table (no Active Appointments column)
+-------------------------------------------------------------------------------
 --}}
 
-@if($approvedFaculty->isEmpty())
-    <div class="alert alert-info">
-        <i class="bi bi-person-check-fill me-2"></i> No approved faculty accounts found.
-    </div>
-@else
-    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-        @foreach($approvedFaculty as $faculty)
-            <div class="col">
-                <div class="card h-100 shadow-sm border-success">
-                    <div class="card-body">
-                        <h5 class="card-title text-success fw-semibold">{{ $faculty->name }}</h5>
-                        <p class="mb-1"><strong>Email:</strong> {{ $faculty->email }}</p>
-                        <p class="mb-1"><strong>Employee Code:</strong> {{ $faculty->employee_code }}</p>
-                        <p class="mb-1"><strong>Designation:</strong> {{ $faculty->designation }}</p>
-                        <p class="mb-1"><strong>Department ID:</strong> {{ $faculty->department_id }}</p>
-                    </div>
-                    <div class="card-footer small text-muted">
-                        Approved Account
-                    </div>
+<div class="tab-pane fade" id="faculty-approved" role="tabpanel" aria-labelledby="faculty-approved-tab">
+
+  <div class="table-wrapper position-relative">
+    <div class="table-responsive">
+      <table class="table mb-0 sv-accounts-table" id="svApprovedFacultyTable">
+        <thead>
+          <tr>
+            <th><i data-feather="user"></i> Name</th>
+            <th><i data-feather="mail"></i> Email</th>
+            <th class="text-end"><i data-feather="more-vertical"></i></th>
+          </tr>
+        </thead>
+        <tbody>
+          @forelse ($approvedFaculty ?? [] as $faculty)
+            <tr>
+              <td>{{ $faculty->name }}</td>
+              <td class="text-muted">{{ $faculty->email }}</td>
+              <td class="text-end">
+                <form method="POST" action="{{ route('admin.manage-accounts.reject', $faculty->id) }}" class="d-inline">@csrf
+                  <button type="submit" class="action-btn reject" title="Reject"><i data-feather="x"></i></button>
+                </form>
+              </td>
+            </tr>
+          @empty
+            <tr class="sv-empty-row">
+              <td colspan="3">
+                <div class="sv-empty">
+                  <h6>No approved faculty</h6>
+                  <p>Approved faculty will appear here once verified.</p>
                 </div>
-            </div>
-        @endforeach
+              </td>
+            </tr>
+          @endforelse
+        </tbody>
+      </table>
     </div>
-@endif
+  </div>
+
+</div>
