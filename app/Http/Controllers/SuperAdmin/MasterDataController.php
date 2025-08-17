@@ -2,7 +2,7 @@
 
 // -------------------------------------------------------------------------------
 // * File: app/Http/Controllers/SuperAdmin/MasterDataController.php
-// * Description: CRUD + reorder for Master Data (SDG, IGA, CDIO, General Info) – auto code & sort_order
+// * Description: CRUD + reorder for Master Data (SDG, IGA, CDIO, General Info) + Assessment Tasks (LEC/LAB)
 // -------------------------------------------------------------------------------
 // 📜 Log:
 // [2025-08-12] Order-aware index (uses ->ordered()); added `reorder()` endpoint (drag & drop).
@@ -10,6 +10,8 @@
 // [2025-08-12] JSON-aware responses for fetch/AJAX, with redirect+flash fallback.
 // [2025-08-12] Fix – `reorder()` now accepts either {ids:[...]} or {order:[...]}; relaxed validator to numeric.
 // [2025-08-12] Fix – Reorder now uses two-phase update (vacate codes → assign final codes) to avoid unique collisions.
+// [2025-08-17] Add – Assessment Tasks (LEC/LAB) CRUD without description; early bypass in store/update/destroy.
+// [2025-08-17] Change – No reorder for Assessment Tasks; index now also provides $taskGroups for Assessment Tasks tab.
 // -------------------------------------------------------------------------------
 
 namespace App\Http\Controllers\SuperAdmin;
@@ -19,31 +21,46 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 use App\Models\Sdg;
 use App\Models\Iga;
 use App\Models\Cdio;
 use App\Models\GeneralInformation;
+use App\Models\AssessmentTaskGroup;
+use App\Models\AssessmentTask;
 
 class MasterDataController extends Controller
 {
     // ░░░ START: Index ░░░
-    /** Show Master Data lists in display order (sort_order, then id). */
+    /** Show Master Data lists in display order (sort_order, then id). Also loads Assessment Task groups. */
     public function index()
     {
         return view('superadmin.master-data.index', [
-            'sdgs'  => Sdg::ordered()->get(),
-            'igas'  => Iga::ordered()->get(),
-            'cdios' => Cdio::ordered()->get(),
-            'info'  => GeneralInformation::all()->keyBy('section'),
+            'sdgs'        => Sdg::ordered()->get(),
+            'igas'        => Iga::ordered()->get(),
+            'cdios'       => Cdio::ordered()->get(),
+            'info'        => GeneralInformation::all()->keyBy('section'),
+            // Assessment Tasks – groups with ordered tasks for the Assessment tab
+            'taskGroups'  => AssessmentTaskGroup::with([
+                                'tasks' => fn ($q) => $q->orderBy('sort_order')->orderBy('id'),
+                             ])
+                             ->orderBy('sort_order')->orderBy('id')->get(),
         ]);
     }
     // ░░░ END: Index ░░░
 
+
     // ░░░ START: Store ░░░
-    /** Create a new item for the given type; sort_order and code are auto-derived. */
+    /** Create a new item; Assessment Tasks bypass generic validation. */
     public function store(Request $request, string $type): JsonResponse|RedirectResponse
     {
+        // ✅ Bypass for Assessment Tasks (no description field)
+        if ($type === 'assessment-task') {
+            return $this->createAssessmentTask($request);
+        }
+
+        // SDG/IGA/CDIO – keep generic validation
         $request->validate([
             'title'       => 'nullable|string|max:255',
             'description' => 'required|string',
@@ -68,10 +85,17 @@ class MasterDataController extends Controller
     }
     // ░░░ END: Store ░░░
 
+
     // ░░░ START: Update ░░░
-    /** Update an item’s text fields; codes remain tied to sort_order. */
+    /** Update an item’s text fields; Assessment Tasks bypass generic validation. */
     public function update(Request $request, string $type, int $id): JsonResponse|RedirectResponse
     {
+        // ✅ Bypass for Assessment Tasks
+        if ($type === 'assessment-task') {
+            return $this->updateAssessmentTask($request, $id);
+        }
+
+        // SDG/IGA/CDIO – keep generic validation
         $request->validate([
             'title'       => 'nullable|string|max:255',
             'description' => 'required|string',
@@ -98,10 +122,16 @@ class MasterDataController extends Controller
     }
     // ░░░ END: Update ░░░
 
+
     // ░░░ START: Destroy ░░░
     /** Delete and resequence remaining items so codes stay contiguous (…1, …2, …3…). */
     public function destroy(string $type, int $id): JsonResponse|RedirectResponse
     {
+        // ✅ Bypass for Assessment Tasks
+        if ($type === 'assessment-task') {
+            return $this->destroyAssessmentTask($id);
+        }
+
         $cls = $this->modelClass($type);
         if (!$cls) abort(404);
 
@@ -115,7 +145,8 @@ class MasterDataController extends Controller
     }
     // ░░░ END: Destroy ░░░
 
-    // ░░░ START: Reorder ░░░
+
+    // ░░░ START: Reorder (SDG/IGA/CDIO only) ░░░
     /**
      * Persist a new order (1-based) based on an array of IDs.
      * Why two-phase? Codes (e.g., SDG1) are UNIQUE; if we assign final codes row-by-row,
@@ -126,6 +157,11 @@ class MasterDataController extends Controller
      */
     public function reorder(Request $request, string $type): JsonResponse
     {
+        // Assessment Tasks do not support drag/reorder here
+        if ($type === 'assessment-task') {
+            return response()->json(['ok' => false, 'message' => 'Reorder not supported for Assessment Tasks.'], 404);
+        }
+
         // Accept either "ids" or legacy "order"
         $incoming = $request->input('ids') ?? $request->input('order');
         $request->merge(['ids' => $incoming]);
@@ -156,24 +192,24 @@ class MasterDataController extends Controller
                 $cls::where('id', $id)->update(['sort_order' => $idx + 1]);
             }
 
-            // Append any rows not included in payload (N+1..M) in current order
+            // B) Append any rows not included in payload (N+1..M)
             $pos  = count($ids);
             $rest = $cls::whereNotIn('id', $ids)->ordered()->get(['id']);
             foreach ($rest as $row) {
                 $cls::where('id', $row->id)->update(['sort_order' => ++$pos]);
             }
 
-            // B) Vacate all codes to a guaranteed-unique temp so we don't hit UNIQUE collisions
+            // C) Vacate all codes to a guaranteed-unique temp so we don't hit UNIQUE collisions
             $cls::query()->update(['code' => DB::raw("CONCAT('TMP_', id)")]);
 
-            // C) Assign final codes based on the new sort_order
+            // D) Assign final codes based on the new sort_order
             $cls::query()->update(['code' => DB::raw("CONCAT('{$prefix}', sort_order)")]);
         });
 
         // Return fresh mapping so UI can sync without a full reload
         $items = $cls::ordered()
             ->get(['id', 'code', 'sort_order'])
-            ->map(fn($r) => ['id' => (int) $r->id, 'code' => $r->code, 'sort_order' => (int) $r->sort_order]);
+            ->map(fn ($r) => ['id' => (int) $r->id, 'code' => $r->code, 'sort_order' => (int) $r->sort_order]);
 
         return response()->json([
             'ok'      => true,
@@ -181,7 +217,8 @@ class MasterDataController extends Controller
             'items'   => $items,
         ]);
     }
-    // ░░░ END: Reorder ░░░
+    // ░░░ END: Reorder (SDG/IGA/CDIO only) ░░░
+
 
     // ░░░ START: General Information ░░░
     /** Upsert a General Information section’s content by its key. */
@@ -200,7 +237,8 @@ class MasterDataController extends Controller
     }
     // ░░░ END: General Information ░░░
 
-    // ░░░ START: Helpers ░░░
+
+    // ░░░ START: Helpers (generic) ░░░
     /** Resolve Eloquent model class from type slug. */
     private function modelClass(string $type): ?string
     {
@@ -232,7 +270,7 @@ class MasterDataController extends Controller
 
         DB::transaction(function () use ($cls, $prefix) {
             $rows = $cls::ordered()->get(['id']);
-            $pos = 1;
+            $pos  = 1;
             foreach ($rows as $row) {
                 $cls::where('id', $row->id)->update([
                     'sort_order' => $pos,
@@ -273,5 +311,149 @@ class MasterDataController extends Controller
 
         return $ok ? back()->with('success', $message) : back()->with('error', $message);
     }
-    // ░░░ END: Helpers ░░░
+    // ░░░ END: Helpers (generic) ░░░
+
+
+    // ░░░ START: Assessment Task – Helpers (no description, no reorder) ░░░
+
+    /**
+     * This creates a new Assessment Task (e.g., ME, FE) under a specific group (LEC/LAB).
+     * We auto-place it at the end by assigning the next sort_order within that group.
+     */
+    private function createAssessmentTask(Request $request): JsonResponse|RedirectResponse
+    {
+        $validated = $this->validateAssessmentTask($request, updating: false);
+
+        // Place at end of the group
+        $last = AssessmentTask::where('group_id', $validated['group_id'])->max('sort_order');
+        $sort = is_null($last) ? 1 : ($last + 1);
+
+        $task = AssessmentTask::create([
+            'group_id'   => $validated['group_id'],
+            'code'       => $validated['code'],
+            'title'      => $validated['title'],
+            'sort_order' => $sort,
+            'is_active'  => true,
+        ]);
+
+        return $this->respond(
+            $request,
+            true,
+            'Assessment task added successfully!',
+            200,
+            null,
+            [
+                'id'         => $task->id,
+                'group_id'   => (int) $task->group_id,
+                'code'       => $task->code,
+                'title'      => $task->title,
+                'sort_order' => (int) $task->sort_order,
+            ]
+        );
+    }
+
+    /**
+     * Small helper that validates payload for create/update of Assessment Tasks.
+     * On update, we ignore the current row for the (group_id, code) uniqueness.
+     */
+    private function validateAssessmentTask(Request $request, bool $updating, ?int $taskId = null): array
+    {
+        $groupId = (int) $request->input('group_id');
+
+        // Unique 'code' scoped to group_id
+        $uniqueCode = Rule::unique('assessment_tasks', 'code')
+            ->where(fn ($q) => $q->where('group_id', $groupId));
+
+        if ($updating && $taskId) {
+            $uniqueCode = $uniqueCode->ignore($taskId);
+        }
+
+        $rules = [
+            'group_id' => ['required', 'integer', Rule::exists('assessment_task_groups', 'id')],
+            'code'     => ['required', 'string', 'max:16', $uniqueCode],
+            'title'    => ['required', 'string', 'max:150'],
+        ];
+
+        $validated = $request->validate($rules);
+
+        // Ensure group exists
+        AssessmentTaskGroup::findOrFail($validated['group_id']);
+
+        return $validated;
+    }
+
+    /**
+     * This updates the code/title of an Assessment Task.
+     * If group_id changes, we move the task to the end of the new group.
+     */
+    private function updateAssessmentTask(Request $request, int $id): JsonResponse|RedirectResponse
+    {
+        /** @var AssessmentTask $task */
+        $task = AssessmentTask::findOrFail($id);
+
+        $incomingGroupId = (int) $request->input('group_id', $task->group_id);
+        $validated = $this->validateAssessmentTask($request, updating: true, taskId: $task->id);
+
+        if ($task->group_id !== $incomingGroupId) {
+            $last = AssessmentTask::where('group_id', $incomingGroupId)->max('sort_order');
+            $task->group_id   = $incomingGroupId;
+            $task->sort_order = is_null($last) ? 1 : ($last + 1);
+        }
+
+        $task->code  = $validated['code'];
+        $task->title = $validated['title'];
+        $task->save();
+
+        return $this->respond(
+            $request,
+            true,
+            'Assessment task updated successfully!',
+            200,
+            null,
+            [
+                'id'         => $task->id,
+                'group_id'   => (int) $task->group_id,
+                'code'       => $task->code,
+                'title'      => $task->title,
+                'sort_order' => (int) $task->sort_order,
+            ]
+        );
+    }
+
+    /**
+     * This deletes an Assessment Task and re-sequences the remaining tasks in that group
+     * so sort_order stays contiguous (1..N).
+     */
+    private function destroyAssessmentTask(int $id): JsonResponse|RedirectResponse
+    {
+        /** @var AssessmentTask $task */
+        $task = AssessmentTask::findOrFail($id);
+        $groupId = (int) $task->group_id;
+        $deletedId = $task->id;
+
+        $task->delete();
+        $this->resequenceAssessmentTasks($groupId);
+
+        return $this->respond(
+            request(),
+            true,
+            'Assessment task deleted successfully.',
+            200,
+            null,
+            ['id' => $deletedId]
+        );
+    }
+
+    /** Resequence sort_order 1..N for every task in a group—used after deletes or moves. */
+    private function resequenceAssessmentTasks(int $groupId): void
+    {
+        $rows = AssessmentTask::where('group_id', $groupId)
+            ->orderBy('sort_order')->orderBy('id')->get(['id']);
+
+        $pos = 1;
+        foreach ($rows as $row) {
+            AssessmentTask::where('id', $row->id)->update(['sort_order' => $pos++]);
+        }
+    }
+    // ░░░ END: Assessment Task – Helpers (no description, no reorder) ░░░
 }

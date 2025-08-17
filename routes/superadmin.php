@@ -1,13 +1,16 @@
 <?php
-// -------------------------------------------------------------------------------
+
+// -----------------------------------------------------------------------------
 // * File: routes/superadmin.php
 // * Description: Super Admin specific routes for Syllaverse
-// -------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
 // 📜 Log:
 // [2025-08-11] Update – switched Appointments routes to model binding {appointment},
 //              added DELETE /appointments/{appointment} (destroy) and standardized names.
 // [2025-08-12] Master Data – added POST /master-data/{type}/reorder for drag-to-reorder with renumbering.
-// -------------------------------------------------------------------------------
+// [2025-08-17] Fix – corrected reorder path to '/master-data/{type}/reorder' within the group
+//              (removed absolute '/superadmin/...' duplication).
+// -----------------------------------------------------------------------------
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\SuperAdmin\AuthController;
@@ -53,20 +56,20 @@ Route::middleware([SuperAdminAuth::class])->prefix('superadmin')->group(function
     Route::post('/chair-requests/{id}/reject',  [ChairRequestController::class, 'reject'])->name('superadmin.chair-requests.reject');
 
     // ---------- Appointments (Create/Update/End/Destroy) ----------
-    Route::post('/appointments',                         [AppointmentController::class, 'store'])->name('superadmin.appointments.store');
-    Route::put('/appointments/{appointment}',            [AppointmentController::class, 'update'])->name('superadmin.appointments.update');
-    Route::post('/appointments/{appointment}/end',       [AppointmentController::class, 'end'])->name('superadmin.appointments.end');
-    Route::delete('/appointments/{appointment}',         [AppointmentController::class, 'destroy'])->name('superadmin.appointments.destroy');
+    Route::post('/appointments',                   [AppointmentController::class, 'store'])->name('superadmin.appointments.store');
+    Route::put('/appointments/{appointment}',      [AppointmentController::class, 'update'])->name('superadmin.appointments.update');
+    Route::post('/appointments/{appointment}/end', [AppointmentController::class, 'end'])->name('superadmin.appointments.end');
+    Route::delete('/appointments/{appointment}',   [AppointmentController::class, 'destroy'])->name('superadmin.appointments.destroy');
 
     // ---------- Master Data ----------
     Route::prefix('master-data')->group(function () {
-        Route::get('/',                   [MasterDataController::class, 'index'])->name('superadmin.master-data');
-        Route::post('/{type}',            [MasterDataController::class, 'store'])->name('superadmin.master-data.store');
-        Route::put('/{type}/{id}',        [MasterDataController::class, 'update'])->name('superadmin.master-data.update');
-        Route::delete('/{type}/{id}',     [MasterDataController::class, 'destroy'])->name('superadmin.master-data.destroy');
+        Route::get('/',               [MasterDataController::class, 'index'])->name('superadmin.master-data');
+        Route::post('/{type}',        [MasterDataController::class, 'store'])->name('superadmin.master-data.store');
+        Route::put('/{type}/{id}',    [MasterDataController::class, 'update'])->name('superadmin.master-data.update');
+        Route::delete('/{type}/{id}', [MasterDataController::class, 'destroy'])->name('superadmin.master-data.destroy');
 
-Route::post('/superadmin/master-data/reorder/{type}', [MasterDataController::class, 'reorder'])
-    ->name('superadmin.master-data.reorder');
+        // ✅ Drag-to-reorder within a master data type (e.g., sdg/iga/cdio/assessment-tasks)
+        Route::post('/{type}/reorder', [MasterDataController::class, 'reorder'])->name('superadmin.master-data.reorder');
     });
 
     // ---------- General Academic Information ----------

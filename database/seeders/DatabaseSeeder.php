@@ -1,33 +1,37 @@
 <?php
 
+// -----------------------------------------------------------------------------
+// * File: database/seeders/DatabaseSeeder.php
+// * Description: Master seeder – wires all seeders and ensures correct order.
+// -----------------------------------------------------------------------------
+// 📜 Log:
+// [2025-08-17] Added AssessmentTaskGroupSeeder then AssessmentTaskSeeder (order matters).
+// -----------------------------------------------------------------------------
+
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use App\Models\User;
-use App\Models\SuperAdmin;
-use App\Models\GeneralInformation;
 
 class DatabaseSeeder extends Seeder
 {
     /**
-     * Seed the application's database.
+     * This runs all database seeders. Keep your existing seeders in the list,
+     * and make sure AssessmentTaskGroupSeeder runs before AssessmentTaskSeeder.
      */
+    // ░░░ START: run() – Call seeders ░░░
     public function run(): void
     {
-        // // Example user creation
-        // User::factory()->create([
-        //     'name' => 'Test User',
-        //     'email' => 'test@example.com',
-        // ]);
+        $this->call([
+            // --- Existing seeders (keep yours here) ---
+            // RoleSeeder::class,
+            // DepartmentSeeder::class,
+            // UserSeeder::class,
+            // ...
 
-        // // Super Admin account
-        // SuperAdmin::create([
-        //     'username' => 'superadmin',
-        //     'password' => 'superadmin', // Should be hashed by a mutator in the model
-        // ]);
-            $this->call([
-        GeneralInformationSeeder::class,
-    ]);
-
+            // --- New: Assessment Task seeders (order matters) ---
+            AssessmentTaskGroupSeeder::class,
+            AssessmentTaskSeeder::class,
+        ]);
     }
+    // ░░░ END: run() – Call seeders ░░░
 }

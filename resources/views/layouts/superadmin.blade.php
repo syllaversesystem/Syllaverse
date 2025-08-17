@@ -77,6 +77,8 @@
   @vite('resources/js/superadmin/manage-accounts/manage-accounts.js')
   @vite('resources/js/superadmin/master-data/sortable.js')
   @vite('resources/js/superadmin/master-data/index.js')
+  @vite('resources/js/superadmin/master-data/assessment-tasks.js')
+
 
 
   {{-- ✅ NEW: Master Data (tables + sortable split: index.js imports sortable.js) --}}
@@ -86,7 +88,9 @@
   {{-- Let pages push extra scripts after page bundles --}}
   @stack('scripts')
 
-  {{-- ░░░ Global modal stack: render OUTSIDE cards/drawers so z-index works ░░░ --}}
-  @stack('modals')
+{{-- ░░░ START: Modal Outlet (placed at the end of <body>) ░░░ --}}
+@stack('modals')
+{{-- ░░░ END: Modal Outlet ░░░ --}}
+
 </body>
 </html>

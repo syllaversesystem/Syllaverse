@@ -9,6 +9,8 @@
 [2025-08-12] Fix – restored `@include('superadmin.master-data.modals.add-modals')` so Add buttons open modals.
 [2025-08-12] Add – included Vite script `resources/js/superadmin/master-data/sortable.js`.
 [2025-08-12] Add – included Vite styles `resources/css/superadmin/master-data/master-data.css` to apply shared UI/UX.
+[2025-08-17] Add – new top tab “Assessment Tasks” with include `tabs.assessment-tasks`.
+[2025-08-17] Fix – corrected asset name to `assessment-tasks.js` (plural) to match generated file.
 -------------------------------------------------------------------------------
 --}}
 
@@ -22,7 +24,7 @@
 
   <div class="department-card"><!-- Reuses the polished glass card container -->
 
-    {{-- ░░░ START: Top Tabs (Skills & Outcomes / Information) ░░░ --}}
+    {{-- ░░░ START: Top Tabs (Skills & Outcomes / Assessment Tasks / Information) ░░░ --}}
     <ul class="nav sv-tabs" id="masterDataTabs" role="tablist" aria-label="Master Data tabs">
       <li class="nav-item" role="presentation">
         <button
@@ -35,6 +37,19 @@
           aria-controls="skills-outcomes"
           aria-selected="true">
           Skills & Outcomes
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button
+          class="nav-link sv-tab"
+          id="assessment-tasks-tab"
+          data-bs-toggle="tab"
+          data-bs-target="#assessment-tasks"
+          type="button"
+          role="tab"
+          aria-controls="assessment-tasks"
+          aria-selected="false">
+          Assessment Tasks
         </button>
       </li>
       <li class="nav-item" role="presentation">
@@ -61,6 +76,12 @@
       </div>
       {{-- ░░░ END: Skills & Outcomes Pane ░░░ --}}
 
+      {{-- ░░░ START: Assessment Tasks Pane ░░░ --}}
+      <div class="tab-pane fade" id="assessment-tasks" role="tabpanel" aria-labelledby="assessment-tasks-tab">
+        @include('superadmin.master-data.tabs.assessment-tasks')
+      </div>
+      {{-- ░░░ END: Assessment Tasks Pane ░░░ --}}
+
       {{-- ░░░ START: Information Pane ░░░ --}}
       <div class="tab-pane fade" id="information" role="tabpanel" aria-labelledby="information-tab">
         @include('superadmin.master-data.tabs.information')
@@ -71,17 +92,16 @@
 
   </div>
 
-{{-- in resources/views/superadmin/master-data/index.blade.php --}}
-{{-- ░░░ START: Modals (Add + Shared) ░░░ --}}
-@include('superadmin.master-data.modals.add-modals')
-@include('superadmin.master-data.modals.edit-modal')
-@include('superadmin.master-data.modals.delete-modal')
-{{-- ░░░ END: Modals (Add + Shared) ░░░ --}}
-
+  @push('modals')
+    @include('superadmin.master-data.modals.add-modals')
+    @include('superadmin.master-data.modals.edit-modal')
+    @include('superadmin.master-data.modals.delete-modal')
+  @endpush
 
   {{-- ░░░ START: Module Assets (CSS + JS) ░░░ --}}
   @vite('resources/css/superadmin/master-data/master-data.css')
   @vite('resources/js/superadmin/master-data/sortable.js')
+  @vite('resources/js/superadmin/master-data/assessment-tasks.js') {{-- ← make sure filename matches --}}
   {{-- ░░░ END: Module Assets ░░░ --}}
 
 @endsection
