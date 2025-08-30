@@ -30,7 +30,7 @@
   </form>
   {{-- ░░░ END: Course Filter ░░░ --}}
 
-  @if (request('course_id'))
+  @php /* always render table skeleton; JS will (re)build rows */ @endphp
     {{-- ░░░ START: Toolbar (aligned with Program/Course tabs) ░░░ --}}
     <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
       <h6 class="mb-0 fw-semibold" style="font-size:.95rem;">Intended Learning Outcomes</h6>
@@ -60,27 +60,21 @@
 
     {{-- ░░░ START: Table (mirrors Program/Course structure) ░░░ --}}
     <div class="table-responsive">
-      <table class="table mb-0 sv-accounts-table" id="svTable-ilo" data-course-id="{{ request('course_id') }}">
+      <table class="table mb-0 sv-accounts-table" id="svTable-ilo" data-sv-type="ilo" data-course-id="{{ request('course_id') }}">
         <thead>
           <tr>
+            <th></th>
             <th><i data-feather="code"></i> Code</th>
             <th><i data-feather="align-left"></i> Description</th>
-            <th><i data-feather="calendar"></i> Created</th>
             <th class="text-end"><i data-feather="more-vertical"></i></th>
           </tr>
         </thead>
         <tbody>
           @forelse ($intendedLearningOutcomes->sortBy('position') as $ilo)
             <tr data-id="{{ $ilo->id }}">
-              <td class="sv-code fw-semibold">
-                <span class="d-inline-flex align-items-center gap-2">
-                  {{-- Small grip inside code cell to keep layout like Program/Course tables --}}
-                  <i class="sv-row-grip bi bi-grip-vertical fs-6 text-muted" title="Drag to reorder" style="cursor:move;"></i>
-                  <span>{{ $ilo->code }}</span>
-                </span>
-              </td>
+              <td class="text-muted"><i class="sv-row-grip bi bi-grip-vertical fs-5" title="Drag to reorder"></i></td>
+              <td class="sv-code fw-semibold">{{ $ilo->code }}</td>
               <td class="text-muted">{{ $ilo->description }}</td>
-              <td class="text-muted">{{ optional($ilo->created_at)->format('Y-m-d') }}</td>
               <td class="text-end">
                 {{-- Edit --}}
                 <button type="button"
@@ -120,12 +114,7 @@
       </table>
     </div>
     {{-- ░░░ END: Table ░░░ --}}
-  @else
-    <div class="sv-empty my-4">
-      <h6>Please select a course</h6>
-      <p>Choose a course from the dropdown above to view and manage its ILOs.</p>
-    </div>
-  @endif
+  {{-- table always present; when no course is selected, tbody shows a placeholder row --}}
 </div>
 
 {{-- ░░░ START: Modals (consistent with Program/Course modals) ░░░ --}}

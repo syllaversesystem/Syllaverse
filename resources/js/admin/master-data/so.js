@@ -274,8 +274,37 @@ function bindDelete() {
       const data = await res.json();
 
       if (res.ok) {
+        // Remove the row
         row?.remove();
-        // If table empty, you could inject the "No Student Outcomes" placeholder again if desired.
+
+        // Renumber visible codes and update edit buttons to keep UI consistent (SO1..n)
+        const tbody = document.querySelector('#svTable-so tbody');
+        if (tbody) {
+          const rows = Array.from(tbody.querySelectorAll('tr[data-id]'));
+          rows.forEach((tr, idx) => {
+            const tds = tr.querySelectorAll('td');
+            // tds[1] is the Code cell in SO table layout
+            if (tds[1]) tds[1].textContent = `SO${idx + 1}`;
+            // Update the edit button's data-sv-code too
+            const editBtn = tds[3]?.querySelector('button.edit');
+            if (editBtn) editBtn.setAttribute('data-sv-code', `SO${idx + 1}`);
+          });
+
+          // If no rows left, show placeholder
+          if (rows.length === 0) {
+            tbody.innerHTML = `
+              <tr class="sv-empty-row">
+                <td colspan="4">
+                  <div class="sv-empty">
+                    <h6>No Student Outcomes</h6>
+                    <p>Click <i data-feather="plus"></i> to add one.</p>
+                  </div>
+                </td>
+              </tr>`;
+            if (window.feather) window.feather.replace();
+          }
+        }
+
         window.showAlertOverlay?.('success', data.message || 'Student Outcome deleted successfully!');
       } else {
         const msg = data?.message || 'Failed to delete Student Outcome.';

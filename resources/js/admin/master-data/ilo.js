@@ -134,7 +134,8 @@ function initSortable(tbody, saveBtn) {
     activeSaveBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span>Saving…`;
 
     try {
-      const res = await fetch('/admin/master-data/reorder/ilo', {
+      const reorderUrl = activeSaveBtn.getAttribute('data-reorder-url') || '/admin/master-data/reorder/ilo';
+      const res = await fetch(reorderUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

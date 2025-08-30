@@ -15,6 +15,7 @@ use App\Models\StudentOutcome;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class StudentOutcomeController extends Controller
 {
@@ -140,7 +141,32 @@ public function update(Request $request, int $id)
         }
 
         $so = StudentOutcome::findOrFail($id);
-        $so->delete();
+
+        DB::beginTransaction();
+        try {
+            // Delete selected SO
+            $so->delete();
+
+            // Renumber remaining SOs to keep codes/positions contiguous (SO1..n)
+            $remaining = StudentOutcome::orderBy('position')->get();
+
+            // Temp code pass to avoid unique(code) conflicts during in-place updates
+            foreach ($remaining as $r) {
+                $r->forceFill(['code' => '__TEMP__' . $r->id])->save();
+            }
+
+            foreach ($remaining as $index => $r) {
+                $r->forceFill([
+                    'position' => $index + 1,
+                    'code'     => 'SO' . ($index + 1),
+                ])->save();
+            }
+
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'Server error while deleting SO.'], 500);
+        }
 
         if ($this->wantsJson($request)) {
             return response()->json([

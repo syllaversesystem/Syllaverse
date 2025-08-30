@@ -153,19 +153,52 @@ class IntendedLearningOutcomeController extends Controller
                 : abort(403, 'Forbidden');
         }
 
-        $ilo->delete();
+        $courseId = (int) $ilo->course_id;
+
+        DB::beginTransaction();
+        try {
+            // Delete the ILO
+            $ilo->delete();
+
+            // Renumber remaining ILOs: compact positions and codes (ILO1..n)
+            $remaining = ILO::where('course_id', $courseId)
+                ->orderBy('position')
+                ->get();
+
+            // Temporary code pass to avoid unique collisions while updating in place
+            foreach ($remaining as $r) {
+                $r->forceFill(['code' => '__TEMP__' . $r->id])->save();
+            }
+
+            foreach ($remaining as $index => $r) {
+                $r->forceFill([
+                    'position' => $index + 1,
+                    'code'     => 'ILO' . ($index + 1),
+                ])->save();
+            }
+
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            \Log::error('ILO delete/renumber failed: ' . $e->getMessage(), [
+                'id' => $id,
+                'course_id' => $courseId,
+            ]);
+            return response()->json(['message' => 'Server error while deleting ILO.'], 500);
+        }
 
         if ($this->wantsJson($request)) {
             return response()->json([
-                'message' => 'ILO deleted.',
-                'id'      => $id,
+                'message'   => 'ILO deleted.',
+                'id'        => $id,
+                'course_id' => $courseId,
             ]);
         }
 
         return redirect()->route('admin.master-data.index', [
             'tab'       => 'soilo',
             'subtab'    => 'ilo',
-            'course_id' => $ilo->course_id,
+            'course_id' => $courseId,
         ])->with('success', 'ILO deleted.');
     }
 

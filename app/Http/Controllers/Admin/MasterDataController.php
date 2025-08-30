@@ -163,7 +163,7 @@ public function fetchIlos(Request $request)
     // Load ILOs
     $ilos = \App\Models\IntendedLearningOutcome::where('course_id', $courseId)
         ->orderBy('position')
-        ->get(['id','code','description','position']);
+        ->get(['id','code','description','position','created_at']);
 
     return response()->json([
         'ilos' => $ilos,
