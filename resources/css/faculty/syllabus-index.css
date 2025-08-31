@@ -1,0 +1,126 @@
+/*
+------------------------------------------------
+File: resources/css/faculty/syllabus-index.css
+Description: Professional, clean UI for Faculty → Syllabi index (cards + header)
+------------------------------------------------
+*/
+
+/* Uses global tokens from resources/css/syllaverse-colors.css */
+/* light bg: var(--color-light-bg), border: var(--color-muted),
+   brand: var(--color-primary), brand-dark: var(--color-primary-dark) */
+
+/* Full-bleed wrap aligns with layout’s container spacing */
+.svx-fullbleed { margin: -1rem -1rem 0; }
+
+/* Header */
+.svx-board {
+  background: #fff;
+  border-bottom: 1px solid var(--color-muted);
+  padding: .85rem 1rem;
+}
+.svx-title {
+  margin: 0;
+  font-weight: 800;
+  font-size: 1.15rem;
+  letter-spacing: .2px;
+  color: #111827;
+}
+.svx-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .28rem .55rem;
+  border: 1px solid var(--color-muted);
+  border-radius: 999px;
+  font-size: .76rem;
+  font-weight: 600;
+  background: #fff;
+  color: #374151; /* gray-700 */
+}
+.svx-chip .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color-primary); }
+.svx-head-actions .btn { border-radius: 12px; font-weight: 700; padding: .45rem .85rem; }
+
+/* Cards */
+.svx-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #fff;
+  border: 1px solid var(--color-muted);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: box-shadow .18s ease, transform .18s ease, border-color .18s ease;
+}
+.svx-card:hover { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(0,0,0,.06); border-color: #d9d9d9; }
+.svx-card:focus-within { border-color: var(--color-primary); box-shadow: 0 0 0 2px rgba(238,111,87,.12), 0 8px 18px rgba(0,0,0,.05); }
+
+/* Removed brand edge strip on the left for a cleaner card */
+
+.svx-card-body { padding: 1rem 1rem .85rem 1rem; display: grid; gap: .4rem; }
+.svx-course-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .22rem .6rem;
+  border: 1px solid var(--color-muted);
+  border-radius: 999px;
+  background: var(--color-light-bg);
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .2px;
+  text-transform: uppercase;
+  color: #111827;
+}
+.svx-title-lg { margin: .35rem 0 .1rem; font-size: clamp(1rem, .98rem + .2vw, 1.15rem); line-height: 1.25; font-weight: 800; color: #111827; }
+.svx-subtle { font-size: .86rem; color: #6b7280; }
+
+/* Meta chips */
+.svx-meta { display: flex; flex-wrap: wrap; gap: .35rem .5rem; margin-top: .35rem; }
+.svx-meta .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .2rem .5rem;
+  border-radius: 10px;
+  border: 1px solid var(--color-muted);
+  background: var(--color-light-bg);
+  font-size: .75rem;
+  font-weight: 600;
+  color: #444;
+}
+
+.svx-stamp { margin-top: .5rem; font-size: .77rem; color: #6b7280; }
+
+/* Footer */
+.svx-card-footer {
+  margin-top: auto;
+  display: flex;
+  justify-content: flex-end;
+  gap: .5rem;
+  padding: .75rem 1rem .9rem;
+  border-top: 1px solid var(--color-muted);
+  background: #fff;
+}
+.svx-card-footer { align-items: center; flex-wrap: wrap; }
+.svx-card-footer .btn { border-radius: 10px; padding: .4rem .7rem; font-weight: 700; }
+
+/* Grid spacing */
+.svx-grid { row-gap: 1rem; }
+
+/* Empty state */
+.svx-empty {
+  background: var(--color-light-bg);
+  border-top: 1px solid var(--color-muted);
+  border-bottom: 1px dashed var(--color-muted);
+  text-align: center;
+  padding: 1.4rem 1rem;
+}
+.svx-empty .ico {
+  width: 52px; height: 52px; border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--color-muted); background: #fff; color: var(--color-primary-dark);
+  font-size: 1.2rem; margin-bottom: .6rem;
+}
+
+

@@ -364,6 +364,21 @@ function init() {
 
   // Feather icons in modals need a nudge after open
   document.addEventListener('shown.bs.modal', () => refreshIcons());
+
+  // Auto-resize mission/vision (and other general-info) textareas
+  try {
+    const autosize = (el) => {
+      if (!el) return;
+      el.style.overflowY = 'hidden';
+      el.style.height = 'auto';
+      el.style.height = (el.scrollHeight || 0) + 'px';
+    };
+    const areas = document.querySelectorAll('.general-info-form textarea.autosize');
+    areas.forEach((ta) => {
+      autosize(ta);
+      ta.addEventListener('input', () => autosize(ta));
+    });
+  } catch {}
 }
 
 document.readyState === 'loading'

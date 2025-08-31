@@ -11,10 +11,13 @@ class AdminAuth
 {
     public function handle($request, Closure $next)
     {
-        $user = Auth::user();
+        // Ensure the admin guard is used for this request
+        Auth::shouldUse('admin');
+
+        $user = Auth::guard('admin')->user();
 
         // Check if user is logged in and is an admin
-        if (!Auth::check() || $user->role !== 'admin') {
+        if (!Auth::guard('admin')->check() || !$user || $user->role !== 'admin') {
             return redirect()->route('admin.login.form')->with('error', 'Unauthorized access.');
         }
 

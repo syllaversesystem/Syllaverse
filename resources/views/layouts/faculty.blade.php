@@ -5,7 +5,7 @@
 -------------------------------------------------------------------------------
 📜 Log:
 [2025-08-16] Synced structure with Admin layout; added <x-alert-overlay />, standardized Vite includes, moved sidebar logic to faculty/layout.js.
-[2025-08-18] UI tweak – matched Super Admin content spacing (container-fluid px-3 py-3).
+[2025-08-18] UI tweak – matched Super Admin content spacing (container-fluid px-4 py-4).
 -------------------------------------------------------------------------------
 --}}
 <!DOCTYPE html>
@@ -54,8 +54,8 @@
       @include('includes.faculty-navbar')
       <div id="sidebar-backdrop" class="sidebar-backdrop d-none"></div>
 
-      {{-- ✅ Match Super Admin spacing (px-3 py-3) --}}
-      <main class="container-fluid px-3 py-3">
+      {{-- ✅ Match Super Admin spacing (px-4 py-4) --}}
+      <main class="container-fluid px-4 py-4">
         @yield('content')
       </main>
     </div>
@@ -74,3 +74,4 @@
   {{-- ░░░ END: Vite JS ░░░ --}}
 </body>
 </html>
+

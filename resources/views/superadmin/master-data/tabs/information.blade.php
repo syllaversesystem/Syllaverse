@@ -42,11 +42,9 @@
           {{ $meta['label'] }}
         </label>
         <textarea
-          class="form-control"
+          class="form-control autosize"
           name="{{ $field }}"
           id="{{ $field }}"
-          rows="6"
-          style="min-height: 160px"
           placeholder="{{ $meta['ph'] }}"
           required
         >{{ $info[$field]->content ?? '' }}</textarea>

@@ -153,6 +153,11 @@
               <input type="text" class="form-control form-control-sm" id="addCourseTitle" name="title" placeholder="e.g., Fundamentals of Enterprise Data Management" required>
             </div>
 
+            <div class="mb-3">
+              <label for="addCourseCategory" class="form-label small fw-medium text-muted">Course Category</label>
+              <input type="text" class="form-control form-control-sm" id="addCourseCategory" name="course_category" placeholder="e.g., Core, Elective, General Education" required>
+            </div>
+
             <div class="row g-3">
               <div class="col-sm-6">
                 <label for="addContactHoursLec" class="form-label small fw-medium text-muted">Contact Hours (Lecture)</label>
@@ -167,8 +172,8 @@
             <div class="sv-divider"></div>
 
             <div class="mt-3">
-              <label for="addCourseDescription" class="form-label small fw-medium text-muted">Description (optional)</label>
-              <textarea class="form-control" id="addCourseDescription" name="description" rows="6" style="min-height:160px" placeholder="Optional: short description of the course (topics, scope, etc.)"></textarea>
+              <label for="addCourseDescription" class="form-label small fw-medium text-muted">Course Rationale and Description</label>
+              <textarea class="form-control" id="addCourseDescription" name="description" rows="6" style="min-height:160px" placeholder="Explain the course rationale and provide a short description (topics, scope, etc.)" required></textarea>
             </div>
             {{-- ░░░ END: Course Details Section ░░░ --}}
           </div>

@@ -194,6 +194,15 @@ function bootFilter() {
   });
 
   select.addEventListener('change', () => form.requestSubmit ? form.requestSubmit() : form.submit());
+
+  // Clear selection button
+  const resetBtn = document.getElementById('iloFilterReset');
+  if (resetBtn) {
+    resetBtn.addEventListener('click', () => {
+      select.value = '';
+      if (form.requestSubmit) form.requestSubmit(); else form.submit();
+    });
+  }
 }
 
 /* ------------------------------- CRUD hooks ------------------------------- */

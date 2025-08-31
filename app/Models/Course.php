@@ -20,6 +20,7 @@ class Course extends Model
 
     protected $fillable = [
         'department_id',
+    'course_category',
         'code',
         'title',
         'contact_hours_lec',

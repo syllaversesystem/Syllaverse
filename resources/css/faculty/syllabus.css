@@ -43,6 +43,51 @@ textarea.form-control:focus {
   margin-bottom: 1.5rem;
 }
 
+/* Toolbar refinements */
+.syllabus-toolbar {
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+  border: 1px solid #eef2f7;
+}
+.syllabus-toolbar .btn {
+  border-radius: 8px;
+}
+.syllabus-toolbar .badge {
+  min-width: 28px;
+  text-align: center;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 0.25rem 0.5rem;
+}
+.syllabus-toolbar .btn[disabled] {
+  opacity: 0.7;
+}
+
+/* Toast for lightweight success feedback */
+.sv-toast {
+  position: fixed;
+  top: 84px;
+  right: 24px;
+  background: #0f5132;
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(15,23,42,0.12);
+  font-size: 0.95rem;
+  z-index: 1100;
+  display: none;
+}
+.sv-toast.show { display: block; transform-origin: top right; animation: sv-toast-in 220ms ease both; }
+@keyframes sv-toast-in { from { opacity: 0; transform: translateY(-6px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+/* New-content highlight for fields that differ from their original value */
+.sv-new-highlight {
+  background-color: rgba(16, 185, 129, 0.06); /* light green tint */
+  border-left: 4px solid #10B981; /* green accent */
+  padding-left: 10px; /* make space for border */
+  transition: background-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+.sv-new-highlight:focus { background-color: rgba(16, 185, 129, 0.08); box-shadow: 0 4px 14px rgba(16,185,129,0.06); }
+
 .btn-save, .btn-exit {
   padding: 8px 20px;
   font-weight: 600;
@@ -72,3 +117,243 @@ textarea.form-control:focus {
   text-decoration: underline;
   margin-bottom: 0.75rem;
 }
+
+/* --- CIS Table styling for Mission/Vision and similar rows --- */
+.cis-table {
+  font-family: Georgia, serif;
+  font-size: 13px;
+  line-height: 1.4;
+  border-color: #111;
+  border-collapse: collapse;
+  width: 100%;
+  table-layout: fixed; /* align widths like CIS sheet */
+}
+
+.cis-table th,
+.cis-table td {
+  border-color: #111 !important;
+  padding: 8px 10px;
+  vertical-align: top;
+}
+
+.cis-label {
+  font-weight: 700;
+  color: #111;
+  white-space: nowrap;
+}
+
+/* Wider page area specifically for syllabus document */
+.syllabus-doc {
+  max-width: 1280px; /* comfortable reading width while near-full */
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.cis-textarea {
+  min-height: 72px;
+}
+
+/* Editable field styling inside CIS grid (like Mission/Vision) */
+.cis-field {
+  width: 100%;
+  border: none;
+  background: transparent;
+  resize: none;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  padding: 0;
+  color: #000;
+  min-height: 34px; /* prevent overlap for single-line titles */
+}
+.cis-field:focus { outline: none; box-shadow: none; background-color: #fffbe6; }
+
+/* Inline single-line input matching CIS look */
+.cis-input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  color: #000;
+}
+.cis-input:focus { outline: none; box-shadow: none; background-color: #fffbe6; }
+.cis-number { width: 3.25rem; text-align: right; }
+.cis-inline-half { display: inline-block; width: 48%; }
+
+/* Subtle placeholder color for inputs/textareas */
+.cis-input::placeholder, .cis-field::placeholder { color: #6c757d; opacity: .85; }
+
+/* --- Nested two-column subtable for assessment criteria --- */
+.cis-subtable {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+.cis-subtable th,
+.cis-subtable td {
+  border: 1px solid #111;
+  padding: 6px 10px;
+  vertical-align: top;
+}
+.cis-subtable .text-end { text-align: right; }
+
+/* Inline split inside a single TD (e.g., Instructor + Employee No.) */
+.cis-inline-split { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.cis-inline-split td { padding: 0 8px; border-top: 0; border-bottom: 0; vertical-align: top; }
+.cis-inline-split td + td { border-left: 1px solid #111; }
+.cis-inline-split td:last-child { text-align: center; white-space: nowrap; }
+/* Horizontal separator row inside inline-split to separate name and employee info */
+.cis-inline-split .row-sep td { border-top: 0; padding-top: 0; }
+/* Remove vertical divider for specific rows (designation/email) */
+.cis-inline-split .no-vline td + td { border-left: 0 !important; }
+
+/* --- File list styling (Textbook section) --- */
+.file-name-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.file-icon {
+  color: #555;
+  font-size: 1rem;
+}
+
+.file-name {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #111; /* match document text, not link blue */
+  text-decoration: none;
+}
+
+.file-name:hover { text-decoration: underline; }
+
+/* Compact actions column for textbook rows */
+.cis-table td.cis-actions {
+  white-space: nowrap;
+}
+
+/* Preserve line breaks for fetched descriptions */
+.pre-wrap { white-space: pre-wrap; }
+
+.edit-inline-btn {
+  color: #6c757d;
+  opacity: 0.75;
+}
+.edit-inline-btn:hover {
+  opacity: 1;
+  color: #495057;
+}
+
+/* Field-level unsaved indicator */
+.unsaved-pill {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 6px;
+  font-size: 11px;
+  line-height: 1.2;
+  border-radius: 999px;
+  background: #fff3cd; /* warning background */
+  color: #664d03;      /* warning text */
+  border: 1px solid #ffec99;
+}
+
+@media print {
+  .unsaved-pill { display: none !important; }
+}
+
+/* Print-friendly: keep crisp borders and compact spacing */
+@media print {
+  .cis-table { font-size: 12px; }
+  .cis-table th,
+  .cis-table td { padding: 6px 8px; }
+}
+
+/* --- CIS Grid (div-based, table-like) --- */
+.cis-grid {
+  display: grid;
+  grid-template-columns: 16% 34% 16% 34%;
+  width: 100%;
+  border: 1px solid #111;        /* draw outer top/left; see widths below */
+  border-right: 0;                /* avoid double-thick edges */
+  border-bottom: 0;
+  border-collapse: separate; /* visual parity */
+  font-family: Georgia, serif;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #111;
+}
+.cis-grid .cell {
+  border-right: 1px solid #111;   /* inner vertical lines */
+  border-bottom: 1px solid #111;  /* inner horizontal lines */
+  padding: 8px 10px;
+  vertical-align: top;
+  background: #fff;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+}
+/* last column keeps its right border to complete outer edge */
+.cis-grid .cell:nth-child(-n+4) { /* first row top border */
+  border-top: 1px solid transparent; /* outer border provided by container */
+}
+.cis-grid .label { font-weight: 700; white-space: nowrap; }
+.cis-grid .span-2 { grid-column: span 2; }
+.cis-grid .span-3 { grid-column: span 3; }
+.cis-grid .span-4 { grid-column: span 4; }
+.cis-grid .empty { background: #fff; }
+
+/* Nested grid for assessment criteria */
+.cis-subgrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid #111;        /* draw top/left only */
+  border-right: 0;
+  border-bottom: 0;
+}
+.cis-subgrid .sg-cell {
+  border-right: 1px solid #111;
+  border-bottom: 1px solid #111;
+  padding: 6px 10px;
+}
+.cis-subgrid .sg-header { font-weight: 700; }
+.cis-kv { display: flex; justify-content: space-between; }
+
+/* Avoid double-thick borders when stacked after another CIS block */
+.cis-join-prev { margin-top: -1px; }
+.cis-join-next { margin-bottom: -1px; }
+
+@media print {
+  .cis-grid { font-size: 12px; }
+  .cis-grid .cell { padding: 6px 8px; }
+}
+
+/* Auto-size overrides: let textareas shrink/grow to content */
+textarea.form-control.autosize,
+.cis-textarea.autosize,
+.cis-field.autosize {
+  min-height: 0;        /* remove fixed minimum to truly fit content */
+  overflow-y: hidden;   /* prevent internal scrollbars while autosizing */
+}
+
+
+/* ===== Contact Hours tightening (prevents stretching) ===== */
+.cis-ch-lines { line-height: 1.4; }
+.cis-ch-lines .cis-input { width: auto; }             /* override global 100% */
+.cis-ch-lines .cis-number {
+  width: 3.25rem !important;
+  display: inline-block;
+  padding: 0;
+  margin: 0;
+  text-align: right;
+}
+
+/* Keep number inputs looking like text (already included, repeated for safety) */
+input[type=number].cis-number::-webkit-outer-spin-button,
+input[type=number].cis-number::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+input[type=number].cis-number { appearance: textfield; -moz-appearance: textfield; }

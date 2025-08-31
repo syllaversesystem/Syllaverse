@@ -72,7 +72,7 @@ class AuthController extends Controller
 
             // If active → normal login
             if ($user->status === 'active') {
-                Auth::login($user);
+                Auth::guard('admin')->login($user);
                 return redirect()->route('admin.dashboard');
             }
 
@@ -81,7 +81,7 @@ class AuthController extends Controller
 
             if ($needsProfile) {
                 // First-time (or incomplete) profile → allow login and send to Complete Profile
-                Auth::login($user);
+                Auth::guard('admin')->login($user);
                 return redirect()
                     ->route('admin.complete-profile')
                     ->with('info', 'Please complete your profile and submit your chair role request for Superadmin review.');

@@ -135,19 +135,21 @@
     <img src="{{ asset('images/syllaverse-logo.png') }}" alt="Syllaverse Logo" class="logo">
     <h4>Faculty Login</h4>
 
-    {{-- Alerts --}}
-    @if(session('error'))
-      <div class="alert alert-danger d-flex align-items-center gap-2" role="alert">
-        <i class="bi bi-exclamation-circle-fill"></i>
-        <div>{{ session('error') }}</div>
-      </div>
+    {{-- Error Alerts (mirror Admin login) --}}
+    @if ($errors->has('email'))
+      <div class="alert alert-danger">{{ $errors->first('email') }}</div>
     @endif
-
-    @if(session('success'))
-      <div class="alert alert-success d-flex align-items-center gap-2" role="alert">
-        <i class="bi bi-check-circle-fill"></i>
-        <div>{{ session('success') }}</div>
-      </div>
+    @if ($errors->has('rejected'))
+      <div class="alert alert-danger">{{ $errors->first('rejected') }}</div>
+    @endif
+    @if ($errors->has('pending'))
+      <div class="alert alert-warning">{{ $errors->first('pending') }}</div>
+    @endif
+    @if ($errors->has('role'))
+      <div class="alert alert-danger">{{ $errors->first('role') }}</div>
+    @endif
+    @if ($errors->has('login'))
+      <div class="alert alert-danger">{{ $errors->first('login') }}</div>
     @endif
 
     {{-- Google Sign In --}}

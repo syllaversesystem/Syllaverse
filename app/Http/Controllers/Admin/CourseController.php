@@ -120,9 +120,10 @@ class CourseController extends Controller
         $validator = Validator::make($request->all(), [
             'code'               => 'required|string|max:25|unique:courses,code',
             'title'              => 'required|string|max:255',
+            'course_category'    => 'required|string|max:255',
             'contact_hours_lec'  => 'required|integer|min:0',
             'contact_hours_lab'  => 'nullable|integer|min:0',
-            'description'        => 'nullable|string',
+            'description'        => 'required|string',
             'prerequisite_ids'   => 'nullable|array',
             'prerequisite_ids.*' => 'exists:courses,id',
         ]);
@@ -157,6 +158,7 @@ class CourseController extends Controller
 
         $course = Course::create([
             'department_id'     => $departmentId,
+            'course_category'   => $request->course_category,
             'code'              => $request->code,
             'title'             => $request->title,
             'contact_hours_lec' => $lec,
@@ -202,9 +204,10 @@ class CourseController extends Controller
         $validator = Validator::make($request->all(), [
             'code'               => 'required|string|max:25|unique:courses,code,' . $course->id,
             'title'              => 'required|string|max:255',
+            'course_category'    => 'required|string|max:255',
             'contact_hours_lec'  => 'required|integer|min:0',
             'contact_hours_lab'  => 'nullable|integer|min:0',
-            'description'        => 'nullable|string',
+            'description'        => 'required|string',
             'prerequisite_ids'   => 'nullable|array',
             'prerequisite_ids.*' => 'exists:courses,id',
         ]);
@@ -227,6 +230,7 @@ class CourseController extends Controller
         $totalUnits = $lec + $lab;
 
         $course->update([
+            'course_category'   => $request->course_category,
             'code'              => $request->code,
             'title'             => $request->title,
             'contact_hours_lec' => $lec,

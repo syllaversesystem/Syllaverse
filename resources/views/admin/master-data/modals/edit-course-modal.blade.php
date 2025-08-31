@@ -154,6 +154,11 @@
               <input type="text" class="form-control form-control-sm" id="editCourseTitle" name="title" required>
             </div>
 
+            <div class="mb-3">
+              <label for="editCourseCategory" class="form-label small fw-medium text-muted">Course Category</label>
+              <input type="text" class="form-control form-control-sm" id="editCourseCategory" name="course_category" required>
+            </div>
+
             <div class="row g-3">
               <div class="col-sm-6">
                 <label for="editContactHoursLec" class="form-label small fw-medium text-muted">Contact Hours (Lecture)</label>
@@ -168,8 +173,8 @@
             <div class="sv-divider"></div>
 
             <div class="mt-3">
-              <label for="editCourseDescription" class="form-label small fw-medium text-muted">Description (optional)</label>
-              <textarea class="form-control" id="editCourseDescription" name="description" rows="6" style="min-height:160px"></textarea>
+              <label for="editCourseDescription" class="form-label small fw-medium text-muted">Course Rationale and Description</label>
+              <textarea class="form-control" id="editCourseDescription" name="description" rows="6" style="min-height:160px" required></textarea>
             </div>
           </div>
           {{-- ░░░ END: Left – Core details ░░░ --}}

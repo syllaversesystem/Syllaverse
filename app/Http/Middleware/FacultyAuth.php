@@ -13,13 +13,16 @@ class FacultyAuth
 {
     public function handle(Request $request, Closure $next)
     {
+        // Ensure the faculty guard is used for this request
+        Auth::shouldUse('faculty');
+
         // Must be logged in and faculty role
-        if (!Auth::check() || Auth::user()->role !== 'faculty') {
+        if (!Auth::guard('faculty')->check() || Auth::guard('faculty')->user()?->role !== 'faculty') {
             return redirect()->route('faculty.login.form')
                 ->with('error', 'Access denied. Please log in as faculty.');
         }
 
-        $user = Auth::user();
+        $user = Auth::guard('faculty')->user();
 
         // 1️⃣ Check if designation and employee_code are filled
         if (empty($user->designation) || empty($user->employee_code)) {
@@ -44,7 +47,7 @@ class FacultyAuth
 
         // 3️⃣ Check if faculty is approved
         if ($user->status !== 'active') {
-            Auth::logout();
+            Auth::guard('faculty')->logout();
             return redirect()->route('faculty.login.form')
                 ->with('error', 'Your account is pending approval by your Program Chair.');
         }

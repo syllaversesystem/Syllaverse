@@ -116,8 +116,8 @@ Route::post('/master-data/reorder/ilo', [\App\Http\Controllers\Admin\IntendedLea
 
     // Logout
     Route::post('/logout', function () {
-        Auth::logout();
-        return redirect()->route('admin.login.form')->with('success', 'Logged out successfully.');
+        Auth::guard('admin')->logout();
+        return redirect()->route('admin.login.form');
     })->name('admin.logout');
 });
 /* ░░░ END: Protected Admin Routes ░░░ */

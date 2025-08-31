@@ -26,8 +26,9 @@ class SyllabusTextbookController extends Controller
                 'file_names' => collect($request->file('textbook_files'))->pluck('name')->toArray(),
             ]);
 
+            // Max is in kilobytes. 300 MB = 300 * 1024 = 307200 KB
             $request->validate([
-                'textbook_files.*' => 'required|mimes:pdf,doc,docx,xls,xlsx,csv,txt|max:5120',
+                'textbook_files.*' => 'required|mimes:pdf,doc,docx,xls,xlsx,csv,txt|max:307200',
                 'type' => 'nullable|in:main,other',
             ]);
 
@@ -67,6 +68,47 @@ class SyllabusTextbookController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'An error occurred during upload.',
+            ], 500);
+        }
+    }
+
+    /**
+     * Update textbook metadata (e.g., original_name).
+     */
+    public function update(Request $request, SyllabusTextbook $textbook)
+    {
+        try {
+            $data = $request->validate([
+                'name' => 'required|string|max:255',
+            ]);
+
+            // Preserve original extension; only allow changing the base name
+            $currentExt = pathinfo($textbook->original_name, PATHINFO_EXTENSION);
+            $newBase = pathinfo($data['name'], PATHINFO_FILENAME);
+            $newName = $currentExt ? ($newBase . '.' . $currentExt) : $newBase;
+
+            $textbook->original_name = $newName;
+            $textbook->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Textbook updated successfully.',
+                'file' => [
+                    'id' => $textbook->id,
+                    'name' => $textbook->original_name,
+                    'url' => Storage::url($textbook->file_path),
+                    'type' => $textbook->type,
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('[SyllabusTextbook] Update failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred during update.',
             ], 500);
         }
     }

@@ -19,9 +19,7 @@ class Syllabus extends Model
         'title',
         'academic_year',
         'semester',
-        'year_level',
-        'mission',
-        'vision',
+    'year_level',
     ];
 
     // 🔁 Each syllabus belongs to one faculty
@@ -64,6 +62,18 @@ class Syllabus extends Model
     public function sos()
     {
         return $this->hasMany(SyllabusSo::class);
+    }
+
+    // Per-syllabus overrides for course information (so edits inside a syllabus don't change master course)
+    public function courseInfo()
+    {
+        return $this->hasOne(SyllabusCourseInfo::class, 'syllabus_id');
+    }
+
+    // mission/vision moved to a separate table so they can be managed independently
+    public function missionVision()
+    {
+        return $this->hasOne(SyllabusMissionVision::class, 'syllabus_id');
     }
 
     // 🔁 A syllabus maps many SDGs with editable pivot data

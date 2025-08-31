@@ -31,6 +31,8 @@ class AuthController extends Controller
             $request->username === env('SUPERADMIN_USERNAME') &&
             $request->password === env('SUPERADMIN_PASSWORD')
         ) {
+            // Regenerate session ID but preserve other guards' data (admin/faculty)
+            $request->session()->regenerate();
             Session::put('is_superadmin', true);
             return redirect()->intended('/superadmin/dashboard');
         }
@@ -48,8 +50,9 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
+        // Only remove superadmin flag; do not invalidate entire session so
+        // admin/faculty sessions remain intact when used concurrently
         Session::forget('is_superadmin');
-        $request->session()->invalidate();
         $request->session()->regenerateToken();
 
         return redirect()->route('superadmin.login.form');

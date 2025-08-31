@@ -66,9 +66,10 @@ Route::middleware([FacultyAuth::class])->group(function () {
     Route::put('/faculty/syllabi/{syllabus}/sdgs/update/{pivot}', [SyllabusSdgController::class, 'update'])->name('faculty.syllabi.sdgs.update');
     Route::delete('/faculty/syllabi/{syllabus}/sdgs/{sdg}', [SyllabusSdgController::class, 'detach'])->name('faculty.syllabi.sdgs.detach');
 
-    // ---------- 📄 Textbook Upload / Delete / List ----------
+    // ---------- 📄 Textbook Upload / Delete / List / Update ----------
     Route::post('/faculty/syllabi/{syllabus}/textbook', [SyllabusTextbookController::class, 'store'])->name('faculty.syllabi.textbook.upload');
     Route::delete('/faculty/syllabi/textbook/{textbook}', [SyllabusTextbookController::class, 'destroy'])->name('faculty.syllabi.textbook.delete');
+    Route::put('/faculty/syllabi/textbook/{textbook}', [SyllabusTextbookController::class, 'update'])->name('faculty.syllabi.textbook.update');
     Route::get('/faculty/syllabi/{syllabus}/textbook/list', [SyllabusTextbookController::class, 'list'])->name('faculty.syllabi.textbook.list');
 
     // ---------- TLA CRUD + Mapping ----------
@@ -89,6 +90,6 @@ Route::middleware([FacultyAuth::class])->group(function () {
 
 // ---------- Logout ----------
 Route::post('/faculty/logout', function () {
-    Auth::logout();
-    return redirect()->route('faculty.login.form')->with('success', 'Logged out successfully.');
+    Auth::guard('faculty')->logout();
+    return redirect()->route('faculty.login.form');
 })->name('faculty.logout');

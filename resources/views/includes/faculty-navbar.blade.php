@@ -1,34 +1,27 @@
-{{-- 
--------------------------------------------------------------------------------
-* File: resources/views/includes/faculty-navbar.blade.php
-* Description: Responsive, glassmorphic Faculty Navbar (aligned with Admin UI, theme toggle removed)
--------------------------------------------------------------------------------
-📜 Log:
-[2025-08-16] Removed theme toggle option from dropdown; Faculty navbar now mirrors Admin’s structure (Profile + Logout only).
--------------------------------------------------------------------------------
---}}
-<nav class="navbar navbar-expand-lg shadow-sm glass-navbar sticky-top px-4 py-3" 
-     role="navigation" aria-label="Faculty Navbar" style="z-index:1000;">
+{{-- Faculty Navbar (aligned with Admin/SuperAdmin) --}}
+<nav class="navbar navbar-expand-lg shadow-sm glass-navbar sticky-top px-4 py-3" role="navigation" aria-label="Faculty Navbar" style="z-index:1000;">
   <div class="container-fluid d-flex justify-content-between align-items-center">
 
-    {{-- ░░░ START: Sidebar Toggle (Mobile Only) ░░░ --}}
+    {{-- Sidebar Toggle (Mobile Only) --}}
     <button id="sidebarToggle" class="btn d-lg-none hamburger-btn" type="button" aria-label="Toggle sidebar">
       <i class="bi bi-list fs-3 text-dark"></i>
     </button>
-    {{-- ░░░ END: Sidebar Toggle --}}
 
-    {{-- ░░░ START: Page Title ░░░ --}}
-    <h5 class="mb-0 fw-bold navbar-title flex-grow-1">@yield('page-title', 'Dashboard')</h5>
-    {{-- ░░░ END: Page Title --}}
+    {{-- Page Title + Optional Context --}}
+    <div class="d-flex align-items-center gap-3 flex-grow-1">
+      <h5 class="mb-0 fw-bold navbar-title">@yield('page-title', 'Dashboard')</h5>
+      @hasSection('page-context')
+        <div class="text-muted small">@yield('page-context')</div>
+      @endif
+    </div>
 
-    {{-- ░░░ START: Profile Dropdown ░░░ --}}
+    {{-- Profile Dropdown --}}
     <div class="dropdown d-flex align-items-center">
-      <a class="d-flex align-items-center text-decoration-none dropdown-toggle faculty-dropdown" 
+      <a class="d-flex align-items-center text-decoration-none dropdown-toggle faculty-dropdown"
          href="#" id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
         <span class="fw-semibold text-dark d-none d-lg-inline">{{ Auth::user()->name ?? 'Faculty' }}</span>
       </a>
-      <ul class="dropdown-menu dropdown-menu-end shadow-sm animate__animated animate__fadeIn" 
-          aria-labelledby="profileDropdown" style="min-width: 180px;">
+      <ul class="dropdown-menu dropdown-menu-end shadow-sm animate__animated animate__fadeIn" aria-labelledby="profileDropdown" style="min-width: 180px;">
         <li>
           <a class="dropdown-item d-flex align-items-center" href="#">
             <i class="bi bi-person me-2"></i> Profile
@@ -45,6 +38,7 @@
         </li>
       </ul>
     </div>
-    {{-- ░░░ END: Profile Dropdown ░░░ --}}
+
   </div>
 </nav>
+

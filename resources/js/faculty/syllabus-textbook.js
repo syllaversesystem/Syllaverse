@@ -34,6 +34,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 🧱 Append rows after upload input row
     let lastRow = inputRow;
+    const iconFor = (name) => {
+      const m = (name || '').split('.');
+      const ext = (m.length ? m[m.length - 1] : '').toLowerCase();
+      if (ext === 'pdf') return 'bi-filetype-pdf';
+      if (ext === 'doc' || ext === 'docx') return 'bi-file-earmark-word';
+      if (ext === 'xls' || ext === 'xlsx' || ext === 'csv') return 'bi-file-earmark-excel';
+      if (ext === 'txt') return 'bi-file-earmark-text';
+      return 'bi-file-earmark';
+    };
+
     files.forEach((file, index) => {
       const newRow = document.createElement('tr');
       newRow.setAttribute('data-id', file.id);
@@ -41,10 +51,16 @@ document.addEventListener('DOMContentLoaded', () => {
       newRow.innerHTML = `
         <td class="text-center">${index + 1}</td>
         <td>
-          <a href="${file.url}" target="_blank">${file.name}</a>
+          <div class="file-name-wrap">
+            <i class="bi ${iconFor(file.name)} file-icon"></i>
+            <a href="${file.url}" target="_blank" class="textbook-name file-name" title="${file.name}">${file.name}</a>
+            <button type="button" class="btn btn-link btn-sm p-0 ms-1 edit-textbook-btn edit-inline-btn" title="Rename">
+              <i class="bi bi-pencil"></i>
+            </button>
+          </div>
         </td>
-        <td>
-          <button type="button" class="btn btn-sm btn-outline-danger float-end delete-textbook-btn">🗑️</button>
+        <td class="text-end cis-actions align-middle">
+          <button type="button" class="btn btn-sm btn-outline-danger delete-textbook-btn" title="Delete"><i class="bi bi-trash"></i></button>
         </td>
       `;
       lastRow.insertAdjacentElement('afterend', newRow);
@@ -84,26 +100,95 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 🗑️ Delete file
   document.addEventListener('click', function (e) {
-    if (!e.target.classList.contains('delete-textbook-btn')) return;
-
-    const row = e.target.closest('tr');
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    const row = btn.closest('tr');
+    if (!row) return;
     const id = row.dataset.id;
     const type = row.dataset.type;
 
-    fetch(`/faculty/syllabi/textbook/${id}`, {
-      method: 'DELETE',
-      headers: { 'X-CSRF-TOKEN': csrfToken },
-    })
-      .then(res => res.json())
-      .then(result => {
-        if (result.success) {
-          refreshSection(type);
-        }
+    // Delete
+    if (btn.classList.contains('delete-textbook-btn')) {
+      fetch(`/faculty/syllabi/textbook/${id}`, {
+        method: 'DELETE',
+        headers: { 'X-CSRF-TOKEN': csrfToken },
       })
-      .catch(err => console.error('Delete failed:', err));
+        .then(res => res.json())
+        .then(result => { if (result.success) refreshSection(type); })
+        .catch(err => console.error('Delete failed:', err));
+      return;
+    }
+
+    // Inline rename
+    if (btn.classList.includes && btn.classList.includes('edit-textbook-btn') || btn.classList.contains('edit-textbook-btn')) {
+      const nameCell = row.querySelector('td:nth-child(2)') || row.children[1];
+      const link = nameCell.querySelector('a.textbook-name');
+      const currentFull = (link?.textContent || link?.getAttribute('title') || '').trim();
+      const lastDot = currentFull.lastIndexOf('.');
+      const currentExt = lastDot > 0 ? currentFull.slice(lastDot + 1) : '';
+      const currentBase = lastDot > 0 ? currentFull.slice(0, lastDot) : currentFull;
+
+      const editor = document.createElement('div');
+      editor.className = 'd-flex align-items-center gap-2';
+      editor.innerHTML = `
+        <input type="text" class="form-control form-control-sm" value="${currentBase.replace(/"/g, '&quot;')}">
+        <div class="btn-group btn-group-sm">
+          <button type="button" class="btn btn-primary save-textbook-name">Save</button>
+          <button type="button" class="btn btn-outline-secondary cancel-textbook-name">Cancel</button>
+        </div>
+        ${currentExt ? `<small class="text-muted ms-2">.${currentExt}</small>` : ''}
+      `;
+
+      nameCell.dataset.originalHtml = nameCell.innerHTML;
+      nameCell.innerHTML = '';
+      nameCell.appendChild(editor);
+
+      const input = editor.querySelector('input');
+      input.focus();
+
+      editor.querySelector('.save-textbook-name').addEventListener('click', () => {
+        const newBase = input.value.trim();
+        if (!newBase) return;
+        fetch(`/faculty/syllabi/textbook/${id}`, {
+          method: 'PUT',
+          headers: { 'X-CSRF-TOKEN': csrfToken, 'Content-Type': 'application/json' },
+          // Send base name only; server preserves extension
+          body: JSON.stringify({ name: newBase }),
+        })
+          .then(res => res.json())
+          .then(result => {
+            if (result.success) {
+              refreshSection(type);
+            }
+          })
+          .catch(err => console.error('Update failed:', err));
+      });
+
+      editor.querySelector('.cancel-textbook-name').addEventListener('click', () => {
+        nameCell.innerHTML = nameCell.dataset.originalHtml || '';
+      });
+    }
   });
 
   // 📎 Bind input events
-  if (mainInput) mainInput.addEventListener('change', () => uploadFiles(mainInput, 'main'));
-  if (otherInput) otherInput.addEventListener('change', () => uploadFiles(otherInput, 'other'));
+  const maxBytes = 300 * 1024 * 1024; // 300 MB client-side hint only
+  const guardAndUpload = (input, type) => {
+    const tooBig = Array.from(input.files).find(f => f.size > maxBytes);
+    if (tooBig) {
+      alert(`File exceeds 300MB: ${tooBig.name}`);
+      input.value = '';
+      return;
+    }
+    uploadFiles(input, type);
+  };
+  if (mainInput) mainInput.addEventListener('change', () => guardAndUpload(mainInput, 'main'));
+  if (otherInput) otherInput.addEventListener('change', () => guardAndUpload(otherInput, 'other'));
 });
+
+
+
+
+
+
+
+

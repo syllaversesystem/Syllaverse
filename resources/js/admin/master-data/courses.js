@@ -101,19 +101,21 @@ if (!window.__svCoursesInit) {
 
   // ░░░ START: Table helpers (rows + prerequisites column) ░░░
   // Build row HTML (now includes prerequisites column placeholder)
-  function rowHtml({ id, code, title, lec, lab, prereqIds = [], description = '' }) {
+  function rowHtml({ id, code, title, lec, lab, prereqIds = [], description = '', course_category = '' }) {
     const total = (Number(lec) || 0) + (Number(lab) || 0);
+    const categoryBadge = course_category ? `<div class="small text-muted">${course_category}</div>` : '';
     return `
       <tr id="course-row-${id}"
           data-id="${id}"
           data-code="${String(code).replace(/"/g,'&quot;')}"
           data-title="${String(title).replace(/"/g,'&quot;')}"
+          data-course-category="${String(course_category).replace(/"/g,'&quot;')}"
           data-description="${String(description).replace(/"/g,'&quot;')}"
           data-contact-hours-lec="${Number(lec) || 0}"
           data-contact-hours-lab="${Number(lab) || 0}"
           data-prereq='${JSON.stringify(prereqIds)}'>
         <td class="fw-semibold">${code}</td>
-        <td class="fw-medium">${title}</td>
+        <td class="fw-medium">${title}${categoryBadge}</td>
         <td class="text-muted prereq-cell"><span class="js-prereq-preview">—</span></td>
         <td class="text-muted">
           ${lec} Lec${lab ? ' + ' + lab + ' Lab' : ''}
@@ -388,8 +390,9 @@ if (!window.__svCoursesInit) {
     const id    = tr.dataset.id;
     const code  = tr.dataset.code || '';
     const title = tr.dataset.title || '';
-    const lec   = tr.dataset.contactHoursLec || '0';
-    const lab   = tr.dataset.contactHoursLab || '0';
+  const lec   = tr.dataset.contactHoursLec || '0';
+  const lab   = tr.dataset.contactHoursLab || '0';
+  const category = tr.dataset.courseCategory || '';
     const desc  = tr.dataset.description || '';
 
     const form = $('#editCourseForm');
@@ -401,6 +404,7 @@ if (!window.__svCoursesInit) {
 
     $('#editCourseCode').value         = code;
     $('#editCourseTitle').value        = title;
+  $('#editCourseCategory').value     = category;
     $('#editContactHoursLec').value    = lec;
     $('#editContactHoursLab').value    = lab;
     const d = $('#editCourseDescription'); if (d) d.value = desc;
@@ -413,12 +417,13 @@ if (!window.__svCoursesInit) {
     const id    = $('#editCourseForm')?.dataset.id;
     const code  = $('#editCourseCode').value.trim();
     const title = $('#editCourseTitle').value.trim();
+  const course_category = $('#editCourseCategory')?.value?.trim() || '';
     const lec   = Number($('#editContactHoursLec').value || 0);
     const lab   = Number($('#editContactHoursLab').value || 0);
     const description = $('#editCourseDescription')?.value || '';
     const prereqIds = Array.from($('#editPrereqList')?.querySelectorAll('input[type="checkbox"]:checked') || [])
       .map(i => Number(i.value));
-    return { id, code, title, lec, lab, description, prereqIds };
+  return { id, code, title, lec, lab, description, prereqIds, course_category };
   }
   // ░░░ END: EDIT modal ░░░
 
@@ -457,6 +462,7 @@ if (!window.__svCoursesInit) {
 
           const code = $('#addCourseCode').value.trim();
           const title = $('#addCourseTitle').value.trim();
+          const course_category = $('#addCourseCategory')?.value?.trim() || '';
           const lec = Number($('#addContactHoursLec').value || 0);
           const lab = Number($('#addContactHoursLab').value || 0);
           const description = $('#addCourseDescription')?.value || '';
@@ -467,7 +473,7 @@ if (!window.__svCoursesInit) {
           if (tbody) {
             tbody.querySelector('.sv-empty-row')?.remove();
             tbody.insertAdjacentHTML('afterbegin', rowHtml({
-              id: data.id, code, title, lec, lab, description, prereqIds: chosenPrereqIds
+              id: data.id, code, title, lec, lab, description, prereqIds: chosenPrereqIds, course_category
             }));
             const newTr = document.getElementById(`course-row-${data.id}`);
             hydrateRows();
@@ -509,12 +515,13 @@ if (!window.__svCoursesInit) {
     if (!form || !modalEl) return;
 
     document.addEventListener('click', (e) => {
-      const table = e.target.closest('#svCoursesTable');
-      if (!table) return;
+      // Locate the edit button even if the click target is the inner icon
       const btn = e.target.closest('[data-action="edit-course"]');
       if (!btn) return;
       const tr = btn.closest('tr[id^="course-row-"]');
       if (!tr) return;
+      // ensure this row belongs to our courses table
+      if (!tr.closest('#svCoursesTable')) return;
 
       prefillEditModalFromRow(tr);
       if (hasBS()) window.bootstrap.Modal.getOrCreateInstance(modalEl).show();
@@ -546,7 +553,7 @@ if (!window.__svCoursesInit) {
           if (tbody && old) {
             old.insertAdjacentHTML('afterend', rowHtml({
               id: p.id, code: p.code, title: p.title, lec: p.lec, lab: p.lab,
-              description: p.description, prereqIds: p.prereqIds
+              description: p.description, prereqIds: p.prereqIds, course_category: p.course_category
             }));
             const newTr = old.nextElementSibling;
             old.remove();
@@ -588,14 +595,11 @@ if (!window.__svCoursesInit) {
   // ░░░ START: INIT – Delete ░░░
   function initDelete() {
     document.addEventListener('click', async (e) => {
-      const table = e.target.closest('#svCoursesTable');
-      if (!table) return;
-
       const btn = e.target.closest('[data-action="delete-course"]');
       if (!btn) return;
-
       const tr = btn.closest('tr[id^="course-row-"]');
       if (!tr) return;
+      if (!tr.closest('#svCoursesTable')) return;
 
       const id = tr.dataset.id;
       const code = tr.dataset.code || 'this course';

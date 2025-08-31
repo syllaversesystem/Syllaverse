@@ -16,7 +16,23 @@
     <input type="hidden" name="tab" value="soilo">
     <input type="hidden" name="subtab" value="ilo">
 
-    <div class="input-group input-group-sm" style="max-width:320px;">
+    {{-- Clean course selector --}}
+    <div class="d-flex flex-wrap align-items-end gap-2 mb-2">
+      <div class="form-floating" style="flex:1 1 320px; max-width:520px; min-width:260px;">
+        <select id="iloCourseSelect" name="course_id" class="form-select" aria-label="Select course">
+          <option value="" {{ request('course_id') ? '' : 'selected' }}>Select a course</option>
+          @foreach ($courses as $course)
+            <option value="{{ $course->id }}" {{ (string)request('course_id') === (string)$course->id ? 'selected' : '' }}>
+              {{ $course->code }} — {{ $course->title }}
+            </option>
+          @endforeach
+        </select>
+        <label for="iloCourseSelect"><i data-feather="book-open" class="me-1"></i> Course</label>
+      </div>
+      <button type="button" class="btn btn-light border" id="iloFilterReset" title="Clear selection">Clear</button>
+    </div>
+
+    <div class="input-group input-group-sm" style="display:none; max-width:320px;">
       <span class="input-group-text"><i data-feather="book-open"></i></span>
       <select name="course_id" class="form-select form-select-sm">
         <option value="">Select a Course</option>
