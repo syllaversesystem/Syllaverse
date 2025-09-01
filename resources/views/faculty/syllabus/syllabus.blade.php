@@ -24,6 +24,11 @@
     const syllabusId = @json($default['id']);
   </script>
 
+  @php
+    // expose per-syllabus courseInfo to all partials so they render current values
+    $local = $syllabus->courseInfo ?? null;
+  @endphp
+
   <div class="container-fluid px-0 my-3 syllabus-doc">
     {{-- ===== START: Main Syllabus Form (Sections 1–4) ===== --}}
     <form id="syllabusForm"
@@ -92,14 +97,16 @@
            Covered inside course-info partial.
       --}}
 
-      {{-- ===== Section 4: Criteria for Assessment ===== --}}
-      @includeIf('faculty.syllabus.partials.criteria-assessment')
+  {{-- ===== Section 4: Criteria for Assessment =====
+       NOTE: This partial is included inside the `course-info` partial to keep
+       the course information and criteria visually grouped. The duplicate
+       include here was removed to avoid rendering the block twice. --}}
+      {{-- ===== Section 5: Teaching, Learning, and Assessment Strategies ===== --}}
+      {{-- Move TLA strategies inside the main form so its textarea is submitted with the Save button --}}
+      @includeIf('faculty.syllabus.partials.tla-strategies')
 
     </form>
     {{-- ===== END: Main Syllabus Form ===== --}}
-
-    {{-- ===== Section 5: Teaching, Learning, and Assessment Strategies ===== --}}
-    @includeIf('faculty.syllabus.partials.tla-strategies')
 
     {{-- ===== Section 6: Intended Learning Outcomes (ILO) ===== --}}
     @includeIf('faculty.syllabus.partials.ilo')
@@ -141,4 +148,95 @@
     {{-- ===== Footer: Signatories ===== --}}
     @includeIf('faculty.syllabus.partials.footers-prepared')
   </div>
+
+  {{-- Enhanced Save Functionality --}}
+  <script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const syllabusForm = document.getElementById('syllabusForm');
+    const saveBtn = document.getElementById('syllabusSaveBtn');
+    const unsavedCountBadge = document.getElementById('unsaved-count-badge');
+    
+    if (syllabusForm && saveBtn) {
+      // Track unsaved changes
+      let hasUnsavedChanges = false;
+      let unsavedModules = new Set();
+      
+      // Listen for unsaved changes from various modules
+      document.addEventListener('change', function(e) {
+        if (e.target.closest('#syllabusForm')) {
+          markAsUnsaved('general');
+        }
+      });
+      
+      document.addEventListener('input', function(e) {
+        if (e.target.closest('#syllabusForm')) {
+          markAsUnsaved('general');
+        }
+      });
+      
+      // Listen for criteria module changes
+      document.addEventListener('criteriaChanged', function() {
+        markAsUnsaved('criteria');
+      });
+      
+      function markAsUnsaved(module) {
+        hasUnsavedChanges = true;
+        unsavedModules.add(module);
+        updateSaveButton();
+      }
+      
+      function markAsSaved() {
+        hasUnsavedChanges = false;
+        unsavedModules.clear();
+        updateSaveButton();
+      }
+      
+      function updateSaveButton() {
+        if (hasUnsavedChanges) {
+          saveBtn.classList.add('btn-warning');
+          saveBtn.classList.remove('btn-danger');
+          if (unsavedCountBadge) {
+            unsavedCountBadge.textContent = unsavedModules.size;
+            unsavedCountBadge.style.display = 'inline-block';
+          }
+        } else {
+          saveBtn.classList.remove('btn-warning');
+          saveBtn.classList.add('btn-danger');
+          if (unsavedCountBadge) {
+            unsavedCountBadge.style.display = 'none';
+          }
+        }
+      }
+      
+      // Handle form submission
+      syllabusForm.addEventListener('submit', function(e) {
+        // Ensure all modules serialize their data before submission
+        
+        // Trigger criteria serialization if criteria module is loaded
+        if (window.serializeCriteriaData && typeof window.serializeCriteriaData === 'function') {
+          window.serializeCriteriaData();
+        }
+        
+        // Show saving state
+        const originalText = saveBtn.innerHTML;
+        saveBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> <span class="ms-1">Saving...</span>';
+        saveBtn.disabled = true;
+        
+        // Note: Form will submit normally, page will reload, so we don't need to reset button state
+      });
+      
+      // Warning for unsaved changes when leaving page
+      window.addEventListener('beforeunload', function(e) {
+        if (hasUnsavedChanges) {
+          e.preventDefault();
+          e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+          return e.returnValue;
+        }
+      });
+      
+      // Initialize button state
+      updateSaveButton();
+    }
+  });
+  </script>
 @endsection

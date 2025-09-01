@@ -5,16 +5,17 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class SyllabusCriterion extends Model
+class SyllabusCriteria extends Model
 {
     use HasFactory;
 
-    protected $table = 'syllabus_criteria';
+    protected $table = 'syllabus_criteria'; // Specify the exact table name
 
     protected $fillable = [
         'syllabus_id',
         'key',
         'heading',
+        'section',
         'value',
         'position',
     ];
@@ -23,6 +24,7 @@ class SyllabusCriterion extends Model
         'value' => 'array',
     ];
 
+    // Relationship to syllabus
     public function syllabus()
     {
         return $this->belongsTo(Syllabus::class);

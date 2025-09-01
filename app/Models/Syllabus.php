@@ -19,7 +19,7 @@ class Syllabus extends Model
         'title',
         'academic_year',
         'semester',
-    'year_level',
+        'year_level',
     ];
 
     // 🔁 Each syllabus belongs to one faculty
@@ -28,16 +28,22 @@ class Syllabus extends Model
         return $this->belongsTo(User::class, 'faculty_id');
     }
 
+    // 🔁 Each syllabus belongs to one course
+    public function course()
+    {
+        return $this->belongsTo(Course::class);
+    }
+
     // 🔁 Each syllabus belongs to one program
     public function program()
     {
         return $this->belongsTo(Program::class);
     }
 
-    // 🔁 Each syllabus belongs to one course
-    public function course()
+    // 🔁 A syllabus has many criteria
+    public function criteria()
     {
-        return $this->belongsTo(Course::class);
+        return $this->hasMany(SyllabusCriteria::class)->orderBy('position');
     }
 
     // 🔁 A syllabus has many topic-learning activities (TLA)
@@ -82,60 +88,5 @@ class Syllabus extends Model
         return $this->belongsToMany(Sdg::class, 'syllabus_sdg')
             ->withPivot('id', 'title', 'description')
             ->withTimestamps();
-    }
-
-    /**
-     * Sync criteria fields from a request-like array.
-     * Accepts keys that start with 'criteria_' (e.g. criteria_lecture)
-     * and saves/updates SyllabusCriterion rows.
-     *
-     * @param  array  $data
-     * @return void
-     */
-    public function syncCriteriaFromRequest(array $data)
-    {
-        // lazy-load model to avoid circular dependencies at file top
-        $criterionModel = \App\Models\SyllabusCriterion::class;
-
-        $toKeep = [];
-
-        foreach ($data as $k => $v) {
-            if (strpos($k, 'criteria_') !== 0) continue;
-
-            $key = substr($k, strlen('criteria_'));
-            $headingKey = "criteria_{$key}_title";
-            $heading = isset($data[$headingKey]) ? trim((string) $data[$headingKey]) : null;
-
-            $values = null;
-            if (is_array($v)) {
-                $values = array_values(array_filter(array_map('trim', $v)));
-            } else {
-                $txt = trim((string) $v);
-                if ($txt === '') {
-                    $values = [];
-                } else {
-                    // split on newlines
-                    $lines = preg_split('/\r?\n/', $txt);
-                    $values = array_values(array_filter(array_map('trim', $lines)));
-                }
-            }
-
-            $record = $criterionModel::firstOrNew([
-                'syllabus_id' => $this->id,
-                'key' => $key,
-            ]);
-
-            $record->heading = $heading;
-            $record->value = $values;
-            $record->position = 0;
-            $record->save();
-
-            $toKeep[] = $record->id;
-        }
-
-        // delete any criteria rows that belong to this syllabus but were not in payload
-        $criterionModel::where('syllabus_id', $this->id)
-            ->whereNotIn('id', $toKeep)
-            ->delete();
     }
 }

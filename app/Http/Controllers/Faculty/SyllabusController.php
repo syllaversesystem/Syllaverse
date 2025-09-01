@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\Syllabus;
 use App\Models\SyllabusIlo;
 use App\Models\SyllabusSo;
+use App\Models\SyllabusCriteria;
 use App\Models\StudentOutcome;
 use App\Models\Course;
 use App\Models\Program;
@@ -149,7 +150,7 @@ class SyllabusController extends Controller
             // store the human-readable lec/lab text derived from numeric values or parser
             'contact_hours_lec' => $lec ? (string) ($lec . ' hours lecture') : null,
             'contact_hours_lab' => $lab ? (string) ($lab . ' hours laboratory') : null,
-            // criteria fields
+            // criteria fields (lecture + laboratory)
             'criteria_lecture' => $course->criteria_lecture ?? null,
             'criteria_laboratory' => $course->criteria_laboratory ?? null,
         ]);
@@ -171,7 +172,7 @@ class SyllabusController extends Controller
     public function show($id)
     {
         $syllabus = Syllabus::with([
-            'course', 'program', 'faculty', 'ilos', 'sos', 'sdgs', 'courseInfo',
+            'course', 'program', 'faculty', 'ilos', 'sos', 'sdgs', 'courseInfo', 'criteria',
             'tla.ilos:id,code',
             'tla.sos:id,code'
         ])->findOrFail($id);
@@ -208,9 +209,23 @@ class SyllabusController extends Controller
     {
         $syllabus = Syllabus::where('faculty_id', Auth::id())->findOrFail($id);
 
+        // Debug: log incoming keys and specific fields to help diagnose why some partials aren't persisting
+        try {
+            \Log::info('Syllabus::update called', ['syllabus_id' => $id, 'incoming_keys' => array_keys($request->all())]);
+            \Log::info('Syllabus::update tla_strategies', ['tla_strategies' => $request->input('tla_strategies')]);
+            \Log::info('Syllabus::update criteria_data', ['criteria_data' => $request->input('criteria_data')]);
+            \Log::info('Syllabus::update criteria_lecture', ['criteria_lecture' => $request->input('criteria_lecture')]);
+            \Log::info('Syllabus::update criteria_laboratory', ['criteria_laboratory' => $request->input('criteria_laboratory')]);
+        } catch (\Throwable $e) {
+            // ignore logging failures
+        }
+
         $request->validate(array_merge([
             'mission' => 'required|string',
             'vision' => 'required|string',
+            'criteria_data' => 'nullable|array', // Array containing criteria data
+            'criteria_data.*.name' => 'nullable|string',
+            'criteria_data.*.percentage' => 'nullable|integer|min:0|max:100',
         ], 
         // optional ILOs payload (same shape as SyllabusIloController expects)
         $request->has('ilos') ? [
@@ -240,13 +255,15 @@ class SyllabusController extends Controller
             'course_title','course_code','course_category','course_prerequisites','semester','year_level',
             'credit_hours_text','instructor_name','employee_code','reference_cmo','instructor_designation',
             'date_prepared','instructor_email','revision_no','academic_year','revision_date','course_description',
-            'contact_hours','contact_hours_lec','contact_hours_lab','criteria_lecture','criteria_laboratory'
+            'criteria_lecture','criteria_laboratory',
+            'contact_hours','contact_hours_lec','contact_hours_lab','tla_strategies'
         ])) {
             $data = $request->only([
                 'course_title','course_code','course_category','course_prerequisites','semester','year_level',
                 'credit_hours_text','instructor_name','employee_code','reference_cmo','instructor_designation',
                 'date_prepared','instructor_email','revision_no','academic_year','revision_date','course_description',
-                'contact_hours','contact_hours_lec','contact_hours_lab','criteria_lecture','criteria_laboratory'
+                'criteria_lecture','criteria_laboratory',
+                'contact_hours','contact_hours_lec','contact_hours_lab','tla_strategies'
             ]);
 
             // If user updated the free-text contact_hours (e.g. "3 hours lab"), try to parse numeric lec/lab
@@ -319,13 +336,30 @@ class SyllabusController extends Controller
             }
         }
 
-        // Persist any criteria_* fields into the syllabus_criteria table
-        try {
-            $syllabus->syncCriteriaFromRequest($request->all());
-        } catch (\Throwable $e) {
-            // do not block the update flow for non-critical persistence errors; log for later inspection
-            \Log::error('Failed to sync syllabus criteria: ' . $e->getMessage());
+        // Handle criteria data - simple array format
+        if ($request->has('criteria_data') && is_array($request->input('criteria_data'))) {
+            // Delete existing criteria
+            $syllabus->criteria()->delete();
+            
+            // Create new criteria from simple array
+            foreach ($request->input('criteria_data') as $index => $criteriaItem) {
+                if (!empty($criteriaItem['name']) || !empty($criteriaItem['percentage'])) {
+                    SyllabusCriteria::create([
+                        'syllabus_id' => $syllabus->id,
+                        'key' => 'criteria_' . $index,
+                        'heading' => 'Assessment Criteria',
+                        'section' => 'Assessment',
+                        'value' => [
+                            'name' => $criteriaItem['name'] ?? '',
+                            'percentage' => $criteriaItem['percentage'] ?? ''
+                        ],
+                        'position' => $index,
+                    ]);
+                }
+            }
         }
+
+    // criteria module removed; legacy `criteria_` fields in courseInfo are updated above from request
 
         return redirect()->route('faculty.syllabi.show', $syllabus->id)
             ->with('success', 'Syllabus updated successfully.');

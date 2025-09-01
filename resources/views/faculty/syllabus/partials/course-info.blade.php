@@ -71,13 +71,13 @@
   $courseDescription = trim((string) ($local?->course_description ?? $course->description ?? ''));
   // compute criteria percentage totals for display in headers (e.g., "Lecture (40%)")
   $lecturePercentSum = 0;
-  $labPercentSum = 0;
   if (!empty(trim((string) ($local?->criteria_lecture ?? '')))) {
     $lines = preg_split('/\r?\n/', trim((string) $local?->criteria_lecture));
     foreach ($lines as $l) {
       if (preg_match('/(\d+)%/', $l, $m)) { $lecturePercentSum += (int) $m[1]; }
     }
   }
+  $labPercentSum = 0;
   if (!empty(trim((string) ($local?->criteria_laboratory ?? '')))) {
     $lines = preg_split('/\r?\n/', trim((string) $local?->criteria_laboratory));
     foreach ($lines as $l) {
@@ -335,4 +335,5 @@
 </tr>
 {{-- contact hours are now shown as lec/lab columns with combined text; editing still available via the text field --}}
 
-  {{-- Criteria for Assessment moved to dedicated partial: resources/views/faculty/syllabus/partials/criteria-assessment.blade.php --}}
+  {{-- Criteria for Assessment partial (editable inline) --}}
+  @include('faculty.syllabus.partials.criteria-assessment')

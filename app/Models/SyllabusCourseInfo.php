@@ -17,7 +17,11 @@ class SyllabusCourseInfo extends Model
         'reference_cmo', 'instructor_designation', 'date_prepared', 'instructor_email',
     'revision_no', 'academic_year', 'revision_date', 'course_description',
     'contact_hours', 'contact_hours_lec', 'contact_hours_lab',
-    // Criteria are stored in the dedicated syllabus_criteria table
+    'tla_strategies',
+    // Keep canonical criteria fields so Blade partials can render them after save
+    'criteria_lecture', 'criteria_laboratory',
+    // Titles/headings persisted from syllabus_criteria.heading
+    'criteria_lecture_title', 'criteria_laboratory_title',
     ];
 
     public function syllabus()

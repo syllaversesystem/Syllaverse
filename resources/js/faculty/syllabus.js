@@ -96,162 +96,199 @@ function initAutosize() {
   });
 }
 
-/** Criteria contenteditable helpers: keep hidden textarea in sync and set unsaved pill */
-function bindCriteriaEditable() {
-  const lists = document.querySelectorAll('.criteria-list');
-
-  // small debounce helper to avoid excessive writes while typing
-  function debounce(fn, wait = 120) {
-    let t;
-    return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), wait); };
-  }
+/**
+ * Generic dynamic input lists
+ * - Container: element with class `dynamic-list`
+ * - Item wrapper: element with class `dynamic-item`
+ * - Input: single-line input with class `dynamic-input`
+ * Behavior:
+ *  - Enter inside a `.dynamic-input` appends a new `.dynamic-item` after current and focuses it
+ *  - Backspace on an empty `.dynamic-input` when caret at 0 removes the item and focuses previous input or a heading
+ */
+function initDynamicInputLists() {
+  const lists = document.querySelectorAll('.dynamic-list');
+  if (!lists.length) return;
 
   lists.forEach((list) => {
-    const targetName = list.dataset.target;
-    const ta = document.querySelector(`textarea[name="${targetName}"]`);
-    if (!ta) return;
-
-    // Update the criteria unsaved pill only when serialized data or the column heading differs from original
-    const updateCriteriaUnsaved = () => {
-      const badge = document.getElementById('unsaved-criteria');
-      if (!badge) return;
-      const original = (ta.dataset.original ?? '').toString();
-      const current = (ta.value ?? '').toString();
-      let changed = current !== original;
-      // also consider heading change for this column
-      const col = list.closest('.col-6');
-      const heading = col ? col.querySelector('.criteria-heading-input') : null;
-      if (heading) {
-        const hOrig = (heading.dataset.original ?? '').toString();
-        const hCur = (heading.value ?? '').toString();
-        if (hCur !== hOrig) changed = true;
-      }
-      badge.classList.toggle('d-none', !changed);
-      if (changed) isDirty = true;
-      updateUnsavedCount();
-    };
-
-    const serialize = () => {
-      const lines = Array.from(list.querySelectorAll('.criteria-item')).map((item) => {
-        const desc = (item.querySelector('.criteria-desc-input')?.value ?? '').trim();
-        let pct = (item.querySelector('.criteria-percent-input')?.value ?? '').trim();
-        if (pct !== '' && !pct.endsWith('%')) pct = pct + '%';
-        if (desc === '' && pct === '%') return null; // ignore empty rows
-        if (desc === '' && pct === '') return null;
-        return (desc + (pct ? ' (' + pct + ')' : '')).trim();
-      }).filter(Boolean);
-  ta.value = lines.join('\n');
-  updateCriteriaUnsaved();
-    };
-
-  const debouncedSerialize = debounce(serialize, 100);
-  // expose synchronous serializer for external callers (e.g., save handler)
-  try { list._serialize = serialize; } catch (err) {}
-
-    // Try to find and initialize the column heading input so we can track its original value
-    const col = list.closest('.col-6');
-    const headingInput = col ? col.querySelector('.criteria-heading-input') : null;
-    if (headingInput && typeof headingInput.dataset.original === 'undefined') {
-      // store current as original so comparisons work
-      headingInput.dataset.original = headingInput.value ?? '';
+    // ensure at least one item exists
+    function createItem(value = '') {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'dynamic-item';
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'dynamic-input form-control';
+      input.value = value;
+      wrapper.appendChild(input);
+      return wrapper;
     }
-    if (headingInput) headingInput.addEventListener('input', updateCriteriaUnsaved);
 
-    // helpers to create/insert/remove rows
-    const createRow = (desc = '', pct = '') => {
-      const div = document.createElement('div');
-      div.className = 'criteria-item sub-item';
-      div.setAttribute('role', 'listitem');
-      const d = document.createElement('input');
-      d.type = 'text'; d.className = 'criteria-desc-input'; d.placeholder = 'e.g., Midterm Exam'; d.value = desc;
-      const p = document.createElement('input');
-      p.type = 'text'; p.className = 'criteria-percent-input'; p.placeholder = '20%'; p.value = pct;
-      div.appendChild(d); div.appendChild(p);
-  // announce to screen readers when a row is created (aria-live)
-  const live = document.getElementById('criteria-aria-live');
-  if (live) live.textContent = 'Criterion added';
-      return div;
-    };
+    if (!list.querySelector('.dynamic-item')) {
+      list.appendChild(createItem());
+    }
 
-    const focusDesc = (item) => {
-      const el = item?.querySelector('.criteria-desc-input');
-      if (el) el.focus();
-    };
-
-    const focusPreviousOrHeading = (item) => {
-      const prev = item?.previousElementSibling;
-      if (prev && prev.classList && prev.classList.contains('criteria-item')) {
-        // prefer focusing desc of previous sub-item
-        const d = prev.querySelector('.criteria-desc-input');
-        if (d) return d.focus();
-      }
-      // otherwise focus the column heading
-      const col = list.closest('.col-6');
-      const heading = col ? col.querySelector('.criteria-heading-input') : null;
-      if (heading) heading.focus();
-    };
-
-    // Delegate input events for serialization
-    list.addEventListener('input', debouncedSerialize);
-
-    // Single delegated keydown handler for keyboard UX
+    // delegated keydown handler
     list.addEventListener('keydown', (e) => {
       const el = e.target;
       if (!el || !el.classList) return;
+      if (!el.classList.contains('dynamic-input')) return;
 
-      // ENTER: append a new row after current item and focus its description input
+      // ENTER: append new item after current
       if (e.key === 'Enter') {
-        if (el.classList.contains('criteria-desc-input') || el.classList.contains('criteria-percent-input')) {
-          e.preventDefault();
-          const currentItem = el.closest('.criteria-item');
-          const newRow = createRow();
-          if (currentItem && currentItem.parentElement) currentItem.parentElement.insertBefore(newRow, currentItem.nextSibling);
-          else list.appendChild(newRow);
-          // focus the new row's description for fast entry
-          focusDesc(newRow);
-          const live = document.getElementById('criteria-aria-live'); if (live) live.textContent = 'Criterion added';
-          debouncedSerialize();
+        e.preventDefault();
+        const currentWrapper = el.closest('.dynamic-item');
+        const newItem = createItem();
+        if (currentWrapper && currentWrapper.parentElement) {
+          currentWrapper.parentElement.insertBefore(newItem, currentWrapper.nextSibling);
+        } else {
+          list.appendChild(newItem);
         }
+        // focus the new input
+        const ni = newItem.querySelector('.dynamic-input');
+        if (ni) ni.focus();
+        // notify input listeners
+        list.dispatchEvent(new Event('input', { bubbles: true }));
+        return;
       }
 
-      // BACKSPACE: remove empty sub-item when caret at start and focus previous or heading
+      // BACKSPACE: if input empty and caret at 0, remove the item and focus previous
       if (e.key === 'Backspace') {
-        if (el.classList.contains('criteria-desc-input') || el.classList.contains('criteria-percent-input')) {
-          const val = el.value ?? '';
-          const selStart = (typeof el.selectionStart === 'number') ? el.selectionStart : 0;
-          if (val.trim() === '' && selStart === 0) {
-            const item = el.closest('.criteria-item');
-            if (item && item.classList.contains('sub-item')) {
-              e.preventDefault();
-              const prevSibling = item.previousElementSibling;
-              item.remove();
-                const live = document.getElementById('criteria-aria-live'); if (live) live.textContent = 'Criterion removed';
-              debouncedSerialize();
-              if (prevSibling && prevSibling.classList.contains('criteria-item')) {
-                focusDesc(prevSibling);
-              } else {
-                // fallback to column heading
-                const col = list.closest('.col-6');
-                const heading = col ? col.querySelector('.criteria-heading-input') : null;
-                if (heading) heading.focus();
-              }
+        const val = el.value ?? '';
+        const selStart = (typeof el.selectionStart === 'number') ? el.selectionStart : 0;
+        if (val === '' && selStart === 0) {
+          const wrapper = el.closest('.dynamic-item');
+          if (wrapper && wrapper.classList.contains('dynamic-item')) {
+            e.preventDefault();
+            const prev = wrapper.previousElementSibling;
+            wrapper.remove();
+            if (prev && prev.querySelector) {
+              const prevInput = prev.querySelector('.dynamic-input');
+              if (prevInput) prevInput.focus();
+            } else {
+              // fallback: try focusing an associated heading input in parent column
+              const col = list.closest('.col-6');
+              const heading = col ? col.querySelector('input[type="text"]') : null;
+              if (heading) heading.focus();
             }
+            list.dispatchEvent(new Event('input', { bubbles: true }));
           }
         }
       }
     });
-
-    // on init, ensure there's at least one empty sub-item to start with for convenience
-    const existingSub = list.querySelector('.criteria-item.sub-item');
-    if (!existingSub) {
-      const starter = createRow();
-      list.appendChild(starter);
-    }
-
-    // Run an initial serialize to sync the hidden textarea and set unsaved state correctly
-    serialize();
   });
 }
+
+/** Initialize legacy criteria lists (keeps existing Blade partial markup working)
+ * - List container: `.criteria-list`
+ * - Item wrapper: `.criteria-item`
+ * - Desc input: `.criteria-desc-input`
+ * - Percent input: `.criteria-percent-input`
+ * Behavior: Enter adds a new `.criteria-item`; Backspace on empty desc removes item
+ */
+function initCriteriaLists() {
+  const lists = document.querySelectorAll('.criteria-list');
+  if (!lists.length) return;
+
+  lists.forEach((list) => {
+    // ensure at least one item exists
+    function createItem(desc = '', percent = '') {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'criteria-item sub-item';
+      wrapper.setAttribute('role', 'listitem');
+
+      const descInput = document.createElement('input');
+      descInput.type = 'text';
+      descInput.className = 'criteria-desc-input';
+      descInput.placeholder = 'e.g., Midterm Exam';
+      descInput.value = desc;
+
+      const percentInput = document.createElement('input');
+      percentInput.type = 'text';
+      percentInput.className = 'criteria-percent-input';
+      percentInput.placeholder = '20%';
+      percentInput.value = percent;
+
+      wrapper.appendChild(descInput);
+      wrapper.appendChild(percentInput);
+      return wrapper;
+    }
+
+    if (!list.querySelector('.criteria-item')) list.appendChild(createItem());
+
+    list.addEventListener('keydown', (e) => {
+      const el = e.target;
+      if (!el || !el.classList) return;
+      // ENTER: when in a desc or percent input, insert a new item after current
+      if (e.key === 'Enter' && (el.classList.contains('criteria-desc-input') || el.classList.contains('criteria-percent-input'))) {
+        e.preventDefault();
+        const current = el.closest('.criteria-item');
+        const newItem = createItem();
+        if (current && current.parentElement) current.parentElement.insertBefore(newItem, current.nextSibling);
+        else list.appendChild(newItem);
+        const ni = newItem.querySelector('.criteria-desc-input');
+        if (ni) ni.focus();
+        list.dispatchEvent(new Event('input', { bubbles: true }));
+        return;
+      }
+
+      // BACKSPACE: if desc input is empty and caret at 0, remove current item
+      if (e.key === 'Backspace' && el.classList.contains('criteria-desc-input')) {
+        const val = el.value ?? '';
+        const selStart = (typeof el.selectionStart === 'number') ? el.selectionStart : 0;
+        if (val === '' && selStart === 0) {
+          const wrapper = el.closest('.criteria-item');
+          if (wrapper && wrapper.classList.contains('criteria-item')) {
+            e.preventDefault();
+            const prev = wrapper.previousElementSibling;
+            wrapper.remove();
+            if (prev && prev.querySelector) {
+              const prevInput = prev.querySelector('.criteria-desc-input');
+              if (prevInput) prevInput.focus();
+            }
+            list.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+        }
+      }
+    });
+  });
+}
+
+/** Serialize visible .criteria-item rows into the hidden textarea fields
+ * Format: "Description (20%)" or "Description" if no percent
+ */
+function serializeCriteriaLists() {
+  const lists = document.querySelectorAll('.criteria-list[data-target]');
+  if (!lists.length) return;
+
+  lists.forEach((list) => {
+    const target = list.getAttribute('data-target');
+    if (!target) return;
+    const lines = [];
+    const items = list.querySelectorAll('.criteria-item');
+    items.forEach((it) => {
+      const descEl = it.querySelector('.criteria-desc-input');
+      const pctEl = it.querySelector('.criteria-percent-input');
+      const desc = descEl ? (descEl.value || '').trim() : '';
+      const pct = pctEl ? (pctEl.value || '').trim() : '';
+      if (!desc) return; // skip empty rows
+      if (pct) {
+        // normalize percent to have trailing % if user omitted it
+        const normalized = pct.endsWith('%') ? pct : (pct + '%');
+        lines.push(`${desc} (${normalized})`);
+      } else {
+        lines.push(desc);
+      }
+    });
+
+    const textarea = document.querySelector(`#${target}`) || document.querySelector(`textarea[name="${target}"]`);
+    if (textarea) {
+      textarea.value = lines.join('\n');
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  });
+}
+
+// Criteria module removed: no-op placeholder kept for compatibility
+function bindCriteriaEditable() { /* removed: criteria module disabled */ }
 
 /**
  * Recalculate Credit Hours text from lec/lab and toggle CIS dash when both zero.
@@ -293,6 +330,8 @@ document.addEventListener('DOMContentLoaded', () => {
   trackFormChanges();
   setupExitConfirmation();
   initAutosize();
+  initDynamicInputLists();
+  initCriteriaLists();
 
   // Existing bindings (mission/vision + CIS fields)
   bindUnsavedIndicator('vision');
@@ -312,35 +351,12 @@ document.addEventListener('DOMContentLoaded', () => {
   bindUnsavedIndicator('contact_hours_lec');
   bindUnsavedIndicator('contact_hours_lab');
 
-  // Ensure criteria editable lists are bound (serialize into hidden textareas)
-  bindCriteriaEditable();
+  // TLA strategies unsaved binding
+  bindUnsavedIndicator('tla_strategies');
 
-  // When Enter is pressed on the heading input (Lecture/Laboratory), append a new sub-item
-  const headingInputs = document.querySelectorAll('.criteria-heading-input');
-  headingInputs.forEach((hi) => {
-    hi.addEventListener('keydown', (e) => {
-      if (e.key !== 'Enter') return;
-      e.preventDefault();
-      // find the nearest criteria-list in the same column
-      let list = hi.nextElementSibling;
-      if (!list || !list.classList || !list.classList.contains('criteria-list')) {
-        const col = hi.closest('.col-6');
-        list = col ? col.querySelector('.criteria-list') : null;
-      }
-      if (!list) return;
+  // Criteria module disabled
 
-      const newItem = document.createElement('div');
-      newItem.className = 'criteria-item sub-item';
-      newItem.innerHTML = '<input type="text" class="criteria-desc-input" placeholder="e.g., Midterm Exam">' +
-                          '<input type="text" class="criteria-percent-input" placeholder="20%">';
-      // append and focus
-      list.appendChild(newItem);
-      const d = newItem.querySelector('.criteria-desc-input');
-      if (d) d.focus();
-      list.dispatchEvent(new Event('input', { bubbles: true }));
-    });
-    try { hi.dataset.enterBound = '1'; } catch (err) {}
-  });
+  // criteria heading inputs removed (module disabled)
 
   
 
@@ -394,6 +410,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
       try {
         const action = form.action;
+    // Ensure visible criteria inputs are serialized into their hidden canonical textareas
+    try { serializeCriteriaLists(); } catch (e) { console.warn('Failed to serialize criteria lists before save', e); }
         const tokenEl = form.querySelector('input[name="_token"]');
         const token = tokenEl ? tokenEl.value : '';
 
@@ -409,7 +427,7 @@ document.addEventListener('DOMContentLoaded', () => {
             'semester','year_level','credit_hours_text','instructor_name','employee_code',
             'reference_cmo','instructor_designation','date_prepared','instructor_email',
             'revision_no','academic_year','revision_date','course_description',
-            'contact_hours_lec','contact_hours_lab'
+            'contact_hours_lec','contact_hours_lab','tla_strategies'
           ];
           extraFields.forEach((name) => {
             const el = form.querySelector(`[name="${name}"]`);
@@ -417,20 +435,7 @@ document.addEventListener('DOMContentLoaded', () => {
             fd.append(name, el.value ?? '');
           });
 
-          // Ensure all criteria lists serialize synchronously before saving
-          document.querySelectorAll('.criteria-list').forEach((l) => {
-            try {
-              if (typeof l._serialize === 'function') l._serialize();
-            } catch (err) {
-              console.warn('criteria list serialize failed for', l, err);
-            }
-          });
-          // Include any form fields whose name starts with "criteria_" (dynamic columns)
-          const criteriaEls = form.querySelectorAll('[name^="criteria_"]');
-          criteriaEls.forEach((el) => {
-            if (!el.name) return;
-            fd.append(el.name, el.value ?? '');
-          });
+          // criteria module disabled; any existing criteria_* fields (legacy) will be included by the extraFields loop above if present
 
           // Debug: list all FormData entries so we can inspect what's being sent
           try {
@@ -494,23 +499,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         updateUnsavedCount();
 
-        // Also mark criteria module fields as saved: update their data-original and hide the criteria badge
-        try {
-          const critEls = form.querySelectorAll('[name^="criteria_"]');
-          critEls.forEach((el) => {
-            el.dataset.original = el.value ?? '';
-            el.classList.remove('sv-new-highlight');
-          });
-          const criteriaBadge = document.getElementById('unsaved-criteria');
-          if (criteriaBadge) criteriaBadge.classList.add('d-none');
-          updateUnsavedCount();
-        } catch (err) {
-          console.warn('Failed to sync criteria fields after save', err);
-        }
+  // criteria module disabled: no post-save criteria handling
 
-  isDirty = false;
-
-        // show lightweight toast
+        isDirty = false;
+        // Hide all unsaved indicators when form is submitted successfully
+        document.querySelectorAll('.unsaved-pill').forEach(pill => {
+          pill.classList.add('d-none');
+        });        // show lightweight toast
         const toast = document.getElementById('svToast');
         if (toast) {
           toast.textContent = 'Saved';
@@ -540,6 +535,32 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Partial-save buttons removed; top Save button is the single source of truth for saving
+  
+  // Handle criteria data changes
+  const criteriaDataInput = document.getElementById('criteria_data');
+  if (criteriaDataInput) {
+    const observer = new MutationObserver(() => {
+      isDirty = true;
+      const unsavedBadge = document.getElementById('unsaved-criteria');
+      if (unsavedBadge) {
+        unsavedBadge.classList.remove('d-none');
+      }
+    });
+    
+    observer.observe(criteriaDataInput, {
+      attributes: true,
+      attributeFilter: ['value']
+    });
+    
+    // Also listen for input events
+    criteriaDataInput.addEventListener('input', () => {
+      isDirty = true;
+      const unsavedBadge = document.getElementById('unsaved-criteria');
+      if (unsavedBadge) {
+        unsavedBadge.classList.remove('d-none');
+      }
+    });
+  }
 });
 
 // Optional exports

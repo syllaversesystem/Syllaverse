@@ -6,32 +6,17 @@
 --}}
 
 <table class="table table-bordered mb-4 cis-table">
-  <thead class="table-light">
-    <tr>
-      <th class="text-start fw-bold">Teaching, Learning, and Assessment Strategies</th>
-    </tr>
-  </thead>
+  <colgroup>
+    <col style="width:16%">
+    <col style="width:84%">
+  </colgroup>
   <tbody>
     <tr>
+      <th class="align-top text-start cis-label">Teaching, Learning, and<br>Assessment Strategies
+        <span id="unsaved-tla_strategies" class="unsaved-pill d-none">Unsaved</span>
+      </th>
       <td>
-        <p class="mb-2" style="margin: 0;">
-          Written / Oral Exam — There will be in-class examinations. Coverage follows the topics
-          discussed for the given period and may include some topics from the preceding period
-          due to continuity of concepts.
-        </p>
-        <p class="mb-2" style="margin: 0;">
-          The course uses a structured program of hybrid learning (face-to-face and online),
-          video presentations, tutorials, laboratory activities, and student-centered learning
-          methods such as: self-directed learning using online materials; laboratory sessions to
-          gain experience and reinforce theory; individual assignments; group work; web-based
-          research; and reporting.
-        </p>
-        <p style="margin: 0;">
-          Students may be assessed using combinations of rubrics, paper/pencil tests, oral and
-          written reports and presentations, portfolio, and the following methods where applicable:
-          Midterm and Final Exams, Quizzes/Chapter Tests, Attendance/Assignments/Research Review,
-          Evaluation of Laboratory Outputs (using rubrics), and Projects.
-        </p>
+  <textarea name="tla_strategies" class="cis-textarea cis-field autosize" data-original="{{ old('tla_strategies', $local?->tla_strategies ?? '') }}" placeholder="Enter teaching, learning, and assessment strategies">{{ old('tla_strategies', $local?->tla_strategies ?? '') }}</textarea>
       </td>
     </tr>
   </tbody>
