@@ -410,8 +410,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
       try {
         const action = form.action;
-    // Ensure visible criteria inputs are serialized into their hidden canonical textareas
-    try { serializeCriteriaLists(); } catch (e) { console.warn('Failed to serialize criteria lists before save', e); }
+        // Ensure visible criteria inputs are serialized into their hidden canonical textareas
+        try { serializeCriteriaLists(); } catch (e) { console.warn('Failed to serialize criteria lists before save', e); }
+        // Also call the new criteria partial serializer if present so its hidden inputs are populated
+        try { if (window.serializeCriteriaData && typeof window.serializeCriteriaData === 'function') window.serializeCriteriaData(); } catch (e) { console.warn('Failed to run serializeCriteriaData before save', e); }
         const tokenEl = form.querySelector('input[name="_token"]');
         const token = tokenEl ? tokenEl.value : '';
 
@@ -435,6 +437,16 @@ document.addEventListener('DOMContentLoaded', () => {
             fd.append(name, el.value ?? '');
           });
 
+          // Append criteria module hidden inputs (if the partial is present)
+          try {
+            const critL = document.getElementById('criteria_lecture_input');
+            const critLab = document.getElementById('criteria_laboratory_input');
+            if (critL) fd.append('criteria_lecture', critL.value || '');
+            if (critLab) fd.append('criteria_laboratory', critLab.value || '');
+            // Append structured JSON payload for normalized storage if present
+            const critData = document.getElementById('criteria_data_input');
+            if (critData) fd.append('criteria_data', critData.value || '[]');
+          } catch (e) { console.warn('Failed to append criteria inputs to FormData', e); }
           // criteria module disabled; any existing criteria_* fields (legacy) will be included by the extraFields loop above if present
 
           // Debug: list all FormData entries so we can inspect what's being sent
@@ -506,6 +518,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.unsaved-pill').forEach(pill => {
           pill.classList.add('d-none');
         });        // show lightweight toast
+  // reset criteria original snapshot so its unsaved badge won't reappear
+  try { if (window._resetCriteriaOriginal) window._resetCriteriaOriginal(); } catch (e) { /* noop */ }
         const toast = document.getElementById('svToast');
         if (toast) {
           toast.textContent = 'Saved';
@@ -536,31 +550,44 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Partial-save buttons removed; top Save button is the single source of truth for saving
   
-  // Handle criteria data changes
-  const criteriaDataInput = document.getElementById('criteria_data');
-  if (criteriaDataInput) {
-    const observer = new MutationObserver(() => {
-      isDirty = true;
-      const unsavedBadge = document.getElementById('unsaved-criteria');
-      if (unsavedBadge) {
-        unsavedBadge.classList.remove('d-none');
-      }
+  // Criteria unsaved detection: normalize JSON snapshot and reuse bindUnsavedIndicator for consistent UX
+  (function() {
+    const criteriaDataInput = document.getElementById('criteria_data_input');
+    if (!criteriaDataInput) return;
+
+    function normalizePayload(raw) {
+      try {
+        const arr = (typeof raw === 'string') ? JSON.parse(raw || '[]') : (raw || []);
+        if (!Array.isArray(arr)) return JSON.stringify([]);
+        const norm = arr.map(s => ({
+          key: (s.key || '').toString(),
+          heading: (s.heading || '').toString(),
+          value: Array.isArray(s.value) ? s.value.map(v => ({ description: (v.description || '').toString(), percent: (v.percent || '').toString() })) : []
+        }));
+        return JSON.stringify(norm);
+      } catch (e) { return String(raw || '[]'); }
+    }
+
+    // set a normalized original snapshot so simple string comparison works like course-info fields
+    try {
+      criteriaDataInput.dataset.original = normalizePayload(criteriaDataInput.value || criteriaDataInput.dataset.original || '[]');
+    } catch (e) { /* noop */ }
+
+    // reuse the existing bindUnsavedIndicator so the badge and unsaved count behave consistently
+    try { bindUnsavedIndicator('criteria_data', 'criteria'); } catch (e) { /* noop */ }
+
+    // when the partial fires a criteriaChanged event, ensure serialization runs and the input event is dispatched
+    document.addEventListener('criteriaChanged', function(){
+      try { if (window.serializeCriteriaData) window.serializeCriteriaData(); } catch (e) { /* noop */ }
     });
-    
-    observer.observe(criteriaDataInput, {
-      attributes: true,
-      attributeFilter: ['value']
-    });
-    
-    // Also listen for input events
-    criteriaDataInput.addEventListener('input', () => {
-      isDirty = true;
-      const unsavedBadge = document.getElementById('unsaved-criteria');
-      if (unsavedBadge) {
-        unsavedBadge.classList.remove('d-none');
-      }
-    });
-  }
+
+    // helper to update the stored original after a successful save
+    window._resetCriteriaOriginal = function() {
+      try { criteriaDataInput.dataset.original = normalizePayload(criteriaDataInput.value || '[]'); } catch (e) { /* noop */ }
+      // trigger a change so bindUnsavedIndicator re-evaluates
+      try { criteriaDataInput.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) { /* noop */ }
+    };
+  })();
 });
 
 // Optional exports

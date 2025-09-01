@@ -25,6 +25,7 @@ use App\Models\Program;
 use App\Models\SyllabusCourseInfo;
 use App\Models\GeneralInformation;
 use App\Models\Sdg;
+use Illuminate\Support\Facades\Schema;
 use Barryvdh\DomPDF\Facade\Pdf;
 use PhpOffice\PhpWord\PhpWord;
 
@@ -223,9 +224,8 @@ class SyllabusController extends Controller
         $request->validate(array_merge([
             'mission' => 'required|string',
             'vision' => 'required|string',
-            'criteria_data' => 'nullable|array', // Array containing criteria data
-            'criteria_data.*.name' => 'nullable|string',
-            'criteria_data.*.percentage' => 'nullable|integer|min:0|max:100',
+            // criteria_data may arrive as a JSON string (hidden input) or as an array (AJAX)
+            'criteria_data' => 'nullable',
         ], 
         // optional ILOs payload (same shape as SyllabusIloController expects)
         $request->has('ilos') ? [
@@ -265,6 +265,22 @@ class SyllabusController extends Controller
                 'criteria_lecture','criteria_laboratory',
                 'contact_hours','contact_hours_lec','contact_hours_lab','tla_strategies'
             ]);
+
+            // If the underlying table no longer has the legacy criteria columns, don't attempt to write them
+            // (this prevents SQL errors when the columns were dropped during migration)
+            try {
+                if (! Schema::hasColumn('syllabus_course_infos', 'criteria_lecture')) {
+                    unset($data['criteria_lecture']);
+                    \Log::info('Syllabus::update removed criteria_lecture from courseInfo update because column missing');
+                }
+                if (! Schema::hasColumn('syllabus_course_infos', 'criteria_laboratory')) {
+                    unset($data['criteria_laboratory']);
+                    \Log::info('Syllabus::update removed criteria_laboratory from courseInfo update because column missing');
+                }
+            } catch (\Throwable $e) {
+                // If Schema check fails for any reason, continue without blocking save — it's a best-effort guard
+                \Log::warning('Syllabus::update schema check failed', ['error' => $e->getMessage()]);
+            }
 
             // If user updated the free-text contact_hours (e.g. "3 hours lab"), try to parse numeric lec/lab
             if (!empty($data['contact_hours'])) {
@@ -336,23 +352,43 @@ class SyllabusController extends Controller
             }
         }
 
-        // Handle criteria data - simple array format
-        if ($request->has('criteria_data') && is_array($request->input('criteria_data'))) {
-            // Delete existing criteria
+        // Handle criteria_data: expect an array of sections, each { key, heading, value: [{description, percent}] }
+        if ($request->has('criteria_data')) {
+            $incoming = $request->input('criteria_data');
+            if (!is_array($incoming)) {
+                // if it's a JSON string (from hidden input), attempt to decode
+                $decoded = json_decode((string) $incoming, true);
+                $incoming = is_array($decoded) ? $decoded : [];
+            }
+
+            // Delete existing criteria for this syllabus
             $syllabus->criteria()->delete();
-            
-            // Create new criteria from simple array
-            foreach ($request->input('criteria_data') as $index => $criteriaItem) {
-                if (!empty($criteriaItem['name']) || !empty($criteriaItem['percentage'])) {
+
+            foreach ($incoming as $index => $section) {
+                if (!is_array($section)) continue;
+                $key = $section['key'] ?? null;
+                $heading = $section['heading'] ?? null;
+                $values = $section['value'] ?? [];
+                // normalize values: expect array of {description, percent}
+                $normalized = [];
+                if (is_array($values)) {
+                    foreach ($values as $v) {
+                        if (!is_array($v)) continue;
+                        $desc = trim($v['description'] ?? '');
+                        $pct = trim($v['percent'] ?? '');
+                        if ($desc === '' && $pct === '') continue;
+                        $normalized[] = ['description' => $desc, 'percent' => $pct];
+                    }
+                }
+
+                // only persist if there's meaningful data
+                if ($key || $heading || count($normalized) > 0) {
                     SyllabusCriteria::create([
                         'syllabus_id' => $syllabus->id,
-                        'key' => 'criteria_' . $index,
-                        'heading' => 'Assessment Criteria',
-                        'section' => 'Assessment',
-                        'value' => [
-                            'name' => $criteriaItem['name'] ?? '',
-                            'percentage' => $criteriaItem['percentage'] ?? ''
-                        ],
+                        'key' => $key ?? ('section_' . $index),
+                        'heading' => $heading,
+                        'section' => $heading, // keep heading as the section label
+                        'value' => $normalized,
                         'position' => $index,
                     ]);
                 }

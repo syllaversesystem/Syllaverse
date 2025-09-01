@@ -182,13 +182,23 @@
       function markAsUnsaved(module) {
         hasUnsavedChanges = true;
         unsavedModules.add(module);
+        // If criteria module changed, reveal its unsaved pill so global counter picks it up
+        if (module === 'criteria') {
+          const critPill = document.getElementById('unsaved-criteria');
+          if (critPill) critPill.classList.remove('d-none');
+          // also ensure the top Save button is enabled immediately
+          if (saveBtn) saveBtn.disabled = false;
+        }
         updateSaveButton();
       }
       
       function markAsSaved() {
         hasUnsavedChanges = false;
         unsavedModules.clear();
-        updateSaveButton();
+  // hide criteria unsaved pill when saved
+  const critPill = document.getElementById('unsaved-criteria');
+  if (critPill) critPill.classList.add('d-none');
+  updateSaveButton();
       }
       
       function updateSaveButton() {
