@@ -5,6 +5,13 @@
 -------------------------------------------------------------------------------
 --}}
 
+{{-- 
+-------------------------------------------------------------------------------
+* File: resources/views/faculty/syllabus/partials/cdio.blade.php
+* Description: CDIO Mapping — placeholder CIS-style table (Blade only)
+-------------------------------------------------------------------------------
+--}}
+
 <table class="table table-bordered mb-4 cis-table">
   <thead class="table-light">
     <tr>
@@ -28,3 +35,6 @@
     @endfor
   </tbody>
 </table>
+<style>
+  .cis-input { font-weight: 400; font-size: 0.93rem; line-height: 1.15; font-family: inherit; }
+</style>

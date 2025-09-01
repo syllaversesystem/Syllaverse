@@ -136,6 +136,29 @@ textarea.form-control:focus {
   vertical-align: top;
 }
 
+/* Make Course Info inputs and displayed data inherit the CIS typography explicitly */
+.cis-table,
+.cis-table th,
+.cis-table td {
+  font-family: Georgia, serif !important;
+  font-size: 13px !important;
+  line-height: 1.4 !important;
+  color: #111 !important;
+}
+
+.cis-table input,
+.cis-table textarea,
+.cis-table .cis-input,
+.cis-table .cis-field,
+.cis-table .file-name,
+.cis-table .criteria-desc,
+.cis-table .criteria-percent {
+  font-family: inherit !important;
+  font-size: inherit !important;
+  line-height: inherit !important;
+  color: inherit !important;
+}
+
 .cis-label {
   font-weight: 700;
   color: #111;
@@ -264,6 +287,15 @@ textarea.form-control:focus {
   border: 1px solid #ffec99;
 }
 
+/* Place unsaved pills inside header cells to avoid overlap with content */
+.cis-table th.cis-label { position: relative; }
+.cis-table th.cis-label .unsaved-pill {
+  position: static; /* let it flow inside the th */
+  float: right;
+  margin-left: 0;
+  margin-top: 2px;
+}
+
 @media print {
   .unsaved-pill { display: none !important; }
 }
@@ -357,3 +389,125 @@ textarea.form-control.autosize,
 input[type=number].cis-number::-webkit-outer-spin-button,
 input[type=number].cis-number::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 input[type=number].cis-number { appearance: textfield; -moz-appearance: textfield; }
+
+/* ===== Criteria for Assessment UI (moved from inline partial styles) ===== */
+.criteria-box { border: none; padding: 8px; border-radius: 4px; }
+
+/* Heading input used for Lecture / Laboratory — visually an underline-only input */
+.criteria-heading-input {
+  border: none !important;
+  background: transparent !important;
+  padding: 6px 4px 6px 0 !important;
+  margin: 0 !important;
+  box-shadow: none !important;
+  display: block;
+  width: 100%;
+  border-bottom: 1px solid rgba(0,0,0,0.06) !important;
+  font-weight: 400; /* normal weight */
+  font-size: 13px; /* align with Mission/Vision */
+  font-family: Georgia, serif;
+  line-height: 1.4;
+}
+.criteria-heading-input::placeholder { color: rgba(0,0,0,0.25); font-weight:600; }
+
+.criteria-list { display:flex; flex-direction:column; gap:6px; padding:6px 4px; min-height:64px; }
+.criteria-item { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
+.criteria-desc { flex:1 1 auto; color:inherit; }
+.criteria-percent { flex:0 0 90px; text-align:right; color:rgba(0,0,0,0.65); }
+.criteria-item.sub-item { padding-left: 18px; border-left: 2px solid rgba(0,0,0,0.04); }
+.criteria-empty { color:rgba(0,0,0,0.35); font-style:italic; }
+
+/* keep behavior consistent when autosize or focus changes occur */
+.criteria-heading-input:focus { outline: none; box-shadow: none; background-color: #fffbe6; }
+
+/* Single-line input used for criteria items (underlined) */
+.criteria-input {
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+  background: transparent;
+  padding: 6px 4px 6px 0;
+  font-family: Georgia, serif;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #000;
+}
+.criteria-input::placeholder { color: rgba(0,0,0,0.35); }
+.criteria-item { display:flex; align-items:center; gap:12px; padding:4px 0; }
+.criteria-item .criteria-input { flex: 1 1 auto; }
+.criteria-item.sub-item { padding-left: 18px; }
+
+/* Two-field structured inputs (description + percent) */
+.criteria-desc-input {
+  flex: 1 1 auto;
+  border: none;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+  background: transparent;
+  padding: 6px 4px 6px 0;
+  font-family: Georgia, serif;
+  font-size: 13px;
+}
+.criteria-desc-input::placeholder { color: rgba(0,0,0,0.35); }
+.criteria-percent-input {
+  flex: 0 0 72px;
+  text-align: right;
+  border: none;
+  background: transparent;
+  padding: 6px 4px 6px 0;
+  font-family: Georgia, serif;
+  font-size: 13px;
+}
+.criteria-percent-input::placeholder { color: rgba(0,0,0,0.45); }
+
+/* Remove underline/bottom-border from criteria inputs when requested */
+.criteria-heading-input,
+.criteria-input,
+.criteria-desc-input,
+.criteria-percent-input {
+  border-bottom: none !important;
+  box-shadow: none !important;
+}
+
+/* Remove rectangular border/outline around inputs and on focus */
+.criteria-item input,
+.criteria-heading-input,
+.criteria-input,
+.criteria-desc-input,
+.criteria-percent-input {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+.criteria-item input:focus,
+.criteria-heading-input:focus,
+.criteria-desc-input:focus,
+.criteria-percent-input:focus,
+.criteria-input:focus {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+/* Subtle, accessible focus ring for keyboard users (visible but unobtrusive) */
+.criteria-desc-input:focus,
+.criteria-percent-input:focus,
+.criteria-heading-input:focus {
+  background-color: #fffbe6;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.06);
+  border-radius: 4px;
+}
+
+/* Utility for screen-reader-only content */
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}

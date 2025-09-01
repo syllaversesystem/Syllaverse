@@ -83,4 +83,59 @@ class Syllabus extends Model
             ->withPivot('id', 'title', 'description')
             ->withTimestamps();
     }
+
+    /**
+     * Sync criteria fields from a request-like array.
+     * Accepts keys that start with 'criteria_' (e.g. criteria_lecture)
+     * and saves/updates SyllabusCriterion rows.
+     *
+     * @param  array  $data
+     * @return void
+     */
+    public function syncCriteriaFromRequest(array $data)
+    {
+        // lazy-load model to avoid circular dependencies at file top
+        $criterionModel = \App\Models\SyllabusCriterion::class;
+
+        $toKeep = [];
+
+        foreach ($data as $k => $v) {
+            if (strpos($k, 'criteria_') !== 0) continue;
+
+            $key = substr($k, strlen('criteria_'));
+            $headingKey = "criteria_{$key}_title";
+            $heading = isset($data[$headingKey]) ? trim((string) $data[$headingKey]) : null;
+
+            $values = null;
+            if (is_array($v)) {
+                $values = array_values(array_filter(array_map('trim', $v)));
+            } else {
+                $txt = trim((string) $v);
+                if ($txt === '') {
+                    $values = [];
+                } else {
+                    // split on newlines
+                    $lines = preg_split('/\r?\n/', $txt);
+                    $values = array_values(array_filter(array_map('trim', $lines)));
+                }
+            }
+
+            $record = $criterionModel::firstOrNew([
+                'syllabus_id' => $this->id,
+                'key' => $key,
+            ]);
+
+            $record->heading = $heading;
+            $record->value = $values;
+            $record->position = 0;
+            $record->save();
+
+            $toKeep[] = $record->id;
+        }
+
+        // delete any criteria rows that belong to this syllabus but were not in payload
+        $criterionModel::where('syllabus_id', $this->id)
+            ->whereNotIn('id', $toKeep)
+            ->delete();
+    }
 }

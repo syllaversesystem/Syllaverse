@@ -10,7 +10,7 @@ Description: Printable PDF layout for exporting a syllabus (Syllaverse – CIS s
   <style>
     body {
       font-family: Georgia, serif;
-      font-size: 12px;
+  font-size: 13px;
       line-height: 1.6;
       color: #000;
     }
@@ -47,6 +47,7 @@ Description: Printable PDF layout for exporting a syllabus (Syllaverse – CIS s
       border: 1px solid #999;
       padding: 6px;
       vertical-align: top;
+  font-size: 13px !important; /* ensure Course Info table text matches mission/vision */
     }
     .table th {
       text-align: left;
@@ -179,7 +180,7 @@ Description: Printable PDF layout for exporting a syllabus (Syllaverse – CIS s
               <col style="width:25%">
             </colgroup>
             <tr>
-              <td style="padding:0; vertical-align:top; font-size:11px; color:#555; white-space:pre-line;">{{ $designation }}</td>
+              <td style="padding:0; vertical-align:top; font-size:13px; color:#555; white-space:pre-line;">{{ $designation }}</td>
               <td style="padding:0; border-left:1px solid #999; text-align:center; white-space:nowrap; vertical-align:top;">&nbsp;</td>
             </tr>
           </table>
@@ -195,7 +196,7 @@ Description: Printable PDF layout for exporting a syllabus (Syllaverse – CIS s
               <col style="width:25%">
             </colgroup>
             <tr>
-              <td style="padding:0; font-size:11px; color:#555;">{{ $faculty->email ?? '' }}</td>
+              <td style="padding:0; font-size:13px; color:#555;">{{ $faculty->email ?? '' }}</td>
               <td style="padding:0; border-left:1px solid #999;">&nbsp;</td>
             </tr>
           </table>

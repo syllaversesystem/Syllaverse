@@ -6,6 +6,10 @@
 --}}
 
 <table class="table table-bordered mb-4 cis-table">
+  <style>
+    /* Ensure cis-input typography matches syllabus module */
+    .cis-input { font-weight: 400; font-size: 0.93rem; line-height: 1.15; font-family: inherit; }
+  </style>
   <thead class="table-light">
     <tr>
       <th colspan="2" class="text-start fw-bold">Course Policies</th>

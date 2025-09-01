@@ -149,6 +149,9 @@ class SyllabusController extends Controller
             // store the human-readable lec/lab text derived from numeric values or parser
             'contact_hours_lec' => $lec ? (string) ($lec . ' hours lecture') : null,
             'contact_hours_lab' => $lab ? (string) ($lab . ' hours laboratory') : null,
+            // criteria fields
+            'criteria_lecture' => $course->criteria_lecture ?? null,
+            'criteria_laboratory' => $course->criteria_laboratory ?? null,
         ]);
 
         $masterSOs = StudentOutcome::orderBy('position')->get();
@@ -237,13 +240,13 @@ class SyllabusController extends Controller
             'course_title','course_code','course_category','course_prerequisites','semester','year_level',
             'credit_hours_text','instructor_name','employee_code','reference_cmo','instructor_designation',
             'date_prepared','instructor_email','revision_no','academic_year','revision_date','course_description',
-            'contact_hours','contact_hours_lec','contact_hours_lab'
+            'contact_hours','contact_hours_lec','contact_hours_lab','criteria_lecture','criteria_laboratory'
         ])) {
             $data = $request->only([
                 'course_title','course_code','course_category','course_prerequisites','semester','year_level',
                 'credit_hours_text','instructor_name','employee_code','reference_cmo','instructor_designation',
                 'date_prepared','instructor_email','revision_no','academic_year','revision_date','course_description',
-                'contact_hours','contact_hours_lec','contact_hours_lab'
+                'contact_hours','contact_hours_lec','contact_hours_lab','criteria_lecture','criteria_laboratory'
             ]);
 
             // If user updated the free-text contact_hours (e.g. "3 hours lab"), try to parse numeric lec/lab
@@ -314,6 +317,14 @@ class SyllabusController extends Controller
                     ]
                 );
             }
+        }
+
+        // Persist any criteria_* fields into the syllabus_criteria table
+        try {
+            $syllabus->syncCriteriaFromRequest($request->all());
+        } catch (\Throwable $e) {
+            // do not block the update flow for non-critical persistence errors; log for later inspection
+            \Log::error('Failed to sync syllabus criteria: ' . $e->getMessage());
         }
 
         return redirect()->route('faculty.syllabi.show', $syllabus->id)

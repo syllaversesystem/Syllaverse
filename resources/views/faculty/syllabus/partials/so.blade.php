@@ -13,6 +13,9 @@
   @method('PUT')
 
   <table class="table table-bordered mb-4" style="font-family: Georgia, serif; font-size: 13px; line-height: 1.4;">
+    <style>
+      .cis-input { font-weight: 400; font-size: 0.93rem; line-height: 1.15; font-family: inherit; }
+    </style>
     <colgroup>
       <col style="width: 10%;">
       <col style="width: 5%;">

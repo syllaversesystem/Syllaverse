@@ -27,7 +27,10 @@
       <th style="width:3%;">A</th>
     </tr>
   </thead>
-  <tbody>
+    <style>
+      .cis-input { font-weight: 400; font-size: 0.93rem; line-height: 1.15; font-family: inherit; }
+    </style>
+    <tbody>
     <tr class="table-light"><th colspan="{{ 6 + count($iloCols) + 4 }}" class="text-start">LEC — LECTURE</th></tr>
     @for ($i = 1; $i <= 3; $i++)
       <tr>

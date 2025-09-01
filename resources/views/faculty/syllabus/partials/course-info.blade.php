@@ -69,6 +69,21 @@
   $revisionNo = $local?->revision_no ?? $syllabus->revision_no ?? '-';
   $revisionDate = $local?->revision_date ?? optional($syllabus->revision_date)->format('F d, Y') ?? '-';
   $courseDescription = trim((string) ($local?->course_description ?? $course->description ?? ''));
+  // compute criteria percentage totals for display in headers (e.g., "Lecture (40%)")
+  $lecturePercentSum = 0;
+  $labPercentSum = 0;
+  if (!empty(trim((string) ($local?->criteria_lecture ?? '')))) {
+    $lines = preg_split('/\r?\n/', trim((string) $local?->criteria_lecture));
+    foreach ($lines as $l) {
+      if (preg_match('/(\d+)%/', $l, $m)) { $lecturePercentSum += (int) $m[1]; }
+    }
+  }
+  if (!empty(trim((string) ($local?->criteria_laboratory ?? '')))) {
+    $lines = preg_split('/\r?\n/', trim((string) $local?->criteria_laboratory));
+    foreach ($lines as $l) {
+      if (preg_match('/(\d+)%/', $l, $m)) { $labPercentSum += (int) $m[1]; }
+    }
+  }
 @endphp
 
 <table class="table table-bordered mb-4 cis-table">
@@ -79,6 +94,7 @@
     <col style="width: 34%">
   </colgroup>
   <tbody>
+  <!-- styles moved to resources/css/faculty/syllabus.css (.cis-input and criteria rules) -->
     <tr>
       <th class="align-top text-start cis-label">Course Title
         <span id="unsaved-course_title" class="unsaved-pill d-none">Unsaved</span>
@@ -295,7 +311,7 @@
     <span id="unsaved-contact_hours" class="unsaved-pill d-none">Unsaved</span>
   </th>
   <td colspan="3">
-    <div class="d-flex flex-column gap-2">
+    <div class="contact-hours">
       <div>
         <label class="visually-hidden" for="contact_hours_lec">Lecture Hours</label>
         <input id="contact_hours_lec" type="text" name="contact_hours_lec" class="cis-input w-100"
@@ -304,7 +320,7 @@
                placeholder="e.g., 3 hours lecture">
       </div>
 
-      <div>
+      <div style="margin-top:6px;">
         <label class="visually-hidden" for="contact_hours_lab">Lab Hours</label>
         <input id="contact_hours_lab" type="text" name="contact_hours_lab" class="cis-input w-100"
                value="{{ old('contact_hours_lab', $local?->contact_hours_lab ?? ($lab ? ($lab . ' hours laboratory') : '')) }}"
@@ -318,3 +334,5 @@
 </td>
 </tr>
 {{-- contact hours are now shown as lec/lab columns with combined text; editing still available via the text field --}}
+
+  {{-- Criteria for Assessment moved to dedicated partial: resources/views/faculty/syllabus/partials/criteria-assessment.blade.php --}}

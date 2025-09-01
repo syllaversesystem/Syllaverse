@@ -16,7 +16,8 @@ class SyllabusCourseInfo extends Model
         'semester', 'year_level', 'credit_hours_text', 'instructor_name', 'employee_code',
         'reference_cmo', 'instructor_designation', 'date_prepared', 'instructor_email',
     'revision_no', 'academic_year', 'revision_date', 'course_description',
-    'contact_hours', 'contact_hours_lec', 'contact_hours_lab'
+    'contact_hours', 'contact_hours_lec', 'contact_hours_lab',
+    // Criteria are stored in the dedicated syllabus_criteria table
     ];
 
     public function syllabus()
