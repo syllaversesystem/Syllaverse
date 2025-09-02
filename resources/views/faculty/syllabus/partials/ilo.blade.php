@@ -58,7 +58,9 @@
     </colgroup>
     <tbody>
       <tr>
-        <th id="ilo-left-title" class="align-top text-start cis-label">Intended Learning Outcomes (ILO)</th>
+        <th id="ilo-left-title" class="align-top text-start cis-label">Intended Learning Outcomes (ILO)
+          <span id="unsaved-ilos" class="unsaved-pill d-none">Unsaved</span>
+        </th>
         <td id="ilo-right-wrap">
           <table class="table mb-0" style="font-family: Georgia, serif; font-size: 13px; line-height: 1.4; border: none;">
             <colgroup>
@@ -86,6 +88,7 @@
                         <textarea
                           name="ilos[]"
                           class="form-control cis-textarea autosize flex-grow-1"
+                          data-original="{{ old("ilos.$index", $ilo->description) }}"
                           required>{{ old("ilos.$index", $ilo->description) }}</textarea>
                         <input type="hidden" name="code[]" value="{{ $ilo->code }}">
                         <button type="button" class="btn btn-sm btn-outline-danger btn-delete-ilo ms-2" title="Delete ILO">
@@ -109,9 +112,7 @@
 
   {{-- ░░░ START: ILO Action Buttons ░░░ --}}
   <div class="d-flex gap-2">
-    <button type="button" class="btn btn-outline-secondary btn-sm" id="add-ilo-row">➕ Add Row</button>
-    <button type="button" class="btn btn-outline-danger btn-sm" id="save-syllabus-ilo-order">Save Order</button>
-    <button type="submit" class="btn btn-danger btn-sm ms-auto">💾 Save All</button>
+    {{-- Add Row, Save Order, and local Save All buttons removed; saving is handled by the main toolbar Save button. --}}
   </div>
   {{-- ░░░ END: ILO Action Buttons ░░░ --}}
 </form>

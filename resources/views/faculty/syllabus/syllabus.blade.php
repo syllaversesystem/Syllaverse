@@ -156,19 +156,29 @@
     const saveBtn = document.getElementById('syllabusSaveBtn');
     const unsavedCountBadge = document.getElementById('unsaved-count-badge');
     
-    if (syllabusForm && saveBtn) {
+  // small guard to prevent programmatic updates right after save from re-marking the form
+  // Use the central `_syllabusSaveLock` used by `resources/js/faculty/syllabus.js`
+  window._syllabusSaveLock = window._syllabusSaveLock || false;
+
+  if (syllabusForm && saveBtn) {
       // Track unsaved changes
       let hasUnsavedChanges = false;
       let unsavedModules = new Set();
       
       // Listen for unsaved changes from various modules
       document.addEventListener('change', function(e) {
+  // Ignore synthetic/programmatic events while a save lock is active
+  if (window._syllabusSaveLock) return;
+        if (!e.isTrusted) return;
         if (e.target.closest('#syllabusForm')) {
           markAsUnsaved('general');
         }
       });
-      
+
       document.addEventListener('input', function(e) {
+  // Ignore synthetic/programmatic events while a save lock is active
+  if (window._syllabusSaveLock) return;
+        if (!e.isTrusted) return;
         if (e.target.closest('#syllabusForm')) {
           markAsUnsaved('general');
         }
@@ -193,12 +203,32 @@
       }
       
       function markAsSaved() {
+  // set save lock while we reconcile originals (use central lock)
+  try { window._syllabusSaveLock = true; } catch (e) { /* noop */ }
+
+        // Update original snapshot for all fields inside the form
+        try {
+          const fields = syllabusForm.querySelectorAll('input, textarea, select');
+          fields.forEach((f) => {
+            if (f.type === 'checkbox' || f.type === 'radio') {
+              f.dataset.original = f.checked ? '1' : '0';
+            } else {
+              f.dataset.original = f.value ?? '';
+            }
+          });
+        } catch (e) { /* noop */ }
+
+        // hide unsaved pills and reset counters
         hasUnsavedChanges = false;
         unsavedModules.clear();
-  // hide criteria unsaved pill when saved
-  const critPill = document.getElementById('unsaved-criteria');
-  if (critPill) critPill.classList.add('d-none');
-  updateSaveButton();
+        document.querySelectorAll('.unsaved-pill').forEach(p => p.classList.add('d-none'));
+        // hide criteria unsaved pill when saved
+        const critPill = document.getElementById('unsaved-criteria');
+        if (critPill) critPill.classList.add('d-none');
+        updateSaveButton();
+
+  // release save lock after a short debounce so subsequent programmatic updates don't re-mark
+  setTimeout(() => { try { window._syllabusSaveLock = false; } catch (e) { /* noop */ } }, 600);
       }
       
       function updateSaveButton() {
@@ -209,35 +239,62 @@
             unsavedCountBadge.textContent = unsavedModules.size;
             unsavedCountBadge.style.display = 'inline-block';
           }
+            // enable Save when there are unsaved changes
+            try { saveBtn.disabled = false; } catch (e) { /* noop */ }
         } else {
           saveBtn.classList.remove('btn-warning');
           saveBtn.classList.add('btn-danger');
           if (unsavedCountBadge) {
             unsavedCountBadge.style.display = 'none';
           }
+            // disable Save when there are no unsaved changes
+            try { saveBtn.disabled = true; } catch (e) { /* noop */ }
         }
       }
+
+      // expose helpers for other modules / debug
+      try {
+        window.markAsSaved = markAsSaved;
+        window.markAsUnsaved = markAsUnsaved;
+        window.updateSaveButton = updateSaveButton;
+      } catch (e) { /* noop */ }
       
       // Handle form submission
       syllabusForm.addEventListener('submit', function(e) {
+        // If another handler (like the AJAX Save click) already prevented submission,
+        // assume an async save is in progress and avoid toggling the UI here.
+        if (e.defaultPrevented) return;
+
         // Ensure all modules serialize their data before submission
-        
         // Trigger criteria serialization if criteria module is loaded
         if (window.serializeCriteriaData && typeof window.serializeCriteriaData === 'function') {
           window.serializeCriteriaData();
         }
-        
-        // Show saving state
-        const originalText = saveBtn.innerHTML;
-        saveBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> <span class="ms-1">Saving...</span>';
-        saveBtn.disabled = true;
-        
+
+  // Show saving state (this path is only used when the form submits normally)
+  console.debug('submit listener: delegating save UI to setSyllabusSaveState', new Date(), { defaultPrevented: e.defaultPrevented });
+  try { if (window.setSyllabusSaveState) window.setSyllabusSaveState('saving'); } catch (e) { /* noop */ }
+
         // Note: Form will submit normally, page will reload, so we don't need to reset button state
       });
+
+        // When the main JS finishes saving, it dispatches 'syllabusSaved' — ensure we clear UI state
+        window.addEventListener('syllabusSaved', function(){
+          try {
+            // rely on the central save lock; markAsSaved will set/clear the lock itself
+            markAsSaved();
+          } catch (e) { console.warn('syllabusSaved handler failed', e); }
+        });
       
       // Warning for unsaved changes when leaving page
       window.addEventListener('beforeunload', function(e) {
         if (hasUnsavedChanges) {
+            // if there are no unsaved changes, do nothing and keep the button disabled
+            if (!hasUnsavedChanges) {
+              ev.preventDefault();
+              ev.stopPropagation();
+              return;
+            }
           e.preventDefault();
           e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
           return e.returnValue;

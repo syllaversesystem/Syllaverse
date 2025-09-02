@@ -10,14 +10,60 @@
 // -----------------------------------------------------------------------------
 
 let isDirty = false;
+// short-lived lock to prevent spurious dirty-marking during or immediately after save
+window._syllabusSaveLock = false;
+// current UI state for save button: 'idle'|'dirty'|'saving'|'saved'
+let _sv_state = 'idle';
+
+function setSyllabusSaveState(state, originalHtml = null) {
+  try {
+    const saveBtn = document.getElementById('syllabusSaveBtn');
+    const unsavedCountBadge = document.getElementById('unsaved-count-badge');
+    if (!saveBtn) return;
+    _sv_state = state;
+    switch(state) {
+      case 'saving':
+        saveBtn.disabled = true;
+        saveBtn.classList.remove('btn-danger'); saveBtn.classList.add('btn-warning');
+        saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
+        break;
+      case 'saved':
+        saveBtn.disabled = true;
+        saveBtn.classList.remove('btn-warning'); saveBtn.classList.add('btn-success');
+        saveBtn.innerHTML = '<i class="bi bi-check-lg"></i> Saved';
+        // short visual then revert to idle (disabled)
+        setTimeout(() => { setSyllabusSaveState('idle', originalHtml); }, 900);
+        break;
+      case 'dirty':
+        saveBtn.disabled = false;
+        saveBtn.classList.remove('btn-danger'); saveBtn.classList.add('btn-warning');
+        if (unsavedCountBadge) unsavedCountBadge.style.display = '';
+        break;
+      case 'idle':
+      default:
+        saveBtn.disabled = true;
+        saveBtn.classList.remove('btn-success','btn-warning'); saveBtn.classList.add('btn-danger');
+        if (originalHtml) saveBtn.innerHTML = originalHtml;
+        if (unsavedCountBadge) unsavedCountBadge.style.display = 'none';
+        break;
+    }
+  } catch (e) { /* noop */ }
+}
+// expose helper globally
+try { window.setSyllabusSaveState = setSyllabusSaveState; } catch (e) { /* noop */ }
 
 function trackFormChanges(formSelector = '#syllabusForm') {
   const form = document.querySelector(formSelector);
   if (!form) return;
   const fields = form.querySelectorAll('textarea, input, select');
   fields.forEach(field => {
-    field.addEventListener('input', () => (isDirty = true));
-    field.addEventListener('change', () => (isDirty = true));
+    const handler = (e) => {
+      // ignore programmatic events
+      if (e && e.isTrusted === false) return;
+      isDirty = true;
+    };
+    field.addEventListener('input', handler);
+    field.addEventListener('change', handler);
   });
   form.addEventListener('submit', () => { isDirty = false; });
 }
@@ -52,16 +98,47 @@ function bindUnsavedIndicator(fieldName, badgeId = null) {
     const changed = (el.value ?? '') !== original;
     badge.classList.toggle('d-none', !changed);
     if (changed) isDirty = true;
-  // highlight newly added/edited fields
-  el.classList.toggle('sv-new-highlight', changed && (el.value ?? '') !== '');
-  updateUnsavedCount();
+    // highlight newly added/edited fields
+    el.classList.toggle('sv-new-highlight', changed && (el.value ?? '') !== '');
+    updateUnsavedCount();
   };
   toggle();
-  el.addEventListener('input', toggle);
-  el.addEventListener('change', toggle);
+  const handler = (e) => {
+    // ignore synthetic/programmatic events
+    if (e && e.isTrusted === false) {
+      try { console.debug('bindUnsavedIndicator: ignored synthetic event for', fieldName); } catch (err) { /* noop */ }
+      return;
+    }
+    try { console.debug('bindUnsavedIndicator: event for', fieldName, 'trusted=', e ? !!e.isTrusted : 'no-event'); } catch (err) { /* noop */ }
+    toggle();
+  };
+  el.addEventListener('input', handler);
+  el.addEventListener('change', handler);
 
   const form = document.getElementById('syllabusForm');
   if (form) form.addEventListener('submit', () => badge.classList.add('d-none'));
+}
+
+/** Mark a specific unsaved pill by id and toggle dirty state */
+function markDirty(badgeId) {
+  // If a save lock is active, ignore external requests to mark dirty to avoid races
+  if (window._syllabusSaveLock) {
+    try { console.debug('markDirty ignored due to _syllabusSaveLock', badgeId); } catch (e) { /* noop */ }
+    return;
+  }
+  const badge = document.getElementById(badgeId);
+  if (!badge) {
+    try { console.debug('markDirty: badge not found', badgeId); console.trace(); } catch (e) { /* noop */ }
+    return;
+  }
+  badge.classList.remove('d-none');
+  isDirty = true;
+  updateUnsavedCount();
+  // Debug: log a lightweight stack trace so we can identify who invoked markDirty
+  try {
+    console.debug('markDirty called for', badgeId, 'at', new Date());
+    console.trace();
+  } catch (e) { /* noop */ }
 }
 
 /** Update the unsaved-count badge in the toolbar based on visible .unsaved-pill elements */
@@ -404,9 +481,19 @@ document.addEventListener('DOMContentLoaded', () => {
       const visionEl = document.querySelector('[name="vision"]');
       if (!missionEl || !visionEl) return;
 
-      const originalHtml = saveBtn.innerHTML;
-      saveBtn.disabled = true;
-      saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
+      // --- New: attempt to save ILOs (order + content) before the main minimal save ---
+      try {
+        if (window.saveIlo && typeof window.saveIlo === 'function') {
+          await window.saveIlo();
+        }
+      } catch (iloErr) {
+        console.warn('Failed to save ILO data before syllabus save:', iloErr);
+        // proceed with main save despite ILO save failure
+      }
+
+  const originalHtml = saveBtn.innerHTML;
+  console.debug('save click handler: entering, will set Saving... UI', new Date());
+  setSyllabusSaveState('saving');
 
       try {
         const action = form.action;
@@ -513,7 +600,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // criteria module disabled: no post-save criteria handling
 
-        isDirty = false;
+  isDirty = false;
+  // Set a short lock so other handlers don't immediately re-mark the form dirty
+  try { window._syllabusSaveLock = true; } catch (e) { /* noop */ }
+  // Notify other scripts that a save completed so they can clear their UI state
+  try { window.dispatchEvent(new CustomEvent('syllabusSaved')); } catch (e) { /* noop */ }
+  // Clear the lock shortly after so normal editing resumes
+  setTimeout(() => { try { window._syllabusSaveLock = false; } catch (e) { /* noop */ } }, 600);
         // Hide all unsaved indicators when form is submitted successfully
         document.querySelectorAll('.unsaved-pill').forEach(pill => {
           pill.classList.add('d-none');
@@ -527,13 +620,20 @@ document.addEventListener('DOMContentLoaded', () => {
           setTimeout(() => toast.classList.remove('show'), 1600);
         }
 
-        // brief success feedback on button
-        saveBtn.classList.add('btn-success');
-        saveBtn.innerHTML = '<i class="bi bi-check-lg"></i> Saved';
+  console.debug('save click handler: save succeeded, restoring button UI', new Date());
+  // brief success feedback on button
+  setSyllabusSaveState('saved', originalHtml);
+        // Defensive watchdog: if some other handler accidentally sets the button to 'Saving...' after
+        // we've restored it, force it back to the original state after a short delay.
         setTimeout(() => {
-          saveBtn.classList.remove('btn-success');
-          saveBtn.innerHTML = originalHtml;
-        }, 900);
+          try {
+            const txt = (saveBtn && saveBtn.innerText) ? saveBtn.innerText.toLowerCase() : '';
+            if (txt.includes('saving')) {
+              saveBtn.innerHTML = originalHtml;
+              saveBtn.disabled = false;
+            }
+          } catch (e) { /* noop */ }
+        }, 2500);
 
       } catch (err) {
   console.error('Syllabus save failed:', err);
@@ -591,4 +691,4 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Optional exports
-export { trackFormChanges, setupExitConfirmation, bindUnsavedIndicator, recalcCreditHours, initAutosize };
+export { trackFormChanges, setupExitConfirmation, bindUnsavedIndicator, recalcCreditHours, initAutosize, markDirty, updateUnsavedCount };
