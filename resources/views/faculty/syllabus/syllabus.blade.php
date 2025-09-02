@@ -18,6 +18,11 @@
     'resources/js/faculty/syllabus-textbook.js',
   ])
 
+  <style>
+    /* Main container to group primary syllabus modules visually */
+    .syllabus-main-container { display:block; border: 1px solid transparent; padding: 0; margin-bottom: 1rem; }
+  </style>
+
   {{-- Global JS Variables --}}
   <script>
     const syllabusExitUrl = @json(route('faculty.syllabi.index'));
@@ -80,14 +85,15 @@
   {{-- Lightweight toast for save feedback (hidden by default) --}}
   <div id="svToast" class="sv-toast" role="status" aria-live="polite">Saved</div>
 
-      {{-- ===== Section 1: Header Information =====
+  {{-- ===== Section 1: Header Information =====
            Includes: Vision, Mission, Course Title, Code, Category,
            Instructor, Semester/Year, Credit Hours, Reference CMO,
            Period of Study (via partials below).
       --}}
-      @includeIf('faculty.syllabus.partials.header')
-      @includeIf('faculty.syllabus.partials.mission-vision')
-      @includeIf('faculty.syllabus.partials.course-info')
+  <div class="syllabus-main-container">
+  @includeIf('faculty.syllabus.partials.header')
+  @includeIf('faculty.syllabus.partials.mission-vision')
+  @includeIf('faculty.syllabus.partials.course-info')
 
       {{-- ===== Section 2: Course Rationale and Description =====
            Covered inside course-info partial.
@@ -108,11 +114,12 @@
     </form>
     {{-- ===== END: Main Syllabus Form ===== --}}
 
-    {{-- ===== Section 6: Intended Learning Outcomes (ILO) ===== --}}
-    @includeIf('faculty.syllabus.partials.ilo')
+  {{-- ===== Section 6: Intended Learning Outcomes (ILO) ===== --}}
+  @includeIf('faculty.syllabus.partials.ilo')
 
-    {{-- ===== Section 7: Assessment Tasks Distribution ===== --}}
-    @includeIf('faculty.syllabus.partials.assessment-tasks-distribution')
+  {{-- ===== Section 7: Assessment Tasks Distribution ===== --}}
+  @includeIf('faculty.syllabus.partials.assessment-tasks-distribution')
+  </div>
 
     {{-- ===== Section 8: Textbook and References ===== --}}
     @includeIf('faculty.syllabus.partials.textbook-upload')
