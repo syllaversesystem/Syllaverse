@@ -217,6 +217,8 @@ class SyllabusController extends Controller
             \Log::info('Syllabus::update criteria_data', ['criteria_data' => $request->input('criteria_data')]);
             \Log::info('Syllabus::update criteria_lecture', ['criteria_lecture' => $request->input('criteria_lecture')]);
             \Log::info('Syllabus::update criteria_laboratory', ['criteria_laboratory' => $request->input('criteria_laboratory')]);
+            // Debug: log full payload to help diagnose missing fields from the client
+            try { \Log::debug('Syllabus::update full_payload', $request->all()); } catch (\Throwable $__e) { /* noop */ }
         } catch (\Throwable $e) {
             // ignore logging failures
         }

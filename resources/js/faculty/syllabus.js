@@ -487,8 +487,12 @@ document.addEventListener('DOMContentLoaded', () => {
           await window.saveIlo();
         }
       } catch (iloErr) {
-        console.warn('Failed to save ILO data before syllabus save:', iloErr);
-        // proceed with main save despite ILO save failure
+        console.error('Failed to save ILO data before syllabus save:', iloErr);
+        // Abort the main save so the user can retry and we don't leave inconsistent state
+        alert('Failed to save ILOs: ' + (iloErr && iloErr.message ? iloErr.message : 'See console for details.'));
+        // restore button UI
+        try { saveBtn.disabled = false; saveBtn.innerHTML = originalHtml; } catch (e) { /* noop */ }
+        return; // stop the save flow
       }
 
   const originalHtml = saveBtn.innerHTML;

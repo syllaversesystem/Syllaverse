@@ -27,11 +27,18 @@ class SyllabusIloController extends Controller
     {
         $syllabus = Syllabus::where('faculty_id', Auth::id())->findOrFail($syllabusId);
 
+        // Debug: log incoming payload to help diagnose why ILOs aren't being persisted
+        try {
+            \Log::info('SyllabusIloController::update called', ['syllabus_id' => $syllabusId, 'keys' => array_keys($request->all())]);
+            try { \Log::debug('SyllabusIloController::update ilos', $request->input('ilos') ?? []); } catch (\Throwable $__e) { /* noop */ }
+        } catch (\Throwable $__e) { /* ignore logging errors */ }
+
         $request->validate([
             'ilos' => 'required|array',
             'ilos.*.id' => 'nullable|integer|exists:syllabus_ilos,id',
             'ilos.*.code' => 'required|string',
-            'ilos.*.description' => 'required|string|max:1000',
+            // allow nullable description so empty/placeholder ILO rows can be created client-side
+            'ilos.*.description' => 'nullable|string|max:1000',
             'ilos.*.position' => 'required|integer',
         ]);
 
@@ -42,20 +49,35 @@ class SyllabusIloController extends Controller
         $toDelete = $existingIds->diff($incomingIds);
         SyllabusIlo::whereIn('id', $toDelete)->delete();
 
-        // 🔄 Upsert ILOs based on submitted payload
-        foreach ($request->ilos as $iloData) {
-            SyllabusIlo::updateOrCreate(
-                ['id' => $iloData['id'] ?? null],
-                [
+        // 🔄 Upsert ILOs based on submitted payload using explicit create/update to avoid
+        // cases where updateOrCreate receives id=null which can be ambiguous.
+        $createdIds = [];
+        
+        
+        
+        
+        \DB::transaction(function() use ($request, $syllabus, &$createdIds) {
+            foreach ($request->ilos as $iloData) {
+                $attrs = [
                     'syllabus_id' => $syllabus->id,
                     'code' => $iloData['code'],
-                    'description' => $iloData['description'],
+                    'description' => $iloData['description'] ?? '',
                     'position' => $iloData['position'],
-                ]
-            );
-        }
+                ];
 
-        return response()->json(['success' => true, 'message' => 'ILOs updated successfully.']);
+                if (!empty($iloData['id'])) {
+                    // update existing
+                    SyllabusIlo::where('id', $iloData['id'])->where('syllabus_id', $syllabus->id)->update($attrs);
+                    $createdIds[] = (int)$iloData['id'];
+                } else {
+                    // create new
+                    $new = SyllabusIlo::create($attrs);
+                    if ($new) $createdIds[] = $new->id;
+                }
+            }
+        });
+
+        return response()->json(['success' => true, 'message' => 'ILOs updated successfully.', 'ids' => $createdIds]);
     }
 
     // ➕ Adds a new ILO

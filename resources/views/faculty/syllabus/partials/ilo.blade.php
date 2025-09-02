@@ -60,6 +60,7 @@
       <tr>
         <th id="ilo-left-title" class="align-top text-start cis-label">Intended Learning Outcomes (ILO)
           <span id="unsaved-ilos" class="unsaved-pill d-none">Unsaved</span>
+          <!-- Save handled by main syllabus Save button in the page toolbar -->
         </th>
         <td id="ilo-right-wrap">
           <table class="table mb-0" style="font-family: Georgia, serif; font-size: 13px; line-height: 1.4; border: none;">
@@ -76,9 +77,10 @@
             <tbody id="syllabus-ilo-sortable" data-syllabus-id="{{ $default['id'] }}">
               @if($ilosSorted->count())
                 @foreach ($ilosSorted as $index => $ilo)
+                  @php $seqCode = 'ILO' . ($index + 1); @endphp
                   <tr data-id="{{ $ilo->id }}">
                     <td class="text-center align-middle">
-                      <div class="ilo-badge fw-semibold">{{ $ilo->code ?? "ILO" . ($index + 1) }}</div>
+                      <div class="ilo-badge fw-semibold">{{ $seqCode }}</div>
                     </td>
                     <td>
                       <div class="d-flex align-items-center gap-2">
@@ -90,7 +92,7 @@
                           class="form-control cis-textarea autosize flex-grow-1"
                           data-original="{{ old("ilos.$index", $ilo->description) }}"
                           required>{{ old("ilos.$index", $ilo->description) }}</textarea>
-                        <input type="hidden" name="code[]" value="{{ $ilo->code }}">
+                        <input type="hidden" name="code[]" value="{{ $seqCode }}" data-original-code="{{ $ilo->code }}">
                         <button type="button" class="btn btn-sm btn-outline-danger btn-delete-ilo ms-2" title="Delete ILO">
                           <i class="bi bi-trash"></i>
                         </button>
@@ -100,7 +102,24 @@
                 @endforeach
               @else
                 <tr>
-                  <td colspan="2" class="text-center text-muted">No ILOs found.</td>
+                  <td class="text-center align-middle">
+                    <div class="ilo-badge fw-semibold">ILO1</div>
+                  </td>
+                  <td>
+                    <div class="d-flex align-items-center gap-2">
+                      <span class="drag-handle text-muted" title="Drag to reorder" style="cursor: grab;">
+                        <i class="bi bi-grip-vertical"></i>
+                      </span>
+                      <textarea
+                        name="ilos[]"
+                        class="form-control cis-textarea autosize flex-grow-1"
+                        required></textarea>
+                      <input type="hidden" name="code[]" value="ILO1" data-original-code="">
+                      <button type="button" class="btn btn-sm btn-outline-danger btn-delete-ilo ms-2" title="Delete ILO">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               @endif
             </tbody>
@@ -140,6 +159,158 @@
         });
         mo.observe(list, { childList: true, subtree: true });
       }
+      // --- ILO keyboard behaviors: Ctrl+Enter to add ILO (row + AT column), Backspace on empty to remove ---
+      function getATTable() {
+        return document.querySelector('.at-map-right > table.cis-table') || document.querySelector('table.cis-table');
+      }
+
+      function addIloColumnInAT(atTable, insertAtIndex) {
+        if (!atTable) return;
+        try {
+          const theadRow = atTable.querySelector('thead tr:nth-child(2)');
+          const ths = Array.from(theadRow.querySelectorAll('th'));
+          // fixed trailing domain columns are the last 3 (C,P,A)
+          const insertIndex = (typeof insertAtIndex === 'number') ? (4 + insertAtIndex) : (ths.length - 3);
+
+          // create header th
+          const newTh = document.createElement('th');
+          // compute new ILO number
+          const iloCount = Math.max(0, ths.length - 7); // 4 + 3 fixed -> total -7 == iloCount
+          newTh.textContent = (iloCount + 1);
+          const refTh = ths[insertIndex];
+          theadRow.insertBefore(newTh, refTh);
+
+          // adjust first thead row colspan for the Intended Learning Outcomes label
+          const firstRow = atTable.querySelector('thead tr:first-child');
+          const iloLabelTh = Array.from(firstRow.querySelectorAll('th')).find(th => /Intended Learning Outcomes/i.test(th.textContent || ''));
+          if (iloLabelTh) {
+            const current = parseInt(iloLabelTh.getAttribute('colspan') || '0', 10) || 0;
+            iloLabelTh.setAttribute('colspan', current + 1);
+          }
+
+          // update colgroup: insert a new col before last 3 cols
+          const colgroup = atTable.querySelector('colgroup');
+          if (colgroup) {
+            const cols = colgroup.children;
+            const refCol = cols[cols.length - 3];
+            const newCol = document.createElement('col');
+            newCol.style.width = cols[0] ? cols[0].style.width : '';
+            colgroup.insertBefore(newCol, refCol);
+          }
+
+          // for each tbody row, insert td (or th for section headers) before last 3 cells
+          atTable.querySelectorAll('tbody > tr').forEach((r) => {
+            const cells = Array.from(r.children);
+            const ref = cells[cells.length - 3];
+            if (!ref) { r.appendChild(document.createElement(r.querySelector('th') ? 'th' : 'td')); return; }
+            const isHeader = r.classList && r.classList.contains('section-header');
+            const newCell = document.createElement(isHeader ? 'th' : 'td');
+            if (!isHeader) {
+              const input = document.createElement('input'); input.type = 'text'; input.className = 'cis-input text-center';
+              newCell.className = 'text-center';
+              newCell.appendChild(input);
+            }
+            r.insertBefore(newCell, ref);
+          });
+        } catch (e) { console.error('addIloColumnInAT error', e); }
+      }
+
+      function removeIloColumnInAT(atTable, iloIndex) {
+        if (!atTable) return;
+        try {
+          const theadRow = atTable.querySelector('thead tr:nth-child(2)');
+          const ths = Array.from(theadRow.querySelectorAll('th'));
+          const targetIndex = 4 + iloIndex; // after fixed 4 columns
+          if (targetIndex < 0 || targetIndex >= ths.length) return;
+          // remove header th
+          theadRow.removeChild(ths[targetIndex]);
+
+          // adjust first thead row colspan
+          const firstRow = atTable.querySelector('thead tr:first-child');
+          const iloLabelTh = Array.from(firstRow.querySelectorAll('th')).find(th => /Intended Learning Outcomes/i.test(th.textContent || ''));
+          if (iloLabelTh) {
+            const current = parseInt(iloLabelTh.getAttribute('colspan') || '0', 10) || 0;
+            iloLabelTh.setAttribute('colspan', Math.max(1, current - 1));
+          }
+
+          // remove col from colgroup
+          const colgroup = atTable.querySelector('colgroup');
+          if (colgroup) {
+            const cols = Array.from(colgroup.children);
+            const targetCol = cols[targetIndex];
+            if (targetCol) colgroup.removeChild(targetCol);
+          }
+
+          // remove each tbody cell at that index
+          atTable.querySelectorAll('tbody > tr').forEach((r) => {
+            const cells = Array.from(r.children);
+            const cell = cells[targetIndex];
+            if (cell) r.removeChild(cell);
+          });
+        } catch (e) { console.error('removeIloColumnInAT error', e); }
+      }
+
+      // delegated keyboard handlers for ILO textareas
+      const ilolist = document.getElementById('syllabus-ilo-sortable');
+      if (ilolist) {
+        ilolist.addEventListener('keydown', function(ev){
+          const target = ev.target;
+          if (!target || target.tagName !== 'TEXTAREA') return;
+          // Ctrl/Cmd+Enter -> clone current ILO row and add AT column at same position (append)
+          if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) {
+            ev.preventDefault();
+            const tr = target.closest('tr');
+            if (!tr) return;
+            // Clone the row, but ensure the clone does not keep duplicate data-id values
+            const newRow = tr.cloneNode(true);
+            newRow.removeAttribute('data-id');
+            // clear textarea and hidden code input
+            newRow.querySelectorAll('textarea').forEach(t => t.value = '');
+            newRow.querySelectorAll('input[type="hidden"]').forEach(i => i.value = '');
+            tr.parentNode.insertBefore(newRow, tr.nextSibling);
+
+            // After insertion, compute its sequential index and set badge + hidden code immediately
+            try {
+              const list = document.getElementById('syllabus-ilo-sortable');
+              const rows = Array.from(list.querySelectorAll('tr')).filter(r => r.querySelector('textarea[name="ilos[]"]') || r.querySelector('.ilo-badge'));
+              const idx = rows.indexOf(newRow);
+              const code = `ILO${(idx >= 0 ? idx + 1 : rows.length)}`;
+              const badge = newRow.querySelector('.ilo-badge'); if (badge) badge.textContent = code;
+              const codeInput = newRow.querySelector('input[type="hidden"][name="code[]"]'); if (codeInput) codeInput.value = code;
+            } catch (e) { /* noop */ }
+
+            // initialize autosize on new textarea
+            newRow.querySelectorAll('textarea.autosize').forEach(bindAutosize);
+            // (Standalone mode) do not dispatch cross-module events for AT syncing
+            // focus new textarea
+            const nta = newRow.querySelector('textarea'); if (nta) { setTimeout(() => nta.focus(), 10); }
+            return;
+          }
+
+          // Backspace on empty textarea at caret 0 -> remove this ILO row and remove corresponding AT column
+          if (ev.key === 'Backspace') {
+            const raw = target.value || '';
+            const selStart = (typeof target.selectionStart === 'number') ? target.selectionStart : 0;
+            const selEnd = (typeof target.selectionEnd === 'number') ? target.selectionEnd : selStart;
+            const trimmed = raw.trim();
+            // Only intercept when there is nothing meaningful to delete (trimmed empty)
+            // AND caret is at the start (selection at 0). Otherwise allow normal Backspace behavior.
+            if (trimmed === '' && selStart === 0 && selEnd === 0) {
+              ev.preventDefault();
+              const tr = target.closest('tr');
+              if (!tr) return;
+              const list = Array.from(ilolist.querySelectorAll('tr'));
+              if (list.length <= 1) return; // keep at least one ILO
+              const index = list.indexOf(tr);
+              tr.parentNode.removeChild(tr);
+              // focus previous textarea if present
+              const prev = list[index - 1] || list[0];
+              const pta = prev ? prev.querySelector('textarea') : null;
+              if (pta) setTimeout(() => pta.focus(), 10);
+            }
+          }
+        });
+      }
     });
   })();
 </script>
@@ -147,4 +318,5 @@
 @push('scripts')
   @vite('resources/js/faculty/syllabus-ilo-sortable.js')
 @endpush
+<!-- Local ILO Save button removed — saving is handled by the main syllabus Save button -->
   

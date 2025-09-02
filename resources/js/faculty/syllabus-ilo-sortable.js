@@ -16,25 +16,85 @@ document.addEventListener('DOMContentLoaded', () => {
   const list = document.getElementById('syllabus-ilo-sortable');
   const saveBtn = document.getElementById('save-syllabus-ilo-order');
   const addBtn = document.getElementById('add-ilo-row');
+  // keep a stable list of ILO identifiers to detect adds/removes/reorders
+  let previousIloIds = null;
 
   // tolerate pages where the add/save buttons were removed; behave gracefully
   if (!list) return;
 
   // 🔁 Re-number all ILO codes visibly and in hidden inputs
   function updateVisibleCodes() {
-    const rows = list.querySelectorAll('tr[data-id]');
+    // Only consider rows that actually represent ILOs (contain a textarea or badge)
+    const rows = Array.from(list.querySelectorAll('tr')).filter(r => r.querySelector('textarea[name="ilos[]"]') || r.querySelector('.ilo-badge'));
+
+    // Build current identifiers using row data-id (persisted id or new-... temporary id)
+    const currentIds = rows.map((r) => r.getAttribute('data-id') || `client-${Math.random().toString(36).slice(2,8)}`);
+
+    // Update visual labels and hidden inputs
     rows.forEach((row, index) => {
       const newCode = `ILO${index + 1}`;
+      const badge = row.querySelector('.ilo-badge'); if (badge) badge.textContent = newCode;
+      const codeInput = row.querySelector('input[name="code[]"]'); if (codeInput) codeInput.value = newCode;
+    });
 
-      // Update badge text for visible code
-      const badge = row.querySelector('.ilo-badge');
-      if (badge) badge.textContent = newCode;
+    // Hide delete button for the first ILO row and show for others
+    try {
+      rows.forEach((row, index) => {
+        const btn = row.querySelector('.btn-delete-ilo');
+        if (!btn) return;
+        btn.style.display = index === 0 ? 'none' : '';
+      });
+    } catch (e) { /* noop */ }
 
-      // Update hidden <input name="code[]">
-      const codeInput = row.querySelector('input[name="code[]"]');
-      if (codeInput) codeInput.value = newCode;
-  });
+    // Detect adds/removes/reorders by comparing previousIds -> currentIds
+    try {
+      // previousIloIds is a module-scoped variable (defined below)
+      if (Array.isArray(previousIloIds)) {
+        const prev = previousIloIds;
+        // added ids are those present now but not previously
+        const added = currentIds.filter(id => !prev.includes(id));
+        const removed = prev.filter(id => !currentIds.includes(id));
+
+        // dispatch add events for added ids with their new index
+        added.forEach((id) => {
+          const idx = currentIds.indexOf(id);
+          document.dispatchEvent(new CustomEvent('ilo:changed', { detail: { action: 'add', id, index: idx, count: currentIds.length } }));
+        });
+
+        // dispatch remove events for removed ids with their previous index
+        removed.forEach((id) => {
+          const prevIndex = prev.indexOf(id);
+          document.dispatchEvent(new CustomEvent('ilo:changed', { detail: { action: 'remove', id, index: prevIndex, count: currentIds.length } }));
+        });
+
+        // if same length but order changed, dispatch a single reorder event with mapping
+        if (added.length === 0 && removed.length === 0 && currentIds.join('|') !== prev.join('|')) {
+          const mapping = currentIds.map((id, to) => ({ id, from: prev.indexOf(id), to }));
+          document.dispatchEvent(new CustomEvent('ilo:changed', { detail: { action: 'reorder', mapping, count: currentIds.length } }));
+        }
+      }
+    } catch (e) { /* noop */ }
+
+    // Save currentIds as previous for next comparison
+    previousIloIds = currentIds.slice();
+
+    // Notify AT module (and any other listeners) that ILO codes/order changed
+    try {
+      // Dispatch simple numeric labels (1..N) so AT headers display plain numbers
+      const codes = rows.map((r, i) => String(i + 1));
+      const evt = new CustomEvent('ilo:renumber', { detail: { codes } });
+      document.dispatchEvent(evt);
+    } catch (e) { /* noop */ }
   }
+
+  // Listen for cross-module add/remove events dispatched by the Blade partials.
+  // This ensures rows added via the inline keyboard handler (which clones DOM
+  // nodes) are renumbered and initialized the same as rows created through
+  // the JS helpers.
+  // Standalone ILO module: do not listen for cross-module AT events
+
+  // Respond to AT module-initiated changes: when AT adds/removes an ILO column
+  // Standalone ILO module: no AT-driven add/remove listeners
 
   // Title layout is handled by the table; dynamic JS syncing removed to avoid overlap.
 
@@ -57,9 +117,10 @@ document.addEventListener('DOMContentLoaded', () => {
   if (saveBtn) {
     saveBtn.addEventListener('click', () => {
       const syllabusId = list.getAttribute('data-syllabus-id');
-      const rows = list.querySelectorAll('tr[data-id]');
+      // include all rows that look like ILO rows (may not have data-id when rendered server-side empty template)
+      const rows = Array.from(list.querySelectorAll('tr')).filter(r => r.querySelector('textarea[name="ilos[]"]') || r.querySelector('.ilo-badge'));
 
-      const ordered = Array.from(rows).map((row, index) => {
+      const ordered = rows.map((row, index) => {
         return {
           id: row.getAttribute('data-id'),
           code: row.querySelector('input[name="code[]"]')?.value,
@@ -92,9 +153,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Expose a global save function so the top Save can call it before main save
   window.saveIloOrder = async function() {
     const syllabusId = list.getAttribute('data-syllabus-id');
-    const rows = list.querySelectorAll('tr[data-id]');
+    const rows = Array.from(list.querySelectorAll('tr')).filter(r => r.querySelector('textarea[name="ilos[]"]') || r.querySelector('.ilo-badge'));
 
-    const ordered = Array.from(rows).map((row, index) => ({
+    const ordered = rows.map((row, index) => ({
       id: row.getAttribute('data-id'),
       code: row.querySelector('input[name="code[]"]')?.value,
       description: row.querySelector('textarea[name="ilos[]"]')?.value,
@@ -126,9 +187,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!iloForm) return { message: 'No ILO form present' };
 
     const action = iloForm.action;
-    const listRows = list.querySelectorAll('tr[data-id]');
+    const listRows = Array.from(list.querySelectorAll('tr')).filter(r => r.querySelector('textarea[name="ilos[]"]') || r.querySelector('.ilo-badge'));
 
-    const payloadIlo = Array.from(listRows).map((row, index) => {
+    const payloadIlo = listRows.map((row, index) => {
       const rawId = row.getAttribute('data-id');
       const id = rawId && !rawId.startsWith('new-') ? Number(rawId) : null;
       const code = row.querySelector('input[name="code[]"]')?.value || `ILO${index + 1}`;
@@ -150,10 +211,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (!res.ok) {
         // attempt to surface validation errors if available
-        let body = null;
-        try { body = await res.json(); } catch (e) { /* ignore */ }
-        const msg = (body && (body.message || JSON.stringify(body.errors || body))) || 'Failed to save ILOs';
-        throw new Error(msg);
+  let body = null;
+  try { body = await res.json(); } catch (e) { /* ignore */ }
+  // Log full response for debugging
+  try { console.error('ILO save failed response', body); } catch (e) {}
+  const extracted = (body && body.message) ? body.message : (body && body.errors ? JSON.stringify(body.errors) : JSON.stringify(body));
+  const msg = extracted || 'Failed to save ILOs';
+  throw new Error(msg);
       }
 
       const data = await res.json();
@@ -209,6 +273,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // focus the new textarea
     const ta = newRow.querySelector('textarea.autosize');
     if (ta) { ta.focus(); }
+  // Standalone: do not notify AT module about added rows
     return newRow;
   }
 
@@ -220,8 +285,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const el = e.target;
     if (!el || el.tagName !== 'TEXTAREA') return;
 
-    // BACKSPACE on an empty textarea at caret 0 -> remove the row
-    if (e.key === 'Backspace') {
+    // Ctrl+Backspace (or Cmd+Backspace) on an empty textarea at caret 0 -> remove the row
+    if (e.key === 'Backspace' && (e.ctrlKey || e.metaKey)) {
       const val = el.value || '';
       const selStart = (typeof el.selectionStart === 'number') ? el.selectionStart : 0;
       if (val.trim() === '' && selStart === 0) {
@@ -229,10 +294,17 @@ document.addEventListener('DOMContentLoaded', () => {
         e.stopPropagation();
         const row = el.closest('tr');
         const id = row.getAttribute('data-id');
-        const rows = list.querySelectorAll('tr[data-id]');
+        // If this is the first ILO row, disallow deletion (keep at least one ILO)
+        const allRows = Array.from(list.querySelectorAll('tr')).filter(r => r.querySelector('textarea[name="ilos[]"]') || r.querySelector('.ilo-badge'));
+        const rowIndex = allRows.indexOf(row);
+        if (rowIndex === 0) {
+          el.value = '';
+          try { initAutosize(); } catch (e) { /* noop */ }
+          return;
+        }
 
         // If last remaining row, just clear it instead of removing
-        if (rows.length === 1) {
+        if (allRows.length === 1) {
           el.value = '';
           try { initAutosize(); } catch (e) { /* noop */ }
           return;
@@ -241,7 +313,15 @@ document.addEventListener('DOMContentLoaded', () => {
         // If row is a new (not yet saved) row, remove it client-side
         if (!id || id.startsWith('new-')) {
           const prev = row.previousElementSibling;
-          row.remove();
+          // compute index for removal prior to removing the element
+          try {
+            const rows = Array.from(list.querySelectorAll('tr')).filter(r => r.querySelector('textarea[name="ilos[]"]') || r.querySelector('.ilo-badge'));
+            const idx = rows.indexOf(row);
+            row.remove();
+            // Standalone: do not notify AT module about removed rows
+          } catch (e) {
+            row.remove();
+          }
           updateVisibleCodes();
           if (prev) {
             const prevTa = prev.querySelector('textarea.autosize');
@@ -252,6 +332,7 @@ document.addEventListener('DOMContentLoaded', () => {
           }
           return;
         }
+
 
         // Persisted row: confirm and then delete via server call (same as delete button)
         if (!confirm('This ILO exists on the server. Press OK to delete it.')) return;
@@ -275,13 +356,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // Ctrl+Enter (or Cmd+Enter) inside any ILO textarea inserts a new row after current one
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-      e.preventDefault();
-      e.stopPropagation();
-      const currentRow = el.closest('tr');
-      addRow(currentRow || null);
-    }
+  // Note: keyboard-driven add (Ctrl/Cmd+Enter) is handled in the blade ILO partial
+  // to coordinate AT column insertion; avoid duplicating add behavior here.
   });
 
   // 🗑️ Delete ILO row (temporary or from DB)
@@ -292,8 +368,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const row = btn.closest('tr');
     const id = row.getAttribute('data-id');
 
+    // Prevent deleting the first ILO row
+    const allRows = Array.from(list.querySelectorAll('tr')).filter(r => r.querySelector('textarea[name="ilos[]"]') || r.querySelector('.ilo-badge'));
+    const rowIndex = allRows.indexOf(row);
+    if (rowIndex === 0) {
+      alert('At least one ILO must be present.');
+      return;
+    }
+
     if (!id || id.startsWith('new-')) {
-      row.remove();
+      // compute index before removal
+      try {
+        const rows = Array.from(list.querySelectorAll('tr')).filter(r => r.querySelector('textarea[name="ilos[]"]') || r.querySelector('.ilo-badge'));
+        const idx = rows.indexOf(row);
+        row.remove();
+  // Standalone: no AT notification
+      } catch (e) {
+        row.remove();
+      }
       updateVisibleCodes();
       return;
     }

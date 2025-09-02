@@ -35,7 +35,7 @@
   .at-map-outer td.at-map-right { padding: 0 !important; }
   .at-map-outer .cis-table { border-collapse: collapse; width: 100%; }
   /* inner table: show only single vertical separators between columns (no double borders) */
-  .at-map-right > table { width: auto; max-width: 100%; height: 100%; margin: 0; border-spacing: 0; border-collapse: collapse; min-width: 0; table-layout: fixed; font-family: Georgia, serif; font-size: 13px; line-height: 1.4; border: none; border-right: 1px solid #343a40; }
+  .at-map-right > table { width: 100%; max-width: 100%; height: 100%; margin: 0; border-spacing: 0; border-collapse: collapse; min-width: 0; table-layout: fixed; font-family: Georgia, serif; font-size: 13px; line-height: 1.4; border: none; border-right: 1px solid #343a40; }
   .at-map-right > table th, .at-map-right > table td { border: none; padding: 0.12rem 0.18rem; vertical-align: middle; }
   /* single vertical separators: apply left border to every cell except the first so separators are clear */
   /* remove per-cell borders and add single separators between columns */
@@ -126,22 +126,19 @@
       <td class="at-map-right">
   <table class="table table-bordered mb-0 cis-table" style="table-layout: fixed; margin:0;">
           @php
-            // allocate widths so columns fill the inner table container.
-            // code: fixed 40px, task: 40%, remaining share: 60% divided equally among (I/R/D, %, ILOs, C,P,A)
-            $remainingCols = count($iloCols) + 5; // I/R/D + % + ILOs + C,P,A
-            $share = 60 / $remainingCols;
+            // code: fixed 40px, task: 40%, small fixed widths for control columns; ILO columns left flexible to fill remaining space
           @endphp
           <colgroup>
             <col style="width:40px;"> <!-- Code fixed -->
             <col style="width:40%;"> <!-- Task large -->
-            <col style="width:{{ $share }}%;"> <!-- I/R/D -->
-            <col style="width:{{ $share }}%;"> <!-- Percent -->
+            <col style="width:48px;"> <!-- I/R/D -->
+            <col style="width:48px;"> <!-- Percent -->
             @foreach ($iloCols as $c)
-              <col style="width:{{ $share }}%;"> <!-- ILO -->
+              <col> <!-- ILO flexible -->
             @endforeach
-            <col style="width:{{ $share }}%;"> <!-- C -->
-            <col style="width:{{ $share }}%;"> <!-- P -->
-            <col style="width:{{ $share }}%;"> <!-- A -->
+            <col style="width:48px;"> <!-- C -->
+            <col style="width:48px;"> <!-- P -->
+            <col style="width:48px;"> <!-- A -->
           </colgroup>
   <thead class="table-light">
     <tr>
@@ -251,8 +248,12 @@
   (function(){
     function toNumber(v) { const n = parseFloat(String(v).replace('%','').trim()); return Number.isFinite(n) ? n : 0; }
 
+    function getATTable() {
+      return document.querySelector('.at-map-right > table.cis-table') || document.querySelector('table.cis-table');
+    }
+
     function serializeAT() {
-      const table = document.querySelector('table.cis-table');
+      const table = getATTable();
       if (!table) return;
       const rows = Array.from(table.querySelectorAll('tbody > tr')).filter(r => !r.classList.contains('table-light'));
       const sections = [];
@@ -325,20 +326,723 @@
       } catch (e) { /* noop */ }
     }
 
-    document.addEventListener('DOMContentLoaded', function(){
-      // initialize: bind input listeners for all inputs inside the AT table
-      const table = document.querySelector('table.cis-table');
-      if (!table) return;
-      table.querySelectorAll('input').forEach((inp) => {
+  document.addEventListener('DOMContentLoaded', function(){
+  // initialize: bind input listeners for all inputs inside the AT table
+  const table = getATTable();
+  if (!table) return;
+
+      // helper: set caret at end of an input
+      function setCaretToEnd(input) {
+        try {
+          const len = (input.value || '').length;
+          input.focus();
+          if (typeof input.setSelectionRange === 'function') input.setSelectionRange(len, len);
+        } catch (e) { try { input.focus(); } catch (e) {} }
+      }
+
+      // helper: focus an input in a row by column index (falls back to first input)
+      function focusInputInRow(row, colIndex) {
+        if (!row) return false;
+        try {
+          const cells = row.cells || row.children;
+          if (cells && cells[colIndex]) {
+            const inp = cells[colIndex].querySelector('input');
+            if (inp) { setCaretToEnd(inp); inp.scrollIntoView({ block: 'nearest', inline: 'nearest' }); return true; }
+          }
+          // fallback: first input
+          const first = row.querySelector('input');
+          if (first) { setCaretToEnd(first); first.scrollIntoView({ block: 'nearest', inline: 'nearest' }); return true; }
+        } catch (e) { /* noop */ }
+        return false;
+      }
+
+      // helper: attach handlers to a single input element (for both existing and newly created rows)
+      function attachATHandlersToInput(inp) {
+        if (!inp) return;
+        // input -> reserialize and mark unsaved
         inp.addEventListener('input', function(){
           serializeAT();
-          // if a global helper exists, mark module unsaved
           try { if (window.markAsUnsaved) window.markAsUnsaved('assessment_tasks'); } catch (e) { /* noop */ }
         });
-      });
+
+        // key handlers: Ctrl+Enter on section header inputs to add a subfield; Backspace on empty subfield to remove
+  inp.addEventListener('keydown', function(ev){
+          try {
+            const tr = inp.closest('tr');
+            if (!tr) return;
+            const isSectionHeader = tr.classList.contains('section-header');
+      // determine the column index of this input's cell (0-based)
+      const cell = inp.closest('td,th');
+      const colIndex = cell ? (cell.cellIndex || 0) : 0;
+
+            // Ctrl+Enter on header (any column) -> insert a new data row (subfield) immediately after header
+            if (isSectionHeader && ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) {
+              ev.preventDefault();
+              // attempt to clone an example data row (first non-header row) to keep column structure
+              const sample = table.querySelector('tbody > tr:not(.section-header)');
+              let newRow;
+              if (sample) {
+                newRow = sample.cloneNode(true);
+                // clear all input values in cloned row
+                newRow.querySelectorAll('input').forEach(i => i.value = '');
+              } else {
+                // fallback: create a minimal row matching column count
+                const cols = table.querySelectorAll('thead tr:nth-child(2) th').length;
+                newRow = document.createElement('tr');
+                for (let c=0;c<cols;c++) {
+                  const td = document.createElement('td');
+                  const input = document.createElement('input');
+                  input.type = 'text';
+                  input.className = 'cis-input text-center';
+                  td.appendChild(input);
+                  newRow.appendChild(td);
+                }
+              }
+
+              // insert after the header row
+              tr.parentNode.insertBefore(newRow, tr.nextSibling);
+              // attach handlers to new inputs
+              newRow.querySelectorAll('input').forEach(attachATHandlersToInput);
+              // focus input in same column where user pressed Ctrl+Enter
+              focusInputInRow(newRow, colIndex);
+              // reserialize
+              serializeAT();
+              try { if (window.markAsUnsaved) window.markAsUnsaved('assessment_tasks'); } catch (e) { /* noop */ }
+              return;
+            }
+
+            // Backspace on empty input in a non-header data row -> remove the entire row
+            // Only trigger removal when the empty input is in Code or Task column (first two columns)
+            if (!isSectionHeader && ev.key === 'Backspace' && (colIndex === 0 || colIndex === 1)) {
+              const val = (inp.value || '').trim();
+              if (val === '') {
+                // prevent default so browser doesn't navigate/backspace in other contexts
+                ev.preventDefault();
+                const rowToRemove = tr;
+                // find previous non-header row to focus after removal
+                let prev = rowToRemove.previousElementSibling;
+                while (prev && prev.classList && prev.classList.contains('section-header')) {
+                  prev = prev.previousElementSibling;
+                }
+                // remove the row
+                rowToRemove.parentNode.removeChild(rowToRemove);
+                // focus previous row's same column input if available, otherwise first input
+                if (prev) {
+                  if (!focusInputInRow(prev, colIndex)) {
+                    const fi = prev.querySelector('input'); if (fi) setCaretToEnd(fi);
+                  }
+                }
+                serializeAT();
+                try { if (window.markAsUnsaved) window.markAsUnsaved('assessment_tasks'); } catch (e) { /* noop */ }
+              }
+            }
+          } catch (e) { /* noop */ }
+        });
+      }
+
+      // helper: add an ILO column into the AT table at the given ILO index (0-based), inserting to the right of that index if desired
+      function addIloColumnInAT(atTable, iloIndex /* optional */, insertAfter = true) {
+        if (!atTable) return null;
+        try {
+          const headerRow = atTable.querySelector('thead tr:nth-child(2)');
+          const ths = Array.from(headerRow.querySelectorAll('th'));
+          const totalTh = ths.length;
+          const iloStart = 4; // after Code, Task, I/R/D, %
+          const domainStart = totalTh - 3; // index where domain (C,P,A) starts
+
+          // compute insertion index within the ILO block
+          let insertAt;
+          if (typeof iloIndex === 'number') {
+            // clamp to existing ILO range
+            const iloCount = Math.max(0, domainStart - iloStart);
+            const clamped = Math.max(0, Math.min(iloIndex + (insertAfter ? 1 : 0), iloCount));
+            insertAt = iloStart + clamped;
+          } else {
+            // append at end of ILOs (i.e., right before domainStart)
+            insertAt = domainStart;
+          }
+
+          // create new TH header cell only in the second header row (numbered ILOs)
+          const newTh = document.createElement('th');
+          const currentIloCount = Math.max(0, domainStart - iloStart);
+          newTh.textContent = (currentIloCount + 1);
+          const refTh = ths[insertAt] || null;
+          if (refTh) headerRow.insertBefore(newTh, refTh); else headerRow.appendChild(newTh);
+
+          // adjust first thead row Intended Learning Outcomes colspan only (don't add actual THs there)
+          const firstRow = atTable.querySelector('thead tr:first-child');
+          const iloLabelTh = Array.from(firstRow.querySelectorAll('th')).find(th => /Intended Learning Outcomes/i.test(th.textContent || ''));
+          if (iloLabelTh) {
+            const current = parseInt(iloLabelTh.getAttribute('colspan') || '0', 10) || 0;
+            iloLabelTh.setAttribute('colspan', current + 1);
+          }
+
+          // update colgroup: insert a col at the exact logical column index (aligned with second header)
+          const colgroup = atTable.querySelector('colgroup');
+          if (colgroup) {
+            const newCol = document.createElement('col');
+            newCol.style.width = '';
+            const refCol = colgroup.children[insertAt] || null;
+            if (refCol) colgroup.insertBefore(newCol, refCol); else colgroup.appendChild(newCol);
+          }
+
+          // insert cells into each tbody row at the same logical position
+          // If a row contains a cell with a colspan that covers the insertion point,
+          // increment that cell's colspan instead of inserting a new physical cell.
+          atTable.querySelectorAll('tbody > tr').forEach((r) => {
+            const cells = Array.from(r.children);
+            // compute cumulative column index and detect spanning cells
+            let cum = 0;
+            let handled = false;
+            for (let ci = 0; ci < cells.length; ci++) {
+              const cell = cells[ci];
+              const colspan = parseInt(cell.getAttribute('colspan') || '1', 10) || 1;
+              const start = cum;
+              const end = cum + colspan - 1;
+              if (insertAt >= start && insertAt <= end) {
+                // this cell spans the insertion point -> increase colspan
+                if (colspan > 1) {
+                  cell.setAttribute('colspan', colspan + 1);
+                  handled = true;
+                  break;
+                }
+                // colspan === 1: we'll insert before this cell
+                break;
+              }
+              cum += colspan;
+            }
+            if (handled) return; // nothing else to do for this row
+
+            // find reference cell position considering colspan values
+            cum = 0; let refCell = null;
+            for (let ci = 0; ci < cells.length; ci++) {
+              const cell = cells[ci];
+              const colspan = parseInt(cell.getAttribute('colspan') || '1', 10) || 1;
+              const start = cum;
+              const end = cum + colspan - 1;
+              if (insertAt <= end) { refCell = cell; break; }
+              cum += colspan;
+            }
+
+            const isHeader = r.classList && r.classList.contains('section-header');
+            const newCell = document.createElement(isHeader ? 'th' : 'td');
+            if (!isHeader) {
+              const input = document.createElement('input'); input.type = 'text'; input.className = 'cis-input text-center';
+              newCell.className = 'text-center';
+              newCell.appendChild(input);
+            }
+            if (refCell) r.insertBefore(newCell, refCell); else r.appendChild(newCell);
+            if (!isHeader) {
+              const newInput = newCell.querySelector('input');
+              if (newInput && typeof attachATHandlersToInput === 'function') attachATHandlersToInput(newInput);
+            }
+          });
+
+          // renumber ILO header labels to keep them sequential (only within ILO block)
+          (function(){
+            try {
+              const headerThs = Array.from(atTable.querySelectorAll('thead tr:nth-child(2) th'));
+              const domainStartNow = headerThs.length - 3;
+              let counter = 1;
+              for (let i = iloStart; i < domainStartNow; i++) {
+                const nth = headerThs[i]; if (nth) nth.textContent = counter++;
+              }
+            } catch (e) { /* noop */ }
+          })();
+
+          // normalize ILO col widths so they flex to fill remaining space
+          (function(){
+            try {
+              const headerThs = Array.from(atTable.querySelectorAll('thead tr:nth-child(2) th'));
+              const domainStartNow = headerThs.length - 3;
+              const iloCount = Math.max(0, domainStartNow - iloStart);
+              const cols = Array.from(atTable.querySelectorAll('colgroup col'));
+              for (let i = 0; i < cols.length; i++) {
+                if (i >= iloStart && i < iloStart + iloCount) {
+                  cols[i].style.width = '';
+                  cols[i].style.minWidth = '40px';
+                }
+              }
+              atTable.style.tableLayout = 'fixed';
+              atTable.style.width = '100%';
+              void atTable.offsetWidth;
+            } catch (e) { /* noop */ }
+          })();
+
+          // update footer colspan
+          (function(){
+            try {
+              const footer = atTable.querySelector('tbody tr.footer-total');
+              if (footer) {
+                const iloCount = Math.max(0, atTable.querySelectorAll('thead tr:nth-child(2) th').length - 7);
+                const lastTh = footer.querySelector('th:last-of-type');
+                if (lastTh) lastTh.setAttribute('colspan', iloCount + 3);
+              }
+            } catch (e) { /* noop */ }
+          })();
+
+          return insertAt;
+        } catch (e) { console.error('addIloColumnInAT error', e); return null; }
+      }
+
+      // helper: remove an ILO column (by ILO index 0-based) from the AT table
+      function removeIloColumnInAT(atTable, iloIndex) {
+        if (!atTable) return false;
+        try {
+          const headerRow = atTable.querySelector('thead tr:nth-child(2)');
+          const ths = Array.from(headerRow.querySelectorAll('th'));
+          const totalTh = ths.length;
+          const iloStart = 4;
+          const domainStart = totalTh - 3;
+          const iloCount = Math.max(0, domainStart - iloStart);
+          if (iloCount <= 1) return false; // keep at least one ILO
+
+          const targetIlo = Math.max(0, Math.min(typeof iloIndex === 'number' ? iloIndex : (iloCount - 1), iloCount - 1));
+          const targetAbsolute = iloStart + targetIlo;
+
+          const targetTh = ths[targetAbsolute];
+          if (targetTh) headerRow.removeChild(targetTh);
+
+          // adjust first thead row colspan (only adjust the ILO label)
+          const firstRow = atTable.querySelector('thead tr:first-child');
+          const iloLabelTh = Array.from(firstRow.querySelectorAll('th')).find(th => /Intended Learning Outcomes/i.test(th.textContent || ''));
+          if (iloLabelTh) {
+            const current = parseInt(iloLabelTh.getAttribute('colspan') || '0', 10) || 0;
+            iloLabelTh.setAttribute('colspan', Math.max(1, current - 1));
+          }
+
+          // remove col from colgroup at exact index
+          const colgroup = atTable.querySelector('colgroup');
+          if (colgroup) {
+            const targetCol = colgroup.children[targetAbsolute] || null;
+            if (targetCol) colgroup.removeChild(targetCol);
+          }
+
+          // remove each tbody cell at that index
+          // If a row contains a colspan cell that covers the removal index, decrement its colspan
+          atTable.querySelectorAll('tbody > tr').forEach((r) => {
+            const cells = Array.from(r.children);
+            let cum = 0;
+            let handled = false;
+            for (let ci = 0; ci < cells.length; ci++) {
+              const cell = cells[ci];
+              const colspan = parseInt(cell.getAttribute('colspan') || '1', 10) || 1;
+              const start = cum;
+              const end = cum + colspan - 1;
+              if (targetAbsolute >= start && targetAbsolute <= end) {
+                if (colspan > 1) {
+                  cell.setAttribute('colspan', Math.max(1, colspan - 1));
+                  handled = true;
+                  break;
+                }
+                // colspan === 1 -> remove this cell
+                r.removeChild(cell);
+                handled = true;
+                break;
+              }
+              cum += colspan;
+            }
+            if (!handled) {
+              // fallback: naive index removal
+              const naive = cells[targetAbsolute];
+              if (naive) r.removeChild(naive);
+            }
+          });
+
+          // renumber ILO headers within the ILO block
+          (function(){
+            try {
+              const headerThs = Array.from(atTable.querySelectorAll('thead tr:nth-child(2) th'));
+              const domainStartNow = headerThs.length - 3;
+              let counter = 1;
+              for (let i = iloStart; i < domainStartNow; i++) { const nth = headerThs[i]; if (nth) nth.textContent = counter++; }
+            } catch (e) { /* noop */ }
+          })();
+
+          // update footer colspan
+          (function(){
+            try {
+              const footer = atTable.querySelector('tbody tr.footer-total');
+              if (footer) {
+                const iloCountNow = Math.max(0, atTable.querySelectorAll('thead tr:nth-child(2) th').length - 7);
+                const lastTh = footer.querySelector('th:last-of-type');
+                if (lastTh) lastTh.setAttribute('colspan', iloCountNow + 3);
+              }
+            } catch (e) { /* noop */ }
+          })();
+
+          return true;
+        } catch (e) { console.error('removeIloColumnInAT error', e); return false; }
+      }
+      // normalize ILO col widths to fill container (call after add/remove)
+      function normalizeIloCols(atTable) {
+        try {
+          const headerThs = Array.from(atTable.querySelectorAll('thead tr:nth-child(2) th'));
+          const totalTh = headerThs.length;
+          const iloStart = 4;
+          const iloCount = Math.max(0, totalTh - 7);
+          const cols = Array.from(atTable.querySelectorAll('colgroup col'));
+          for (let i = 0; i < cols.length; i++) {
+            if (i >= iloStart && i < iloStart + iloCount) cols[i].style.width = '';
+          }
+          atTable.style.width = '100%';
+          void atTable.offsetWidth; // force reflow
+        } catch (e) { /* noop */ }
+      }
+
+
+      // attach to existing inputs (for input events)
+      table.querySelectorAll('input').forEach((inp) => attachATHandlersToInput(inp));
+
+      // delegated keydown handler on the table to ensure shortcuts work for dynamic rows
+      table.addEventListener('keydown', function(ev){
+        try {
+          const target = ev.target;
+          if (!target || target.tagName !== 'INPUT') return;
+          // determine col index
+          const cell = target.closest('td,th');
+          const colIndex = cell ? (cell.cellIndex || 0) : 0;
+          const tr = target.closest('tr');
+          const isSectionHeader = tr && tr.classList && tr.classList.contains('section-header');
+
+          // Ctrl/Cmd+Enter on header -> insert new row after header
+          if (isSectionHeader && ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) {
+            ev.preventDefault();
+            console.debug('AT: Ctrl+Enter detected on header, adding sub-row');
+            const sample = table.querySelector('tbody > tr:not(.section-header)');
+            let newRow;
+            if (sample) {
+              newRow = sample.cloneNode(true);
+              newRow.querySelectorAll('input').forEach(i => i.value = '');
+            } else {
+              const cols = table.querySelectorAll('thead tr:nth-child(2) th').length;
+              newRow = document.createElement('tr');
+              for (let c=0;c<cols;c++) {
+                const td = document.createElement('td');
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'cis-input text-center';
+                td.appendChild(input);
+                newRow.appendChild(td);
+              }
+            }
+            tr.parentNode.insertBefore(newRow, tr.nextSibling);
+            // attach handlers to new inputs
+            newRow.querySelectorAll('input').forEach(attachATHandlersToInput);
+            const firstInp = newRow.querySelector('input');
+            if (firstInp) firstInp.focus();
+            serializeAT();
+            try { if (window.markAsUnsaved) window.markAsUnsaved('assessment_tasks'); } catch (e) {}
+            return;
+          }
+
+          // Ctrl+Enter inside an ILO column -> insert a new ILO column to the right of the current ILO
+          // ILO columns are the columns after the first 4 and before the last 3
+          if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) {
+            const theadThs = Array.from(table.querySelectorAll('thead tr:nth-child(2) th'));
+            const totalTh = theadThs.length;
+            const iloStart = 4; // after Code, Task, I/R/D, %
+            const iloEnd = totalTh - 4; // index of last ILO
+            if (colIndex >= iloStart && colIndex <= iloEnd) {
+              ev.preventDefault();
+              const iloIndex = colIndex - iloStart;
+              const insertedAt = addIloColumnInAT(table, iloIndex, true);
+              if (insertedAt !== null) {
+                // focus the input in the same row and the new column
+                const rowCells = Array.from(tr.children || []);
+                const newCell = rowCells[insertedAt];
+                if (newCell) {
+                  const inp = newCell.querySelector('input');
+                  if (inp) { setCaretToEnd(inp); inp.scrollIntoView({ block: 'nearest', inline: 'nearest' }); }
+                }
+                serializeAT();
+                try { if (window.markAsUnsaved) window.markAsUnsaved('assessment_tasks'); } catch (e) {}
+                // This AT-initiated column is local to AT (unsynced). Do not notify ILO module.
+              }
+              return;
+            }
+          }
+
+          // Ctrl/Cmd+Enter on any data/sub row -> if inside an ILO column, add a new ILO column;
+          // otherwise clone the current row and insert after it.
+          if (!isSectionHeader && ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) {
+            // determine if focused column is an ILO column
+            const theadThsCheck = Array.from(table.querySelectorAll('thead tr:nth-child(2) th'));
+            const totalThCheck = theadThsCheck.length;
+            const iloStartCheck = 4;
+            const iloEndCheck = totalThCheck - 4;
+            if (colIndex >= iloStartCheck && colIndex <= iloEndCheck) {
+              ev.preventDefault();
+              // add a new ILO column to the right of the current ILO
+              const iloIndex = colIndex - iloStartCheck;
+              const insertedAt = addIloColumnInAT(table, iloIndex, true);
+              if (insertedAt !== null) {
+                // focus the input in the same row and the new column
+                const rowCells = Array.from(tr.children || []);
+                const newCell = rowCells[insertedAt];
+                if (newCell) {
+                  const inp = newCell.querySelector('input');
+                  if (inp) { setCaretToEnd(inp); inp.scrollIntoView({ block: 'nearest', inline: 'nearest' }); }
+                }
+                serializeAT();
+                try { if (window.markAsUnsaved) window.markAsUnsaved('assessment_tasks'); } catch (e) {}
+              }
+              return;
+            }
+
+            // fallback: clone the current data row
+            ev.preventDefault();
+            console.debug('AT: Ctrl+Enter on data row, cloning row');
+            const newRow = tr.cloneNode(true);
+            newRow.querySelectorAll('input').forEach(i => i.value = '');
+            tr.parentNode.insertBefore(newRow, tr.nextSibling);
+            newRow.querySelectorAll('input').forEach(attachATHandlersToInput);
+            const focusInp = newRow.querySelector('input'); if (focusInp) focusInp.focus();
+            serializeAT();
+            try { if (window.markAsUnsaved) window.markAsUnsaved('assessment_tasks'); } catch (e) {}
+            return;
+          }
+
+          // Ctrl+Backspace inside an ILO column -> remove this ILO column
+          if (ev.key === 'Backspace' && (ev.ctrlKey || ev.metaKey)) {
+            const theadThs = Array.from(table.querySelectorAll('thead tr:nth-child(2) th'));
+            const totalTh = theadThs.length;
+            const iloStart = 4;
+            const iloEnd = totalTh - 4;
+            if (colIndex >= iloStart && colIndex <= iloEnd) {
+              // Only treat Ctrl+Backspace as a column removal when the field is empty
+              // and the caret is at the start. Otherwise allow normal Ctrl+Backspace.
+              const selStart = (typeof target.selectionStart === 'number') ? target.selectionStart : 0;
+              const selEnd = (typeof target.selectionEnd === 'number') ? target.selectionEnd : selStart;
+              const val = (target.value || '').trim();
+              if (!(val === '' && selStart === 0 && selEnd === 0)) {
+                // let browser handle Ctrl+Backspace normally (word delete)
+                return;
+              }
+              // Disallow removal of columns that are synced from the ILO module
+              const headerTh = theadThs[colIndex];
+              if (headerTh && headerTh.getAttribute('data-synced') === '1') {
+                // Inform user that synced ILO columns must be removed from the ILO module
+                try { alert('This ILO column is synced from the ILO module and cannot be removed here. Remove it from the ILO module instead.'); } catch (e) { /* noop */ }
+                return;
+              }
+              ev.preventDefault();
+              const iloIndex = colIndex - iloStart;
+              const removed = removeIloColumnInAT(table, iloIndex);
+              if (removed) {
+                // focus the nearest cell in the same row (clamped)
+                const newTotal = Array.from(table.querySelectorAll('thead tr:nth-child(2) th')).length;
+                const newColIndex = Math.max(0, Math.min(colIndex, newTotal - 1));
+                const rowCells = Array.from(tr.children || []);
+                const cell = rowCells[newColIndex];
+                if (cell) { const inp = cell.querySelector('input'); if (inp) { setCaretToEnd(inp); inp.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } }
+                serializeAT();
+                try { if (window.markAsUnsaved) window.markAsUnsaved('assessment_tasks'); } catch (e) {}
+                // Removal here affects only AT. Synced columns are blocked above.
+              }
+              return;
+            }
+          }
+
+          // Backspace on empty input in first two columns of non-header row -> remove row
+          if (!isSectionHeader && ev.key === 'Backspace' && (colIndex === 0 || colIndex === 1)) {
+            const raw = target.value || '';
+            const selStart = (typeof target.selectionStart === 'number') ? target.selectionStart : 0;
+            const selEnd = (typeof target.selectionEnd === 'number') ? target.selectionEnd : selStart;
+            const val = raw.trim();
+            // Only remove when there's nothing to delete and caret is at the start
+            if (val === '' && selStart === 0 && selEnd === 0) {
+              ev.preventDefault();
+              console.debug('AT: Backspace on empty input, removing row');
+              const rowToRemove = tr;
+              let prev = rowToRemove.previousElementSibling;
+              while (prev && prev.classList && prev.classList.contains('section-header')) prev = prev.previousElementSibling;
+              rowToRemove.parentNode.removeChild(rowToRemove);
+              if (prev) {
+                const fi = prev.querySelector('input'); if (fi) fi.focus();
+              }
+              serializeAT();
+              try { if (window.markAsUnsaved) window.markAsUnsaved('assessment_tasks'); } catch (e) {}
+            }
+          }
+        } catch (e) { console.error(e); }
+      }, true);
 
       // initial serialization
       serializeAT();
+
+      // If the ILO module is present on the page, observe it for structural changes
+      // and dispatch an ilo:renumber event so AT will sync even if the original
+      // custom events were missed (timing/order issues). Debounce to avoid
+      // noisy updates during bulk DOM work.
+      (function(){
+        try {
+          const ilolist = document.getElementById('syllabus-ilo-sortable');
+          if (!ilolist || !window.MutationObserver) return;
+          let timer = null;
+          const dispatchRenumber = () => {
+            try {
+              // compute simple numeric codes 1..N based on current ILO rows
+              const rows = Array.from(ilolist.querySelectorAll('tr')).filter(r => r.querySelector('textarea[name="ilos[]"]') || r.querySelector('.ilo-badge'));
+              const codes = rows.map((r, i) => String(i + 1));
+              document.dispatchEvent(new CustomEvent('ilo:renumber', { detail: { codes } }));
+            } catch (e) { /* noop */ }
+          };
+
+          const mo = new MutationObserver((mutations) => {
+            // debounce a small window to merge multiple mutations
+            if (timer) clearTimeout(timer);
+            timer = setTimeout(() => { dispatchRenumber(); timer = null; }, 40);
+          });
+          mo.observe(ilolist, { childList: true, subtree: false });
+        } catch (e) { /* noop */ }
+      })();
+
+      // Listen for ILO module requests to add/remove columns so AT performs the DOM update and normalization
+      document.addEventListener('ilo:addColumn', function(ev){
+        try {
+          const idx = ev && ev.detail && typeof ev.detail.index === 'number' ? ev.detail.index : undefined;
+          const at = getATTable();
+          const inserted = addIloColumnInAT(at, idx);
+          if (inserted !== null) {
+            // mark the added header and col as synced so AT cannot remove them
+            try {
+              const headerThs = Array.from(at.querySelectorAll('thead tr:nth-child(2) th'));
+              if (typeof inserted === 'number' && headerThs[inserted]) headerThs[inserted].setAttribute('data-synced','1');
+              const colgroup = at.querySelector('colgroup');
+              if (colgroup && colgroup.children[inserted]) colgroup.children[inserted].setAttribute('data-synced','1');
+            } catch (e) { /* noop */ }
+            normalizeIloCols(at);
+            serializeAT();
+            try { if (window.markAsUnsaved) window.markAsUnsaved('assessment_tasks'); } catch(e){}
+          }
+        } catch(e) { console.error(e); }
+      });
+
+      document.addEventListener('ilo:removeColumn', function(ev){
+        try {
+          const idx = ev && ev.detail && typeof ev.detail.index === 'number' ? ev.detail.index : undefined;
+          const at = getATTable();
+          const removed = removeIloColumnInAT(at, idx);
+          if (removed) {
+            normalizeIloCols(at);
+            serializeAT();
+            try { if (window.markAsUnsaved) window.markAsUnsaved('assessment_tasks'); } catch(e){}
+          }
+        } catch(e) { console.error(e); }
+      });
+
+      // Update header numbering when ILO ordering changes in ILO module
+      document.addEventListener('ilo:renumber', function(ev){
+        try {
+          const codes = ev && ev.detail && Array.isArray(ev.detail.codes) ? ev.detail.codes : null;
+          if (!codes) return;
+          const table = getATTable();
+          if (!table) return;
+          const thRow = table.querySelector('thead tr:nth-child(2)');
+          if (!thRow) return;
+          // Ensure the AT table has the same number of ILO columns as the ILO module.
+          // ILO headers live after first 4 th and before last 3 th.
+          const iloStart = 4;
+          let headerThs = Array.from(thRow.querySelectorAll('th'));
+          const domainStart = headerThs.length - 3;
+          // Count only the headers that are marked as synced (data-synced="1").
+          const iloHeaders = headerThs.slice(iloStart, domainStart);
+          const currentSyncedCount = iloHeaders.reduce((acc, th) => acc + ((th && th.getAttribute && th.getAttribute('data-synced') === '1') ? 1 : 0), 0);
+          const desiredSyncedCount = codes.length;
+
+          // Ensure the total number of ILO headers in AT matches the ILO module.
+          // ILO headers live between iloStart and domainStart (exclusive).
+          const totalIloCount = Math.max(0, domainStart - iloStart);
+          const desiredIloCount = desiredSyncedCount;
+
+          // Append columns until AT has desiredIloCount columns
+          if (totalIloCount < desiredIloCount) {
+            const toAdd = desiredIloCount - totalIloCount;
+            for (let k = 0; k < toAdd; k++) {
+              const insertedAt = addIloColumnInAT(table, undefined);
+              // mark newly appended column as synced
+              try {
+                headerThs = Array.from(thRow.querySelectorAll('th'));
+                const cols = table.querySelectorAll('colgroup col');
+                const newDomainStart = headerThs.length - 3;
+                const newIndex = iloStart + (newDomainStart - iloStart - 1); // last ILO header index
+                const newTh = headerThs[newIndex];
+                if (newTh) newTh.setAttribute('data-synced', '1');
+                if (cols && cols[newIndex]) cols[newIndex].setAttribute('data-synced', '1');
+              } catch (e) { /* noop */ }
+            }
+          }
+
+          // If AT has more ILO columns than desired, remove right-most columns.
+          if (totalIloCount > desiredIloCount) {
+            let toRemove = totalIloCount - desiredIloCount;
+            // Prefer removing synced columns first (right-most synced), otherwise remove right-most columns regardless.
+            while (toRemove > 0) {
+              headerThs = Array.from(thRow.querySelectorAll('th'));
+              const dsNow = headerThs.length - 3;
+              const ihNow = headerThs.slice(iloStart, dsNow);
+              // find last synced index within ihNow
+              let lastSynced = -1;
+              for (let i = ihNow.length - 1; i >= 0; i--) {
+                const th = ihNow[i];
+                if (th && th.getAttribute && th.getAttribute('data-synced') === '1') { lastSynced = i; break; }
+              }
+              if (lastSynced >= 0) {
+                removeIloColumnInAT(table, lastSynced);
+              } else {
+                // remove the right-most ILO column (index ihNow.length - 1)
+                const removeIndex = ihNow.length - 1;
+                if (removeIndex >= 0) removeIloColumnInAT(table, removeIndex);
+              }
+              toRemove--;
+            }
+          }
+
+          // Refresh headerThs and relabel the first desiredIloCount headers to the provided codes
+          headerThs = Array.from(thRow.querySelectorAll('th'));
+          const domainNow = headerThs.length - 3;
+          const iloNow = headerThs.slice(iloStart, domainNow);
+          // relabel synced headers from left-to-right using codes
+          for (let i = 0; i < iloNow.length; i++) {
+            const th = iloNow[i];
+            if (!th) continue;
+            if (i < desiredIloCount) {
+              th.textContent = (codes[i] !== undefined) ? codes[i] : String(i + 1);
+              th.setAttribute('data-synced', '1');
+              // mark colgroup
+              try { const cols = table.querySelectorAll('colgroup col'); if (cols && cols[iloStart + i]) cols[iloStart + i].setAttribute('data-synced','1'); } catch(e){}
+            } else {
+              // these are AT-local columns beyond the desired synced set
+              // leave their text as-is (or numeric) and remove synced flag
+              if (th.getAttribute && th.getAttribute('data-synced') === '1') th.removeAttribute('data-synced');
+              try { const cols = table.querySelectorAll('colgroup col'); if (cols && cols[iloStart + i]) cols[iloStart + i].removeAttribute('data-synced'); } catch(e){}
+            }
+          }
+
+          // Mark ILO headers/cols that are synced from the ILO module so AT can't remove them.
+          try {
+            const colgroup = table.querySelector('colgroup');
+            const cols = colgroup ? Array.from(colgroup.children) : [];
+            const iloCountNow = Math.max(0, domainStart - iloStart);
+            for (let i = 0; i < iloCountNow; i++) {
+              const thIndex = iloStart + i;
+              if (headerThs[thIndex]) {
+                if (i < desiredIloCount) headerThs[thIndex].setAttribute('data-synced', '1');
+                else headerThs[thIndex].removeAttribute('data-synced');
+              }
+              if (cols[thIndex]) {
+                if (i < desiredIloCount) cols[thIndex].setAttribute('data-synced', '1');
+                else cols[thIndex].removeAttribute('data-synced');
+              }
+            }
+          } catch (e) { /* noop */ }
+
+          // normalize widths and reserialize
+          normalizeIloCols(table);
+          serializeAT();
+        } catch (e) { console.error('ilo:renumber handler error', e); }
+      });
 
       // wire into global bindUnsavedIndicator if available
       try { if (window.bindUnsavedIndicator) window.bindUnsavedIndicator('assessment_tasks_data','assessment_tasks'); } catch (e) { /* noop */ }
