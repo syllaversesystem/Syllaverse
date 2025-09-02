@@ -10,6 +10,7 @@
 // -----------------------------------------------------------------------------
 
 import Sortable from 'sortablejs';
+import { initAutosize } from './syllabus';
 
 document.addEventListener('DOMContentLoaded', () => {
   const list = document.getElementById('syllabus-ilo-sortable');
@@ -24,28 +25,26 @@ document.addEventListener('DOMContentLoaded', () => {
     rows.forEach((row, index) => {
       const newCode = `ILO${index + 1}`;
 
-      // Update visible display (in <th> or first <td>)
-      let codeCell = row.querySelector('th');
-      if (!codeCell) {
-        const tds = row.querySelectorAll('td');
-        if (tds.length > 0) codeCell = tds[0];
-      }
-      if (codeCell) codeCell.textContent = newCode;
+      // Update badge text for visible code
+      const badge = row.querySelector('.ilo-badge');
+      if (badge) badge.textContent = newCode;
 
       // Update hidden <input name="code[]">
       const codeInput = row.querySelector('input[name="code[]"]');
       if (codeInput) codeInput.value = newCode;
-    });
+  });
   }
+
+  // Title layout is handled by the table; dynamic JS syncing removed to avoid overlap.
 
   // 🧲 Enable sortable functionality
   Sortable.create(list, {
-    handle: '.drag-handle',
-    animation: 150,
-    fallbackOnBody: true,
-    draggable: 'tr',
-    swapThreshold: 0.65,
-    onEnd: updateVisibleCodes
+  handle: '.drag-handle',
+  animation: 150,
+  fallbackOnBody: true,
+  draggable: 'tr',
+  swapThreshold: 0.65,
+  onEnd: updateVisibleCodes
   });
 
   // 💾 Save button logic (AJAX reorder)
@@ -88,24 +87,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const newRow = document.createElement('tr');
     newRow.setAttribute('data-id', `new-${timestamp}`);
 
-    newRow.innerHTML = `
-      <th class="align-top text-start"></th>
+  newRow.innerHTML = `
+      <td class="text-center align-middle">
+        <div class="ilo-badge fw-semibold"></div>
+      </td>
       <td>
-        <div class="d-flex gap-2 align-items-start">
-          <span class="drag-handle text-muted pt-1">
+        <div class="d-flex align-items-center gap-2">
+          <span class="drag-handle text-muted" title="Drag to reorder" style="cursor: grab; display:flex; align-items:center;">
             <i class="bi bi-grip-vertical"></i>
           </span>
-          <textarea name="ilos[]" class="form-control border-0 p-0 bg-transparent" style="min-height: 60px; flex: 1;"></textarea>
+      <textarea name="ilos[]" class="form-control cis-textarea autosize flex-grow-1"></textarea>
           <input type="hidden" name="code[]" value="">
-          <button type="button" class="btn btn-sm btn-outline-danger btn-delete-ilo" title="Delete ILO">
-            <i class="bi bi-trash"></i>
-          </button>
+          <button type="button" class="btn btn-sm btn-outline-danger btn-delete-ilo ms-2" title="Delete ILO"><i class="bi bi-trash"></i></button>
         </div>
       </td>
     `;
 
-    list.appendChild(newRow);
-    updateVisibleCodes();
+  list.appendChild(newRow);
+  // initialize autosize for the new textarea(s)
+  try { initAutosize(); } catch (e) { /* fallback: ignore autosize init failures */ }
+  updateVisibleCodes();
   });
 
   // 🗑️ Delete ILO row (temporary or from DB)
@@ -134,7 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
     .then(res => res.json())
     .then(data => {
       alert(data.message || 'ILO deleted.');
-      location.reload();
+  location.reload();
     })
     .catch(err => {
       console.error(err);
@@ -144,4 +145,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ✅ Initialize code labels on load
   updateVisibleCodes();
+  // ensure textareas size to their current content on load
+  try { initAutosize(); } catch (e) { /* noop */ }
 });
