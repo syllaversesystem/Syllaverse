@@ -12,60 +12,93 @@
   @csrf
   @method('PUT')
 
-  <table class="table table-bordered mb-4" style="font-family: Georgia, serif; font-size: 13px; line-height: 1.4;">
-    <style>
-      .cis-input { font-weight: 400; font-size: 0.93rem; line-height: 1.15; font-family: inherit; }
-    </style>
+  @php
+    $sosSorted = ($sos ?? collect())->sortBy('position')->values();
+  @endphp
+
+  <style>
+    /* Tight layout to match IGA: remove outer padding/margins and make inner table flush */
+    .so-left-title { font-weight: 700; padding: 0.5rem; font-family: Georgia, serif; vertical-align: top; box-sizing: border-box; line-height: 1.2; font-size: 0.97rem; }
+    table.cis-table { table-layout: fixed; margin: 0; }
+    /* Make the right inner table sit flush in its cell */
+    #so-right-wrap { padding: 0; margin: 0; }
+    #so-right-wrap > table { width: 100%; height: 100%; margin: 0; border-spacing: 0; border-collapse: collapse; }
+    /* inner table cell padding so content is flush with container */
+    #so-right-wrap td, #so-right-wrap th { vertical-align: middle; padding: 0.45rem 0.5rem; }
+    /* show internal grid lines only */
+    #so-right-wrap > table th, #so-right-wrap > table td { border: 1px solid #dee2e6; }
+    #so-right-wrap > table thead th { border-top: 0; }
+    #so-right-wrap > table th:first-child, #so-right-wrap > table td:first-child { border-left: 0; }
+    #so-right-wrap > table th:last-child, #so-right-wrap > table td:last-child { border-right: 0; }
+    #so-right-wrap > table tbody tr:last-child td { border-bottom: 0 !important; }
+    .so-badge { display: inline-block; min-width: 48px; text-align: center; }
+    .drag-handle { width: 28px; display: inline-flex; justify-content: center; }
+    .cis-textarea { width: 100%; box-sizing: border-box; resize: none; padding: 0.25rem 0.4rem; border-radius: 4px; }
+    textarea.autosize { min-height: 42px; overflow: hidden; }
+    .btn-delete-so { margin-left: 0.25rem; }
+  </style>
+
+  <table class="table table-bordered mb-4 cis-table">
     <colgroup>
-      <col style="width: 10%;">
-      <col style="width: 5%;">
-      <col style="width: 85%;">
+      <col style="width:16%">
+      <col style="width:84%">
     </colgroup>
-    <thead>
+    <tbody>
       <tr>
-        <th colspan="3" class="text-start fw-bold">Student Outcomes (SO)</th>
+        <th class="align-top text-start cis-label so-left-title">Student Outcomes (SO)
+          <span id="unsaved-sos" class="unsaved-pill d-none">Unsaved</span>
+        </th>
+  <td id="so-right-wrap">
+          <table class="table mb-0" style="font-family: Georgia, serif; font-size: 13px; line-height: 1.4; border: none;">
+            <colgroup>
+              <col style="width: 10%">
+              <col style="width: 90%">
+            </colgroup>
+            <thead>
+              <tr class="table-light">
+                <th class="text-center cis-label">SO</th>
+                <th class="text-start cis-label">Student Outcome / Notes</th>
+              </tr>
+            </thead>
+            <tbody id="syllabus-so-sortable" data-syllabus-id="{{ $default['id'] }}">
+              @if($sosSorted->count())
+                @foreach ($sosSorted as $index => $so)
+                  @php $seqCode = $so->code ?? 'SO' . ($index + 1); @endphp
+                  <tr data-id="{{ $so->id }}">
+                    <td class="text-center align-middle">
+                      <div class="so-badge fw-semibold">{{ $seqCode }}</div>
+                    </td>
+                    <td>
+                      <div class="d-flex align-items-center gap-2">
+                        <span class="drag-handle text-muted" title="Drag to reorder" style="cursor: grab;"><i class="bi bi-grip-vertical"></i></span>
+                        <textarea name="sos[]" class="form-control cis-textarea autosize flex-grow-1" data-original="{{ old("sos.$index", $so->description) }}" required>{{ old("sos.$index", $so->description) }}</textarea>
+                        <input type="hidden" name="code[]" value="{{ $seqCode }}">
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-so ms-2" title="Delete SO"><i class="bi bi-trash"></i></button>
+                      </div>
+                    </td>
+                  </tr>
+                @endforeach
+              @else
+                <tr>
+                  <td class="text-center align-middle"><div class="so-badge fw-semibold">SO1</div></td>
+                  <td>
+                    <div class="d-flex align-items-center gap-2">
+                      <span class="drag-handle text-muted" title="Drag to reorder" style="cursor: grab;"><i class="bi bi-grip-vertical"></i></span>
+                      <textarea name="sos[]" class="form-control cis-textarea autosize flex-grow-1" required></textarea>
+                      <input type="hidden" name="code[]" value="SO1">
+                      <button type="button" class="btn btn-sm btn-outline-danger btn-delete-so ms-2" title="Delete SO"><i class="bi bi-trash"></i></button>
+                    </div>
+                  </td>
+                </tr>
+              @endif
+            </tbody>
+          </table>
+        </td>
       </tr>
-    </thead>
-    <tbody id="syllabus-so-sortable" data-syllabus-id="{{ $default['id'] }}">
-      @forelse ($sos->sortBy('position') as $index => $so)
-        <tr data-id="{{ $so->id }}">
-          <td class="text-center align-middle fw-bold">
-            {{ $so->code ?? "SO" . ($index + 1) }}
-          </td>
-          <td class="text-center align-middle">
-            <span class="drag-handle text-muted" title="Drag to reorder" style="cursor: grab;">
-              <i class="bi bi-grip-vertical"></i>
-            </span>
-          </td>
-          <td>
-            <div class="d-flex align-items-start gap-2">
-              <textarea 
-                name="sos[]" 
-                class="form-control border-0 p-0 bg-transparent"
-                style="min-height: 60px; flex: 1;"
-                required>{{ old("sos.$index", $so->description) }}</textarea>
-              <input type="hidden" name="code[]" value="{{ $so->code }}">
-              <button type="button" 
-                      class="btn btn-sm btn-outline-danger btn-delete-so mt-1" 
-                      title="Delete SO">
-                <i class="bi bi-trash"></i>
-              </button>
-            </div>
-          </td>
-        </tr>
-      @empty
-        <tr><td colspan="3" class="text-center text-muted">No SOs found.</td></tr>
-      @endforelse
     </tbody>
   </table>
 
-  {{-- ░░░ START: SO Action Buttons ░░░ --}}
-  <div class="d-flex gap-2">
-    <button type="button" class="btn btn-outline-secondary btn-sm" id="add-so-row">➕ Add Row</button>
-    <button type="button" class="btn btn-outline-danger btn-sm" id="save-syllabus-so-order">Save Order</button>
-    <button type="submit" class="btn btn-danger btn-sm ms-auto">💾 Save All</button>
-  </div>
-  {{-- ░░░ END: SO Action Buttons ░░░ --}}
+  {{-- Controls removed: Add Row / Save Order / Save All are handled via top Save and programmatic APIs now --}}
 </form>
 
 @push('scripts')

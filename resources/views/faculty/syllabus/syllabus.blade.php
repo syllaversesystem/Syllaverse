@@ -374,6 +374,17 @@
                 console.warn('postAssessmentTasksRows failed on top Save (ignored), continuing with form submit', postErr);
               }
 
+              // Persist SOs via their module (if present) before saving main form
+              try {
+                if (window.saveSo && typeof window.saveSo === 'function') {
+                  await Promise.resolve(window.saveSo());
+                  try { const soPill = document.getElementById('unsaved-sos'); if (soPill) soPill.classList.add('d-none'); } catch(e){}
+                }
+              } catch (soErr) {
+                // Ignore SO save failures so the rest of the syllabus can still save
+                console.warn('saveSo failed on top Save (ignored), continuing with form submit', soErr);
+              }
+
               // Persist IGAs via their module (if present) before saving main form
               try {
                 if (window.saveIga && typeof window.saveIga === 'function') {
@@ -383,6 +394,16 @@
               } catch (igaErr) {
                 // Ignore IGA save failures so the rest of the syllabus can still save
                 console.warn('saveIga failed on top Save (ignored), continuing with form submit', igaErr);
+              }
+
+              // Persist SOs via their module (if present) before IGAs/main form
+              try {
+                if (window.saveSo && typeof window.saveSo === 'function') {
+                  await Promise.resolve(window.saveSo());
+                  try { const soPill = document.getElementById('unsaved-sos'); if (soPill) soPill.classList.add('d-none'); } catch(e){}
+                }
+              } catch (soErr) {
+                console.warn('saveSo failed on top Save (ignored), continuing with form submit', soErr);
               }
 
               // Mark as saved to avoid beforeunload prompts and re-marking while we programmatically submit

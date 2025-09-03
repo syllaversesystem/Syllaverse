@@ -155,10 +155,10 @@ document.addEventListener('DOMContentLoaded', () => {
     return newRow;
   }
 
-  // Keyboard: Ctrl+Enter to clone (handled in blade) — support Backspace deletion here
+  // Keyboard: Backspace at caret 0 on an empty textarea removes the row (mirrors ILO behavior)
   list.addEventListener('keydown', (e) => {
     const el = e.target; if (!el || el.tagName !== 'TEXTAREA') return;
-    if (e.key === 'Backspace' && (e.ctrlKey || e.metaKey)) {
+    if (e.key === 'Backspace') {
       const val = el.value || ''; const selStart = (typeof el.selectionStart === 'number') ? el.selectionStart : 0;
       if (val.trim() === '' && selStart === 0) {
         e.preventDefault(); e.stopPropagation();

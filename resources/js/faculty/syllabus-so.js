@@ -7,30 +7,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
   soForm.addEventListener('submit', async function (e) {
     e.preventDefault();
-
-    const formData = new FormData(soForm);
-    const url = soForm.getAttribute('action');
-    const csrf = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-
     try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'X-CSRF-TOKEN': csrf,
-          'Accept': 'application/json'
-        },
-        body: formData
-      });
-
-      if (response.ok) {
-        alert('✅ SOs updated successfully.');
-      } else {
-        const data = await response.json();
-        alert('❌ Failed to update SOs:\n' + (data.message || 'Unknown error'));
-      }
+      await window.saveSo();
+      alert('✅ SOs updated successfully.');
     } catch (error) {
       console.error('SO Save Error:', error);
-      alert('❌ Error while saving SOs.');
+      alert('❌ Failed to update SOs:\n' + (error.message || 'Unknown error'));
     }
   });
+  
+  // Expose an async save function so top-level syllabus Save can await SO persistence
+  window.saveSo = async function() {
+    const form = document.querySelector('#soForm');
+    if (!form) return { message: 'No SO form present' };
+    const formData = new FormData(form);
+    const url = form.getAttribute('action');
+    const tokenMeta = document.querySelector('meta[name="csrf-token"]');
+    const headers = { 'Accept': 'application/json' };
+    if (tokenMeta) headers['X-CSRF-TOKEN'] = tokenMeta.getAttribute('content');
+    try {
+      const resp = await fetch(url, { method: 'POST', headers, body: formData, credentials: 'same-origin' });
+      if (!resp.ok) {
+        let data = null;
+        try { data = await resp.json(); } catch (e) { /* noop */ }
+        throw new Error((data && data.message) ? data.message : ('Server returned ' + resp.status));
+      }
+      return await resp.json().catch(() => ({ message: 'SOs saved' }));
+    } catch (err) {
+      throw err;
+    }
+  };
 });

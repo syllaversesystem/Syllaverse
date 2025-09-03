@@ -142,16 +142,14 @@ class SyllabusController extends Controller
             }
         }
 
-    SyllabusCourseInfo::create([
+        $courseInfoData = [
             'syllabus_id' => $syllabus->id,
             'course_title' => $course->title ?? null,
             'course_code' => $course->code ?? null,
             'course_category' => $course->course_category ?? $course->category ?? null,
             'course_prerequisites' => $course->relationLoaded('prerequisites') ? $course->prerequisites->map(fn($c)=> ($c->code ? ($c->code . ' - ') : '') . ($c->title ?? ''))->implode("\n") : null,
             'course_description' => $course->description ?? null,
-            // store human-readable text for lec/lab (e.g. "3 hours lecture")
-            'contact_hours_lec' => is_null($course->contact_hours_lec) ? null : (string) ($course->contact_hours_lec . ' hours lecture'),
-            'contact_hours_lab' => is_null($course->contact_hours_lab) ? null : (string) ($course->contact_hours_lab . ' hours laboratory'),
+            // credit / contact hours
             'credit_hours_text' => $creditText,
             // copy semester/year/academic year from the newly created syllabus so the per-syllabus row has the same context
             'semester' => $syllabus->semester ?? null,
@@ -172,19 +170,54 @@ class SyllabusController extends Controller
             // store the human-readable lec/lab text derived from numeric values or parser
             'contact_hours_lec' => $lec ? (string) ($lec . ' hours lecture') : null,
             'contact_hours_lab' => $lab ? (string) ($lab . ' hours laboratory') : null,
-            // criteria fields (lecture + laboratory)
+            // criteria fields (lecture + laboratory) -- may be removed below if columns absent
             'criteria_lecture' => $course->criteria_lecture ?? null,
             'criteria_laboratory' => $course->criteria_laboratory ?? null,
-        ]);
+        ];
 
-        $masterSOs = StudentOutcome::orderBy('position')->get();
-        foreach ($masterSOs as $index => $so) {
-            SyllabusSo::create([
-                'syllabus_id' => $syllabus->id,
-                'code' => $so->code,
-                'description' => $so->description,
-                'position' => $index + 1,
-            ]);
+        // If the underlying table no longer has the legacy criteria columns, don't attempt to write them
+        try {
+            if (! Schema::hasColumn('syllabus_course_infos', 'criteria_lecture')) {
+                unset($courseInfoData['criteria_lecture']);
+                \Log::info('Syllabus::store removed criteria_lecture from courseInfo create because column missing');
+            }
+            if (! Schema::hasColumn('syllabus_course_infos', 'criteria_laboratory')) {
+                unset($courseInfoData['criteria_laboratory']);
+                \Log::info('Syllabus::store removed criteria_laboratory from courseInfo create because column missing');
+            }
+        } catch (\Throwable $e) {
+            // best-effort guard; if Schema check fails, proceed without throwing
+            \Log::warning('Syllabus::store schema check for courseInfo failed', ['error' => $e->getMessage()]);
+        }
+
+        SyllabusCourseInfo::create($courseInfoData);
+
+        // Copy master Student Outcomes into per-syllabus SOs if master table exists
+        try {
+            if (Schema::hasTable('student_outcomes')) {
+                $masterSOs = StudentOutcome::orderBy('position')->get();
+                $pos = 1;
+                foreach ($masterSOs as $mso) {
+                    SyllabusSo::create([
+                        'syllabus_id' => $syllabus->id,
+                        'code' => $mso->code ?? ('SO' . $pos),
+                        'description' => $mso->description ?? $mso->title ?? null,
+                        'position' => $pos++,
+                    ]);
+                }
+            }
+        } catch (\Throwable $e) {
+            // don't break syllabus creation if master SOs cannot be fetched for any reason
+            \Log::warning('Failed to copy master StudentOutcomes into syllabus', ['error' => $e->getMessage()]);
+        }
+
+        // Diagnostic logging: report how many master SOs existed and how many per-syllabus SOs were created
+        try {
+            $masterCount = isset($masterSOs) && is_iterable($masterSOs) ? count($masterSOs) : 0;
+            $createdCount = \App\Models\SyllabusSo::where('syllabus_id', $syllabus->id)->count();
+            \Log::info('Syllabus::store SO seed summary', ['syllabus_id' => $syllabus->id, 'master_count' => $masterCount, 'created_count' => $createdCount]);
+        } catch (\Throwable $__e) {
+            \Log::warning('Syllabus::store failed to compute SO seed counts', ['error' => $__e->getMessage()]);
         }
 
         return redirect()->route('faculty.syllabi.index')
