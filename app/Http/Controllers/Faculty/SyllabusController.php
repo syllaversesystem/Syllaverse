@@ -27,6 +27,8 @@ use App\Models\GeneralInformation;
 use App\Models\Sdg;
 use App\Models\Iga;
 use App\Models\SyllabusIga;
+use App\Models\Cdio;
+use App\Models\SyllabusCdio;
 use Illuminate\Support\Facades\Schema;
 use Barryvdh\DomPDF\Facade\Pdf;
 use PhpOffice\PhpWord\PhpWord;
@@ -69,6 +71,9 @@ class SyllabusController extends Controller
             'semester' => $request->semester,
             'year_level' => $request->year_level,
         ]);
+
+    // Diagnostic: log created syllabus id so we can correlate model-created seeding
+    try { \Log::info('SyllabusController::store created syllabus', ['syllabus_id' => $syllabus->id, 'faculty_id' => Auth::id()]); } catch (\Throwable $__e) {}
 
         // persist mission/vision into the dedicated table
         $syllabus->missionVision()->create([
@@ -211,6 +216,33 @@ class SyllabusController extends Controller
             \Log::warning('Failed to copy master StudentOutcomes into syllabus', ['error' => $e->getMessage()]);
         }
 
+        // Copy master CDIOs into per-syllabus CDIOs if master table exists
+        try {
+            if (Schema::hasTable('cdios')) {
+                $masterCdios = Cdio::ordered()->get();
+                $pos = 1;
+                foreach ($masterCdios as $mcdio) {
+                    SyllabusCdio::create([
+                        'syllabus_id' => $syllabus->id,
+                        'code' => $mcdio->code ?? (Cdio::makeCodeFromPosition($pos)),
+                        'description' => $mcdio->description ?? $mcdio->title ?? null,
+                        'position' => $pos++,
+                    ]);
+                }
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('Failed to copy master CDIOs into syllabus', ['error' => $e->getMessage()]);
+        }
+
+        // Diagnostic logging for CDIO seed
+        try {
+            $masterCdioCount = isset($masterCdios) && is_iterable($masterCdios) ? count($masterCdios) : 0;
+            $createdCdioCount = SyllabusCdio::where('syllabus_id', $syllabus->id)->count();
+            \Log::info('Syllabus::store CDIO seed summary', ['syllabus_id' => $syllabus->id, 'master_count' => $masterCdioCount, 'created_count' => $createdCdioCount]);
+        } catch (\Throwable $__e) {
+            \Log::warning('Syllabus::store failed to compute CDIO seed counts', ['error' => $__e->getMessage()]);
+        }
+
         // Diagnostic logging: report how many master SOs existed and how many per-syllabus SOs were created
         try {
             $masterCount = isset($masterSOs) && is_iterable($masterSOs) ? count($masterSOs) : 0;
@@ -227,7 +259,7 @@ class SyllabusController extends Controller
     public function show($id)
     {
         $syllabus = Syllabus::with([
-            'course', 'program', 'faculty', 'ilos', 'sos', 'sdgs', 'courseInfo', 'criteria',
+            'course', 'program', 'faculty', 'ilos', 'sos', 'sdgs', 'courseInfo', 'criteria', 'cdios',
             'tla.ilos:id,code',
             'tla.sos:id,code'
         ])->findOrFail($id);
@@ -257,6 +289,7 @@ class SyllabusController extends Controller
             'ilos' => $syllabus->ilos,
             'sos' => $syllabus->sos,
             'igas' => $syllabus->igas ?? collect(),
+            'cdios' => $syllabus->cdios ?? collect(),
             'sdgs' => $sdgs,
         ]);
     }

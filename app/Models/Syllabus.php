@@ -12,6 +12,39 @@ class Syllabus extends Model
 {
     use HasFactory;
 
+    protected static function booted(): void
+    {
+        // When a syllabus is created, seed master CDIOs into the per-syllabus table (best-effort)
+        static::created(function (self $syllabus) {
+            try {
+                // If per-syllabus CDIOs already exist (controller may have seeded them), skip
+                if (\App\Models\SyllabusCdio::where('syllabus_id', $syllabus->id)->exists()) {
+                    return;
+                }
+
+                if (\Illuminate\Support\Facades\Schema::hasTable('cdios')) {
+                    $masterCdios = Cdio::ordered()->get();
+                    $pos = 1;
+                    foreach ($masterCdios as $mcdio) {
+                        try {
+                            SyllabusCdio::create([
+                                'syllabus_id' => $syllabus->id,
+                                'code' => $mcdio->code ?? Cdio::makeCodeFromPosition($pos),
+                                'description' => $mcdio->description ?? $mcdio->title ?? null,
+                                'position' => $pos++,
+                            ]);
+                        } catch (\Throwable $__ignore) {
+                            // continue seeding remaining items
+                            continue;
+                        }
+                    }
+                }
+            } catch (\Throwable $e) {
+                \Log::warning('Syllabus model created: failed to seed master CDIOs', ['error' => $e->getMessage(), 'syllabus_id' => $syllabus->id]);
+            }
+        });
+    }
+
     protected $fillable = [
         'faculty_id',
         'program_id',
@@ -76,6 +109,12 @@ class Syllabus extends Model
     public function igas()
     {
         return $this->hasMany(SyllabusIga::class)->orderBy('position');
+    }
+
+    // 🔁 A syllabus has many CDIO entries (per-syllabus copies of master CDIOs)
+    public function cdios()
+    {
+        return $this->hasMany(SyllabusCdio::class)->orderBy('position');
     }
 
     // Per-syllabus overrides for course information (so edits inside a syllabus don't change master course)

@@ -396,6 +396,16 @@
                 console.warn('saveIga failed on top Save (ignored), continuing with form submit', igaErr);
               }
 
+              // Persist CDIOs via their module (if present) before saving main form
+              try {
+                if (window.saveCdio && typeof window.saveCdio === 'function') {
+                  await Promise.resolve(window.saveCdio());
+                  try { const cdioPill = document.getElementById('unsaved-cdios'); if (cdioPill) cdioPill.classList.add('d-none'); } catch(e){}
+                }
+              } catch (cdioErr) {
+                console.warn('saveCdio failed on top Save (ignored), continuing with form submit', cdioErr);
+              }
+
               // Persist SOs via their module (if present) before IGAs/main form
               try {
                 if (window.saveSo && typeof window.saveSo === 'function') {
