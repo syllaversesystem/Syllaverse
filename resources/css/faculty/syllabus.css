@@ -110,6 +110,39 @@ textarea.form-control:focus {
   opacity: 0.9;
 }
 
+/* Sticky toolbar wrapper (sticks to top when scrolling) */
+.syllabus-toolbar-wrap {
+  position: relative; /* anchor for sticky child */
+}
+.syllabus-toolbar-wrap.sticky .syllabus-toolbar {
+  position: sticky;
+  top: 8px; /* small gap from top to align with page chrome */
+  z-index: 1080; /* above content but below modals */
+  box-shadow: 0 8px 28px rgba(15,23,42,0.12);
+  transform-origin: top center;
+}
+
+/* Ribbon-like groups: compact button groups with separators */
+.syllabus-toolbar .btn-group.ribbon {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(15,23,42,0.06);
+}
+.syllabus-toolbar .btn-group.ribbon .btn {
+  border-radius: 0;
+  padding: 6px 10px;
+}
+.syllabus-toolbar .btn-group.ribbon .btn + .btn {
+  border-left: 1px solid rgba(15,23,42,0.04);
+}
+
+/* make the toolbar visually denser like Word's ribbon */
+.syllabus-toolbar .btn { padding: 6px 10px; }
+.syllabus-toolbar .btn i { font-size: 1rem; }
+.syllabus-toolbar .btn .ms-1 { font-weight: 600; }
+
 
 .section-heading {
   font-weight: bold;

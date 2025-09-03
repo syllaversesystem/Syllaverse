@@ -44,8 +44,9 @@
       @csrf
       @method('PUT')
 
-      {{-- ===== TOP TOOLBAR (visual only, no extra JS behavior) ===== --}}
-      <div class="syllabus-toolbar mb-4 p-2 bg-white border rounded d-flex justify-content-between align-items-center">
+      {{-- ===== TOP TOOLBAR (sticky ribbon-style toolbar) ===== --}}
+      <div class="syllabus-toolbar-wrap mb-4">
+        <div class="syllabus-toolbar p-2 bg-white border rounded d-flex justify-content-between align-items-center">
         <div class="d-flex align-items-center gap-2">
           <button type="submit" class="btn btn-danger fw-semibold" id="syllabusSaveBtn">
             <i class="bi bi-save"></i>
@@ -79,6 +80,7 @@
               <li><a class="dropdown-item disabled" href="#">More tools</a></li>
             </ul>
           </div>
+        </div>
         </div>
       </div>
       {{-- ===== END: TOP TOOLBAR ===== --}}
@@ -162,6 +164,32 @@
   {{-- Enhanced Save Functionality --}}
   <script>
   document.addEventListener('DOMContentLoaded', function() {
+    // Sticky toolbar behavior: add 'sticky' class when scrolled past its top
+    try {
+      const wrap = document.querySelector('.syllabus-toolbar-wrap');
+      if (wrap) {
+        const orig = wrap.getBoundingClientRect().top + window.scrollY;
+        const onScroll = () => {
+          if (window.scrollY > orig - 12) wrap.classList.add('sticky'); else wrap.classList.remove('sticky');
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        // initial check
+        onScroll();
+      }
+    } catch (e) {}
+
+    // Keyboard shortcut: Ctrl/Cmd+S to save like Word
+    try {
+      document.addEventListener('keydown', function (e) {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+          const btn = document.getElementById('syllabusSaveBtn');
+          if (btn) {
+            e.preventDefault();
+            btn.click();
+          }
+        }
+      });
+    } catch (e) {}
     const syllabusForm = document.getElementById('syllabusForm');
     const saveBtn = document.getElementById('syllabusSaveBtn');
     const unsavedCountBadge = document.getElementById('unsaved-count-badge');

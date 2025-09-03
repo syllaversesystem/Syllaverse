@@ -1,10 +1,12 @@
 // File: resources/js/faculty/syllabus-sdg.js
 // Description: Handles AJAX-based SDG mapping (attach, update, remove) – Syllaverse
 
+import './syllabus-sdg-sortable';
+
 document.addEventListener('DOMContentLoaded', function () {
     const addForm = document.querySelector('#addSdgModal form');
     const modal = new bootstrap.Modal(document.getElementById('addSdgModal'));
-    const tableBody = document.querySelector('#sdg-table-body');
+    const tbody = document.querySelector('#syllabus-sdg-sortable');
     const template = document.querySelector('#sdg-template-row');
 
     // ✅ Attach SDG via modal (live row add)
@@ -24,34 +26,57 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!res.ok) throw res;
             return res.json();
         })
-        .then(data => {
-            modal.hide();
+    .then(data => {
+        modal.hide();
 
-            const newRow = template.cloneNode(true);
-            newRow.id = '';
-            newRow.classList.remove('d-none');
+                // Clone the SDG template row used by the sortable SDG table
+                const newRow = template.cloneNode(true);
+                newRow.id = '';
+                newRow.classList.remove('d-none');
 
-            // Fill in title + description
-            newRow.querySelector('input[name="title"]').value = data.title ?? '';
-            newRow.querySelector('textarea[name="description"]').value = data.description ?? '';
+                // Set pivot + sdg ids so other scripts can target them
+                newRow.setAttribute('data-id', data.pivot_id);
+                newRow.setAttribute('data-sdg-id', data.sdg_id);
 
-            // Set form actions
-            newRow.querySelector('[data-sdg-form="update"]').action = `/faculty/syllabi/${syllabusId}/sdgs/update/${data.pivot_id}`;
-            newRow.querySelector('[data-sdg-form="delete"]').action = `/faculty/syllabi/${syllabusId}/sdgs/${data.sdg_id}`;
+                // Fill textarea (description) and hidden code input if present
+                const ta = newRow.querySelector('textarea[name="sdgs[]"]');
+                if (ta) {
+                    ta.value = data.description ?? '';
+                    ta.setAttribute('data-original', data.description ?? '');
+                }
+                // Fill visible title and hidden title input if present
+                const titleEl = newRow.querySelector('.sdg-title');
+                if (titleEl) titleEl.textContent = data.title || '';
+                const titleInput = newRow.querySelector('input[name="title[]"]');
+                if (titleInput) titleInput.value = data.title || '';
+                const codeInput = newRow.querySelector('input[name="code[]"]');
+                // set a provisional code; sortable script will renumber on mutation
+                const currentCount = Array.from(tbody.querySelectorAll('tr')).filter(r => r.querySelector('textarea[name="sdgs[]"]') || r.querySelector('.cdio-badge')).length;
+                if (codeInput) codeInput.value = `SDG${currentCount + 1}`;
+                const badge = newRow.querySelector('.cdio-badge'); if (badge) badge.textContent = `SDG${currentCount + 1}`;
 
-            tableBody.appendChild(newRow);
+                // Append and ensure autosize/renumber triggers
+                tbody.appendChild(newRow);
+                try { if (window.initAutosize) window.initAutosize(); } catch (e) {}
+                try { if (window.updateVisibleCodes) window.updateVisibleCodes(); } catch (e) {}
 
-            // Remove newly selected option from dropdown
-            const select = document.querySelector('#sdg_id');
-            const usedOption = select.querySelector(`option[value="${data.sdg_id}"]`);
-            if (usedOption) usedOption.remove();
+                // Remove newly selected option from dropdown
+                const select = document.querySelector('#sdg_id');
+                const usedOption = select && select.querySelector(`option[value="${data.sdg_id}"]`);
+                if (usedOption) usedOption.remove();
 
-            // Bind events on new row
-            bindSdgForms(newRow);
+                // If the sortable script expects event bindings, it will handle persisted rows (inline save).
+
+                // Small success toast
+                showSdgToast('SDG added', `${data.title || 'SDG'} added to syllabus.`);
+
+                // Dispatch a custom event so other modules can react
+                try { document.dispatchEvent(new CustomEvent('sdg:attached', { detail: data })); } catch (e) {}
         })
         .catch(async (err) => {
-            const message = await err.text();
-            alert('Error: ' + message);
+            let message = 'Network error';
+            try { message = await err.text(); } catch (e) {}
+            showSdgToast('Error', message, true);
         });
     });
 
@@ -100,47 +125,75 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         });
 
-        // ✅ Delete SDG
+        // ✅ Delete SDG (AJAX)
         deleteForm?.addEventListener('submit', function (e) {
             e.preventDefault();
 
             if (!confirm('Remove this SDG?')) return;
 
-            const formData = new FormData(deleteForm);
+            // Prefer using syllabus + sdg id for the detach route; fallback to the form action
+            const sdgId = row.getAttribute('data-sdg-id');
+            const syllabusId = tbody && tbody.dataset ? tbody.dataset.syllabusId : null;
+            const deleteUrl = (sdgId && syllabusId) ? `/faculty/syllabi/${syllabusId}/sdgs/${sdgId}` : deleteForm.action;
 
-            fetch(deleteForm.action, {
-                method: 'POST',
+            fetch(deleteUrl, {
+                method: 'DELETE',
+                credentials: 'same-origin',
                 headers: {
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                    'X-HTTP-Method-Override': 'DELETE',
                     'Accept': 'application/json'
-                },
-                body: formData
-            })
-            .then(res => {
-                if (!res.ok) throw res;
-                return res.json().catch(() => res.text());
-            })
-            .then(() => {
-                // ✅ Remove the row
-                row.remove();
-
-                // ✅ Re-add the SDG option back to modal <select>
-                const select = document.querySelector('#sdg_id');
-                const sdgId = deleteForm.action.split('/').pop();
-                const sdgTitle = row.querySelector('input[name="title"]').value;
-
-                if (!select.querySelector(`option[value="${sdgId}"]`)) {
-                    const option = document.createElement('option');
-                    option.value = sdgId;
-                    option.textContent = sdgTitle;
-                    select.appendChild(option);
                 }
             })
+            .then(async (res) => {
+                if (!res.ok) {
+                    const txt = await res.text().catch(() => 'Delete failed');
+                    throw new Error(txt);
+                }
+                return res.json().catch(() => ({}));
+            })
+            .then((data) => {
+                // Remove the row from DOM
+                row.remove();
+
+                // Re-add the SDG option back to modal <select> if present
+                const select = document.querySelector('#sdg_id');
+                const sdgTitleEl = row.querySelector('input[name="title[]"]') || row.querySelector('.sdg-title') || row.querySelector('textarea[name="sdgs[]"]');
+                const sdgTitle = sdgTitleEl ? (sdgTitleEl.value || sdgTitleEl.textContent || '') : '';
+
+                if (select && sdgId && !select.querySelector(`option[value="${sdgId}"]`)) {
+                    const option = document.createElement('option');
+                    option.value = sdgId;
+                    option.textContent = sdgTitle || `SDG ${sdgId}`;
+                    select.appendChild(option);
+                }
+
+                showSdgToast('SDG removed', data.message || 'SDG removed from syllabus.');
+                try { document.dispatchEvent(new CustomEvent('sdg:detached', { detail: { sdg_id: sdgId, pivot: row.getAttribute('data-id') } })); } catch (e) {}
+            })
             .catch(async (err) => {
-                const message = await err.text();
-                alert('Failed to remove: ' + message);
+                const msg = err && err.message ? err.message : (await (err.text ? err.text() : Promise.resolve('Failed to remove'))).toString();
+                showSdgToast('Error', msg, true);
             });
         });
     }
 });
+
+// Toast helper (lightweight, appended to body)
+function showSdgToast(title, message, isError = false) {
+    try {
+        const id = `sdg-toast-${Date.now()}`;
+        const toastHtml = `
+            <div id="${id}" class="toast align-items-center text-bg-${isError ? 'danger' : 'success'} border-0 position-fixed" role="alert" aria-live="assertive" aria-atomic="true" style="top:1rem; right:1rem; z-index:11000;">
+                <div class="d-flex">
+                    <div class="toast-body"> <strong>${title}:</strong> ${message} </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            </div>
+        `;
+        const container = document.createElement('div'); container.innerHTML = toastHtml; document.body.appendChild(container.firstElementChild);
+        const toastEl = document.getElementById(id);
+        const bsToast = new bootstrap.Toast(toastEl, { delay: 2500 });
+        bsToast.show();
+        setTimeout(() => { try { toastEl.remove(); } catch (e) {} }, 3500);
+    } catch (e) { try { alert(title + ': ' + message); } catch (err) {} }
+}

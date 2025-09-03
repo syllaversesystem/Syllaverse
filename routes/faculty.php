@@ -75,6 +75,10 @@ Route::middleware([FacultyAuth::class])->group(function () {
 
     // ---------- ✅ SDG Mapping ----------
     Route::post('/faculty/syllabi/{syllabus}/sdgs', [SyllabusSdgController::class, 'attach'])->name('faculty.syllabi.sdgs.attach');
+    // Bulk save (order + descriptions)
+    Route::put('/faculty/syllabi/{syllabus}/sdgs', [SyllabusSdgController::class, 'bulkUpdate'])->name('faculty.syllabi.sdgs.save');
+    // Reorder positions only
+    Route::post('/faculty/syllabi/{syllabus}/sdgs/reorder', [SyllabusSdgController::class, 'reorder'])->name('faculty.syllabi.sdgs.reorder');
     Route::put('/faculty/syllabi/{syllabus}/sdgs/update/{pivot}', [SyllabusSdgController::class, 'update'])->name('faculty.syllabi.sdgs.update');
     Route::delete('/faculty/syllabi/{syllabus}/sdgs/{sdg}', [SyllabusSdgController::class, 'detach'])->name('faculty.syllabi.sdgs.detach');
 
