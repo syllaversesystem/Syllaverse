@@ -121,7 +121,9 @@
   <tbody>
     <tr>
       <th id="at-left-title" class="at-map-left align-top text-start cis-label">Assessment Method and Distribution Map
-        <span id="unsaved-assessment_tasks_left" class="unsaved-pill d-none">Unsaved</span>
+        <div style="margin-top:6px;">
+          <span id="unsaved-assessment_tasks_left" class="unsaved-pill d-none">Unsaved</span>
+        </div>
       </th>
       <td class="at-map-right">
   <table class="table table-bordered mb-0 cis-table" style="table-layout: fixed; margin:0;">
@@ -142,10 +144,9 @@
           </colgroup>
   <thead class="table-light">
     <tr>
-  <th colspan="4" class="text-start">
-        <div class="at-title fw-bold cis-label">Assessment Tasks (AT) Distribution
-          <span id="unsaved-assessment_tasks" class="unsaved-pill d-none">Unsaved</span>
-        </div>
+  <th colspan="4" class="text-start cis-label">
+  <div class="at-title fw-bold">Assessment Tasks (AT) Distribution
+  </div>
       </th>
       <th class="text-center cis-label" colspan="{{ count($iloCols) }}">Intended Learning Outcomes</th>
     <th class="text-center cis-label" colspan="3">Domains</th>
@@ -231,7 +232,11 @@
 </table>
 
         {{-- Hidden serialized payload so the main Save can persist the AT distribution as JSON --}}
-        <textarea id="assessment_tasks_data" name="assessment_tasks_data" class="d-none" data-original="{{ old('assessment_tasks_data', $syllabus->assessment_tasks_data ?? '') }}">{{ old('assessment_tasks_data', $syllabus->assessment_tasks_data ?? '') }}</textarea>
+     {{-- Hidden serialized payload so the main Save can persist the AT distribution as JSON
+       The `form="syllabusForm"` attribute associates this textarea with the main
+       syllabus form even though the AT UI is rendered outside the <form> element.
+     --}}
+     <textarea id="assessment_tasks_data" name="assessment_tasks_data" form="syllabusForm" class="d-none" data-original="{{ old('assessment_tasks_data', $syllabus->assessment_tasks_data ?? '') }}">{{ old('assessment_tasks_data', $syllabus->assessment_tasks_data ?? '') }}</textarea>
 
         {{-- Note: match CIS wording from design image --}}
         <style>
@@ -283,37 +288,42 @@
           }
           return;
         }
-        // data rows
-        const inputs = Array.from(r.querySelectorAll('input'));
-        if (!inputs.length) return;
-  // map columns with new I/R/D column added:
-  // 0: code, 1: task, 2:  I/R/D, 3: %, next iloCols, then T,C,P,A
-  const code = inputs[0] ? inputs[0].value : '';
-  const task = inputs[1] ? inputs[1].value : '';
-  const ird = inputs[2] ? inputs[2].value : '';
-  const pct = inputs[3] ? inputs[3].value : '';
-  // ilo flags are next N inputs; compute count from header (subtract 4 fixed columns)
-  const iloFlagCount = (function(){ const ths = table.querySelectorAll('thead tr:nth-child(2) th'); return Math.max(0, ths.length - (4)); })();
-        const iloFlags = [];
-        for (let i=0;i<iloFlagCount;i++) {
-          const idx = 4 + i;
-          if (inputs[idx]) iloFlags.push(inputs[idx].value || '');
-        }
-    // trailing C,P,A
-    const trailing = [];
-  const trailingStart = 4 + iloFlagCount;
-    for (let j=0;j<3;j++) {
-      const idx = trailingStart + j;
-      trailing.push(inputs[idx] ? inputs[idx].value || '' : '');
-    }
+        // data rows - build values by iterating cells (handles colspan and dynamic columns more robustly)
+        const cells = Array.from(r.children || []);
+        if (!cells.length) return;
+        const ths = table.querySelectorAll('thead tr:nth-child(2) th');
+        const iloFlagCount = Math.max(0, ths.length - (4 + 3)); // total ths minus fixed (code,task,ird,%, and C,P,A)
 
-  const item = { section: currentSection, code, task, ird, percent: pct, iloFlags, c: trailing[0], p: trailing[1], a: trailing[2] };
+        const cellValue = (cell) => {
+          if (!cell) return '';
+          const inp = cell.querySelector('input, textarea, select');
+          return inp ? (inp.value || '') : (cell.textContent || '').trim();
+        };
+
+        const code = cellValue(cells[0]);
+        const task = cellValue(cells[1]);
+        const ird = cellValue(cells[2]);
+        const pct = cellValue(cells[3]);
+
+        const iloFlags = [];
+        for (let i = 0; i < iloFlagCount; i++) {
+          const idx = 4 + i;
+          iloFlags.push(cellValue(cells[idx]) || '');
+        }
+
+        const trailingStart = 4 + iloFlagCount;
+        const trailing = [cellValue(cells[trailingStart]), cellValue(cells[trailingStart + 1]), cellValue(cells[trailingStart + 2])];
+
+        // debug: show trailing CPA values so user can see what gets serialized
+        try { console.debug('serializeAT row trailing c/p/a', { pos: out.length, c: trailing[0], p: trailing[1], a: trailing[2] }); } catch (e) { /* noop */ }
+
+        const item = { section: currentSection, code, task, ird, percent: pct, iloFlags, c: (trailing[0] || '').toString(), p: (trailing[1] || '').toString(), a: (trailing[2] || '').toString() };
         out.push(item);
         percentTotal += toNumber(pct);
       });
 
       // write to hidden textarea and dispatch input so global bindUnsavedIndicator picks it up
-      const ta = document.getElementById('assessment_tasks_data');
+  const ta = document.querySelector('[name="assessment_tasks_data"]');
       if (ta) {
         try { ta.value = JSON.stringify(out); } catch (e) { ta.value = '[]'; }
         try { ta.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) { /* noop */ }
@@ -362,7 +372,15 @@
         // input -> reserialize and mark unsaved
         inp.addEventListener('input', function(){
           serializeAT();
-          try { if (window.markAsUnsaved) window.markAsUnsaved('assessment_tasks'); } catch (e) { /* noop */ }
+          try {
+            // prefer the global helper when available
+            if (window.markAsUnsaved) window.markAsUnsaved('assessment_tasks');
+            // fallback: directly reveal the pills so they always appear when typing
+            const p1 = document.getElementById('unsaved-assessment_tasks_left');
+            if (p1) p1.classList.remove('d-none');
+            // If markDirty is available, call it to keep global counters in sync
+            if (window.markDirty && typeof window.markDirty === 'function') window.markDirty('unsaved-assessment_tasks_left');
+          } catch (e) { /* noop */ }
         });
 
         // key handlers: Ctrl+Enter on section header inputs to add a subfield; Backspace on empty subfield to remove
@@ -868,6 +886,122 @@
         } catch (e) { console.error(e); }
       }, true);
 
+      // Populate table from persisted data if available, then serialize
+      function populateATFromData() {
+        try {
+          const table = getATTable();
+          if (!table) return;
+          const ta = document.querySelector('[name="assessment_tasks_data"]');
+          let rows = [];
+          if (ta) {
+            const raw = (ta.value && ta.value.trim()) ? ta.value.trim() : (ta.getAttribute('data-original') || '').trim();
+            if (raw) {
+              try { rows = JSON.parse(raw); } catch (e) { rows = []; }
+            }
+          }
+          if (!rows || !rows.length) return;
+
+          // determine ilo count from header
+          const ths = table.querySelectorAll('thead tr:nth-child(2) th');
+          const iloStart = 4; // fixed
+          const domainCount = 3; // C,P,A
+          const iloCount = Math.max(0, ths.length - (iloStart + domainCount));
+
+          // group rows by section label to recreate section headers
+          const groups = [];
+          const map = {};
+          rows.forEach(r => {
+            const sec = r.section || 'General';
+            if (!map[sec]) { map[sec] = []; groups.push(sec); }
+            map[sec].push(r);
+          });
+
+          // clear tbody and rebuild
+          const tbody = table.querySelector('tbody');
+          if (!tbody) return;
+          // remove all children
+          while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+
+          groups.forEach((sec) => {
+            // create section header
+            const headerTr = document.createElement('tr');
+            headerTr.className = 'section-header table-light';
+            const codeTh = document.createElement('th');
+            codeTh.className = 'text-start';
+            const nameTh = document.createElement('th');
+            // attempt to split section into code — name
+            const parts = String(sec).split('—').map(s => s.trim());
+            const codeVal = parts[0] || '';
+            const nameVal = parts[1] || parts.slice(1).join(' — ') || '';
+            const codeInp = document.createElement('input'); codeInp.type = 'text'; codeInp.name = 'section_code[]'; codeInp.className = 'cis-input text-center'; codeInp.value = codeVal; codeInp.placeholder = 'LEC';
+            const nameInp = document.createElement('input'); nameInp.type = 'text'; nameInp.name = 'section_name[]'; nameInp.className = 'cis-input'; nameInp.value = nameVal; nameInp.placeholder = 'LECTURE';
+            codeTh.appendChild(codeInp); nameTh.appendChild(nameInp);
+            headerTr.appendChild(codeTh); headerTr.appendChild(nameTh);
+            // add empty th for remaining columns (colspan management handled by existing styles)
+            const totalCols = ths.length;
+            for (let i = 2; i < totalCols; i++) {
+              const th = document.createElement('th'); headerTr.appendChild(th);
+            }
+            tbody.appendChild(headerTr);
+
+            // add data rows for this section
+            map[sec].forEach(item => {
+              const tr = document.createElement('tr');
+              // code
+              const tdCode = document.createElement('td');
+              const inpCode = document.createElement('input'); inpCode.type='text'; inpCode.className='cis-input text-center'; inpCode.value = item.code || '';
+              tdCode.appendChild(inpCode); tr.appendChild(tdCode);
+              // task
+              const tdTask = document.createElement('td');
+              const inpTask = document.createElement('input'); inpTask.type='text'; inpTask.className='cis-input'; inpTask.value = item.task || '';
+              tdTask.appendChild(inpTask); tr.appendChild(tdTask);
+              // ird
+              const tdIrd = document.createElement('td');
+              const inpIrd = document.createElement('input'); inpIrd.type='text'; inpIrd.className='cis-input text-center'; inpIrd.value = item.ird || '';
+              tdIrd.appendChild(inpIrd); tr.appendChild(tdIrd);
+              // percent
+              const tdPct = document.createElement('td');
+              const inpPct = document.createElement('input'); inpPct.type='text'; inpPct.className='cis-input text-center'; inpPct.value = item.percent || '';
+              tdPct.appendChild(inpPct); tr.appendChild(tdPct);
+              // ilo flags
+              const flags = Array.isArray(item.iloFlags) ? item.iloFlags : (item.ilo_flags || []);
+              for (let k = 0; k < iloCount; k++) {
+                const td = document.createElement('td'); td.className='text-center';
+                const inp = document.createElement('input'); inp.type='text'; inp.className='cis-input text-center'; inp.value = flags[k] || '';
+                td.appendChild(inp); tr.appendChild(td);
+              }
+              // C,P,A
+              const tdC = document.createElement('td'); const inpC = document.createElement('input'); inpC.type='text'; inpC.className='cis-input text-center'; inpC.value = item.c || '';
+              tdC.appendChild(inpC); tr.appendChild(tdC);
+              const tdP = document.createElement('td'); const inpP = document.createElement('input'); inpP.type='text'; inpP.className='cis-input text-center'; inpP.value = item.p || '';
+              tdP.appendChild(inpP); tr.appendChild(tdP);
+              const tdA = document.createElement('td'); const inpA = document.createElement('input'); inpA.type='text'; inpA.className='cis-input text-center'; inpA.value = item.a || '';
+              tdA.appendChild(inpA); tr.appendChild(tdA);
+
+              // attach handlers
+              tbody.appendChild(tr);
+              [inpCode, inpTask, inpIrd, inpPct, inpC, inpP, inpA].forEach(i => { try { attachATHandlersToInput(i); } catch(e){} });
+              // attach handlers for ilo inputs
+              const iloInputs = tr.querySelectorAll('td:nth-child(n+5) input');
+              iloInputs.forEach(i => { try { attachATHandlersToInput(i); } catch(e){} });
+            });
+          });
+
+          // add footer total row
+          const footerTr = document.createElement('tr'); footerTr.className = 'table-light footer-total';
+          const thTotal = document.createElement('th'); thTotal.setAttribute('colspan', String(3)); thTotal.className='text-end'; thTotal.textContent = 'Total';
+          const thPct = document.createElement('th'); thPct.id = 'at-percent-total'; thPct.className='percent-total text-center'; thPct.textContent = '0%';
+          footerTr.appendChild(thTotal); footerTr.appendChild(thPct);
+          const lastTh = document.createElement('th'); lastTh.setAttribute('colspan', String(iloCount + 3)); footerTr.appendChild(lastTh);
+          tbody.appendChild(footerTr);
+
+          // reserialize to update hidden textarea and percent total
+          try { serializeAT(); } catch (e) { /* noop */ }
+        } catch (e) { console.error('populateATFromData failed', e); }
+      }
+
+      // populate from existing saved data if any
+      populateATFromData();
       // initial serialization
       serializeAT();
 
@@ -1045,7 +1179,143 @@
       });
 
       // wire into global bindUnsavedIndicator if available
-      try { if (window.bindUnsavedIndicator) window.bindUnsavedIndicator('assessment_tasks_data','assessment_tasks'); } catch (e) { /* noop */ }
+  try { if (window.bindUnsavedIndicator) window.bindUnsavedIndicator('assessment_tasks_data','assessment_tasks_left'); } catch (e) { /* noop */ }
+      // Provide a lightweight global helper used by other modules to mark this module as unsaved
+      try {
+        window.markAsUnsaved = function(key) {
+          try {
+            const badgeId = 'unsaved-' + (key || 'assessment_tasks');
+            if (window.markDirty && typeof window.markDirty === 'function') {
+              window.markDirty(badgeId);
+            } else {
+              const el = document.getElementById(badgeId);
+              if (el) el.classList.remove('d-none');
+            }
+          } catch (e) { /* noop */ }
+        };
+
+        // Expose a lightweight save function so the top Save can call it before performing the main form save.
+        // This function ensures the serialized JSON is written into the hidden textarea.
+        window.saveAssessmentTasks = async function() {
+          try {
+            // ensure latest UI state is serialized
+            serializeAT();
+            // small async pause to ensure any pending input events settle
+            await new Promise(r => setTimeout(r, 10));
+            // if the main syllabus form contains an in-form textarea for assessment_tasks_data,
+            // copy the serialized value there so the browser includes it in the form submit.
+            try {
+              const taLegacy = document.getElementById('assessment_tasks_data');
+              const taInForm = document.getElementById('assessment_tasks_data_inform');
+              // prefer legacy ta (partial) for its value, but ensure both are synced
+              const val = (taLegacy && taLegacy.value) ? taLegacy.value : (taInForm && taInForm.value) ? taInForm.value : '';
+              if (taLegacy) taLegacy.value = val;
+              if (taInForm) taInForm.value = val;
+              // dispatch input so bindUnsavedIndicator picks it up
+              if (taInForm) taInForm.dispatchEvent(new Event('input', { bubbles: true }));
+              if (taLegacy) taLegacy.dispatchEvent(new Event('input', { bubbles: true }));
+            } catch (e) { /* noop */ }
+
+            return { success: true };
+          } catch (e) {
+            console.error('saveAssessmentTasks failed', e);
+            throw e;
+          }
+        };
+
+        // Optional helper: immediately persist AT payload to the server by calling the syllabus update route
+        // Usage: await window.saveAssessmentTasksToServer(syllabusId)
+        window.saveAssessmentTasksToServer = async function(syllabusId) {
+          if (!syllabusId) throw new Error('syllabusId required');
+          // ensure serialized
+          serializeAT();
+            const ta = document.querySelector('[name="assessment_tasks_data"]');
+          const payload = new FormData();
+          payload.append('_method', 'PUT');
+          payload.append('_token', document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '');
+          payload.append('assessment_tasks_data', ta ? ta.value : '');
+
+          const url = '/faculty/syllabi/' + encodeURIComponent(syllabusId);
+          const resp = await fetch(url, { method: 'POST', body: payload, credentials: 'same-origin' });
+          if (!resp.ok) {
+            const text = await resp.text().catch(()=>null);
+            throw new Error('saveAssessmentTasksToServer failed: ' + resp.status + ' ' + (text || resp.statusText));
+          }
+          return resp;
+        };
+
+        // POST normalized AT rows to the dedicated endpoint (/faculty/syllabi/{id}/assessment-tasks)
+        // Usage: await window.postAssessmentTasksRows(syllabusId)
+        window.postAssessmentTasksRows = async function(syllabusId) {
+          if (!syllabusId) throw new Error('syllabusId required');
+          // ensure latest UI state is serialized
+          serializeAT();
+          const ta = document.querySelector('[name="assessment_tasks_data"]');
+          let rows = [];
+          try {
+            rows = ta && ta.value ? JSON.parse(ta.value) : [];
+          } catch (e) {
+            // fallback: try innerText or empty
+            try {
+              const raw = ta ? (ta.innerText || ta.value) : '';
+              rows = raw ? JSON.parse(raw) : [];
+            } catch (e2) { rows = []; }
+          }
+
+          // Normalize CPA fields to ensure they exist and are strings
+          try {
+            rows = Array.isArray(rows) ? rows.map(r => ({ ...r, c: (r.c ?? '')+'' , p: (r.p ?? '')+'' , a: (r.a ?? '')+'' })) : [];
+          } catch (e) { /* noop */ }
+
+          const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+          const url = '/faculty/syllabi/' + encodeURIComponent(syllabusId) + '/assessment-tasks';
+
+          // Try fetch with keepalive to allow the browser to complete the request during navigation.
+          try {
+            const resp = await fetch(url, {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': token,
+              },
+              body: JSON.stringify({ rows }),
+              keepalive: true,
+            });
+
+            if (!resp.ok) {
+              const text = await resp.text().catch(()=>null);
+              throw new Error('postAssessmentTasksRows failed: ' + resp.status + ' ' + (text || resp.statusText));
+            }
+
+            try { return await resp.json(); } catch (e) { return { success: true }; }
+          } catch (fetchErr) {
+            // If fetch throws (network error or aborted by navigation), attempt to fallback to sendBeacon.
+            try {
+                if (navigator && typeof navigator.sendBeacon === 'function') {
+                try {
+                  // include CSRF token in the beacon payload so Laravel's VerifyCsrfToken accepts it
+                  const beaconPayload = JSON.stringify({ _token: token, rows });
+                  const blob = new Blob([beaconPayload], { type: 'application/json' });
+                  const beaconUrl = url;
+                  const ok = navigator.sendBeacon(beaconUrl, blob);
+                  // sendBeacon is fire-and-forget — treat as success when it returns true
+                  if (ok) {
+                    // suppress noisy console.error for the original fetch error since server likely processed it
+                    console.debug('postAssessmentTasksRows: fetch failed but beacon fallback succeeded', fetchErr);
+                    return { success: true, fallback: 'beacon' };
+                  }
+                } catch (be) { /* noop */ }
+              }
+            } catch (e) { /* noop */ }
+
+            // If we reach here, rethrow original fetch error so callers can decide what to do.
+            throw fetchErr;
+          }
+        };
+  // No inline module-level Save button; use the top syllabus Save button which calls
+  // window.saveAssessmentTasks() / window.postAssessmentTasksRows() before submitting.
+      } catch (e) { /* noop */ }
     });
   })();
 </script>

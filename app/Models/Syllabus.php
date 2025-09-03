@@ -19,7 +19,9 @@ class Syllabus extends Model
         'title',
         'academic_year',
         'semester',
-        'year_level',
+    'year_level',
+    // Serialized assessment tasks JSON created by the AT module
+    'assessment_tasks_data',
     ];
 
     // 🔁 Each syllabus belongs to one faculty
@@ -74,6 +76,12 @@ class Syllabus extends Model
     public function courseInfo()
     {
         return $this->hasOne(SyllabusCourseInfo::class, 'syllabus_id');
+    }
+
+    // Per-syllabus stored assessment tasks table
+    public function assessmentTasks()
+    {
+        return $this->hasMany(SyllabusAssessmentTask::class, 'syllabus_id')->orderBy('position');
     }
 
     // mission/vision moved to a separate table so they can be managed independently

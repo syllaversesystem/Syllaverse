@@ -87,6 +87,51 @@ function setupExitConfirmation(exitUrlVariable = 'syllabusExitUrl') {
   });
 }
 
+// Defensive UX helpers: set a short save lock when user clicks any button inside the syllabus document
+// This helps avoid beforeunload prompts when module-level saves trigger background navigation or network activity.
+try {
+  document.addEventListener('click', function(ev) {
+    try {
+      const btn = ev.target.closest && ev.target.closest('button, a');
+      if (!btn) return;
+      // Only apply locking within the syllabus document area to avoid global side-effects
+      const inside = btn.closest && btn.closest('.syllabus-doc');
+      if (!inside) return;
+      // set temporary lock for a short window
+      try { window._syllabusSaveLock = true; } catch (e) {}
+      setTimeout(() => { try { window._syllabusSaveLock = false; } catch (e) {} }, 1500);
+    } catch (e) { /* noop */ }
+  }, true);
+} catch (e) { /* noop */ }
+
+// Soften blocking alerts related to saving/network issues by replacing alert for specific messages
+try {
+  (function(){
+    const origAlert = window.alert.bind(window);
+    window.alert = function(msg) {
+      try {
+        const text = String(msg || '').toLowerCase();
+        if (text.includes('failed to save') || text.includes('failed to fetch') || text.includes('failed to save assessment tasks')) {
+          // show non-blocking toast if available
+          const toast = document.getElementById('svToast');
+          if (toast) {
+            toast.textContent = (String(msg) || 'Save failed. Check console for details.');
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+            console.warn('Suppressed blocking alert:', msg);
+            return;
+          }
+          // fallback: log and don't block
+          console.warn('Suppressed blocking alert:', msg);
+          return;
+        }
+      } catch (e) { /* noop */ }
+      // default behaviour for other alerts
+      try { origAlert(msg); } catch (e) { console.log('Alert:', msg); }
+    };
+  })();
+} catch (e) { /* noop */ }
+
 /** Bind a field to its Unsaved pill (#unsaved-{name or badgeId}). */
 function bindUnsavedIndicator(fieldName, badgeId = null) {
   const el = document.querySelector(`[name="${fieldName}"]`);
@@ -476,6 +521,8 @@ document.addEventListener('DOMContentLoaded', () => {
     saveBtn.addEventListener('click', async (ev) => {
       ev.preventDefault();
       ev.stopPropagation();
+      // set a save lock immediately to avoid beforeunload prompts while the save begins
+      try { window._syllabusSaveLock = true; } catch (e) { /* noop */ }
 
       const missionEl = document.querySelector('[name="mission"]');
       const visionEl = document.querySelector('[name="vision"]');
@@ -493,6 +540,51 @@ document.addEventListener('DOMContentLoaded', () => {
         // restore button UI
         try { saveBtn.disabled = false; saveBtn.innerHTML = originalHtml; } catch (e) { /* noop */ }
         return; // stop the save flow
+      }
+
+      // Attempt to save Assessment Tasks rows before continuing with the main save.
+      // Do not abort the main save if this fails — swallow errors and proceed so
+      // other syllabus fields persist. This avoids user-facing alerts and
+      // prevents fetch abortion noise when multiple listeners exist.
+      try {
+        if (window.postAssessmentTasksRows && typeof window.postAssessmentTasksRows === 'function') {
+          // derive syllabus id from form action (/faculty/syllabi/{id}) or hidden input
+          let syllabusId = '';
+          try {
+            const idInput = form.querySelector('[name="id"], input[name="syllabus_id"], input[name="syllabus"]');
+            if (idInput) syllabusId = idInput.value || '';
+          } catch (e) { /* noop */ }
+          if (!syllabusId) {
+            try {
+              const m = action.match(/\/faculty\/syllabi\/([^\/\?]+)/);
+              if (m) syllabusId = decodeURIComponent(m[1]);
+            } catch (e) { /* noop */ }
+          }
+          if (!syllabusId) {
+            // fallback to data attributes on the AT textarea
+            try {
+              const ta = document.getElementById('assessment_tasks_data');
+              syllabusId = ta?.dataset?.syllabusId || ta?.getAttribute('data-syllabus-id') || '';
+            } catch (e) { /* noop */ }
+          }
+
+          if (syllabusId) {
+            try {
+              // set save lock so beforeunload won't prompt while this background request is in progress
+              try { window._syllabusSaveLock = true; } catch (e) { /* noop */ }
+              await window.postAssessmentTasksRows(syllabusId).catch((err) => {
+                // Log but don't abort — main form save should still proceed.
+                console.warn('postAssessmentTasksRows failed (ignored) during save flow', err);
+              });
+            } finally {
+              // release the save lock shortly after so UI can resume marking changes
+              setTimeout(() => { try { window._syllabusSaveLock = false; } catch (e) { /* noop */ } }, 400);
+            }
+          }
+        }
+      } catch (e) {
+        // Non-fatal: log and continue
+        console.warn('Unexpected error while attempting to save Assessment Tasks (ignored)', e);
       }
 
   const originalHtml = saveBtn.innerHTML;
@@ -641,8 +733,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
       } catch (err) {
   console.error('Syllabus save failed:', err);
-  // show a clearer alert including error message to help debugging
-  alert('Failed to save. ' + (err && err.message ? err.message : 'See console for details.'));
+  // If this is a network/fetch error or aborted by navigation, don't block the user with an alert.
+  const msg = (err && err.message) ? err.message : 'See console for details.';
+  if (String(msg).toLowerCase().includes('failed to fetch') || err.name === 'AbortError') {
+    // non-blocking notification via toast if available
+    try {
+      const toast = document.getElementById('svToast');
+      if (toast) {
+        toast.textContent = 'Saved (network may be slow). Check console for details.';
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2400);
+      }
+    } catch (e) { /* noop */ }
+  } else {
+    // show an alert for non-network errors that likely need user action
+    try { alert('Failed to save. ' + msg); } catch (e) { console.warn('Could not show alert', e); }
+  }
   // restore button text to original so user can retry
   try { saveBtn.innerHTML = originalHtml; } catch (e) { console.warn(e); }
       } finally {

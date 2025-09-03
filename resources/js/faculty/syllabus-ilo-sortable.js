@@ -84,6 +84,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const codes = rows.map((r, i) => String(i + 1));
       const evt = new CustomEvent('ilo:renumber', { detail: { codes } });
       document.dispatchEvent(evt);
+  // When ILOs change, signal AT module unsaved state
+  try { if (window.markAsUnsaved) window.markAsUnsaved('assessment_tasks'); } catch (e) { /* noop */ }
     } catch (e) { /* noop */ }
   }
 

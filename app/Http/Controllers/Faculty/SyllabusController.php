@@ -228,6 +228,8 @@ class SyllabusController extends Controller
             'vision' => 'required|string',
             // criteria_data may arrive as a JSON string (hidden input) or as an array (AJAX)
             'criteria_data' => 'nullable',
+            // Assessment Tasks serialized JSON from the AT module
+            'assessment_tasks_data' => 'nullable|string',
         ], 
         // optional ILOs payload (same shape as SyllabusIloController expects)
         $request->has('ilos') ? [
@@ -397,6 +399,17 @@ class SyllabusController extends Controller
             }
         }
 
+        // Persist the serialized Assessment Tasks payload (hidden textarea) into the syllabus table
+        if ($request->has('assessment_tasks_data')) {
+            try {
+                $syllabus->assessment_tasks_data = $request->input('assessment_tasks_data');
+                $syllabus->save();
+                \Log::info('Syllabus::update persisted assessment_tasks_data', ['syllabus_id' => $syllabus->id]);
+            } catch (\Throwable $e) {
+                \Log::warning('Syllabus::update failed to persist assessment_tasks_data', ['error' => $e->getMessage(), 'syllabus_id' => $syllabus->id]);
+            }
+        }
+
     // criteria module removed; legacy `criteria_` fields in courseInfo are updated above from request
 
         return redirect()->route('faculty.syllabi.show', $syllabus->id)
@@ -410,6 +423,83 @@ class SyllabusController extends Controller
 
         return redirect()->route('faculty.syllabi.index')
             ->with('success', 'Syllabus deleted successfully.');
+    }
+
+    /**
+     * Save serialized Assessment Tasks rows for a syllabus (AJAX endpoint).
+     */
+    public function saveAssessmentTasks(Request $request, $syllabus)
+    {
+        // find syllabus scoped to current faculty and log request for debugging
+        try {
+            \Log::info('saveAssessmentTasks called', ['syllabus_param' => $syllabus, 'faculty_id' => Auth::id(), 'incoming' => $request->all()]);
+        } catch (\Throwable $__e) { /* noop */ }
+
+        $sy = Syllabus::where('faculty_id', Auth::id())->findOrFail($syllabus);
+
+        $data = $request->input('rows');
+        if (!is_array($data)) {
+            // try decode if JSON string
+            $decoded = json_decode((string) $data, true);
+            $data = is_array($decoded) ? $decoded : [];
+        }
+
+        try {
+            // delete existing assessment tasks for this syllabus and re-insert (simple approach)
+            $sy->assessmentTasks()->delete();
+
+            $created = 0;
+            foreach ($data as $pos => $row) {
+                try {
+                    // log raw c/p/a values for debugging
+                    \Log::debug('saveAssessmentTasks incoming row raw', ['pos' => $pos, 'c' => $row['c'] ?? null, 'p' => $row['p'] ?? null, 'a' => $row['a'] ?? null, 'row' => $row]);
+                } catch (\Throwable $__logex) { /* noop */ }
+                // normalize fields
+                $section = $row['section'] ?? null;
+                $code = $row['code'] ?? null;
+                $task = $row['task'] ?? null;
+                $ird = $row['ird'] ?? $row['ird'] ?? null;
+                $percent = isset($row['percent']) ? (float) trim(str_replace('%','', $row['percent'])) : null;
+                $iloFlags = $row['iloFlags'] ?? $row['ilo_flags'] ?? [];
+                // CPA: store the raw textual value when provided, else null.
+                // This allows storing marks like 'x', '✓', '3', or short notes in the CPA columns.
+                $c = isset($row['c']) && (string) $row['c'] !== '' ? (string) $row['c'] : null;
+                $p = isset($row['p']) && (string) $row['p'] !== '' ? (string) $row['p'] : null;
+                $a = isset($row['a']) && (string) $row['a'] !== '' ? (string) $row['a'] : null;
+
+                $sy->assessmentTasks()->create([
+                    'section' => $section,
+                    'code' => $code,
+                    'task' => $task,
+                    'ird' => $ird,
+                    'percent' => $percent,
+                    'ilo_flags' => $iloFlags,
+                    'c' => $c,
+                    'p' => $p,
+                    'a' => $a,
+                    'position' => $pos,
+                ]);
+                $created++;
+            }
+
+            \Log::info('saveAssessmentTasks persisted rows', ['syllabus_id' => $sy->id, 'created' => $created]);
+
+            // Also persist the raw serialized AT payload into the syllabus record so the AT module
+            // can render textual CPA values on next load (this avoids needing a schema change).
+            try {
+                $rawJson = json_encode($data);
+                $sy->assessment_tasks_data = $rawJson;
+                $sy->save();
+                \Log::info('saveAssessmentTasks persisted syllabus.assessment_tasks_data', ['syllabus_id' => $sy->id]);
+            } catch (\Throwable $__ex) {
+                \Log::warning('saveAssessmentTasks failed to persist assessment_tasks_data on syllabus', ['error' => $__ex->getMessage(), 'syllabus_id' => $sy->id]);
+            }
+
+            return response()->json(['success' => true, 'count' => $created, 'saved' => true]);
+        } catch (\Throwable $e) {
+            \Log::error('saveAssessmentTasks failed', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString(), 'syllabus_id' => $sy->id ?? $syllabus]);
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+        }
     }
 
     public function exportPdf($id)
@@ -465,7 +555,6 @@ class SyllabusController extends Controller
     }
 
     
-
         $prereqs = $course
             ? ($course->relationLoaded('prerequisites') ? $course->prerequisites : $course->prerequisites()->get())
             : collect();

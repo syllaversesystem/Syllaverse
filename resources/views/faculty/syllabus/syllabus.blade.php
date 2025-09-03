@@ -114,6 +114,8 @@
     </form>
     {{-- ===== END: Main Syllabus Form ===== --}}
 
+  {{-- (removed duplicate textarea; the AT partial provides a hidden textarea with form="syllabusForm") --}}
+
   {{-- ===== Section 6: Intended Learning Outcomes (ILO) ===== --}}
   @includeIf('faculty.syllabus.partials.ilo')
 
@@ -166,6 +168,8 @@
   // small guard to prevent programmatic updates right after save from re-marking the form
   // Use the central `_syllabusSaveLock` used by `resources/js/faculty/syllabus.js`
   window._syllabusSaveLock = window._syllabusSaveLock || false;
+  // Flag set when a programmatic submit is about to occur so beforeunload can ignore it
+  window._syllabusSubmitting = window._syllabusSubmitting || false;
 
   if (syllabusForm && saveBtn) {
       // Track unsaved changes
@@ -225,6 +229,21 @@
           });
         } catch (e) { /* noop */ }
 
+        // Also update elements that are associated with the form but live outside it
+        // (for example the hidden textarea `assessment_tasks_data` which uses form="syllabusForm").
+        try {
+          const external = Array.from(document.querySelectorAll('[form="syllabusForm"]')).filter(el => el && ['INPUT','TEXTAREA','SELECT'].includes(el.tagName));
+          external.forEach((f) => {
+            try {
+              if (f.type === 'checkbox' || f.type === 'radio') {
+                f.dataset.original = f.checked ? '1' : '0';
+              } else {
+                f.dataset.original = f.value ?? '';
+              }
+            } catch (e) { /* noop */ }
+          });
+        } catch (e) { /* noop */ }
+
         // hide unsaved pills and reset counters
         hasUnsavedChanges = false;
         unsavedModules.clear();
@@ -268,6 +287,13 @@
       
       // Handle form submission
       syllabusForm.addEventListener('submit', function(e) {
+        // Allow top Save flow to bypass the pre-save logic by setting a temporary flag
+        if (window._syllabusSkipPreSave) {
+          // clear the flag and allow native submission to continue
+          try { window._syllabusSkipPreSave = false; } catch (e) {}
+          return;
+        }
+
         // If another handler (like the AJAX Save click) already prevented submission,
         // assume an async save is in progress and avoid toggling the UI here.
         if (e.defaultPrevented) return;
@@ -278,12 +304,112 @@
           window.serializeCriteriaData();
         }
 
+        // Ensure AT module has serialized into its hidden textarea before the form is submitted.
+        // If the AT module exposes `saveAssessmentTasks`, await it (it will call serializeAT()).
+        try {
+          if (window.saveAssessmentTasks && typeof window.saveAssessmentTasks === 'function') {
+            // prevent immediate submission until AT serialization completes
+            e.preventDefault();
+            window.setSyllabusSaveState && window.setSyllabusSaveState('saving');
+            Promise.resolve(window.saveAssessmentTasks()).then(async () => {
+              // After serialization, attempt to persist AT rows to DB using the dedicated endpoint
+              try {
+                if (window.postAssessmentTasksRows && typeof window.postAssessmentTasksRows === 'function') {
+                  await window.postAssessmentTasksRows(syllabusId);
+                }
+              } catch (postErr) {
+                // If posting rows fails, log to console and continue with form submit so other syllabus fields still persist
+                console.warn('postAssessmentTasksRows failed, continuing with form submit', postErr);
+              }
+              // small tick to allow inputs to dispatch events
+                setTimeout(() => {
+                  // mark skip flag so the programmatic submit doesn't re-run the pre-save flow
+                  try { window._syllabusSkipPreSave = true; } catch (e) {}
+                  try { window._syllabusSubmitting = true; } catch (e) {}
+                  syllabusForm.submit();
+                }, 20);
+            }).catch(() => { syllabusForm.submit(); });
+            return;
+          }
+        } catch (err) { /* noop - fall through to normal submit */ }
+
   // Show saving state (this path is only used when the form submits normally)
   console.debug('submit listener: delegating save UI to setSyllabusSaveState', new Date(), { defaultPrevented: e.defaultPrevented });
   try { if (window.setSyllabusSaveState) window.setSyllabusSaveState('saving'); } catch (e) { /* noop */ }
 
         // Note: Form will submit normally, page will reload, so we don't need to reset button state
       });
+
+      // Ensure clicking the top Save button explicitly runs AT save flow before submit
+      try {
+        saveBtn.addEventListener('click', function(ev){
+          // If another handler prevented default, bail
+          if (ev.defaultPrevented) return;
+          // prevent the native submit so we can run AT save first
+          ev.preventDefault();
+          // run async save sequence
+          (async function(){
+            try {
+              // set UI saving state
+              try { window.setSyllabusSaveState && window.setSyllabusSaveState('saving'); } catch (e) {}
+              // set a save lock so beforeunload won't prompt while our save is in progress
+              try { window._syllabusSaveLock = true; } catch (e) {}
+
+              // Ensure AT module serializes its data
+              if (window.saveAssessmentTasks && typeof window.saveAssessmentTasks === 'function') {
+                await Promise.resolve(window.saveAssessmentTasks());
+              }
+
+              // Attempt to persist AT rows to server before submitting main form
+              try {
+                if (window.postAssessmentTasksRows && typeof window.postAssessmentTasksRows === 'function') {
+                  await window.postAssessmentTasksRows(syllabusId).catch(()=>{});
+                  // clear AT unsaved pill and update global button state
+                  try { const leftPill = document.getElementById('unsaved-assessment_tasks_left'); if (leftPill) leftPill.classList.add('d-none'); } catch(e){}
+                  try { if (window.updateSaveButton) window.updateSaveButton(); } catch (e) {}
+                }
+              } catch (postErr) {
+                // Swallow any errors; proceed to submit so remainder of the syllabus still saves
+                console.warn('postAssessmentTasksRows failed on top Save (ignored), continuing with form submit', postErr);
+              }
+
+              // Mark as saved to avoid beforeunload prompts and re-marking while we programmatically submit
+              try { if (window.markAsSaved && typeof window.markAsSaved === 'function') window.markAsSaved(); } catch (e) {}
+
+              // mark skip flag so the programmatic submit doesn't re-run the pre-save flow
+              try { window._syllabusSkipPreSave = true; } catch (e) {}
+
+              // Instead of submitting the page and refreshing, perform an AJAX save of the main form.
+              try {
+                // If the AT partial exposes a server-save helper, prefer it
+                if (window.saveAssessmentTasksToServer && typeof window.saveAssessmentTasksToServer === 'function') {
+                  await window.saveAssessmentTasksToServer(syllabusId).catch(()=>{});
+                } else {
+                  // Fallback: serialize the form into FormData and POST via fetch
+                  const fd = new FormData(syllabusForm);
+                  fd.append('_method','PUT');
+                  const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+                  if (token) fd.append('_token', token);
+                  const resp = await fetch(syllabusForm.action, { method: 'POST', credentials: 'same-origin', body: fd });
+                  if (!resp.ok) throw new Error('Server returned ' + resp.status);
+                }
+                // mark as saved and update UI without reloading
+                try { window.markAsSaved && window.markAsSaved(); } catch (e) {}
+                try { window.dispatchEvent(new CustomEvent('syllabusSaved')); } catch (e) {}
+              } catch (ajaxErr) {
+                console.warn('AJAX save failed, falling back to full submit', ajaxErr);
+                // If AJAX fails, do the full submit as a last resort
+                try { window._syllabusSubmitting = true; } catch (e) {}
+                syllabusForm.submit();
+              }
+            } catch (err) {
+              console.error('Top Save flow failed, falling back to normal submit', err);
+              try { window._syllabusSubmitting = true; } catch (e) {}
+              syllabusForm.submit();
+            }
+          })();
+        });
+      } catch (e) { /* noop */ }
 
         // When the main JS finishes saving, it dispatches 'syllabusSaved' — ensure we clear UI state
         window.addEventListener('syllabusSaved', function(){
@@ -295,13 +421,9 @@
       
       // Warning for unsaved changes when leaving page
       window.addEventListener('beforeunload', function(e) {
+        // If a programmatic save is in progress or was just triggered, do not prompt (avoid blocking save flows)
+        if (window._syllabusSkipPreSave || window._syllabusSaveLock || window._syllabusSubmitting) return;
         if (hasUnsavedChanges) {
-            // if there are no unsaved changes, do nothing and keep the button disabled
-            if (!hasUnsavedChanges) {
-              ev.preventDefault();
-              ev.stopPropagation();
-              return;
-            }
           e.preventDefault();
           e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
           return e.returnValue;

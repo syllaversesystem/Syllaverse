@@ -86,6 +86,9 @@ Route::middleware([FacultyAuth::class])->group(function () {
     Route::post('/faculty/syllabi/{syllabus}/generate-tla', [SyllabusTLAController::class, 'generateWithAI'])
      ->name('faculty.syllabi.tla.generate');
 
+    // Persist Assessment Tasks payload for a syllabus
+    Route::post('/faculty/syllabi/{syllabus}/assessment-tasks', [SyllabusController::class, 'saveAssessmentTasks'])->name('faculty.syllabi.assessment_tasks.save');
+
 });
 
 // ---------- Logout ----------
