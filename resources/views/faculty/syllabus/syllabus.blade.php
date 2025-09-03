@@ -16,6 +16,7 @@
     'resources/js/faculty/syllabus-so.js',
     'resources/js/faculty/syllabus-tla-ai.js',
     'resources/js/faculty/syllabus-textbook.js',
+    'resources/js/faculty/syllabus-iga-sortable.js',
   ])
 
   <style>
@@ -371,6 +372,17 @@
               } catch (postErr) {
                 // Swallow any errors; proceed to submit so remainder of the syllabus still saves
                 console.warn('postAssessmentTasksRows failed on top Save (ignored), continuing with form submit', postErr);
+              }
+
+              // Persist IGAs via their module (if present) before saving main form
+              try {
+                if (window.saveIga && typeof window.saveIga === 'function') {
+                  await Promise.resolve(window.saveIga());
+                  try { const igaPill = document.getElementById('unsaved-igas'); if (igaPill) igaPill.classList.add('d-none'); } catch(e){}
+                }
+              } catch (igaErr) {
+                // Ignore IGA save failures so the rest of the syllabus can still save
+                console.warn('saveIga failed on top Save (ignored), continuing with form submit', igaErr);
               }
 
               // Mark as saved to avoid beforeunload prompts and re-marking while we programmatically submit

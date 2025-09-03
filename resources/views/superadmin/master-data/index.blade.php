@@ -39,19 +39,7 @@
           Skills & Outcomes
         </button>
       </li>
-      <li class="nav-item" role="presentation">
-        <button
-          class="nav-link sv-tab"
-          id="assessment-tasks-tab"
-          data-bs-toggle="tab"
-          data-bs-target="#assessment-tasks"
-          type="button"
-          role="tab"
-          aria-controls="assessment-tasks"
-          aria-selected="false">
-          Assessment Tasks
-        </button>
-      </li>
+  {{-- Assessment Tasks tab removed for this deployment (table not present) --}}
       <li class="nav-item" role="presentation">
         <button
           class="nav-link sv-tab"
@@ -76,11 +64,7 @@
       </div>
       {{-- ░░░ END: Skills & Outcomes Pane ░░░ --}}
 
-      {{-- ░░░ START: Assessment Tasks Pane ░░░ --}}
-      <div class="tab-pane fade" id="assessment-tasks" role="tabpanel" aria-labelledby="assessment-tasks-tab">
-        @include('superadmin.master-data.tabs.assessment-tasks')
-      </div>
-      {{-- ░░░ END: Assessment Tasks Pane ░░░ --}}
+  {{-- Assessment Tasks pane removed for this deployment --}}
 
       {{-- ░░░ START: Information Pane ░░░ --}}
       <div class="tab-pane fade" id="information" role="tabpanel" aria-labelledby="information-tab">
@@ -101,7 +85,7 @@
   {{-- ░░░ START: Module Assets (CSS + JS) ░░░ --}}
   @vite('resources/css/superadmin/master-data/master-data.css')
   @vite('resources/js/superadmin/master-data/sortable.js')
-  @vite('resources/js/superadmin/master-data/assessment-tasks.js') {{-- ← make sure filename matches --}}
+  {{-- Assessment Tasks JS removed because AssessmentTaskGroup table is not present in this deployment --}}
   {{-- ░░░ END: Module Assets ░░░ --}}
 
 @endsection

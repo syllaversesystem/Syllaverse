@@ -1,0 +1,210 @@
+// -----------------------------------------------------------------------------
+// File: resources/js/faculty/syllabus-iga-sortable.js
+// Description: Enables drag-reorder, auto-code update, and inline add/delete for IGA module — mirrors ILO behavior
+// -----------------------------------------------------------------------------
+
+import Sortable from 'sortablejs';
+import { initAutosize, markDirty, updateUnsavedCount } from './syllabus';
+
+document.addEventListener('DOMContentLoaded', () => {
+  const list = document.getElementById('syllabus-iga-sortable');
+  if (!list) return;
+
+  let previousIgaIds = null;
+
+  function updateVisibleCodes() {
+    const rows = Array.from(list.querySelectorAll('tr')).filter(r => r.querySelector('textarea[name="igas[]"]') || r.querySelector('.iga-badge'));
+    const currentIds = rows.map((r) => r.getAttribute('data-id') || `client-${Math.random().toString(36).slice(2,8)}`);
+    rows.forEach((row, index) => {
+      const newCode = `IGA${index + 1}`;
+      const badge = row.querySelector('.iga-badge'); if (badge) badge.textContent = newCode;
+      const codeInput = row.querySelector('input[name="code[]"]'); if (codeInput) codeInput.value = newCode;
+    });
+
+    // show/hide delete buttons
+    rows.forEach((row, index) => {
+      const btn = row.querySelector('.btn-delete-iga'); if (!btn) return; btn.style.display = index === 0 ? 'none' : '';
+    });
+
+    // detect adds/removes/reorders and dispatch events if needed
+    try {
+      if (Array.isArray(previousIgaIds)) {
+        const prev = previousIgaIds;
+        const added = currentIds.filter(id => !prev.includes(id));
+        const removed = prev.filter(id => !currentIds.includes(id));
+        added.forEach((id) => { const idx = currentIds.indexOf(id); document.dispatchEvent(new CustomEvent('iga:changed', { detail: { action: 'add', id, index: idx, count: currentIds.length } })); });
+        removed.forEach((id) => { const prevIndex = prev.indexOf(id); document.dispatchEvent(new CustomEvent('iga:changed', { detail: { action: 'remove', id, index: prevIndex, count: currentIds.length } })); });
+        if (added.length === 0 && removed.length === 0 && currentIds.join('|') !== prev.join('|')) {
+          const mapping = currentIds.map((id, to) => ({ id, from: prev.indexOf(id), to }));
+          document.dispatchEvent(new CustomEvent('iga:changed', { detail: { action: 'reorder', mapping, count: currentIds.length } }));
+        }
+      }
+    } catch (e) { /* noop */ }
+
+    previousIgaIds = currentIds.slice();
+
+    // mark unsaved
+    try { if (window.markAsUnsaved) window.markAsUnsaved('assessment_tasks'); } catch (e) { }
+  }
+
+  // expose the renumbering function so other scripts (inline clones) can call it
+  try { window.updateIgaVisibleCodes = updateVisibleCodes; } catch (e) { /* noop */ }
+
+  // Enable sortable
+  Sortable.create(list, {
+    handle: '.drag-handle',
+    animation: 150,
+    fallbackOnBody: true,
+    draggable: 'tr',
+    swapThreshold: 0.65,
+    onEnd: function (evt) {
+      updateVisibleCodes();
+      try { markDirty('unsaved-igas'); } catch (e) { }
+      try { updateUnsavedCount(); } catch (e) { }
+    }
+  });
+
+  // Observe DOM changes under the list and renumber when rows are added/removed.
+  // This ensures inline-clone behaviors (from the blade partial) immediately get correct numbering.
+  try {
+    if (window.MutationObserver) {
+      const mo = new MutationObserver((mutations) => {
+        let shouldUpdate = false;
+        for (const m of mutations) {
+          if (m.type === 'childList' && (m.addedNodes.length || m.removedNodes.length)) {
+            shouldUpdate = true;
+            break;
+          }
+        }
+        if (shouldUpdate) {
+          // small microtask delay so any cloned nodes finish initializing
+          Promise.resolve().then(() => {
+            try { initAutosize(); } catch (e) { /* noop */ }
+            updateVisibleCodes();
+            try { updateUnsavedCount(); } catch (e) { /* noop */ }
+          });
+        }
+      });
+      mo.observe(list, { childList: true, subtree: false });
+    }
+  } catch (e) { /* noop */ }
+
+  // Expose save function for top-level save
+  window.saveIga = async function() {
+    const form = document.getElementById('igaForm');
+    if (!form) return { message: 'No IGA form present' };
+    const rows = Array.from(list.querySelectorAll('tr')).filter(r => r.querySelector('textarea[name="igas[]"]') || r.querySelector('.iga-badge'));
+    const payload = rows.map((row, index) => {
+      const rawId = row.getAttribute('data-id');
+      const id = rawId && !rawId.startsWith('new-') ? Number(rawId) : null;
+      const code = row.querySelector('input[name="code[]"]')?.value || `IGA${index + 1}`;
+      const description = row.querySelector('textarea[name="igas[]"]')?.value || '';
+      const position = index + 1;
+      return { id, code, description, position };
+    });
+    const tokenMeta = document.querySelector('meta[name="csrf-token"]');
+    const headers = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
+    if (tokenMeta) headers['X-CSRF-TOKEN'] = tokenMeta.content;
+    try {
+      const res = await fetch(form.action, { method: 'PUT', headers, body: JSON.stringify({ igas: payload }) });
+      if (!res.ok) throw new Error('Failed to save IGAs');
+      const data = await res.json();
+      const top = document.getElementById('unsaved-igas'); if (top) top.classList.add('d-none');
+      list.querySelectorAll('textarea.autosize').forEach((ta) => ta.setAttribute('data-original', ta.value || ''));
+      return data;
+    } catch (err) {
+      console.error('saveIga failed', err);
+      throw err;
+    }
+  };
+
+  // Add/delete/keyboard handlers
+  function createNewRow() {
+    const timestamp = Date.now();
+    const newRow = document.createElement('tr');
+    newRow.setAttribute('data-id', `new-${timestamp}`);
+    newRow.innerHTML = `
+      <td class="text-center align-middle">
+        <div class="iga-badge fw-semibold"></div>
+      </td>
+      <td>
+        <div class="d-flex align-items-center gap-2">
+          <span class="drag-handle text-muted" title="Drag to reorder" style="cursor: grab; display:flex; align-items:center;">
+            <i class="bi bi-grip-vertical"></i>
+          </span>
+          <textarea name="igas[]" class="form-control cis-textarea autosize flex-grow-1"></textarea>
+          <input type="hidden" name="code[]" value="">
+          <button type="button" class="btn btn-sm btn-outline-danger btn-delete-iga ms-2" title="Delete IGA"><i class="bi bi-trash"></i></button>
+        </div>
+      </td>
+    `;
+    return newRow;
+  }
+
+  function addRow(afterRow = null) {
+    const newRow = createNewRow();
+    if (afterRow && afterRow.parentElement) {
+      if (afterRow.nextSibling) afterRow.parentElement.insertBefore(newRow, afterRow.nextSibling);
+      else afterRow.parentElement.appendChild(newRow);
+    } else {
+      list.appendChild(newRow);
+    }
+    try { initAutosize(); } catch (e) {}
+    updateVisibleCodes();
+    const ta = newRow.querySelector('textarea.autosize'); if (ta) ta.focus();
+    return newRow;
+  }
+
+  // Keyboard: Ctrl+Enter to clone (handled in blade) — support Backspace deletion here
+  list.addEventListener('keydown', (e) => {
+    const el = e.target; if (!el || el.tagName !== 'TEXTAREA') return;
+    if (e.key === 'Backspace' && (e.ctrlKey || e.metaKey)) {
+      const val = el.value || ''; const selStart = (typeof el.selectionStart === 'number') ? el.selectionStart : 0;
+      if (val.trim() === '' && selStart === 0) {
+        e.preventDefault(); e.stopPropagation();
+        const row = el.closest('tr');
+        const allRows = Array.from(list.querySelectorAll('tr')).filter(r => r.querySelector('textarea[name="igas[]"]') || r.querySelector('.iga-badge'));
+        const rowIndex = allRows.indexOf(row);
+        if (rowIndex === 0) { el.value = ''; try { initAutosize(); } catch (e) {} return; }
+        if (allRows.length === 1) { el.value = ''; try { initAutosize(); } catch (e) {} return; }
+        const id = row.getAttribute('data-id');
+        if (!id || id.startsWith('new-')) {
+          const prev = row.previousElementSibling;
+          try { const rows = Array.from(list.querySelectorAll('tr')).filter(r => r.querySelector('textarea[name="igas[]"]') || r.querySelector('.iga-badge')); const idx = rows.indexOf(row); row.remove(); } catch (e) { row.remove(); }
+          updateVisibleCodes();
+          if (prev) { const prevTa = prev.querySelector('textarea.autosize'); if (prevTa) { prevTa.focus(); prevTa.selectionStart = prevTa.value.length; } }
+          return;
+        }
+        if (!confirm('This IGA exists on the server. Press OK to delete it.')) return;
+        fetch(`/faculty/syllabi/igas/${id}`, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' } })
+        .then(res => res.json()).then(data => { alert(data.message || 'IGA deleted.'); location.reload(); }).catch(err => { console.error(err); alert('Failed to delete IGA.'); });
+      }
+    }
+  });
+
+  // Click delete button
+  list.addEventListener('click', (e) => {
+    const btn = e.target.closest('.btn-delete-iga'); if (!btn) return;
+    const row = btn.closest('tr'); const allRows = Array.from(list.querySelectorAll('tr')).filter(r => r.querySelector('textarea[name="igas[]"]') || r.querySelector('.iga-badge'));
+    const rowIndex = allRows.indexOf(row); if (rowIndex === 0) { alert('At least one IGA must be present.'); return; }
+    const id = row.getAttribute('data-id'); if (!id || id.startsWith('new-')) { try { row.remove(); } catch (e) { row.remove(); } updateVisibleCodes(); return; }
+    if (!confirm('Are you sure you want to delete this IGA?')) return;
+    fetch(`/faculty/syllabi/igas/${id}`, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' } })
+    .then(res => res.json()).then(data => { alert(data.message || 'IGA deleted.'); location.reload(); }).catch(err => { console.error(err); alert('Failed to delete IGA.'); });
+  });
+
+  // initialize
+  updateVisibleCodes();
+  try { initAutosize(); } catch (e) {}
+
+  function bindGlobalUnsaved() {
+    function checkAnyChanged() {
+      const anyChanged = Array.from(list.querySelectorAll('textarea.autosize')).some(t => (t.value || '') !== (t.getAttribute('data-original') || ''));
+      const top = document.getElementById('unsaved-igas'); if (top) top.classList.toggle('d-none', !anyChanged);
+      if (anyChanged) { try { markDirty('unsaved-igas'); } catch (e) {} }
+      updateUnsavedCount();
+    }
+    list.querySelectorAll('textarea.autosize').forEach((ta) => { ta.addEventListener('input', checkAnyChanged); ta.addEventListener('change', checkAnyChanged); });
+  }
+  bindGlobalUnsaved();
+});

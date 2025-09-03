@@ -27,8 +27,7 @@ use App\Models\Sdg;
 use App\Models\Iga;
 use App\Models\Cdio;
 use App\Models\GeneralInformation;
-use App\Models\AssessmentTaskGroup;
-use App\Models\AssessmentTask;
+// Assessment Task master data is optional in some deployments; avoid querying missing tables
 
 class MasterDataController extends Controller
 {
@@ -41,11 +40,7 @@ class MasterDataController extends Controller
             'igas'        => Iga::ordered()->get(),
             'cdios'       => Cdio::ordered()->get(),
             'info'        => GeneralInformation::all()->keyBy('section'),
-            // Assessment Tasks – groups with ordered tasks for the Assessment tab
-            'taskGroups'  => AssessmentTaskGroup::with([
-                                'tasks' => fn ($q) => $q->orderBy('sort_order')->orderBy('id'),
-                             ])
-                             ->orderBy('sort_order')->orderBy('id')->get(),
+            // Assessment Tasks tab disabled in this deployment (table may not exist)
         ]);
     }
     // ░░░ END: Index ░░░
@@ -322,6 +317,11 @@ class MasterDataController extends Controller
      */
     private function createAssessmentTask(Request $request): JsonResponse|RedirectResponse
     {
+        // Guard: if AssessmentTaskGroup or AssessmentTask tables are missing, return a friendly error
+        if (!\Schema::hasTable('assessment_task_groups') || !\Schema::hasTable('assessment_tasks')) {
+            return $this->respond($request, false, 'Assessment Tasks are not enabled in this deployment.', 404);
+        }
+
         $validated = $this->validateAssessmentTask($request, updating: false);
 
         // Place at end of the group
@@ -358,6 +358,11 @@ class MasterDataController extends Controller
      */
     private function validateAssessmentTask(Request $request, bool $updating, ?int $taskId = null): array
     {
+        // Guard: if tables missing, throw a validation exception to short-circuit
+        if (!\Schema::hasTable('assessment_task_groups') || !\Schema::hasTable('assessment_tasks')) {
+            abort(404, 'Assessment Tasks not available');
+        }
+
         $groupId = (int) $request->input('group_id');
 
         // Unique 'code' scoped to group_id
@@ -377,7 +382,7 @@ class MasterDataController extends Controller
         $validated = $request->validate($rules);
 
         // Ensure group exists
-        AssessmentTaskGroup::findOrFail($validated['group_id']);
+    AssessmentTaskGroup::findOrFail($validated['group_id']);
 
         return $validated;
     }
@@ -388,6 +393,11 @@ class MasterDataController extends Controller
      */
     private function updateAssessmentTask(Request $request, int $id): JsonResponse|RedirectResponse
     {
+        // Guard
+        if (!\Schema::hasTable('assessment_task_groups') || !\Schema::hasTable('assessment_tasks')) {
+            return $this->respond($request, false, 'Assessment Tasks are not enabled in this deployment.', 404);
+        }
+
         /** @var AssessmentTask $task */
         $task = AssessmentTask::findOrFail($id);
 
@@ -426,6 +436,11 @@ class MasterDataController extends Controller
      */
     private function destroyAssessmentTask(int $id): JsonResponse|RedirectResponse
     {
+        // Guard
+        if (!\Schema::hasTable('assessment_task_groups') || !\Schema::hasTable('assessment_tasks')) {
+            return $this->respond(request(), false, 'Assessment Tasks are not enabled in this deployment.', 404);
+        }
+
         /** @var AssessmentTask $task */
         $task = AssessmentTask::findOrFail($id);
         $groupId = (int) $task->group_id;
@@ -447,6 +462,8 @@ class MasterDataController extends Controller
     /** Resequence sort_order 1..N for every task in a group—used after deletes or moves. */
     private function resequenceAssessmentTasks(int $groupId): void
     {
+        if (!\Schema::hasTable('assessment_task_groups') || !\Schema::hasTable('assessment_tasks')) return;
+
         $rows = AssessmentTask::where('group_id', $groupId)
             ->orderBy('sort_order')->orderBy('id')->get(['id']);
 

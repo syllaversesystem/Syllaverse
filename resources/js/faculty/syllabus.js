@@ -547,6 +547,11 @@ document.addEventListener('DOMContentLoaded', () => {
       // other syllabus fields persist. This avoids user-facing alerts and
       // prevents fetch abortion noise when multiple listeners exist.
       try {
+        // --- New: attempt to save IGAs (order + content) before the main minimal save ---
+        if (window.saveIga && typeof window.saveIga === 'function') {
+          try { await window.saveIga(); } catch (igaErr) { console.error('Failed to save IGA data before syllabus save:', igaErr); alert('Failed to save IGAs: ' + (igaErr && igaErr.message ? igaErr.message : 'See console for details.')); try { saveBtn.disabled = false; saveBtn.innerHTML = originalHtml; } catch (e) {} return; }
+        }
+
         if (window.postAssessmentTasksRows && typeof window.postAssessmentTasksRows === 'function') {
           // derive syllabus id from form action (/faculty/syllabi/{id}) or hidden input
           let syllabusId = '';

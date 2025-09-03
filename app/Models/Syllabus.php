@@ -72,6 +72,12 @@ class Syllabus extends Model
         return $this->hasMany(SyllabusSo::class);
     }
 
+    // 🔁 A syllabus has many Institutional Graduate Attributes (IGA)
+    public function igas()
+    {
+        return $this->hasMany(SyllabusIga::class)->orderBy('position');
+    }
+
     // Per-syllabus overrides for course information (so edits inside a syllabus don't change master course)
     public function courseInfo()
     {

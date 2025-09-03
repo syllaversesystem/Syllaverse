@@ -56,6 +56,11 @@ Route::middleware([FacultyAuth::class])->group(function () {
     Route::delete('/faculty/syllabi/ilos/{id}', [SyllabusIloController::class, 'destroy'])->name('faculty.syllabi.ilos.destroy');
     Route::post('/faculty/syllabi/reorder/ilo', [SyllabusIloController::class, 'reorder'])->name('faculty.syllabi.ilos.reorder');
 
+    // ---------- IGA (Institutional Graduate Attributes) — managed by dedicated controller ----------
+    Route::put('/faculty/syllabi/{syllabus}/igas', [\App\Http\Controllers\Faculty\SyllabusIgaController::class, 'update'])->name('faculty.syllabi.iga.update');
+    Route::post('/faculty/syllabi/igas/reorder', [\App\Http\Controllers\Faculty\SyllabusIgaController::class, 'reorder'])->name('faculty.syllabi.iga.reorder');
+    Route::delete('/faculty/syllabi/igas/{id}', [\App\Http\Controllers\Faculty\SyllabusIgaController::class, 'destroy'])->name('faculty.syllabi.iga.destroy');
+
     // ---------- ✅ SO CRUD + Sortable ----------
     Route::put('/faculty/syllabi/{syllabus}/sos', [SyllabusSoController::class, 'update'])->name('faculty.syllabi.sos.update');
     Route::post('/faculty/syllabi/{syllabus}/sos/reorder', [SyllabusSoController::class, 'reorder'])->name('faculty.syllabi.sos.reorder');

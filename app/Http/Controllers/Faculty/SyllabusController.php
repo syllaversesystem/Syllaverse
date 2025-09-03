@@ -25,6 +25,8 @@ use App\Models\Program;
 use App\Models\SyllabusCourseInfo;
 use App\Models\GeneralInformation;
 use App\Models\Sdg;
+use App\Models\Iga;
+use App\Models\SyllabusIga;
 use Illuminate\Support\Facades\Schema;
 use Barryvdh\DomPDF\Facade\Pdf;
 use PhpOffice\PhpWord\PhpWord;
@@ -81,6 +83,25 @@ class SyllabusController extends Controller
                 'code' => $ilo->code,
                 'description' => $ilo->description,
             ]);
+        }
+
+        // Copy master IGAs into per-syllabus IGAs if master table exists
+        try {
+            if (Schema::hasTable('igas')) {
+                $masterIgas = Iga::ordered()->get();
+                $pos = 1;
+                foreach ($masterIgas as $m) {
+                    SyllabusIga::create([
+                        'syllabus_id' => $syllabus->id,
+                        'code' => $m->code ?? (\App\Models\Iga::makeCodeFromPosition($pos)),
+                        'description' => $m->description ?? $m->title ?? null,
+                        'position' => $pos++,
+                    ]);
+                }
+            }
+        } catch (\Throwable $e) {
+            // don't break syllabus creation if master IGAs cannot be fetched for any reason
+            \Log::warning('Failed to copy master IGAs into syllabus', ['error' => $e->getMessage()]);
         }
 
     // Copy relevant course master fields into per-syllabus course info so edits remain local
@@ -202,6 +223,7 @@ class SyllabusController extends Controller
             'courses' => $courses,
             'ilos' => $syllabus->ilos,
             'sos' => $syllabus->sos,
+            'igas' => $syllabus->igas ?? collect(),
             'sdgs' => $sdgs,
         ]);
     }
