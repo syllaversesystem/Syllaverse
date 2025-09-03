@@ -187,13 +187,13 @@
         <td><input type="text" class="cis-input text-center" placeholder="ME"></td>
         <td><input type="text" class="cis-input" placeholder="Midterm Exam / Final Exam / Quizzes..."></td>
   <td><input type="text" class="cis-input text-center" placeholder="I/R/D"></td>
-        <td><input type="text" class="cis-input text-center" placeholder="0"></td>
+  <td><input type="text" class="cis-input text-center" placeholder="0"></td>
         @foreach ($iloCols as $c)
-          <td class="text-center"><input type="text" class="cis-input text-center" placeholder=""></td>
+          <td class="text-center"><input type="text" class="cis-input text-center" placeholder="-"></td>
         @endforeach
-        <td class="text-center"><input type="text" class="cis-input text-center" placeholder=""></td>
-        <td class="text-center"><input type="text" class="cis-input text-center" placeholder=""></td>
-        <td class="text-center"><input type="text" class="cis-input text-center" placeholder=""></td>
+        <td class="text-center"><input type="text" class="cis-input text-center" placeholder="-"></td>
+        <td class="text-center"><input type="text" class="cis-input text-center" placeholder="-"></td>
+        <td class="text-center"><input type="text" class="cis-input text-center" placeholder="-"></td>
       </tr>
     @endfor
 
@@ -213,13 +213,13 @@
         <td><input type="text" class="cis-input text-center" placeholder="LE"></td>
         <td><input type="text" class="cis-input" placeholder="Laboratory Exercises / Exams..."></td>
   <td><input type="text" class="cis-input text-center" placeholder="I/R/D"></td>
-        <td><input type="text" class="cis-input text-center" placeholder="0"></td>
+  <td><input type="text" class="cis-input text-center" placeholder="0"></td>
         @foreach ($iloCols as $c)
-          <td class="text-center"><input type="text" class="cis-input text-center" placeholder=""></td>
+          <td class="text-center"><input type="text" class="cis-input text-center" placeholder="-"></td>
         @endforeach
-        <td class="text-center"><input type="text" class="cis-input text-center" placeholder=""></td>
-        <td class="text-center"><input type="text" class="cis-input text-center" placeholder=""></td>
-        <td class="text-center"><input type="text" class="cis-input text-center" placeholder=""></td>
+        <td class="text-center"><input type="text" class="cis-input text-center" placeholder="-"></td>
+        <td class="text-center"><input type="text" class="cis-input text-center" placeholder="-"></td>
+        <td class="text-center"><input type="text" class="cis-input text-center" placeholder="-"></td>
       </tr>
     @endfor
 
@@ -260,39 +260,42 @@
     function serializeAT() {
       const table = getATTable();
       if (!table) return;
-      const rows = Array.from(table.querySelectorAll('tbody > tr')).filter(r => !r.classList.contains('table-light'));
-      const sections = [];
-      // Determine section by scanning for section header rows (with .table-light)
-      // We'll group rows under their most recent section header (e.g., LEC, LAB)
-      let currentSection = 'General';
+      const allRows = Array.from(table.querySelectorAll('tbody > tr'));
       const out = [];
       let percentTotal = 0;
-      // Walk rows including headers to keep section context
-      const allRows = Array.from(table.querySelectorAll('tbody > tr'));
-      allRows.forEach((r) => {
-        if (r.classList.contains('table-light') && r.querySelector('th')) {
-          // try to read editable section inputs if present
+
+      let sectionIndex = 0;
+      let subCounter = 0;
+
+      // iterate and produce structured output: numeric section and per-section positions for sub-rows
+      for (let ri = 0; ri < allRows.length; ri++) {
+        const r = allRows[ri];
+        // Skip footer rows so they don't become serialized as data rows
+        if (r.classList && r.classList.contains('footer-total')) continue;
+        if (r.classList.contains('section-header')) {
+          // start a new section
+          sectionIndex++;
+          subCounter = 0; // reset sub numbering for this section
+
+          // read header inputs for main field (section code/name)
           const codeInp = r.querySelector('input[name="section_code[]"]');
           const nameInp = r.querySelector('input[name="section_name[]"]');
-          if (codeInp || nameInp) {
-            const code = codeInp ? (codeInp.value || '').trim() : '';
-            const name = nameInp ? (nameInp.value || '').trim() : '';
-            // fallback to placeholder text when value is empty so visual placeholders become the serialized section label
-            const codeLabel = code || (codeInp && codeInp.getAttribute('placeholder')) || '';
-            const nameLabel = name || (nameInp && nameInp.getAttribute('placeholder')) || '';
-            if (codeLabel || nameLabel) {
-              currentSection = (codeLabel && nameLabel) ? (codeLabel + ' — ' + nameLabel) : (codeLabel || nameLabel);
-            }
-          } else {
-            currentSection = (r.innerText || '').trim();
+          const code = codeInp ? (codeInp.value || '').trim() : '';
+          const name = nameInp ? (nameInp.value || '').trim() : '';
+
+          // only add a main-field item when the user actually entered something
+          if ((code !== '') || (name !== '')) {
+            const mainItem = { section: sectionIndex, position: null, code: code, task: name, ird: '', percent: '', iloFlags: [], c: '', p: '', a: '' };
+            out.push(mainItem);
           }
-          return;
+          continue;
         }
-        // data rows - build values by iterating cells (handles colspan and dynamic columns more robustly)
+
+        // data row
         const cells = Array.from(r.children || []);
-        if (!cells.length) return;
+        if (!cells.length) continue;
         const ths = table.querySelectorAll('thead tr:nth-child(2) th');
-        const iloFlagCount = Math.max(0, ths.length - (4 + 3)); // total ths minus fixed (code,task,ird,%, and C,P,A)
+        const iloFlagCount = Math.max(0, ths.length - (4 + 3));
 
         const cellValue = (cell) => {
           if (!cell) return '';
@@ -300,10 +303,10 @@
           return inp ? (inp.value || '') : (cell.textContent || '').trim();
         };
 
-        const code = cellValue(cells[0]);
-        const task = cellValue(cells[1]);
-        const ird = cellValue(cells[2]);
-        const pct = cellValue(cells[3]);
+        const code = cellValue(cells[0]) || '';
+        const task = cellValue(cells[1]) || '';
+        const ird = cellValue(cells[2]) || '';
+        const pct = cellValue(cells[3]) || '';
 
         const iloFlags = [];
         for (let i = 0; i < iloFlagCount; i++) {
@@ -314,16 +317,22 @@
         const trailingStart = 4 + iloFlagCount;
         const trailing = [cellValue(cells[trailingStart]), cellValue(cells[trailingStart + 1]), cellValue(cells[trailingStart + 2])];
 
-        // debug: show trailing CPA values so user can see what gets serialized
-        try { console.debug('serializeAT row trailing c/p/a', { pos: out.length, c: trailing[0], p: trailing[1], a: trailing[2] }); } catch (e) { /* noop */ }
-
-        const item = { section: currentSection, code, task, ird, percent: pct, iloFlags, c: (trailing[0] || '').toString(), p: (trailing[1] || '').toString(), a: (trailing[2] || '').toString() };
-        out.push(item);
-        percentTotal += toNumber(pct);
-      });
+        // treat as subfield (positioned row)
+        // only include rows that have at least one non-empty meaningful field
+        const hasContent = (code && String(code).trim() !== '') || (task && String(task).trim() !== '') || (ird && String(ird).trim() !== '') || (pct && String(pct).trim() !== '') || (iloFlags && Array.isArray(iloFlags) && iloFlags.some(x => String(x).trim() !== '')) || (trailing && ((trailing[0] && String(trailing[0]).trim() !== '') || (trailing[1] && String(trailing[1]).trim() !== '') || (trailing[2] && String(trailing[2]).trim() !== '')));
+        if (hasContent) {
+          subCounter++;
+          const position = sectionIndex + '-' + subCounter;
+          const item = { section: sectionIndex, position: position, code, task, ird, percent: pct, iloFlags, c: (trailing[0] || '').toString(), p: (trailing[1] || '').toString(), a: (trailing[2] || '').toString() };
+          out.push(item);
+          percentTotal += toNumber(pct);
+        } else {
+          // keep the empty UI row but do not serialize it
+        }
+      }
 
       // write to hidden textarea and dispatch input so global bindUnsavedIndicator picks it up
-  const ta = document.querySelector('[name="assessment_tasks_data"]');
+      const ta = document.querySelector('[name="assessment_tasks_data"]');
       if (ta) {
         try { ta.value = JSON.stringify(out); } catch (e) { ta.value = '[]'; }
         try { ta.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) { /* noop */ }
@@ -907,90 +916,149 @@
           const domainCount = 3; // C,P,A
           const iloCount = Math.max(0, ths.length - (iloStart + domainCount));
 
-          // group rows by section label to recreate section headers
-          const groups = [];
-          const map = {};
-          rows.forEach(r => {
-            const sec = r.section || 'General';
-            if (!map[sec]) { map[sec] = []; groups.push(sec); }
-            map[sec].push(r);
-          });
+              // group rows by numeric section to recreate section headers
+              const groups = [];
+              const map = {};
+              // rows may be either main-field objects (position null) or subfield objects with position like "1-2"
+              rows.forEach(r => {
+                const sec = (typeof r.section === 'number' || String(r.section).match(/^\d+$/)) ? Number(r.section) : null;
+                const key = sec ? String(sec) : '0';
+                if (!map[key]) { map[key] = []; groups.push(key); }
+                map[key].push(r);
+              });
 
-          // clear tbody and rebuild
-          const tbody = table.querySelector('tbody');
-          if (!tbody) return;
-          // remove all children
-          while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+              // Ensure default sections (1 and 2) exist and are rendered so users can always input into them
+              const defaultSections = ['1','2'];
+              defaultSections.forEach(ds => { if (!map[ds]) map[ds] = []; });
+              // Build an ordered list: defaults first, then any other sections present
+              const orderedGroups = defaultSections.concat(groups.filter(g => !defaultSections.includes(g)));
 
-          groups.forEach((sec) => {
-            // create section header
-            const headerTr = document.createElement('tr');
-            headerTr.className = 'section-header table-light';
-            const codeTh = document.createElement('th');
-            codeTh.className = 'text-start';
-            const nameTh = document.createElement('th');
-            // attempt to split section into code — name
-            const parts = String(sec).split('—').map(s => s.trim());
-            const codeVal = parts[0] || '';
-            const nameVal = parts[1] || parts.slice(1).join(' — ') || '';
-            const codeInp = document.createElement('input'); codeInp.type = 'text'; codeInp.name = 'section_code[]'; codeInp.className = 'cis-input text-center'; codeInp.value = codeVal; codeInp.placeholder = 'LEC';
-            const nameInp = document.createElement('input'); nameInp.type = 'text'; nameInp.name = 'section_name[]'; nameInp.className = 'cis-input'; nameInp.value = nameVal; nameInp.placeholder = 'LECTURE';
-            codeTh.appendChild(codeInp); nameTh.appendChild(nameInp);
-            headerTr.appendChild(codeTh); headerTr.appendChild(nameTh);
-            // add empty th for remaining columns (colspan management handled by existing styles)
-            const totalCols = ths.length;
-            for (let i = 2; i < totalCols; i++) {
-              const th = document.createElement('th'); headerTr.appendChild(th);
-            }
-            tbody.appendChild(headerTr);
+              // clear tbody and rebuild
+              const tbody = table.querySelector('tbody');
+              if (!tbody) return;
+              while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
 
-            // add data rows for this section
-            map[sec].forEach(item => {
-              const tr = document.createElement('tr');
-              // code
-              const tdCode = document.createElement('td');
-              const inpCode = document.createElement('input'); inpCode.type='text'; inpCode.className='cis-input text-center'; inpCode.value = item.code || '';
-              tdCode.appendChild(inpCode); tr.appendChild(tdCode);
-              // task
-              const tdTask = document.createElement('td');
-              const inpTask = document.createElement('input'); inpTask.type='text'; inpTask.className='cis-input'; inpTask.value = item.task || '';
-              tdTask.appendChild(inpTask); tr.appendChild(tdTask);
-              // ird
-              const tdIrd = document.createElement('td');
-              const inpIrd = document.createElement('input'); inpIrd.type='text'; inpIrd.className='cis-input text-center'; inpIrd.value = item.ird || '';
-              tdIrd.appendChild(inpIrd); tr.appendChild(tdIrd);
-              // percent
+              orderedGroups.forEach((secKey) => {
+                const secNum = secKey === '0' ? null : Number(secKey);
+                // create section header row
+                const headerTr = document.createElement('tr'); headerTr.className = 'section-header table-light';
+                const codeTh = document.createElement('th'); codeTh.className = 'text-start';
+                const nameTh = document.createElement('th');
+                // find a main-field item for this section (position null)
+                const items = map[secKey] || [];
+                const mainItem = items.find(it => it.position === null || it.position === undefined || it.position === '');
+                const codeVal = mainItem ? (mainItem.code || '') : '';
+                const nameVal = mainItem ? (mainItem.task || '') : '';
+                const codeInp = document.createElement('input'); codeInp.type = 'text'; codeInp.name = 'section_code[]'; codeInp.className = 'cis-input text-center'; codeInp.value = codeVal; codeInp.placeholder = 'LEC';
+                const nameInp = document.createElement('input'); nameInp.type = 'text'; nameInp.name = 'section_name[]'; nameInp.className = 'cis-input'; nameInp.value = nameVal; nameInp.placeholder = 'LECTURE';
+                codeTh.appendChild(codeInp); nameTh.appendChild(nameInp);
+                headerTr.appendChild(codeTh); headerTr.appendChild(nameTh);
+                const totalCols = ths.length; for (let i = 2; i < totalCols; i++) { const th = document.createElement('th'); headerTr.appendChild(th); }
+                tbody.appendChild(headerTr);
+
+                // add sub-rows (positioned rows) in order based on position suffix
+                const subItems = (map[secKey] || []).filter(it => it.position && String(it.position).indexOf('-') !== -1).slice();
+                // sort by the numeric suffix after the dash (e.g., 1-2 -> 2)
+                subItems.sort((a,b) => {
+                  const sa = Number(String(a.position).split('-')[1] || 0);
+                  const sb = Number(String(b.position).split('-')[1] || 0);
+                  return sa - sb;
+                });
+
+                subItems.forEach(item => {
+                  const tr = document.createElement('tr');
+                  // code
+                  const tdCode = document.createElement('td');
+                  const inpCode = document.createElement('input'); inpCode.type='text'; inpCode.className='cis-input text-center'; inpCode.value = item.code || '';
+                  tdCode.appendChild(inpCode); tr.appendChild(tdCode);
+                  // task
+                  const tdTask = document.createElement('td');
+                  const inpTask = document.createElement('input'); inpTask.type='text'; inpTask.className='cis-input'; inpTask.value = item.task || '';
+                  tdTask.appendChild(inpTask); tr.appendChild(tdTask);
+                  // ird
+                  const tdIrd = document.createElement('td');
+                  const inpIrd = document.createElement('input'); inpIrd.type='text'; inpIrd.className='cis-input text-center'; inpIrd.value = item.ird || '';
+                  tdIrd.appendChild(inpIrd); tr.appendChild(tdIrd);
+                  // percent
               const tdPct = document.createElement('td');
-              const inpPct = document.createElement('input'); inpPct.type='text'; inpPct.className='cis-input text-center'; inpPct.value = item.percent || '';
-              tdPct.appendChild(inpPct); tr.appendChild(tdPct);
-              // ilo flags
-              const flags = Array.isArray(item.iloFlags) ? item.iloFlags : (item.ilo_flags || []);
-              for (let k = 0; k < iloCount; k++) {
-                const td = document.createElement('td'); td.className='text-center';
-                const inp = document.createElement('input'); inp.type='text'; inp.className='cis-input text-center'; inp.value = flags[k] || '';
-                td.appendChild(inp); tr.appendChild(td);
-              }
-              // C,P,A
-              const tdC = document.createElement('td'); const inpC = document.createElement('input'); inpC.type='text'; inpC.className='cis-input text-center'; inpC.value = item.c || '';
-              tdC.appendChild(inpC); tr.appendChild(tdC);
-              const tdP = document.createElement('td'); const inpP = document.createElement('input'); inpP.type='text'; inpP.className='cis-input text-center'; inpP.value = item.p || '';
-              tdP.appendChild(inpP); tr.appendChild(tdP);
-              const tdA = document.createElement('td'); const inpA = document.createElement('input'); inpA.type='text'; inpA.className='cis-input text-center'; inpA.value = item.a || '';
-              tdA.appendChild(inpA); tr.appendChild(tdA);
+                const inpPct = document.createElement('input'); inpPct.type='text'; inpPct.className='cis-input text-center'; inpPct.value = item.percent || '';
+                tdPct.appendChild(inpPct); tr.appendChild(tdPct);
+                  // ilo flags
+                  const flags = Array.isArray(item.iloFlags) ? item.iloFlags : (item.ilo_flags || []);
+                  for (let k = 0; k < iloCount; k++) {
+                    const td = document.createElement('td'); td.className='text-center';
+                    const inp = document.createElement('input'); inp.type='text'; inp.className='cis-input text-center'; inp.value = flags[k] || '';
+                    td.appendChild(inp); tr.appendChild(td);
+                  }
+                  // C,P,A
+                  const tdC = document.createElement('td'); const inpC = document.createElement('input'); inpC.type='text'; inpC.className='cis-input text-center'; inpC.value = item.c || '';
+                  tdC.appendChild(inpC); tr.appendChild(tdC);
+                  const tdP = document.createElement('td'); const inpP = document.createElement('input'); inpP.type='text'; inpP.className='cis-input text-center'; inpP.value = item.p || '';
+                  tdP.appendChild(inpP); tr.appendChild(tdP);
+                  const tdA = document.createElement('td'); const inpA = document.createElement('input'); inpA.type='text'; inpA.className='cis-input text-center'; inpA.value = item.a || '';
+                  tdA.appendChild(inpA); tr.appendChild(tdA);
 
-              // attach handlers
-              tbody.appendChild(tr);
-              [inpCode, inpTask, inpIrd, inpPct, inpC, inpP, inpA].forEach(i => { try { attachATHandlersToInput(i); } catch(e){} });
-              // attach handlers for ilo inputs
-              const iloInputs = tr.querySelectorAll('td:nth-child(n+5) input');
-              iloInputs.forEach(i => { try { attachATHandlersToInput(i); } catch(e){} });
-            });
-          });
+                  tbody.appendChild(tr);
+                  [inpCode, inpTask, inpIrd, inpPct, inpC, inpP, inpA].forEach(i => { try { attachATHandlersToInput(i); } catch(e){} });
+                  const iloInputs = tr.querySelectorAll('td:nth-child(n+5) input'); iloInputs.forEach(i => { try { attachATHandlersToInput(i); } catch(e){} });
+                });
 
-          // add footer total row
+                // Always append one empty editable sub-row for user input (not saved if left empty)
+                (function(){
+                  const emptyTr = document.createElement('tr');
+                  // create the same number of cells as a regular data row
+                  const colsCount = ths.length;
+                  // determine section-specific placeholders
+                  const isLectureSection = (String(secKey) === '1');
+                  const codePlaceholder = isLectureSection ? 'ME' : 'LE';
+                  const taskPlaceholder = isLectureSection ? 'Midterm Exam / Final Exam / Quizzes...' : 'Laboratory Exercises / Exams...';
+                  const iloStartIdx = 4; // after code,task,ird,percent
+                  const domainStartIdx = ths.length - 3; // start index of C,P,A
+                  for (let ci = 0; ci < colsCount; ci++) {
+                    const td = document.createElement('td');
+                    if (ci === 0) {
+                      const inp = document.createElement('input'); inp.type = 'text'; inp.className = 'cis-input text-center'; inp.placeholder = codePlaceholder;
+                      td.appendChild(inp);
+                    } else if (ci === 1) {
+                      const inp = document.createElement('input'); inp.type = 'text'; inp.className = 'cis-input'; inp.placeholder = taskPlaceholder;
+                      td.appendChild(inp);
+                    } else if (ci === 2) {
+                      // I/R/D column
+                      const inp = document.createElement('input'); inp.type = 'text'; inp.className = 'cis-input text-center'; inp.placeholder = 'I/R/D';
+                      td.appendChild(inp);
+                    } else if (ci === 3) {
+                      // Percent column
+                      const inp = document.createElement('input'); inp.type = 'text'; inp.className = 'cis-input text-center'; inp.placeholder = '0';
+                      td.appendChild(inp);
+                    } else if (ci >= iloStartIdx && ci < domainStartIdx) {
+                      // ILO flags
+                      const inp = document.createElement('input'); inp.type = 'text'; inp.className = 'cis-input text-center'; inp.placeholder = '-';
+                      td.appendChild(inp);
+                    } else {
+                      // C,P,A columns
+                      const inp = document.createElement('input'); inp.type = 'text'; inp.className = 'cis-input text-center'; inp.placeholder = '-';
+                      td.appendChild(inp);
+                    }
+                    emptyTr.appendChild(td);
+                  }
+                  tbody.appendChild(emptyTr);
+                  emptyTr.querySelectorAll('input').forEach(attachATHandlersToInput);
+                })();
+              });
+
+          // add footer total row (computed percent from saved rows)
           const footerTr = document.createElement('tr'); footerTr.className = 'table-light footer-total';
           const thTotal = document.createElement('th'); thTotal.setAttribute('colspan', String(3)); thTotal.className='text-end'; thTotal.textContent = 'Total';
-          const thPct = document.createElement('th'); thPct.id = 'at-percent-total'; thPct.className='percent-total text-center'; thPct.textContent = '0%';
+          // compute percent total from provided rows (rows variable defined earlier)
+          let savedPercent = 0;
+          try {
+            savedPercent = Array.isArray(rows) ? rows.reduce((acc, r) => {
+              const raw = (r && r.percent) ? String(r.percent).replace('%','').trim() : '';
+              const n = parseFloat(raw);
+              return acc + (Number.isFinite(n) ? n : 0);
+            }, 0) : 0;
+          } catch (e) { savedPercent = 0; }
+          const thPct = document.createElement('th'); thPct.id = 'at-percent-total'; thPct.className='percent-total text-center'; thPct.textContent = (Math.round(savedPercent*100)/100) + '%';
           footerTr.appendChild(thTotal); footerTr.appendChild(thPct);
           const lastTh = document.createElement('th'); lastTh.setAttribute('colspan', String(iloCount + 3)); footerTr.appendChild(lastTh);
           tbody.appendChild(footerTr);
@@ -1225,6 +1293,8 @@
 
         // Optional helper: immediately persist AT payload to the server by calling the syllabus update route
         // Usage: await window.saveAssessmentTasksToServer(syllabusId)
+        // Optional helper: immediately persist AT payload to the server by calling the syllabus update route
+        // Usage: await window.saveAssessmentTasksToServer(syllabusId)
         window.saveAssessmentTasksToServer = async function(syllabusId) {
           if (!syllabusId) throw new Error('syllabusId required');
           // ensure serialized
@@ -1244,6 +1314,8 @@
           return resp;
         };
 
+        // POST normalized AT rows to the dedicated endpoint (/faculty/syllabi/{id}/assessment-tasks)
+        // Usage: await window.postAssessmentTasksRows(syllabusId)
         // POST normalized AT rows to the dedicated endpoint (/faculty/syllabi/{id}/assessment-tasks)
         // Usage: await window.postAssessmentTasksRows(syllabusId)
         window.postAssessmentTasksRows = async function(syllabusId) {
