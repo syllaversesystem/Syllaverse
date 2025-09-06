@@ -138,8 +138,7 @@ class Syllabus extends Model
     // 🔁 A syllabus maps many SDGs with editable pivot data
     public function sdgs()
     {
-        return $this->belongsToMany(Sdg::class, 'syllabus_sdg')
-            ->withPivot('id', 'title', 'description')
-            ->withTimestamps();
+        // per-syllabus SDG entries (not a simple many-to-many pivot anymore)
+        return $this->hasMany(SyllabusSdg::class)->orderBy('sort_order');
     }
 }

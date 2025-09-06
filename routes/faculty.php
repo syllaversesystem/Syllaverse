@@ -81,6 +81,8 @@ Route::middleware([FacultyAuth::class])->group(function () {
     Route::post('/faculty/syllabi/{syllabus}/sdgs/reorder', [SyllabusSdgController::class, 'reorder'])->name('faculty.syllabi.sdgs.reorder');
     Route::put('/faculty/syllabi/{syllabus}/sdgs/update/{pivot}', [SyllabusSdgController::class, 'update'])->name('faculty.syllabi.sdgs.update');
     Route::delete('/faculty/syllabi/{syllabus}/sdgs/{sdg}', [SyllabusSdgController::class, 'detach'])->name('faculty.syllabi.sdgs.detach');
+    // Delete per-syllabus SDG entry by its entry id
+    Route::delete('/faculty/syllabi/{syllabus}/sdgs/entry/{id}', [SyllabusSdgController::class, 'destroyEntry'])->name('faculty.syllabi.sdgs.destroy_entry');
 
     // ---------- 📄 Textbook Upload / Delete / List / Update ----------
     Route::post('/faculty/syllabi/{syllabus}/textbook', [SyllabusTextbookController::class, 'store'])->name('faculty.syllabi.textbook.upload');

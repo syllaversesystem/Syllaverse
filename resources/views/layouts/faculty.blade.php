@@ -34,7 +34,17 @@
   @vite('resources/css/faculty/faculty-sidebar.css')
   @vite('resources/css/faculty/faculty-navbar.css')
   @vite('resources/css/faculty/faculty-layout.css')
-  @vite('resources/css/superadmin/alerts.css') {{-- shared alert styles --}}
+  {{-- shared alert styles: only include if Vite manifest contains the entry to avoid 404s when manifest is stale --}}
+  @php
+    $manifestPath = public_path('build/manifest.json');
+    $manifest = file_exists($manifestPath) ? json_decode(file_get_contents($manifestPath), true) : null;
+  @endphp
+  @if (is_array($manifest) && array_key_exists('resources/css/superadmin/alerts.css', $manifest))
+    @vite('resources/css/superadmin/alerts.css')
+  @else
+    {{-- fallback: include app.css which contains shared styles as a safe default --}}
+    <link rel="stylesheet" href="{{ asset('build/assets/app-B--1BXnR.css') }}">
+  @endif
   @vite('resources/css/components/alert-overlay.css')
 
   {{-- Faculty-specific modules --}}

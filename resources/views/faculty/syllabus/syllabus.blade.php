@@ -26,8 +26,8 @@
 
   {{-- Global JS Variables --}}
   <script>
-    const syllabusExitUrl = @json(route('faculty.syllabi.index'));
-    const syllabusId = @json($default['id']);
+  const syllabusExitUrl = @json(route('faculty.syllabi.index'));
+  window.syllabusId = @json($default['id']);
   </script>
 
   @php
@@ -313,6 +313,16 @@
         window.markAsUnsaved = markAsUnsaved;
         window.updateSaveButton = updateSaveButton;
       } catch (e) { /* noop */ }
+  // React to SDG reorder event dispatched by the sortable module as a reliable
+  // cross-module channel in case load order prevents direct function calls.
+  document.addEventListener('sdg:reordered', function() { try { markAsUnsaved('sdgs'); } catch (e) { /* noop */ } });
+      // Extra fallback: force the top Save UI into dirty state in case other helpers
+      // are not available due to load order or a save-lock race.
+      document.addEventListener('sdg:reordered', function() {
+        try { if (window.setSyllabusSaveState) window.setSyllabusSaveState('dirty'); } catch (e) {}
+        try { const pill = document.getElementById('unsaved-sdgs'); if (pill) pill.classList.remove('d-none'); } catch (e) {}
+        try { const saveBtn = document.getElementById('syllabusSaveBtn'); if (saveBtn) { saveBtn.disabled = false; saveBtn.classList.add('btn-warning'); saveBtn.classList.remove('btn-danger'); saveBtn.style.pointerEvents = 'auto'; } } catch (e) {}
+      });
       
       // Handle form submission
       syllabusForm.addEventListener('submit', function(e) {
@@ -465,8 +475,14 @@
                   if (!resp.ok) throw new Error('Server returned ' + resp.status);
                 }
                 // mark as saved and update UI without reloading
-                try { window.markAsSaved && window.markAsSaved(); } catch (e) {}
-                try { window.dispatchEvent(new CustomEvent('syllabusSaved')); } catch (e) {}
+                  try {
+                    // Persist SDG edits (title/description/order) before finalizing save
+                    if (window.saveSdg && typeof window.saveSdg === 'function') {
+                      try { await Promise.resolve(window.saveSdg()); } catch (sdgErr) { console.warn('saveSdg failed during top Save (ignored)', sdgErr); }
+                    }
+                  } catch (e) {}
+                  try { window.markAsSaved && window.markAsSaved(); } catch (e) {}
+                  try { window.dispatchEvent(new CustomEvent('syllabusSaved')); } catch (e) {}
               } catch (ajaxErr) {
                 console.warn('AJAX save failed, falling back to full submit', ajaxErr);
                 // If AJAX fails, do the full submit as a last resort

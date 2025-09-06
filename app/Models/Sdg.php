@@ -30,8 +30,12 @@ class Sdg extends Model
     /** An SDG can be mapped to many syllabi (with editable pivot values). */
     public function syllabi()
     {
-        return $this->belongsToMany(Syllabus::class, 'syllabus_sdg')
-            ->withPivot('id', 'title', 'description')
+        // Use the normalized per-syllabus SDG table name. Historically the
+        // project used a legacy pivot table named `syllabus_sdg` (singular).
+        // The current normalized table is `syllabus_sdgs` and contains the
+        // editable pivot fields (id, code, sort_order, title, description, position).
+        return $this->belongsToMany(Syllabus::class, 'syllabus_sdgs')
+            ->withPivot('id', 'code', 'sort_order', 'position', 'title', 'description')
             ->withTimestamps();
     }
     // END: Relationships

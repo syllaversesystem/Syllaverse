@@ -9,23 +9,28 @@ use Illuminate\Database\Eloquent\Model;
 
 class SyllabusSdg extends Model
 {
-    protected $table = 'syllabus_sdg';
+    // per-syllabus SDG entries (cdio-like structure)
+    protected $table = 'syllabus_sdgs';
 
     protected $fillable = [
         'syllabus_id',
-        'sdg_id',
-        'description'
+        'code',
+        'sort_order',
+        'title',
+        'description',
     ];
 
-    public $timestamps = false;
+    public $timestamps = true;
 
     public function syllabus()
     {
         return $this->belongsTo(Syllabus::class);
     }
 
-    public function sdg()
+    // Compute code dynamically from sort_order to avoid duplication/mismatch
+    public function getCodeAttribute($value)
     {
-        return $this->belongsTo(Sdg::class);
+        $order = $this->attributes['sort_order'] ?? null;
+        return $order ? ('SDG' . $order) : ($value ?? null);
     }
 }
