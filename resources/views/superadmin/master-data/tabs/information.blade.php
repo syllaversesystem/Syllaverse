@@ -22,8 +22,7 @@
       'exams'       => ['label' => 'Missed Examinations',              'ph' => 'Explain procedures for make-up exams or special cases.'],
       'dishonesty'  => ['label' => 'Academic Dishonesty',              'ph' => 'Define violations and consequences (e.g., plagiarism).'],
       'dropping'    => ['label' => 'Dropping Students',                'ph' => 'Outline the drop process and deadlines.'],
-      'disability'  => ['label' => 'Students with Disabilities',       'ph' => 'State accommodations and how to request support.'],
-      'advising'    => ['label' => 'Consultation & Academic Advising', 'ph' => 'Give schedule, channels, and expectations for advising.'],
+  'other' => ['label' => 'Other', 'ph' => 'Consultation, academic advising, and support for students with disabilities.'],
     ];
   @endphp
 

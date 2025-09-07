@@ -29,6 +29,7 @@ use App\Models\Iga;
 use App\Models\SyllabusIga;
 use App\Models\Cdio;
 use App\Models\SyllabusCdio;
+use App\Models\SyllabusCoursePolicy;
 use Illuminate\Support\Facades\Schema;
 use Barryvdh\DomPDF\Facade\Pdf;
 use PhpOffice\PhpWord\PhpWord;
@@ -197,6 +198,28 @@ class SyllabusController extends Controller
 
         SyllabusCourseInfo::create($courseInfoData);
 
+        // Copy General Academic Information (master) into per-syllabus course policies
+        // This ensures course-policies textareas are pre-filled from superadmin master-data.
+        try {
+            if (Schema::hasTable('general_information') && Schema::hasTable('syllabus_course_policies')) {
+                $master = GeneralInformation::all()->keyBy('section');
+                // master sections: note we merged disability+advising into 'other'
+                $sections = ['policy', 'exams', 'dishonesty', 'dropping', 'other'];
+                $pos = 1;
+                foreach ($sections as $sec) {
+                    $content = $master->has($sec) ? ($master[$sec]->content ?? null) : null;
+                    // use updateOrCreate to avoid accidental duplicates and to be idempotent
+                    SyllabusCoursePolicy::updateOrCreate(
+                        ['syllabus_id' => $syllabus->id, 'section' => $sec],
+                        ['content' => $content, 'position' => $pos++]
+                    );
+                }
+            }
+        } catch (\Throwable $e) {
+            // Log a warning but don't block syllabus creation
+            \Log::warning('Syllabus::store failed to copy GeneralInformation policies', ['error' => $e->getMessage(), 'syllabus_id' => $syllabus->id]);
+        }
+
         // Copy master Student Outcomes into per-syllabus SOs if master table exists
         try {
             if (Schema::hasTable('student_outcomes')) {
@@ -252,8 +275,8 @@ class SyllabusController extends Controller
             \Log::warning('Syllabus::store failed to compute SO seed counts', ['error' => $__e->getMessage()]);
         }
 
-        return redirect()->route('faculty.syllabi.index')
-            ->with('success', 'Syllabus created successfully.');
+        return redirect()->route('faculty.syllabi.show', $syllabus->id)
+            ->with('success', 'Syllabus created successfully. You can now edit it.');
     }
 
     public function show($id)
@@ -270,6 +293,19 @@ class SyllabusController extends Controller
 
         // load mission/vision into defaults from the new relation so views remain unchanged
         $missionVision = $syllabus->missionVision;
+        // load per-syllabus course policies so the partial can pre-fill the textareas
+        $coursePolicies = [];
+        try {
+            if (Schema::hasTable('syllabus_course_policies')) {
+                $coursePolicies = \App\Models\SyllabusCoursePolicy::where('syllabus_id', $syllabus->id)
+                    ->orderBy('position')
+                    ->get();
+            }
+        } catch (\Throwable $e) {
+            // best-effort: log and continue without breaking view render
+            \Log::warning('Syllabus::show failed to load course policies', ['error' => $e->getMessage(), 'syllabus_id' => $syllabus->id]);
+        }
+
         return view('faculty.syllabus.syllabus', [
             'syllabus' => $syllabus,
             'default' => array_merge(
@@ -290,6 +326,7 @@ class SyllabusController extends Controller
             'sos' => $syllabus->sos,
             'igas' => $syllabus->igas ?? collect(),
             'cdios' => $syllabus->cdios ?? collect(),
+            'coursePolicies' => $coursePolicies,
             'sdgs' => $sdgs,
         ]);
     }
@@ -415,6 +452,33 @@ class SyllabusController extends Controller
             } else {
                 $data['syllabus_id'] = $syllabus->id;
                 SyllabusCourseInfo::create($data);
+            }
+        }
+
+        // Persist Course Policies from course_policies[] inputs into syllabus_course_policies
+        if ($request->has('course_policies') && is_array($request->input('course_policies'))) {
+            try { 
+                \Log::info('Syllabus::update received course_policies', ['count' => count($request->input('course_policies')), 'syllabus_id' => $syllabus->id]);
+            } catch (\Throwable $__e) { /* noop */ }
+            try {
+                if (Schema::hasTable('syllabus_course_policies')) {
+                    $incoming = $request->input('course_policies');
+                    // canonical mapping of textarea index -> section key (last row uses merged 'other')
+                    $sections = ['policy', 'exams', 'dishonesty', 'dropping', 'other'];
+                    foreach ($incoming as $idx => $val) {
+                        $section = $sections[$idx] ?? null;
+                        if (! $section) continue;
+                        $content = is_string($val) ? trim($val) : null;
+                        // store null for empty content to keep DB tidy
+                        if ($content === '') $content = null;
+                        SyllabusCoursePolicy::updateOrCreate(
+                            ['syllabus_id' => $syllabus->id, 'section' => $section],
+                            ['content' => $content, 'position' => ($idx + 1)]
+                        );
+                    }
+                }
+            } catch (\Throwable $e) {
+                \Log::warning('Syllabus::update failed to persist course_policies', ['error' => $e->getMessage(), 'syllabus_id' => $syllabus->id]);
             }
         }
 

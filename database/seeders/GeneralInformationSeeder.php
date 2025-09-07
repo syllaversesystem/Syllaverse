@@ -19,8 +19,8 @@ class GeneralInformationSeeder extends Seeder
             'exams' => 'Students who miss exams may take special exams for valid reasons, such as medical conditions (with certificate). Other reasons are subject to faculty approval.',
             'dishonesty' => 'Academic dishonesty, including cheating and plagiarism, is a major offense and will be dealt with based on the University’s Student Norms of Conduct.',
             'dropping' => 'Students must officially drop by submitting a form to the Registrar before midterms. Official drops are marked "Dropped"; unofficial drops receive a grade of "5.0".',
-            'disability' => 'Students with disabilities are encouraged to disclose their condition so that appropriate academic adjustments can be made. An inclusive, respectful environment is expected.',
-            'advising' => 'Consultation hours are provided for academic advising and guidance. Students are encouraged to approach their instructors during official hours for support or clarification.',
+            // Merge disability + advising into a single 'other' master section
+            'other' => 'Consultation hours and support for students with disabilities or special needs are available. Students are encouraged to disclose any condition to their instructor or the university support services so appropriate academic adjustments can be provided. Please approach your instructor during consultation hours for academic advising, guidance, or support.',
         ];
 
         foreach ($data as $section => $content) {

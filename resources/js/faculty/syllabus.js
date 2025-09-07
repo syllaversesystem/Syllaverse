@@ -606,6 +606,28 @@ document.addEventListener('DOMContentLoaded', () => {
         const token = tokenEl ? tokenEl.value : '';
 
           const fd = new FormData();
+          // Ensure elements that live outside the <form> but use form="syllabusForm"
+          // (for example course_policies[] textareas) are included in the POST payload.
+          try {
+            const externals = document.querySelectorAll('[form="syllabusForm"]');
+            externals.forEach((el) => {
+              try {
+                if (!el.name) return;
+                const tag = el.tagName.toUpperCase();
+                const type = (el.type || '').toLowerCase();
+                if ((type === 'checkbox' || type === 'radio')) {
+                  if (el.checked) fd.append(el.name, el.value);
+                  return;
+                }
+                if (tag === 'SELECT' && el.multiple) {
+                  Array.from(el.options).forEach(opt => { if (opt.selected) fd.append(el.name, opt.value); });
+                  return;
+                }
+                // For textareas with repeated names (e.g. course_policies[]), append each value
+                fd.append(el.name, el.value ?? '');
+              } catch (inner) { /* noop */ }
+            });
+          } catch (e) { /* noop */ }
           fd.append('_token', token);
           fd.append('_method', 'PUT');
           // Minimal save now also persists the course-info partial fields

@@ -12,7 +12,9 @@
   </colgroup>
   <tbody>
     <tr>
-      <th colspan="2" class="text-start cis-label">Course Policies</th>
+      <th colspan="2" class="text-start cis-label">Course Policies
+        <span id="unsaved-course_policies" class="unsaved-pill unsaved-dot d-none" aria-hidden="true"></span>
+      </th>
     </tr>
     <tr>
       <td class="text-center align-top" style="padding-top:0.35rem;">A.</td>
@@ -58,12 +60,31 @@
             background: transparent !important;
             resize: vertical;
           }
+          /* Allow textareas that opt-in with .cis-field to show the yellow focus BG
+             (override the transparent !important above for focused state) */
+          .course-policies textarea.cis-textarea.cis-field:focus {
+            background-color: #fffbe6 !important;
+            outline: none !important;
+            box-shadow: none !important;
+          }
+          /* Center the numeric grades column (second column) in the grading subtable */
+          .course-policies .cis-inner td:nth-child(2),
+          .course-policies .cis-inner th:nth-child(2) {
+            text-align: center;
+          }
           /* Explicit override for rows that should have no horizontal separator */
           .course-policies tr.no-sep td {
             border-top: 0 !important;
             border-bottom: 0 !important;
             box-shadow: none !important;
           }
+            /* targeted rule to remove any borderline (horizontal) between marked rows */
+            .course-policies tr.no-borderline td {
+              border-top: 0 !important;
+              border-bottom: 0 !important;
+              box-shadow: none !important;
+              background-clip: padding-box !important;
+            }
           /* Extra-specific overrides to catch Bootstrap / global selectors */
           table.table.table-bordered.course-policies > tbody > tr.no-sep > td,
           table.table.table-bordered.course-policies > tbody > tr.no-sep + tr > td {
@@ -91,12 +112,23 @@
             z-index: 5 !important;
             pointer-events: none !important;
           }
+          /* Small yellow unsaved dot used by Course Policies module */
+          .unsaved-pill.unsaved-dot {
+            display: inline-block !important;
+            width: 10px !important;
+            height: 10px !important;
+            background: #f7e053 !important; /* pale yellow */
+            border-radius: 50% !important;
+            margin-left: 0.5rem !important;
+            vertical-align: middle !important;
+            box-shadow: 0 0 0 4px rgba(247,224,83,0.12) !important;
+          }
         </style>
         <table class="table mb-0 cis-inner" style="border:none; margin:0; padding:0; border-collapse:collapse; width:100%;">
           <colgroup>
-            <col style="width:13.33%">
-            <col style="width:13.33%">
-            <col style="width:13.33%">
+            <col style="width:12%">
+            <col style="width:8%"> <!-- numeric grades column made narrower -->
+            <col style="width:20%">
             <col style="width:60%">
           </colgroup>
           <tbody>
@@ -171,38 +203,84 @@
         </table>
       </td>
     </tr>
-  <!-- extra blank rows for additional policy lines -->
+  @php
+    // collect policies by section for easy lookup; controller passes a Collection or array
+    $policies = isset($coursePolicies) ? collect($coursePolicies) : collect();
+    $bySection = $policies->keyBy('section');
+    // canonical sections mapped to the UI rows (index order)
+    $uiSections = [
+      'policy',    // B. Class policy
+      'exams',     // missed examinations
+      'dishonesty',// ACADEMIC DISHONESTY
+      'dropping',  // dropping
+    'other',  // C. Other course policies and requirements
+    ];
+  @endphp
+
+  {{-- Render fixed rows and only show the textarea content (no section labels) --}}
   <tr><td class="text-center align-top" style="padding-top:0.35rem;">B.</td><td class="text-start">Class policy</td></tr>
   <tr><td></td><td>
-    <textarea name="course_policies[]" class="form-control cis-textarea autosize" rows="1" data-original="{{ old('course_policies.0', '') }}" placeholder="Enter policy details"></textarea>
+  <textarea name="course_policies[]" form="syllabusForm" class="form-control cis-textarea autosize cis-field" rows="1" data-original="{{ old('course_policies.0', optional($bySection->get('policy'))->content ?? '') }}" placeholder="Enter policy details">{{ old('course_policies.0', optional($bySection->get('policy'))->content ?? '') }}</textarea>
   </td></tr>
+
   <tr><td></td><td class="text-start">missed examinations</td></tr>
   <tr><td></td><td>
-    <textarea name="course_policies[]" class="form-control cis-textarea autosize" rows="1" data-original="{{ old('course_policies.1', '') }}" placeholder="Enter policy details"></textarea>
+  <textarea name="course_policies[]" form="syllabusForm" class="form-control cis-textarea autosize cis-field" rows="1" data-original="{{ old('course_policies.1', optional($bySection->get('exams'))->content ?? '') }}" placeholder="Enter policy details">{{ old('course_policies.1', optional($bySection->get('exams'))->content ?? '') }}</textarea>
   </td></tr>
-  <tr><td></td><td class="text-start">academic dishonesty</td></tr>
+
+  <tr><td></td><td class="text-start">ACADEMIC DISHONESTY</td></tr>
   <tr><td></td><td>
-    <textarea name="course_policies[]" class="form-control cis-textarea autosize" rows="1" data-original="{{ old('course_policies.2', '') }}" placeholder="Enter policy details"></textarea>
+  <textarea name="course_policies[]" form="syllabusForm" class="form-control cis-textarea autosize cis-field" rows="1" data-original="{{ old('course_policies.2', optional($bySection->get('dishonesty'))->content ?? '') }}" placeholder="Enter policy details">{{ old('course_policies.2', optional($bySection->get('dishonesty'))->content ?? '') }}</textarea>
   </td></tr>
-  <tr class="no-sep">
-    <td style="border-bottom:0 !important;"></td>
-    <td class="text-start" style="border-bottom:0 !important;">dropping</td>
+
+  <tr class="no-sep no-borderline" style="border-bottom:0 !important;">
+    <td style="border-bottom:100 !important;"></td>
+    <td class="text-start no-borderline" style="border-bottom:0 !important;">dropping</td>
   </tr>
-  <tr class="no-sep">
+  <tr class="no-sep no-borderline" style="border-top:0 !important;">
     <td style="border-top:0 !important;"></td>
     <td style="border-top:0 !important;">
-  <textarea name="course_policies[]" class="form-control cis-textarea autosize" style="border:0; border-radius:0;" rows="1" data-original="{{ old('course_policies.3', '') }}" placeholder="Enter policy details"></textarea>
+  <textarea name="course_policies[]" form="syllabusForm" class="form-control cis-textarea autosize cis-field" style="border:0; border-radius:0;" rows="1" data-original="{{ old('course_policies.3', optional($bySection->get('dropping'))->content ?? '') }}" placeholder="Enter policy details">{{ old('course_policies.3', optional($bySection->get('dropping'))->content ?? '') }}</textarea>
     </td>
   </tr>
-  <tr class="no-sep">
+
+  <tr class="no-sep" style="border-bottom:0 !important;">
     <td class="text-center align-top" style="padding-top:0.35rem; border-bottom:0 !important;">C.</td>
     <td class="text-start" style="border-bottom:0 !important;">OTHER COURSE POLICIES AND REQUIREMENTS</td>
   </tr>
-  <tr class="no-sep">
-    <td style="border-top:0 !important;"></td>
+  <tr class="no-sep" style="border-top:0 !important;">
+    <td style="border-top:0 !important; "></td>
     <td style="border-top:0 !important;">
-  <textarea name="course_policies[]" class="form-control cis-textarea autosize" style="border:0; border-radius:0;" rows="1" data-original="{{ old('course_policies.4', '') }}" placeholder="Enter policy details"></textarea>
+  <textarea name="course_policies[]" form="syllabusForm" class="form-control cis-textarea autosize cis-field" style="border:0; border-radius:0;" rows="1" data-original="{{ old('course_policies.4', optional($bySection->get('other'))->content ?? '') }}" placeholder="Enter policy details">{{ old('course_policies.4', optional($bySection->get('other'))->content ?? '') }}</textarea>
     </td>
   </tr>
   </tbody>
 </table>
+
+@push('scripts')
+<script>
+// Bind Course Policies textareas to the module unsaved pill
+document.addEventListener('DOMContentLoaded', function () {
+  try {
+    const selector = '.course-policies textarea.autosize';
+    const areas = document.querySelectorAll(selector);
+    if (!areas || areas.length === 0) return;
+
+    areas.forEach((ta) => {
+      // ensure original snapshot exists for bindUnsavedIndicator-style comparisons
+      if (typeof ta.dataset.original === 'undefined') ta.dataset.original = ta.value ?? '';
+
+      const onChange = function (e) {
+        try { if (window.markDirty) window.markDirty('unsaved-course_policies'); } catch (e) { /* noop */ }
+        try { if (window.updateUnsavedCount) window.updateUnsavedCount(); } catch (e) { /* noop */ }
+        // also add visual highlight
+        try { ta.classList.toggle('sv-new-highlight', (ta.value ?? '') !== (ta.dataset.original ?? '')); } catch (e) {}
+      };
+
+      ta.addEventListener('input', onChange);
+      ta.addEventListener('change', onChange);
+    });
+  } catch (e) { /* noop */ }
+});
+</script>
+@endpush

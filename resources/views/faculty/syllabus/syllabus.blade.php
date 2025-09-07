@@ -468,9 +468,40 @@
                 } else {
                   // Fallback: serialize the form into FormData and POST via fetch
                   const fd = new FormData(syllabusForm);
+                  // Some inputs (for example module partials rendered outside the <form>
+                  // but using the `form` attribute) may not be reliably included by
+                  // FormData(form) in every environment; append them explicitly.
+                  try {
+                    const externals = document.querySelectorAll('[form="syllabusForm"]');
+                    externals.forEach((el) => {
+                      try {
+                        if (!el.name) return;
+                        // For checkboxes/radios, only append if checked
+                        const tag = el.tagName.toUpperCase();
+                        const type = (el.type || '').toLowerCase();
+                        if ((type === 'checkbox' || type === 'radio')) {
+                          if (el.checked) fd.append(el.name, el.value);
+                          return;
+                        }
+                        if (tag === 'SELECT' && el.multiple) {
+                          Array.from(el.options).forEach(opt => { if (opt.selected) fd.append(el.name, opt.value); });
+                          return;
+                        }
+                        // Standard input/textarea/select
+                        fd.append(el.name, el.value ?? '');
+                      } catch (inner) { /* noop */ }
+                    });
+                  } catch (e) { /* noop */ }
+
                   fd.append('_method','PUT');
                   const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
                   if (token) fd.append('_token', token);
+                  // Debug: list keys being sent so we can verify `course_policies[]` exists
+                  try {
+                    const keys = [];
+                    for (const k of fd.keys()) keys.push(k);
+                    console.debug('Top Save FormData keys', keys.slice(0,200));
+                  } catch (e) { /* noop */ }
                   const resp = await fetch(syllabusForm.action, { method: 'POST', credentials: 'same-origin', body: fd });
                   if (!resp.ok) throw new Error('Server returned ' + resp.status);
                 }
