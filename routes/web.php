@@ -81,3 +81,8 @@ Route::get('/test-criteria', function () {
     
     return view('faculty.syllabus.syllabus', compact('syllabus', 'default'));
 })->name('test.criteria');
+
+// Simple TLA module UI (prototype): one-row, one-column table
+Route::get('/faculty/syllabus/tla', function () {
+    return view('faculty.syllabus.tla');
+})->name('faculty.syllabus.tla');

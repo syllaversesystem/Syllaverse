@@ -32,24 +32,28 @@ class SyllabusTLAController extends Controller
             'tla.*.ilo' => 'nullable|string|max:100',
             'tla.*.so' => 'nullable|string|max:100',
             'tla.*.delivery' => 'nullable|string|max:255',
+            'tla.*.position' => 'nullable|integer',
         ]);
 
         $syllabus = Syllabus::where('faculty_id', auth()->id())->findOrFail($id);
+        // Delete existing rows and recreate them preserving the order via position
         $syllabus->tla()->delete();
 
-        foreach ($request->tla as $row) {
-            if (!empty(array_filter($row))) {
-                TLA::create([
-                    'syllabus_id' => $syllabus->id,
-                    'ch' => $row['ch'] ?? '',
-                    'topic' => $row['topic'] ?? '',
-                    'wks' => $row['wks'] ?? '',
-                    'outcomes' => $row['outcomes'] ?? '',
-                    'ilo' => $row['ilo'] ?? '',
-                    'so' => $row['so'] ?? '',
-                    'delivery' => $row['delivery'] ?? '',
-                ]);
-            }
+        foreach ($request->tla as $idx => $row) {
+            // Persist rows even if empty; use provided position or fall back to index
+            $position = isset($row['position']) ? intval($row['position']) : $idx;
+
+            TLA::create([
+                'syllabus_id' => $syllabus->id,
+                'ch' => $row['ch'] ?? '',
+                'topic' => $row['topic'] ?? '',
+                'wks' => $row['wks'] ?? '',
+                'outcomes' => $row['outcomes'] ?? '',
+                'ilo' => $row['ilo'] ?? '',
+                'so' => $row['so'] ?? '',
+                'delivery' => $row['delivery'] ?? '',
+                'position' => $position,
+            ]);
         }
 
         return response()->json(['success' => true, 'message' => 'TLA rows saved successfully.']);
@@ -60,10 +64,15 @@ class SyllabusTLAController extends Controller
     {
         $syllabus = Syllabus::where('faculty_id', auth()->id())->findOrFail($id);
 
+        // Determine next position
+        $max = (int) TLA::where('syllabus_id', $syllabus->id)->max('position');
+        $nextPos = $max + 1;
+
         $tla = TLA::create([
             'syllabus_id' => $syllabus->id,
             'ch' => '', 'topic' => '', 'wks' => '',
             'outcomes' => '', 'ilo' => '', 'so' => '', 'delivery' => '',
+            'position' => $nextPos,
         ]);
 
         return response()->json(['success' => true, 'row' => $tla, 'message' => 'New TLA row added and saved to database.']);

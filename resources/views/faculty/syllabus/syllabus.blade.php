@@ -505,6 +505,15 @@
                   const resp = await fetch(syllabusForm.action, { method: 'POST', credentials: 'same-origin', body: fd });
                   if (!resp.ok) throw new Error('Server returned ' + resp.status);
                 }
+                // Persist TLA rows (if the module is loaded)
+                try {
+                  if (window.postTlaRows && typeof window.postTlaRows === 'function') {
+                    await window.postTlaRows(syllabusId).catch(()=>{});
+                    try { const tlaPill = document.getElementById('unsaved-tla'); if (tlaPill) tlaPill.classList.add('d-none'); } catch(e){}
+                  }
+                } catch (tlaErr) {
+                  console.warn('postTlaRows failed during top Save (ignored)', tlaErr);
+                }
                 // mark as saved and update UI without reloading
                   try {
                     // Persist SDG edits (title/description/order) before finalizing save

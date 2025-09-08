@@ -14,7 +14,7 @@ class TLA extends Model
     protected $table = 'tla'; // ✅ your actual table name
 
     protected $fillable = [
-        'syllabus_id', 'ch', 'topic', 'wks', 'outcomes', 'ilo', 'so', 'delivery'
+    'syllabus_id', 'ch', 'topic', 'wks', 'outcomes', 'ilo', 'so', 'delivery', 'position'
     ];
 
     // ✅ Explicit pivot keys to avoid "t_l_a_id" errors
@@ -26,6 +26,12 @@ class TLA extends Model
             'tla_id',          // Foreign key on pivot pointing to this model
             'syllabus_ilo_id'  // Foreign key on pivot pointing to related model
         );
+    }
+
+    // Order TLAs by position by default
+    public function scopeOrdered($query)
+    {
+        return $query->orderBy('position');
     }
 
     public function sos()
