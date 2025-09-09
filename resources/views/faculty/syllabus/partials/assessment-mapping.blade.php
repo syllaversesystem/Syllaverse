@@ -6,7 +6,28 @@
 -------------------------------------------------------------------------------
 --}}
 
-<table class="table table-bordered mb-4" style="width:100%; border:1px solid #343a40; border-collapse:collapse;">
+
+<table class="table table-bordered mb-4" style="width:100%; table-layout:fixed; border:1px solid #343a40; border-collapse:collapse;">
+	<colgroup>
+		<col style="width:10%;">
+		<col style="width:14%;">
+		<col style="width:4.75%;">
+		<col style="width:4.75%;">
+		<col style="width:4.75%;">
+		<col style="width:4.75%;">
+		<col style="width:4.75%;">
+		<col style="width:4.75%;">
+		<col style="width:4.75%;">
+		<col style="width:4.75%;">
+		<col style="width:4.75%;">
+		<col style="width:4.75%;">
+		<col style="width:4.75%;">
+		<col style="width:4.75%;">
+		<col style="width:4.75%;">
+		<col style="width:4.75%;">
+		<col style="width:4.75%;">
+		<col style="width:4.75%;">
+	</colgroup>
 	<tbody>
 		<thead>
 			<tr>
