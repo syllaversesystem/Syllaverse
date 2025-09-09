@@ -129,6 +129,12 @@ class Syllabus extends Model
         return $this->hasMany(SyllabusAssessmentTask::class, 'syllabus_id')->orderBy('position');
     }
 
+    // Per-syllabus assessment mappings (name + week_marks)
+    public function assessmentMappings()
+    {
+        return $this->hasMany(SyllabusAssessmentMapping::class, 'syllabus_id')->orderBy('position');
+    }
+
     // mission/vision moved to a separate table so they can be managed independently
     public function missionVision()
     {

@@ -284,7 +284,9 @@ class SyllabusController extends Controller
         $syllabus = Syllabus::with([
             'course', 'program', 'faculty', 'ilos', 'sos', 'sdgs', 'courseInfo', 'criteria', 'cdios',
             'tla.ilos:id,code',
-            'tla.sos:id,code'
+            'tla.sos:id,code',
+            // eager-load assessmentMappings so the partial can hydrate saved rows
+            'assessmentMappings'
         ])->findOrFail($id);
 
         $programs = Program::all();
@@ -650,6 +652,43 @@ class SyllabusController extends Controller
             return response()->json(['success' => true, 'count' => $created, 'saved' => true]);
         } catch (\Throwable $e) {
             \Log::error('saveAssessmentTasks failed', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString(), 'syllabus_id' => $sy->id ?? $syllabus]);
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Persist assessment mappings (name + week_marks) for a syllabus.
+     */
+    public function saveAssessmentMappings(Request $request, $syllabus)
+    {
+        try { \Log::info('saveAssessmentMappings called', ['syllabus' => $syllabus, 'incoming' => $request->all()]); } catch (\Throwable $__e) {}
+
+        $sy = Syllabus::where('faculty_id', Auth::id())->findOrFail($syllabus);
+
+        $data = $request->input('mappings');
+        if (!is_array($data)) {
+            $decoded = json_decode((string) $data, true);
+            $data = is_array($decoded) ? $decoded : [];
+        }
+
+        try {
+            // delete existing mappings and recreate (simple replace semantics)
+            $sy->assessmentMappings()->delete();
+            $created = 0;
+            foreach ($data as $pos => $m) {
+                $name = $m['name'] ?? null;
+                $weekMarks = $m['week_marks'] ?? ($m['weeks'] ?? []);
+                $sy->assessmentMappings()->create([
+                    'name' => $name,
+                    'week_marks' => is_array($weekMarks) ? $weekMarks : json_decode((string)$weekMarks, true) ?? [],
+                    'position' => $pos,
+                ]);
+                $created++;
+            }
+
+            return response()->json(['success' => true, 'created' => $created]);
+        } catch (\Throwable $e) {
+            \Log::error('saveAssessmentMappings failed', ['error' => $e->getMessage()]);
             return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
         }
     }

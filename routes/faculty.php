@@ -106,6 +106,8 @@ Route::middleware([FacultyAuth::class])->group(function () {
 
     // Persist Assessment Tasks payload for a syllabus
     Route::post('/faculty/syllabi/{syllabus}/assessment-tasks', [SyllabusController::class, 'saveAssessmentTasks'])->name('faculty.syllabi.assessment_tasks.save');
+    // Persist Assessment Mappings payload for a syllabus
+    Route::post('/faculty/syllabi/{syllabus}/assessment-mappings', [SyllabusController::class, 'saveAssessmentMappings'])->name('faculty.syllabi.assessment_mappings.save');
 
 });
 

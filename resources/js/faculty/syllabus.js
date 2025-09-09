@@ -524,6 +524,9 @@ document.addEventListener('DOMContentLoaded', () => {
       // set a save lock immediately to avoid beforeunload prompts while the save begins
       try { window._syllabusSaveLock = true; } catch (e) { /* noop */ }
 
+  // Capture form action early so other pre-save steps can derive syllabus id from it
+  const action = form.action;
+
       const missionEl = document.querySelector('[name="mission"]');
       const visionEl = document.querySelector('[name="vision"]');
       if (!missionEl || !visionEl) return;
@@ -552,7 +555,7 @@ document.addEventListener('DOMContentLoaded', () => {
           try { await window.saveIga(); } catch (igaErr) { console.error('Failed to save IGA data before syllabus save:', igaErr); alert('Failed to save IGAs: ' + (igaErr && igaErr.message ? igaErr.message : 'See console for details.')); try { saveBtn.disabled = false; saveBtn.innerHTML = originalHtml; } catch (e) {} return; }
         }
 
-        if (window.postAssessmentTasksRows && typeof window.postAssessmentTasksRows === 'function') {
+        if ((window.postAssessmentMappings && typeof window.postAssessmentMappings === 'function') || (window.postAssessmentTasksRows && typeof window.postAssessmentTasksRows === 'function')) {
           // derive syllabus id from form action (/faculty/syllabi/{id}) or hidden input
           let syllabusId = '';
           try {
@@ -570,6 +573,11 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
               const ta = document.getElementById('assessment_tasks_data');
               syllabusId = ta?.dataset?.syllabusId || ta?.getAttribute('data-syllabus-id') || '';
+              // also check assessment mappings hidden textarea
+              if (!syllabusId) {
+                const ma = document.getElementById('assessment_mappings_data');
+                syllabusId = ma?.dataset?.syllabusId || ma?.getAttribute('data-syllabus-id') || '';
+              }
             } catch (e) { /* noop */ }
           }
 
@@ -577,10 +585,23 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
               // set save lock so beforeunload won't prompt while this background request is in progress
               try { window._syllabusSaveLock = true; } catch (e) { /* noop */ }
-              await window.postAssessmentTasksRows(syllabusId).catch((err) => {
-                // Log but don't abort — main form save should still proceed.
-                console.warn('postAssessmentTasksRows failed (ignored) during save flow', err);
-              });
+              // Attempt to persist mappings first (if helper exists)
+              // Ensure mappings are serialized into hidden fields if the module exposes a save helper
+              if (window.saveAssessmentMappings && typeof window.saveAssessmentMappings === 'function') {
+                try { await window.saveAssessmentMappings(); } catch (serr) { console.warn('saveAssessmentMappings failed (ignored) during save flow', serr); }
+              }
+              if (window.postAssessmentMappings && typeof window.postAssessmentMappings === 'function') {
+                await window.postAssessmentMappings(syllabusId).catch((err) => {
+                  console.warn('postAssessmentMappings failed (ignored) during save flow', err);
+                });
+              }
+
+              // Then attempt to persist assessment tasks rows (if helper exists)
+              if (window.postAssessmentTasksRows && typeof window.postAssessmentTasksRows === 'function') {
+                await window.postAssessmentTasksRows(syllabusId).catch((err) => {
+                  console.warn('postAssessmentTasksRows failed (ignored) during save flow', err);
+                });
+              }
             } finally {
               // release the save lock shortly after so UI can resume marking changes
               setTimeout(() => { try { window._syllabusSaveLock = false; } catch (e) { /* noop */ } }, 400);

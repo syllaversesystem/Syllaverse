@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Sep 04, 2025 at 11:25 PM
+-- Generation Time: Sep 09, 2025 at 01:48 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -245,8 +245,7 @@ INSERT INTO `general_information` (`id`, `section`, `content`, `created_at`, `up
 (4, 'exams', 'Students who failed to take the exam during the schedule date can be given a special exam provided he/she has valid\r\nreason. If it is health reason, he/she should provide the faculty with the medical certificate signed by the attending\r\nPhysician. Other reasons shall be assessed first by the faculty to determine its validity.', '2025-07-20 14:12:07', '2025-07-20 14:12:07'),
 (5, 'dishonesty', 'Academic dishonesty includes acts such as cheating during examinations or plagiarism in connection with any\r\nacademic work. Such acts are considered major offenses and will be dealt with according to the University’s Student\r\nNorms of Conduct.', '2025-07-20 14:12:18', '2025-07-20 14:12:18'),
 (6, 'dropping', 'Dropping must be made official by accomplishing a dropping form and submitting it at the Registrar’s Office before\r\nthe midterm examination. Students who officially drop out of class shall be marked “Dropped” whether he took the\r\npreliminary examination or not and irrespective of their preliminary grades.\r\nA student who unofficially drops out of class shall be given a mark of “5.0” by the instructor.', '2025-07-20 14:12:30', '2025-07-20 14:12:30'),
-(7, 'disability', 'Students with Disabilities/Special Needs (PWD). All students who have an illness or disability are encouraged to\r\ndisclose to the instructor the nate and extent of the illness or disability so that the instructor can make the necessary\r\nadjustments.\r\nAll students are expected to promote and foster an environment that encourages positive, informed and unprejudiced\r\nattitudes towads students with disability.', '2025-07-20 14:12:44', '2025-07-20 14:12:44'),
-(8, 'advising', 'CONSULTATION AND ACADEMIC ADVISING\r\nStudents are highly encouraged to use the consultation hour of the instructor set by the college, whether virtually or\r\nface-to-face. It will be used to seek for an advice if there is any problem or difficulty encountered during the term.\r\nDiscussion for academic purposes will also be entertained.', '2025-07-20 14:12:54', '2025-07-20 14:12:54');
+(10, 'other', 'Students with Disabilities/Special Needs (PWD). All students who have an illness or disability are encouraged to disclose to the instructor the nate and extent of the illness or disability so that the instructor can make the necessary adjustments.\r\nAll students are expected to promote and foster an environment that encourages positive, informed and unprejudiced attitudes towads students with disability.\r\nCONSULTATION AND ACADEMIC ADVISING\r\nStudents are highly encouraged to use the consultation hour of the instructor set by the college, whether virtually or face-to-face. It will be used to seek for an advice if there is any problem or difficulty encountered during the term. Discussion for academic purposes will also be entertained.', '2025-09-07 15:36:26', '2025-09-07 15:36:26');
 
 -- --------------------------------------------------------
 
@@ -414,7 +413,16 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES
 (97, '2025_09_03_000005_create_student_outcomes_table', 46),
 (98, '2025_09_03_000006_create_syllabus_cdios_table', 46),
 (99, '2025_09_05_000001_add_position_and_code_to_syllabus_sdg_table', 47),
-(100, '2025_09_05_010000_create_syllabus_sdgs_table', 48);
+(100, '2025_09_05_010000_create_syllabus_sdgs_table', 48),
+(101, '2025_09_05_020000_replace_syllabus_sdg_with_cdios_structure', 49),
+(102, '2025_09_06_000000_create_syllabus_course_policies_table', 50),
+(103, '2025_09_06_120000_create_syllabus_course_policies_table', 51),
+(104, '2025_09_07_120000_merge_disability_advising_into_other_policies', 52),
+(105, '2025_09_07_000000_drop_tla_tables', 53),
+(106, '2025_09_07_235900_create_tla_table', 54),
+(107, '2025_09_08_000000_add_position_to_tla_table', 54),
+(108, '2025_09_08_000000_create_missing_tla_pivots', 55),
+(109, '2025_09_09_000001_create_syllabus_assessment_mappings_table', 56);
 
 -- --------------------------------------------------------
 
@@ -499,8 +507,7 @@ CREATE TABLE `sessions` (
 --
 
 INSERT INTO `sessions` (`id`, `user_id`, `ip_address`, `user_agent`, `payload`, `last_activity`) VALUES
-('psZghEwPFqCcmbgPlENCvRCoRWCpmrIsJAJBegJz', 35, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 Edg/139.0.0.0', 'YTo3OntzOjY6Il90b2tlbiI7czo0MDoicERZNDV1SzZvcHJnb0ZmM1NSV1hDYUhFdzBYNFZGd0V1TnNNd0ZhcyI7czo2OiJfZmxhc2giO2E6Mjp7czozOiJuZXciO2E6MDp7fXM6Mzoib2xkIjthOjA6e319czo5OiJfcHJldmlvdXMiO2E6MTp7czozOiJ1cmwiO3M6NDE6Imh0dHA6Ly9sb2NhbGhvc3Q6ODAwMC9mYWN1bHR5L3N5bGxhYmkvMTE3Ijt9czo1OiJzdGF0ZSI7czo0MDoiOE11Zkx0a0pib1d3QzZ5a05sWXBhTFF3R215NzJPU2NoRmVqUVFOTiI7czo1NDoibG9naW5fZmFjdWx0eV81OWJhMzZhZGRjMmIyZjk0MDE1ODBmMDE0YzdmNThlYTRlMzA5ODlkIjtpOjM1O3M6MTM6ImlzX3N1cGVyYWRtaW4iO2I6MTtzOjUyOiJsb2dpbl9hZG1pbl81OWJhMzZhZGRjMmIyZjk0MDE1ODBmMDE0YzdmNThlYTRlMzA5ODlkIjtpOjY7fQ==', 1757020911),
-('rAGhIppuNHtEsak4tsOiSeHZIeS0DXVAGjYXbJWM', NULL, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 Edg/139.0.0.0', 'YTo1OntzOjY6Il90b2tlbiI7czo0MDoicEx5bkFkd3poSnAxWFkyVFo3VllIUmJBdnk4cWV4aFc2VXJaSnNBdCI7czo2OiJfZmxhc2giO2E6Mjp7czozOiJuZXciO2E6MDp7fXM6Mzoib2xkIjthOjA6e319czo5OiJfcHJldmlvdXMiO2E6MTp7czozOiJ1cmwiO3M6Mzg6Imh0dHA6Ly9sb2NhbGhvc3Q6ODAwMC9zdXBlcmFkbWluL2xvZ2luIjt9czo1OiJzdGF0ZSI7czo0MDoiN0RSZUU5V2UzVXlhNllDdUk2NjA3eENraDVOcjdicnY2WE9oRjR5cyI7czo1NDoibG9naW5fZmFjdWx0eV81OWJhMzZhZGRjMmIyZjk0MDE1ODBmMDE0YzdmNThlYTRlMzA5ODlkIjtpOjM1O30=', 1757013762);
+('9GUoOhWq9mfP2CJyO0C3TS5kSP7twMNG0QsK9uNb', 35, '127.0.0.1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36 Edg/139.0.0.0', 'YTo1OntzOjY6Il90b2tlbiI7czo0MDoicFhVb1pJMVh3NkZKeERZNFduZGFvamJJc0FBSnhhTmxjMUNuMlZaYSI7czo5OiJfcHJldmlvdXMiO2E6MTp7czozOiJ1cmwiO3M6NDE6Imh0dHA6Ly9sb2NhbGhvc3Q6ODAwMC9mYWN1bHR5L3N5bGxhYmkvMTM0Ijt9czo2OiJfZmxhc2giO2E6Mjp7czozOiJvbGQiO2E6MDp7fXM6MzoibmV3IjthOjA6e319czo1OiJzdGF0ZSI7czo0MDoieWVwZGlxSktlUkxSd2t1bXZyQjZhYjNSbzRPMkhGZE0wV3hmdTdxYiI7czo1NDoibG9naW5fZmFjdWx0eV81OWJhMzZhZGRjMmIyZjk0MDE1ODBmMDE0YzdmNThlYTRlMzA5ODlkIjtpOjM1O30=', 1757418471);
 
 -- --------------------------------------------------------
 
@@ -584,7 +591,25 @@ CREATE TABLE `syllabi` (
 INSERT INTO `syllabi` (`id`, `faculty_id`, `program_id`, `course_id`, `title`, `academic_year`, `semester`, `year_level`, `created_at`, `updated_at`, `textbook_file_path`, `assessment_tasks_data`) VALUES
 (87, 41, NULL, 53, 'Test Syllabus 1756764384', '2025', '1st', '1', '2025-09-01 14:06:24', '2025-09-01 14:06:24', NULL, NULL),
 (88, 42, NULL, 53, 'Test Syllabus 1756765180', '2025', '1st', '1', '2025-09-01 14:19:40', '2025-09-01 14:19:40', NULL, NULL),
-(117, 35, 14, 37, 'Introduction to Computng', '2025-2026', '1st Semester', '1st Year', '2025-09-04 12:00:33', '2025-09-04 12:00:33', NULL, NULL);
+(123, 6, NULL, 37, 'Test Syllabus 1757152008', '2025', '1st', '1', '2025-09-06 01:46:48', '2025-09-06 01:46:48', NULL, NULL),
+(133, 35, 14, 37, 'Introduction to Computng', '2025-2026', '1st Semester', '1st Year', '2025-09-07 16:06:32', '2025-09-07 19:40:50', NULL, '[]'),
+(134, 35, 14, 37, 'Introduction to Computing', '2025-2026', '1st Semester', '1st Year', '2025-09-07 16:06:50', '2025-09-07 20:12:01', NULL, '[]');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `syllabus_assessment_mappings`
+--
+
+CREATE TABLE `syllabus_assessment_mappings` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `syllabus_id` bigint(20) UNSIGNED NOT NULL,
+  `name` varchar(255) DEFAULT NULL,
+  `week_marks` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`week_marks`)),
+  `position` int(11) NOT NULL DEFAULT 0,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -630,14 +655,26 @@ CREATE TABLE `syllabus_cdios` (
 --
 
 INSERT INTO `syllabus_cdios` (`id`, `syllabus_id`, `code`, `description`, `position`, `created_at`, `updated_at`) VALUES
-(794, 117, 'CDIO1', 'Analytical reasoning and problemsolving; experimentation , investigation and knowledge discovery;\r\n system thinking; attitudes, thoughts and learning; ethics, equity and other responsibilities', 1, '2025-09-04 12:00:33', '2025-09-04 12:00:33'),
-(795, 117, 'CDIO2', 'External, societal and environmental context, enterprise and business context, conceiving, systems\r\n engineering and management, designing, implementing, operatin', 2, '2025-09-04 12:00:33', '2025-09-04 12:00:33'),
-(796, 117, 'CDIO3', 'Knowled geofunderlyingmathematicsandsciences, coreengineeringfundamentalknowledge, advanced\r\n engineering fundamental knowledge, methods and tools', 3, '2025-09-04 12:00:33', '2025-09-04 12:00:33'),
-(797, 117, 'CDIO4', 'Teamwork, communications, communication in a foreign language', 4, '2025-09-04 12:00:33', '2025-09-04 12:00:33'),
-(798, 117, 'CDIO1', 'Analytical reasoning and problemsolving; experimentation , investigation and knowledge discovery;\r\n system thinking; attitudes, thoughts and learning; ethics, equity and other responsibilities', 1, '2025-09-04 12:00:33', '2025-09-04 12:00:33'),
-(799, 117, 'CDIO2', 'External, societal and environmental context, enterprise and business context, conceiving, systems\r\n engineering and management, designing, implementing, operatin', 2, '2025-09-04 12:00:33', '2025-09-04 12:00:33'),
-(800, 117, 'CDIO3', 'Knowled geofunderlyingmathematicsandsciences, coreengineeringfundamentalknowledge, advanced\r\n engineering fundamental knowledge, methods and tools', 3, '2025-09-04 12:00:33', '2025-09-04 12:00:33'),
-(801, 117, 'CDIO4', 'Teamwork, communications, communication in a foreign language', 4, '2025-09-04 12:00:33', '2025-09-04 12:00:33');
+(1186, 123, 'CDIO1', 'Analytical reasoning and problemsolving; experimentation , investigation and knowledge discovery;\r\n system thinking; attitudes, thoughts and learning; ethics, equity and other responsibilities', 1, '2025-09-06 01:46:48', '2025-09-06 01:46:48'),
+(1187, 123, 'CDIO2', 'External, societal and environmental context, enterprise and business context, conceiving, systems\r\n engineering and management, designing, implementing, operatin', 2, '2025-09-06 01:46:48', '2025-09-06 01:46:48'),
+(1188, 123, 'CDIO3', 'Knowled geofunderlyingmathematicsandsciences, coreengineeringfundamentalknowledge, advanced\r\n engineering fundamental knowledge, methods and tools', 3, '2025-09-06 01:46:48', '2025-09-06 01:46:48'),
+(1189, 123, 'CDIO4', 'Teamwork, communications, communication in a foreign language', 4, '2025-09-06 01:46:48', '2025-09-06 01:46:48'),
+(1398, 133, 'CDIO1', 'Analytical reasoning and problemsolving; experimentation , investigation and knowledge discovery;\n system thinking; attitudes, thoughts and learning; ethics, equity and other responsibilities', 1, '2025-09-07 19:48:35', '2025-09-07 19:48:35'),
+(1399, 133, 'CDIO2', 'Analytical reasoning and problemsolving; experimentation , investigation and knowledge discovery;\n system thinking; attitudes, thoughts and learning; ethics, equity and other responsibilities', 2, '2025-09-07 19:48:35', '2025-09-07 19:48:35'),
+(1400, 133, 'CDIO3', 'External, societal and environmental context, enterprise and business context, conceiving, systems\n engineering and management, designing, implementing, operatin', 3, '2025-09-07 19:48:35', '2025-09-07 19:48:35'),
+(1401, 133, 'CDIO4', 'External, societal and environmental context, enterprise and business context, conceiving, systems\n engineering and management, designing, implementing, operatin', 4, '2025-09-07 19:48:35', '2025-09-07 19:48:35'),
+(1402, 133, 'CDIO5', 'Knowled geofunderlyingmathematicsandsciences, coreengineeringfundamentalknowledge, advanced\n engineering fundamental knowledge, methods and tools', 5, '2025-09-07 19:48:35', '2025-09-07 19:48:35'),
+(1403, 133, 'CDIO6', 'Knowled geofunderlyingmathematicsandsciences, coreengineeringfundamentalknowledge, advanced\n engineering fundamental knowledge, methods and tools', 6, '2025-09-07 19:48:35', '2025-09-07 19:48:35'),
+(1404, 133, 'CDIO7', 'Teamwork, communications, communication in a foreign language', 7, '2025-09-07 19:48:35', '2025-09-07 19:48:35'),
+(1405, 133, 'CDIO8', 'Teamwork, communications, communication in a foreign language', 8, '2025-09-07 19:48:35', '2025-09-07 19:48:35'),
+(1526, 134, 'CDIO1', 'Analytical reasoning and problemsolving; experimentation , investigation and knowledge discovery;\n system thinking; attitudes, thoughts and learning; ethics, equity and other responsibilities', 1, '2025-09-09 03:47:49', '2025-09-09 03:47:49'),
+(1527, 134, 'CDIO2', 'Analytical reasoning and problemsolving; experimentation , investigation and knowledge discovery;\n system thinking; attitudes, thoughts and learning; ethics, equity and other responsibilities', 2, '2025-09-09 03:47:49', '2025-09-09 03:47:49'),
+(1528, 134, 'CDIO3', 'External, societal and environmental context, enterprise and business context, conceiving, systems\n engineering and management, designing, implementing, operatin', 3, '2025-09-09 03:47:49', '2025-09-09 03:47:49'),
+(1529, 134, 'CDIO4', 'External, societal and environmental context, enterprise and business context, conceiving, systems\n engineering and management, designing, implementing, operatin', 4, '2025-09-09 03:47:49', '2025-09-09 03:47:49'),
+(1530, 134, 'CDIO5', 'Knowled geofunderlyingmathematicsandsciences, coreengineeringfundamentalknowledge, advanced\n engineering fundamental knowledge, methods and tools', 5, '2025-09-09 03:47:49', '2025-09-09 03:47:49'),
+(1531, 134, 'CDIO6', 'Knowled geofunderlyingmathematicsandsciences, coreengineeringfundamentalknowledge, advanced\n engineering fundamental knowledge, methods and tools', 6, '2025-09-09 03:47:49', '2025-09-09 03:47:49'),
+(1532, 134, 'CDIO7', 'Teamwork, communications, communication in a foreign language', 7, '2025-09-09 03:47:49', '2025-09-09 03:47:49'),
+(1533, 134, 'CDIO8', 'Teamwork, communications, communication in a foreign language', 8, '2025-09-09 03:47:49', '2025-09-09 03:47:49');
 
 -- --------------------------------------------------------
 
@@ -678,7 +715,47 @@ CREATE TABLE `syllabus_course_infos` (
 --
 
 INSERT INTO `syllabus_course_infos` (`id`, `syllabus_id`, `course_title`, `course_code`, `course_category`, `course_prerequisites`, `semester`, `year_level`, `credit_hours_text`, `instructor_name`, `employee_code`, `reference_cmo`, `instructor_designation`, `date_prepared`, `instructor_email`, `revision_no`, `academic_year`, `revision_date`, `course_description`, `tla_strategies`, `contact_hours`, `contact_hours_lec`, `contact_hours_lab`, `created_at`, `updated_at`) VALUES
-(43, 117, 'Introduction to Computing', 'IT123', NULL, '', '1st Semester', '1st Year', '5 (3 hrs lec; 2 hrs lab)', 'PABLICO ADRIANE ALLEN', '22-5534', NULL, 'Assistant Professor IV, BSIT, MSIT', 'September 04, 2025', '22-77551@g.batstate-u.edu.ph', NULL, '2025-2026', NULL, NULL, NULL, '3 hours lecture; 2 hours laboratory', '3 hours lecture', '2 hours laboratory', '2025-09-04 12:00:33', '2025-09-04 12:00:33');
+(58, 133, 'Introduction to Computing', 'IT123', 'Bachelor of Science in Information Technology', NULL, '1st Semester', '1st Year', '5 (3 hrs lec; 2 hrs lab)', 'PABLICO ADRIANE ALLEN', '22-5534', NULL, 'Assistant Professor IV, BSIT, MSIT', 'September 08, 2025', '22-77551@g.batstate-u.edu.ph', '-', '2025-2026', '-', NULL, NULL, '3 hours lecture; 2 hours laboratory', '3 hours lecture', '2 hours laboratory', '2025-09-07 16:06:32', '2025-09-07 19:40:50'),
+(59, 134, 'Introduction to Computing', 'IT123', 'Bachelor of Science in Information Technology', NULL, '1st Semester', '1st Year', '5 (3 hrs lec; 2 hrs lab)', 'PABLICO ADRIANE ALLEN', '22-5534', NULL, 'Assistant Professor IV, BSIT, MSIT', 'September 08, 2025', '22-77551@g.batstate-u.edu.ph', '-', '2025-2026', '-', NULL, NULL, '3 hours lecture; 2 hours laboratory', '3 hours lecture', '2 hours laboratory', '2025-09-07 16:06:50', '2025-09-07 20:12:02');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `syllabus_course_policies`
+--
+
+CREATE TABLE `syllabus_course_policies` (
+  `id` bigint(20) UNSIGNED NOT NULL,
+  `syllabus_id` bigint(20) UNSIGNED NOT NULL,
+  `section` varchar(255) NOT NULL,
+  `content` text DEFAULT NULL,
+  `position` int(11) DEFAULT 0,
+  `grading_system` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`grading_system`)),
+  `class_policy` text DEFAULT NULL,
+  `missed_exams` text DEFAULT NULL,
+  `academic_dishonesty` text DEFAULT NULL,
+  `dropping` text DEFAULT NULL,
+  `other_policies` text DEFAULT NULL,
+  `consultation_advising` text DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `syllabus_course_policies`
+--
+
+INSERT INTO `syllabus_course_policies` (`id`, `syllabus_id`, `section`, `content`, `position`, `grading_system`, `class_policy`, `missed_exams`, `academic_dishonesty`, `dropping`, `other_policies`, `consultation_advising`, `created_at`, `updated_at`) VALUES
+(47, 133, 'policy', 'Prompt and regular attendance of students is required. Total unexcused absences shall not exceed ten (10) percent of\r\nthe maximum number of hours required per course per semester (or per summer term). A semester has 17 weeks.', 1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-09-07 16:06:32', '2025-09-07 16:06:32'),
+(48, 133, 'exams', 'Students who failed to take the exam during the schedule date can be given a special exam provided he/she has valid\r\nreason. If it is health reason, he/she should provide the faculty with the medical certificate signed by the attending\r\nPhysician. Other reasons shall be assessed first by the faculty to determine its validity.', 2, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-09-07 16:06:32', '2025-09-07 16:06:32'),
+(49, 133, 'dishonesty', 'Academic dishonesty includes acts such as cheating during examinations or plagiarism in connection with any\r\nacademic work. Such acts are considered major offenses and will be dealt with according to the University’s Student\r\nNorms of Conduct.', 3, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-09-07 16:06:32', '2025-09-07 16:06:32'),
+(50, 133, 'dropping', 'Dropping must be made official by accomplishing a dropping form and submitting it at the Registrar’s Office before\r\nthe midterm examination. Students who officially drop out of class shall be marked “Dropped” whether he took the\r\npreliminary examination or not and irrespective of their preliminary grades.\r\nA student who unofficially drops out of class shall be given a mark of “5.0” by the instructor.', 4, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-09-07 16:06:33', '2025-09-07 16:06:33'),
+(51, 133, 'other', 'Students with Disabilities/Special Needs (PWD). All students who have an illness or disability are encouraged to disclose to the instructor the nate and extent of the illness or disability so that the instructor can make the necessary adjustments.\r\nAll students are expected to promote and foster an environment that encourages positive, informed and unprejudiced attitudes towads students with disability.\r\nCONSULTATION AND ACADEMIC ADVISING\r\nStudents are highly encouraged to use the consultation hour of the instructor set by the college, whether virtually or face-to-face. It will be used to seek for an advice if there is any problem or difficulty encountered during the term. Discussion for academic purposes will also be entertained.', 5, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-09-07 16:06:33', '2025-09-07 16:06:33'),
+(52, 134, 'policy', 'Prompt and regular attendance of students is required. Total unexcused absences shall not exceed ten (10) percent of\r\nthe maximum number of hours required per course per semester (or per summer term). A semester has 17 weeks.', 1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-09-07 16:06:50', '2025-09-07 16:06:50'),
+(53, 134, 'exams', 'Students who failed to take the exam during the schedule date can be given a special exam provided he/she has valid\r\nreason. If it is health reason, he/she should provide the faculty with the medical certificate signed by the attending\r\nPhysician. Other reasons shall be assessed first by the faculty to determine its validity.', 2, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-09-07 16:06:50', '2025-09-07 16:06:50'),
+(54, 134, 'dishonesty', 'Academic dishonesty includes acts such as cheating during examinations or plagiarism in connection with any\r\nacademic work. Such acts are considered major offenses and will be dealt with according to the University’s Student\r\nNorms of Conduct.', 3, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-09-07 16:06:50', '2025-09-07 16:06:50'),
+(55, 134, 'dropping', 'Dropping must be made official by accomplishing a dropping form and submitting it at the Registrar’s Office before\r\nthe midterm examination. Students who officially drop out of class shall be marked “Dropped” whether he took the\r\npreliminary examination or not and irrespective of their preliminary grades.\r\nA student who unofficially drops out of class shall be given a mark of “5.0” by the instructor.', 4, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-09-07 16:06:50', '2025-09-07 16:06:50'),
+(56, 134, 'other', 'Students with Disabilities/Special Needs (PWD). All students who have an illness or disability are encouraged to disclose to the instructor the nate and extent of the illness or disability so that the instructor can make the necessary adjustments.\r\nAll students are expected to promote and foster an environment that encourages positive, informed and unprejudiced attitudes towads students with disability.\r\nCONSULTATION AND ACADEMIC ADVISING\r\nStudents are highly encouraged to use the consultation hour of the instructor set by the college, whether virtually or face-to-face. It will be used to seek for an advice if there is any problem or difficulty encountered during the term. Discussion for academic purposes will also be entertained.', 5, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-09-07 16:06:50', '2025-09-07 16:06:50');
 
 -- --------------------------------------------------------
 
@@ -697,6 +774,16 @@ CREATE TABLE `syllabus_criteria` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `syllabus_criteria`
+--
+
+INSERT INTO `syllabus_criteria` (`id`, `syllabus_id`, `key`, `heading`, `section`, `value`, `position`, `created_at`, `updated_at`) VALUES
+(1133, 133, 'lecture', '', '', '[]', 0, '2025-09-07 19:48:34', '2025-09-07 19:48:34'),
+(1134, 133, 'laboratory', '', '', '[]', 1, '2025-09-07 19:48:34', '2025-09-07 19:48:34'),
+(1191, 134, 'lecture', '', '', '[]', 0, '2025-09-09 03:47:48', '2025-09-09 03:47:48'),
+(1192, 134, 'laboratory', '', '', '[]', 1, '2025-09-09 03:47:48', '2025-09-09 03:47:48');
 
 -- --------------------------------------------------------
 
@@ -719,16 +806,26 @@ CREATE TABLE `syllabus_igas` (
 --
 
 INSERT INTO `syllabus_igas` (`id`, `syllabus_id`, `code`, `description`, `position`, `created_at`, `updated_at`) VALUES
-(274, 117, 'IGA1', 'Demonstrateamasteryof thefundamentalknowledgeandskillsrequiredfor functioningeffectivelyasa\r\n professional in thediscipline, andanability to integrate andapply themeffectively topractice in the\r\n workplace.', 1, '2025-09-04 12:00:33', '2025-09-04 12:00:33'),
-(275, 117, 'IGA2', 'Experimentwithnewapproaches,challengeexistingknowledgeboundariesanddesignnovelsolutionsto\r\n solve problems.', 2, '2025-09-04 12:00:33', '2025-09-04 12:00:33'),
-(276, 117, 'IGA3', 'dentify,define,anddealwithcomplexproblemspertinent tothefutureprofessionalpracticeordailylife\r\n through logical, analytical and critical thinking.', 3, '2025-09-04 12:00:33', '2025-09-04 12:00:33'),
-(277, 117, 'IGA4', 'Communicateeffectively(bothorallyandinwriting)withawiderangeofaudiences, acrossarangeof\r\n professional and personal contexts, in English and Pilipino.', 4, '2025-09-04 12:00:33', '2025-09-04 12:00:33'),
-(278, 117, 'IGA5', 'Identify own learning needs for professional or personal development; demonstrate an eagerness to take up \r\nopportunities for learning new things as well as the ability to learn effectively on their own.', 5, '2025-09-04 12:00:33', '2025-09-04 12:00:33'),
-(279, 117, 'IGA6', 'Functioneffectivelybothas a leader andas amember of a team;motivateand leada teamtowork\r\n towardsgoal;workcollaborativelywithother teammembers;aswellasconnectandinteract sociallyand\r\n effectively with diverse culture.', 6, '2025-09-04 12:00:33', '2025-09-04 12:00:33'),
-(280, 117, 'IGA7', 'Demonstrateanawarenessandunderstandingofglobalissuesandwillingnesstowork, interacteffectively\r\n and show sensitivity to cultural diversity.', 7, '2025-09-04 12:00:33', '2025-09-04 12:00:33'),
-(281, 117, 'IGA8', 'Demonstrateanawarenessoftheirsocialandnationalresponsibility;engageinactivitiesthatcontributeto\r\n the betterment of the society; and behave ethicallyand responsibly in social, professional andwork\r\n environments.', 8, '2025-09-04 12:00:33', '2025-09-04 12:00:33'),
-(282, 117, 'IGA9', 'Demonstrateanawarenessoftheirsocialandnationalresponsibility;engageinactivitiesthatcontributeto\r\n the betterment of the society; and behave ethicallyand responsibly in social, professional andwork\r\n environments.', 9, '2025-09-04 12:00:33', '2025-09-04 12:00:33'),
-(283, 117, 'IGA10', 'dd', 10, '2025-09-04 12:00:33', '2025-09-04 12:00:33');
+(424, 133, 'IGA1', 'Demonstrateamasteryof thefundamentalknowledgeandskillsrequiredfor functioningeffectivelyasa\n professional in thediscipline, andanability to integrate andapply themeffectively topractice in the\n workplace.', 1, '2025-09-07 16:06:32', '2025-09-07 19:48:35'),
+(425, 133, 'IGA2', 'Experimentwithnewapproaches,challengeexistingknowledgeboundariesanddesignnovelsolutionsto\n solve problems.', 2, '2025-09-07 16:06:32', '2025-09-07 19:48:35'),
+(426, 133, 'IGA3', 'dentify,define,anddealwithcomplexproblemspertinent tothefutureprofessionalpracticeordailylife\n through logical, analytical and critical thinking.', 3, '2025-09-07 16:06:32', '2025-09-07 19:48:35'),
+(427, 133, 'IGA4', 'Communicateeffectively(bothorallyandinwriting)withawiderangeofaudiences, acrossarangeof\n professional and personal contexts, in English and Pilipino.', 4, '2025-09-07 16:06:32', '2025-09-07 19:48:35'),
+(428, 133, 'IGA5', 'Identify own learning needs for professional or personal development; demonstrate an eagerness to take up \nopportunities for learning new things as well as the ability to learn effectively on their own.', 5, '2025-09-07 16:06:32', '2025-09-07 19:48:35'),
+(429, 133, 'IGA6', 'Functioneffectivelybothas a leader andas amember of a team;motivateand leada teamtowork\n towardsgoal;workcollaborativelywithother teammembers;aswellasconnectandinteract sociallyand\n effectively with diverse culture.', 6, '2025-09-07 16:06:32', '2025-09-07 19:48:35'),
+(430, 133, 'IGA7', 'Demonstrateanawarenessandunderstandingofglobalissuesandwillingnesstowork, interacteffectively\n and show sensitivity to cultural diversity.', 7, '2025-09-07 16:06:32', '2025-09-07 19:48:35'),
+(431, 133, 'IGA8', 'Demonstrateanawarenessoftheirsocialandnationalresponsibility;engageinactivitiesthatcontributeto\n the betterment of the society; and behave ethicallyand responsibly in social, professional andwork\n environments.', 8, '2025-09-07 16:06:32', '2025-09-07 19:48:35'),
+(432, 133, 'IGA9', 'Demonstrateanawarenessoftheirsocialandnationalresponsibility;engageinactivitiesthatcontributeto\n the betterment of the society; and behave ethicallyand responsibly in social, professional andwork\n environments.', 9, '2025-09-07 16:06:32', '2025-09-07 19:48:35'),
+(433, 133, 'IGA10', 'dd', 10, '2025-09-07 16:06:32', '2025-09-07 19:48:35'),
+(434, 134, 'IGA1', 'Demonstrateamasteryof thefundamentalknowledgeandskillsrequiredfor functioningeffectivelyasa\n professional in thediscipline, andanability to integrate andapply themeffectively topractice in the\n workplace.', 1, '2025-09-07 16:06:50', '2025-09-09 03:47:48'),
+(435, 134, 'IGA2', 'Experimentwithnewapproaches,challengeexistingknowledgeboundariesanddesignnovelsolutionsto\n solve problems.', 2, '2025-09-07 16:06:50', '2025-09-09 03:47:48'),
+(436, 134, 'IGA3', 'dentify,define,anddealwithcomplexproblemspertinent tothefutureprofessionalpracticeordailylife\n through logical, analytical and critical thinking.', 3, '2025-09-07 16:06:50', '2025-09-09 03:47:48'),
+(437, 134, 'IGA4', 'Communicateeffectively(bothorallyandinwriting)withawiderangeofaudiences, acrossarangeof\n professional and personal contexts, in English and Pilipino.', 4, '2025-09-07 16:06:50', '2025-09-09 03:47:48'),
+(438, 134, 'IGA5', 'Identify own learning needs for professional or personal development; demonstrate an eagerness to take up \nopportunities for learning new things as well as the ability to learn effectively on their own.', 5, '2025-09-07 16:06:50', '2025-09-09 03:47:48'),
+(439, 134, 'IGA6', 'Functioneffectivelybothas a leader andas amember of a team;motivateand leada teamtowork\n towardsgoal;workcollaborativelywithother teammembers;aswellasconnectandinteract sociallyand\n effectively with diverse culture.', 6, '2025-09-07 16:06:50', '2025-09-09 03:47:48'),
+(440, 134, 'IGA7', 'Demonstrateanawarenessandunderstandingofglobalissuesandwillingnesstowork, interacteffectively\n and show sensitivity to cultural diversity.', 7, '2025-09-07 16:06:50', '2025-09-09 03:47:48'),
+(441, 134, 'IGA8', 'Demonstrateanawarenessoftheirsocialandnationalresponsibility;engageinactivitiesthatcontributeto\n the betterment of the society; and behave ethicallyand responsibly in social, professional andwork\n environments.', 8, '2025-09-07 16:06:50', '2025-09-09 03:47:48'),
+(442, 134, 'IGA9', 'Demonstrateanawarenessoftheirsocialandnationalresponsibility;engageinactivitiesthatcontributeto\n the betterment of the society; and behave ethicallyand responsibly in social, professional andwork\n environments.', 9, '2025-09-07 16:06:50', '2025-09-09 03:47:48'),
+(443, 134, 'IGA10', 'dd', 10, '2025-09-07 16:06:50', '2025-09-09 03:47:48');
 
 -- --------------------------------------------------------
 
@@ -745,6 +842,14 @@ CREATE TABLE `syllabus_ilos` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `syllabus_ilos`
+--
+
+INSERT INTO `syllabus_ilos` (`id`, `syllabus_id`, `code`, `description`, `position`, `created_at`, `updated_at`) VALUES
+(304, 133, 'ILO1', '', 1, '2025-09-07 19:40:49', '2025-09-07 19:48:33'),
+(308, 134, 'ILO1', '', 1, '2025-09-07 20:12:15', '2025-09-09 03:47:47');
 
 -- --------------------------------------------------------
 
@@ -768,32 +873,8 @@ CREATE TABLE `syllabus_mission_visions` (
 INSERT INTO `syllabus_mission_visions` (`id`, `syllabus_id`, `mission`, `vision`, `created_at`, `updated_at`) VALUES
 (14, 87, 'M test', 'V test', '2025-09-01 14:06:24', '2025-09-01 14:06:24'),
 (15, 88, 'M test', 'V test', '2025-09-01 14:19:40', '2025-09-01 14:19:40'),
-(44, 117, 'A university committed to producing leaders by providing a 21st century learning environment through innovations\r\nin education, multidisciplinary research, and community and industry partnerships in order to nurture the spirit of\r\nnationhood, propel the national economy and engage the world for sustainable development.', 'A premier national university that develops leaders in the global knowledge economy', '2025-09-04 12:00:33', '2025-09-04 12:00:33');
-
--- --------------------------------------------------------
-
---
--- Table structure for table `syllabus_sdg`
---
-
-CREATE TABLE `syllabus_sdg` (
-  `id` bigint(20) UNSIGNED NOT NULL,
-  `syllabus_id` bigint(20) UNSIGNED NOT NULL,
-  `sdg_id` bigint(20) UNSIGNED NOT NULL,
-  `title` varchar(255) NOT NULL,
-  `description` text NOT NULL,
-  `position` int(11) DEFAULT NULL,
-  `code` varchar(255) DEFAULT NULL,
-  `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Dumping data for table `syllabus_sdg`
---
-
-INSERT INTO `syllabus_sdg` (`id`, `syllabus_id`, `sdg_id`, `title`, `description`, `position`, `code`, `created_at`, `updated_at`) VALUES
-(95, 117, 4, 'Building Partnership', 'Promote dialogue andnegotiation, learning towork together, so as to strengthenownership of and\r\n commitment to sustainable action through education and learning.', NULL, NULL, '2025-09-04 12:49:27', '2025-09-04 12:49:27');
+(59, 133, 'A university committed to producing leaders by providing a 21st century learning environment through innovations\r\nin education, multidisciplinary research, and community and industry partnerships in order to nurture the spirit of\r\nnationhood, propel the national economy and engage the world for sustainable development.', 'A premier national university that develops leaders in the global knowledge economy', '2025-09-07 16:06:32', '2025-09-07 16:06:32'),
+(60, 134, 'A university committed to producing leaders by providing a 21st century learning environment through innovations\r\nin education, multidisciplinary research, and community and industry partnerships in order to nurture the spirit of\r\nnationhood, propel the national economy and engage the world for sustainable development.', 'A premier national university that develops leaders in the global knowledge economy', '2025-09-07 16:06:50', '2025-09-07 16:06:50');
 
 -- --------------------------------------------------------
 
@@ -804,14 +885,22 @@ INSERT INTO `syllabus_sdg` (`id`, `syllabus_id`, `sdg_id`, `title`, `description
 CREATE TABLE `syllabus_sdgs` (
   `id` bigint(20) UNSIGNED NOT NULL,
   `syllabus_id` bigint(20) UNSIGNED NOT NULL,
-  `sdg_id` bigint(20) UNSIGNED NOT NULL,
-  `title` varchar(255) DEFAULT NULL,
-  `description` text DEFAULT NULL,
-  `position` int(11) DEFAULT NULL,
-  `code` varchar(255) DEFAULT NULL,
+  `code` varchar(32) NOT NULL,
+  `sort_order` int(10) UNSIGNED NOT NULL DEFAULT 0,
+  `title` varchar(255) NOT NULL,
+  `description` text NOT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `syllabus_sdgs`
+--
+
+INSERT INTO `syllabus_sdgs` (`id`, `syllabus_id`, `code`, `sort_order`, `title`, `description`, `created_at`, `updated_at`) VALUES
+(141, 134, 'SDG1', 1, 'Envisioning', 'Est ablishalinkbetweenlong-termgoalsandandimmediateactions,andmotivatepeopletotakeactionby\n harnessing their deep aspirations.', '2025-09-07 20:12:13', '2025-09-09 03:47:51'),
+(142, 134, 'SDG2', 2, 'Critical Thinking and Reflection', 'Examine economic, environmental, social and cultural structures in the context of sustainable\n development, andchallengespeople toexamineandquestiontheunderlyingassumptions that influence\n their world views by having them reflect on unsustainable practices.', '2025-09-07 20:12:13', '2025-09-09 03:47:51'),
+(143, 134, 'SDG3', 3, 'Systematic thinking', 'Recognise that the whole is more than the sum of its parts, and it is a better way to understand and manage \ncomplex situations.', '2025-09-07 20:12:13', '2025-09-09 03:47:51');
 
 -- --------------------------------------------------------
 
@@ -849,12 +938,18 @@ CREATE TABLE `syllabus_sos` (
 --
 
 INSERT INTO `syllabus_sos` (`id`, `syllabus_id`, `code`, `position`, `description`, `created_at`, `updated_at`) VALUES
-(1596, 117, 'SO1', 1, 'Abilitytodesign, implement, andevaluateacomputing-basedsolutiontomeet agivensetofcomputing\r\n requirements in the context of the program’s discipline.', '2025-09-04 12:00:33', '2025-09-04 12:00:33'),
-(1597, 117, 'SO2', 2, 'Abilitytoanalyzeacomplexcomputingproblemandtoapplyprinciplesofcomputingandotherrelevant\r\n disciplines to identify solutions', '2025-09-04 12:00:33', '2025-09-04 12:00:33'),
-(1598, 117, 'SO3', 3, 'Ability to communicate effectively in a variety of professional contexts.', '2025-09-04 12:00:33', '2025-09-04 12:00:33'),
-(1599, 117, 'SO4', 4, 'Ability to recognize professional responsibilities andmake informed judgments incomputingpractice\r\n based on legal and ethical principles.', '2025-09-04 12:00:33', '2025-09-04 12:00:33'),
-(1600, 117, 'SO5', 5, 'Abilityto functioneffectivelyasamemberor leaderofa teamengagedinactivitiesappropriate to the\r\n program’s discipline.', '2025-09-04 12:00:33', '2025-09-04 12:00:33'),
-(1601, 117, 'SO7', 6, 'Ability to identifyand analyze user needs and to take theminto account in the selection, creation,\r\n integration, evaluation and administration of computing-based systems.', '2025-09-04 12:00:33', '2025-09-04 12:00:33');
+(2394, 133, 'SO1', 1, 'Abilitytodesign, implement, andevaluateacomputing-basedsolutiontomeet agivensetofcomputing\r\n requirements in the context of the program’s discipline.', '2025-09-07 19:48:36', '2025-09-07 19:48:36'),
+(2395, 133, 'SO2', 2, 'Abilitytoanalyzeacomplexcomputingproblemandtoapplyprinciplesofcomputingandotherrelevant\r\n disciplines to identify solutions', '2025-09-07 19:48:36', '2025-09-07 19:48:36'),
+(2396, 133, 'SO3', 3, 'Ability to communicate effectively in a variety of professional contexts.', '2025-09-07 19:48:36', '2025-09-07 19:48:36'),
+(2397, 133, 'SO4', 4, 'Ability to recognize professional responsibilities andmake informed judgments incomputingpractice\r\n based on legal and ethical principles.', '2025-09-07 19:48:36', '2025-09-07 19:48:36'),
+(2398, 133, 'SO5', 5, 'Abilityto functioneffectivelyasamemberor leaderofa teamengagedinactivitiesappropriate to the\r\n program’s discipline.', '2025-09-07 19:48:36', '2025-09-07 19:48:36'),
+(2399, 133, 'SO6', 6, 'Ability to identifyand analyze user needs and to take theminto account in the selection, creation,\r\n integration, evaluation and administration of computing-based systems.', '2025-09-07 19:48:36', '2025-09-07 19:48:36'),
+(2586, 134, 'SO1', 1, 'Abilitytodesign, implement, andevaluateacomputing-basedsolutiontomeet agivensetofcomputing\r\n requirements in the context of the program’s discipline.', '2025-09-09 03:47:49', '2025-09-09 03:47:49'),
+(2587, 134, 'SO2', 2, 'Abilitytoanalyzeacomplexcomputingproblemandtoapplyprinciplesofcomputingandotherrelevant\r\n disciplines to identify solutions', '2025-09-09 03:47:50', '2025-09-09 03:47:50'),
+(2588, 134, 'SO3', 3, 'Ability to communicate effectively in a variety of professional contexts.', '2025-09-09 03:47:50', '2025-09-09 03:47:50'),
+(2589, 134, 'SO4', 4, 'Ability to recognize professional responsibilities andmake informed judgments incomputingpractice\r\n based on legal and ethical principles.', '2025-09-09 03:47:50', '2025-09-09 03:47:50'),
+(2590, 134, 'SO5', 5, 'Abilityto functioneffectivelyasamemberor leaderofa teamengagedinactivitiesappropriate to the\r\n program’s discipline.', '2025-09-09 03:47:50', '2025-09-09 03:47:50'),
+(2591, 134, 'SO6', 6, 'Ability to identifyand analyze user needs and to take theminto account in the selection, creation,\r\n integration, evaluation and administration of computing-based systems.', '2025-09-09 03:47:50', '2025-09-09 03:47:50');
 
 -- --------------------------------------------------------
 
@@ -888,9 +983,19 @@ CREATE TABLE `tla` (
   `ilo` varchar(255) DEFAULT NULL,
   `so` varchar(255) DEFAULT NULL,
   `delivery` varchar(255) DEFAULT NULL,
+  `position` int(11) NOT NULL DEFAULT 0,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `tla`
+--
+
+INSERT INTO `tla` (`id`, `syllabus_id`, `ch`, `topic`, `wks`, `outcomes`, `ilo`, `so`, `delivery`, `position`, `created_at`, `updated_at`) VALUES
+(10, 134, '', 'dsfsdfsd', '', '', '', '', '', 0, '2025-09-09 03:47:50', '2025-09-09 03:47:50'),
+(11, 134, '', '', '', '', '', '', '', 1, '2025-09-09 03:47:50', '2025-09-09 03:47:50'),
+(12, 134, '', 'fsdfdsfd', '', '', '', '', '', 2, '2025-09-09 03:47:50', '2025-09-09 03:47:50');
 
 -- --------------------------------------------------------
 
@@ -1131,6 +1236,13 @@ ALTER TABLE `syllabi`
   ADD KEY `syllabi_course_id_foreign` (`course_id`);
 
 --
+-- Indexes for table `syllabus_assessment_mappings`
+--
+ALTER TABLE `syllabus_assessment_mappings`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `syllabus_assessment_mappings_syllabus_id_position_index` (`syllabus_id`,`position`);
+
+--
 -- Indexes for table `syllabus_assessment_tasks`
 --
 ALTER TABLE `syllabus_assessment_tasks`
@@ -1150,6 +1262,14 @@ ALTER TABLE `syllabus_cdios`
 ALTER TABLE `syllabus_course_infos`
   ADD PRIMARY KEY (`id`),
   ADD KEY `syllabus_course_infos_syllabus_id_foreign` (`syllabus_id`);
+
+--
+-- Indexes for table `syllabus_course_policies`
+--
+ALTER TABLE `syllabus_course_policies`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `syllabus_course_policies_syllabus_id_foreign` (`syllabus_id`),
+  ADD KEY `syllabus_course_policies_section_index` (`section`);
 
 --
 -- Indexes for table `syllabus_criteria`
@@ -1181,20 +1301,12 @@ ALTER TABLE `syllabus_mission_visions`
   ADD UNIQUE KEY `syllabus_mission_visions_syllabus_id_unique` (`syllabus_id`);
 
 --
--- Indexes for table `syllabus_sdg`
---
-ALTER TABLE `syllabus_sdg`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `syllabus_sdg_syllabus_id_foreign` (`syllabus_id`),
-  ADD KEY `syllabus_sdg_sdg_id_foreign` (`sdg_id`);
-
---
 -- Indexes for table `syllabus_sdgs`
 --
 ALTER TABLE `syllabus_sdgs`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `syllabus_sdgs_syllabus_id_foreign` (`syllabus_id`),
-  ADD KEY `syllabus_sdgs_sdg_id_foreign` (`sdg_id`);
+  ADD UNIQUE KEY `syllabus_sdgs_syllabus_id_code_unique` (`syllabus_id`,`code`),
+  ADD KEY `syllabus_sdgs_sort_order_index` (`sort_order`);
 
 --
 -- Indexes for table `syllabus_sections`
@@ -1222,7 +1334,8 @@ ALTER TABLE `syllabus_textbooks`
 --
 ALTER TABLE `tla`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `tla_syllabus_id_foreign` (`syllabus_id`);
+  ADD KEY `tla_syllabus_id_index` (`syllabus_id`),
+  ADD KEY `tla_position_index` (`position`);
 
 --
 -- Indexes for table `tla_ilo`
@@ -1297,7 +1410,7 @@ ALTER TABLE `failed_jobs`
 -- AUTO_INCREMENT for table `general_information`
 --
 ALTER TABLE `general_information`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `igas`
@@ -1321,7 +1434,7 @@ ALTER TABLE `jobs`
 -- AUTO_INCREMENT for table `migrations`
 --
 ALTER TABLE `migrations`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=101;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=110;
 
 --
 -- AUTO_INCREMENT for table `programs`
@@ -1357,7 +1470,13 @@ ALTER TABLE `super_admins`
 -- AUTO_INCREMENT for table `syllabi`
 --
 ALTER TABLE `syllabi`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=118;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=135;
+
+--
+-- AUTO_INCREMENT for table `syllabus_assessment_mappings`
+--
+ALTER TABLE `syllabus_assessment_mappings`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `syllabus_assessment_tasks`
@@ -1369,49 +1488,49 @@ ALTER TABLE `syllabus_assessment_tasks`
 -- AUTO_INCREMENT for table `syllabus_cdios`
 --
 ALTER TABLE `syllabus_cdios`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=802;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1534;
 
 --
 -- AUTO_INCREMENT for table `syllabus_course_infos`
 --
 ALTER TABLE `syllabus_course_infos`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=44;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=60;
+
+--
+-- AUTO_INCREMENT for table `syllabus_course_policies`
+--
+ALTER TABLE `syllabus_course_policies`
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=57;
 
 --
 -- AUTO_INCREMENT for table `syllabus_criteria`
 --
 ALTER TABLE `syllabus_criteria`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=985;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1193;
 
 --
 -- AUTO_INCREMENT for table `syllabus_igas`
 --
 ALTER TABLE `syllabus_igas`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=284;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=444;
 
 --
 -- AUTO_INCREMENT for table `syllabus_ilos`
 --
 ALTER TABLE `syllabus_ilos`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=285;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=309;
 
 --
 -- AUTO_INCREMENT for table `syllabus_mission_visions`
 --
 ALTER TABLE `syllabus_mission_visions`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=45;
-
---
--- AUTO_INCREMENT for table `syllabus_sdg`
---
-ALTER TABLE `syllabus_sdg`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=96;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=61;
 
 --
 -- AUTO_INCREMENT for table `syllabus_sdgs`
 --
 ALTER TABLE `syllabus_sdgs`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=144;
 
 --
 -- AUTO_INCREMENT for table `syllabus_sections`
@@ -1423,7 +1542,7 @@ ALTER TABLE `syllabus_sections`
 -- AUTO_INCREMENT for table `syllabus_sos`
 --
 ALTER TABLE `syllabus_sos`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1602;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2592;
 
 --
 -- AUTO_INCREMENT for table `syllabus_textbooks`
@@ -1435,19 +1554,19 @@ ALTER TABLE `syllabus_textbooks`
 -- AUTO_INCREMENT for table `tla`
 --
 ALTER TABLE `tla`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=512;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT for table `tla_ilo`
 --
 ALTER TABLE `tla_ilo`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=28;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `tla_so`
 --
 ALTER TABLE `tla_so`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `users`
@@ -1509,6 +1628,12 @@ ALTER TABLE `syllabi`
   ADD CONSTRAINT `syllabi_faculty_id_foreign` FOREIGN KEY (`faculty_id`) REFERENCES `users` (`id`) ON DELETE CASCADE;
 
 --
+-- Constraints for table `syllabus_assessment_mappings`
+--
+ALTER TABLE `syllabus_assessment_mappings`
+  ADD CONSTRAINT `syllabus_assessment_mappings_syllabus_id_foreign` FOREIGN KEY (`syllabus_id`) REFERENCES `syllabi` (`id`) ON DELETE CASCADE;
+
+--
 -- Constraints for table `syllabus_assessment_tasks`
 --
 ALTER TABLE `syllabus_assessment_tasks`
@@ -1525,6 +1650,12 @@ ALTER TABLE `syllabus_cdios`
 --
 ALTER TABLE `syllabus_course_infos`
   ADD CONSTRAINT `syllabus_course_infos_syllabus_id_foreign` FOREIGN KEY (`syllabus_id`) REFERENCES `syllabi` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `syllabus_course_policies`
+--
+ALTER TABLE `syllabus_course_policies`
+  ADD CONSTRAINT `syllabus_course_policies_syllabus_id_foreign` FOREIGN KEY (`syllabus_id`) REFERENCES `syllabi` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `syllabus_criteria`
@@ -1551,17 +1682,9 @@ ALTER TABLE `syllabus_mission_visions`
   ADD CONSTRAINT `syllabus_mission_visions_syllabus_id_foreign` FOREIGN KEY (`syllabus_id`) REFERENCES `syllabi` (`id`) ON DELETE CASCADE;
 
 --
--- Constraints for table `syllabus_sdg`
---
-ALTER TABLE `syllabus_sdg`
-  ADD CONSTRAINT `syllabus_sdg_sdg_id_foreign` FOREIGN KEY (`sdg_id`) REFERENCES `sdgs` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `syllabus_sdg_syllabus_id_foreign` FOREIGN KEY (`syllabus_id`) REFERENCES `syllabi` (`id`) ON DELETE CASCADE;
-
---
 -- Constraints for table `syllabus_sdgs`
 --
 ALTER TABLE `syllabus_sdgs`
-  ADD CONSTRAINT `syllabus_sdgs_sdg_id_foreign` FOREIGN KEY (`sdg_id`) REFERENCES `sdgs` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `syllabus_sdgs_syllabus_id_foreign` FOREIGN KEY (`syllabus_id`) REFERENCES `syllabi` (`id`) ON DELETE CASCADE;
 
 --
@@ -1581,12 +1704,6 @@ ALTER TABLE `syllabus_sos`
 --
 ALTER TABLE `syllabus_textbooks`
   ADD CONSTRAINT `syllabus_textbooks_syllabus_id_foreign` FOREIGN KEY (`syllabus_id`) REFERENCES `syllabi` (`id`) ON DELETE CASCADE;
-
---
--- Constraints for table `tla`
---
-ALTER TABLE `tla`
-  ADD CONSTRAINT `tla_syllabus_id_foreign` FOREIGN KEY (`syllabus_id`) REFERENCES `syllabi` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `tla_ilo`
