@@ -197,6 +197,122 @@
       </tr>
     @endfor
 
+    {{-- Sync AT Task column inputs (cis-input in second column) to mapping_name[] inputs in assessment-mapping --}}
+    <script>
+    document.addEventListener('DOMContentLoaded', function(){
+      const atRoot = document.querySelector('.at-map-container');
+      if (!atRoot) return;
+      // delegate input events on AT Task column inputs (second column inside each tr, excluding section headers)
+      atRoot.addEventListener('input', function(e){
+        const target = e.target;
+        if (!target || !target.classList.contains('cis-input')) return;
+        const td = target.closest('td');
+        if (!td) return;
+        // Find the column index of this td within its row
+        const tr = td.closest('tr');
+        if (!tr) return;
+        // Exclude section header rows that contain section_name inputs
+        if (tr.classList.contains('section-header')) return;
+        // Find the task column input (we consider the second cell <td> in the row)
+        const cells = Array.from(tr.children).filter(n => n.tagName && n.tagName.toLowerCase() === 'td');
+        if (cells.length < 2) return;
+        const taskCell = cells[1];
+        if (!taskCell.contains(target)) return; // only respond to inputs inside the task column
+
+        // Determine the index among data rows (ignore section headers)
+        const tbody = tr.parentNode;
+        const dataRows = Array.from(tbody.querySelectorAll('tr')).filter(r => !r.classList.contains('section-header'));
+        const rowIndex = dataRows.indexOf(tr);
+        if (rowIndex === -1) return;
+
+        // Ensure mapping row exists for this AT row; create if needed
+        const mapRoot = document.querySelector('.assessment-mapping');
+        if (!mapRoot) return;
+
+        function dataMapRows(){ return Array.from(mapRoot.querySelectorAll('tbody tr')).filter(r => r.querySelector('.week-cell')); }
+
+        function ensureMappingRowsAtLeast(n){
+          let mappingRows = dataMapRows();
+          while (mappingRows.length <= n){
+            // find template row from mapping module (last data row or first tbody tr)
+            const tplRows = Array.from(mapRoot.querySelectorAll('tbody tr'));
+            const templateRow = tplRows.length ? tplRows[tplRows.length - 1] : null;
+            if (!templateRow) break;
+            const newRow = templateRow.cloneNode(true);
+            const cloneMerge = newRow.querySelector('.merge-cell'); if (cloneMerge) cloneMerge.parentNode.removeChild(cloneMerge);
+            // Clear mapping_name[] in cloned first cell and clear week-cell marks
+            try {
+              const nameInput = newRow.querySelector('input[name="mapping_name[]"]');
+              if (nameInput){ nameInput.value = ''; nameInput.placeholder = (mapRoot.querySelector('input[name="mapping_name[]"]') || {}).placeholder || 'LE'; }
+            } catch (e) { /* noop */ }
+            newRow.querySelectorAll('.week-cell').forEach(function(c){ c.classList.remove('marked'); c.textContent = ''; });
+            templateRow.parentNode.insertBefore(newRow, templateRow.nextSibling);
+            // update merge-cell rowspan (create/move if necessary)
+            const dataRows = dataMapRows();
+            let merge = mapRoot.querySelector('.merge-cell');
+            if (!merge){
+              if (dataRows.length === 0) return;
+              const firstData = dataRows[0];
+              const insertRow = firstData.previousElementSibling || firstData;
+              const td = document.createElement('td');
+              td.className = 'merge-cell';
+              td.rowSpan = dataRows.length + 1;
+              td.setAttribute('style', 'border:1px solid #343a40; height:30px; width:10%;');
+              insertRow.insertBefore(td, insertRow.firstChild);
+            } else {
+              merge.rowSpan = dataRows.length + 1;
+            }
+            mappingRows = dataMapRows();
+          }
+        }
+
+        ensureMappingRowsAtLeast(rowIndex);
+
+        const mapRows = dataMapRows();
+        const mapRow = mapRows[rowIndex];
+        if (!mapRow) return;
+        const mapInput = mapRow.querySelector('input[name="mapping_name[]"]');
+        if (!mapInput) return;
+
+        const val = (target.value || '').trim();
+        if (!val){
+          // Remove mapping row when AT task input cleared. If only one data row remains, clear it instead.
+          const mappingRows = dataMapRows();
+          if (mappingRows.length <= 1){
+            // clear the single mapping row
+            const single = mappingRows[0];
+            if (single){
+              single.querySelectorAll('.week-cell').forEach(function(c){ c.classList.remove('marked'); c.textContent = ''; });
+              const inp = single.querySelector('input[name="mapping_name[]"]'); if (inp) inp.value = '';
+            }
+          } else {
+            // remove the row and maintain merge-cell
+            const toRemove = mappingRows[rowIndex];
+            if (toRemove){
+              const mergeCell = toRemove.querySelector('.merge-cell');
+              if (mergeCell){
+                // move merge cell to next data row
+                let next = toRemove.nextElementSibling;
+                while (next && !next.querySelector('.week-cell')) next = next.nextElementSibling;
+                if (next) next.insertBefore(mergeCell, next.firstChild);
+              }
+              toRemove.parentNode.removeChild(toRemove);
+              // update rowspan
+              const merge = mapRoot.querySelector('.merge-cell');
+              if (merge){
+                merge.rowSpan = dataMapRows().length + 1;
+              }
+            }
+          }
+          return;
+        }
+
+        // Normal sync when value present
+        mapInput.value = target.value;
+      });
+    });
+    </script>
+
   <tr class="section-header table-light">
     <th class="text-start">
       <input type="text" name="section_code[]" class="cis-input text-center" value="" placeholder="LAB" />
@@ -389,6 +505,38 @@
             if (p1) p1.classList.remove('d-none');
             // If markDirty is available, call it to keep global counters in sync
             if (window.markDirty && typeof window.markDirty === 'function') window.markDirty('unsaved-assessment_tasks_left');
+
+            // Propagation: if this input is in the Task column (colIndex 1), copy its value
+            // into the corresponding assessment mapping name input (by data-row index) when present.
+            try {
+              const cell = inp.closest('td,th');
+              const colIndex = cell ? (cell.cellIndex || 0) : 0;
+              if (colIndex === 1) {
+                const tr = inp.closest('tr');
+                if (tr) {
+                  // determine AT data rows (exclude section headers and footer)
+                  const atRows = Array.from(table.querySelectorAll('tbody > tr')).filter(r => !r.classList.contains('section-header') && !r.classList.contains('footer-total'));
+                  const idx = atRows.indexOf(tr);
+                  if (idx >= 0) {
+                    const mappingRoot = document.querySelector('.assessment-mapping');
+                    if (mappingRoot) {
+                      const mappingRows = Array.from(mappingRoot.querySelectorAll('tbody tr')).filter(r => r.querySelector('.week-cell'));
+                      if (idx < mappingRows.length) {
+                        const mapInp = mappingRows[idx].querySelector('input[name="mapping_name[]"]');
+                        if (mapInp) {
+                          mapInp.value = inp.value || '';
+                          // dispatch input event so mapping module can react (unsaved indicators, serialization)
+                          try { mapInp.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {}
+                          // mark mapping module unsaved if helper exists
+                          try { if (window.markAsUnsaved) window.markAsUnsaved('assessment_mappings'); } catch (e) {}
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            } catch (e) { /* noop propagation errors should not block user typing */ }
+
           } catch (e) { /* noop */ }
         });
 
