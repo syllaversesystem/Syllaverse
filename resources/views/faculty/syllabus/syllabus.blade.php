@@ -157,8 +157,11 @@
     {{-- ===== Section 17: ILO to CDIO/SDG Mapping ===== --}}
     @includeIf('faculty.syllabus.partials.mapping-ilo-cdio-sdg')
 
-    {{-- ===== Footer: Signatories ===== --}}
-    @includeIf('faculty.syllabus.partials.footers-prepared')
+  {{-- ===== Assessment Mapping (bottom) ===== --}}
+  @includeIf('faculty.syllabus.partials.assessment-mapping')
+
+  {{-- ===== Footer: Signatories ===== --}}
+  @includeIf('faculty.syllabus.partials.footers-prepared')
   </div>
 
   {{-- Enhanced Save Functionality --}}
