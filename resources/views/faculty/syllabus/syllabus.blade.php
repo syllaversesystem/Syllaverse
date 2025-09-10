@@ -160,6 +160,9 @@
   {{-- ===== Assessment Mapping (bottom) ===== --}}
   @includeIf('faculty.syllabus.partials.assessment-mapping')
 
+  {{-- ===== ILO → SO → CPA partial (small 2×1 box) ===== --}}
+  @includeIf('faculty.syllabus.partials.ilo-so-cpa-mapping')
+
   {{-- ===== Footer: Signatories ===== --}}
   @includeIf('faculty.syllabus.partials.footers-prepared')
   </div>
