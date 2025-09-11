@@ -30,8 +30,8 @@ Route::get('/faculty/login', function () {
 Route::get('/faculty/login/google', [FacultyAuthController::class, 'redirectToGoogle'])->name('faculty.google.login');
 Route::get('/faculty/google/callback', [FacultyAuthController::class, 'handleGoogleCallback'])->name('faculty.google.callback');
 
-// ---------- Faculty Profile Completion ----------
-Route::middleware(['auth'])->group(function () {
+// ---------- Faculty Profile Completion (use faculty guard so faculty redirects target faculty login) ----------
+Route::middleware(['auth:faculty'])->group(function () {
     Route::get('/faculty/complete-profile', [ProfileController::class, 'showCompleteForm'])->name('faculty.complete-profile');
     Route::post('/faculty/complete-profile', [ProfileController::class, 'submitProfile'])->name('faculty.complete-profile.submit');
 });

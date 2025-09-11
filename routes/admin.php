@@ -35,6 +35,9 @@ use App\Http\Middleware\AdminAuth;
 Route::get('/login', function () {
     return view('auth.admin-login');
 })->name('admin.login.form');
+// Note: do NOT register a global 'login' route here. Superadmin/admin/faculty
+// use distinct login routes/names (e.g. 'superadmin.login.form', 'admin.login.form',
+// 'faculty.login.form'). Use the admin guard for admin-only auth redirects.
 /* ░░░ END: Admin Login (View) ░░░ */
 
 /* ░░░ START: Google OAuth ░░░ */
@@ -43,7 +46,7 @@ Route::get('/google/callback', [AuthController::class, 'handleGoogleCallback'])-
 /* ░░░ END: Google OAuth ░░░ */
 
 /* ░░░ START: Complete Profile (PENDING or ACTIVE admins) ░░░ */
-Route::middleware('auth')->group(function () {
+Route::middleware('auth:admin')->group(function () {
     Route::get('/complete-profile', [ProfileController::class, 'showCompleteProfile'])->name('admin.complete-profile');
     Route::post('/complete-profile', [ProfileController::class, 'submitProfile'])->name('admin.submit-profile');
 });
