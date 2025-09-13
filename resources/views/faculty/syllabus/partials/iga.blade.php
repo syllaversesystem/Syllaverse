@@ -5,7 +5,8 @@
 -------------------------------------------------------------------------------
 --}}
 
-<form id="igaForm" method="POST" action="{{ route('faculty.syllabi.iga.update', $default['id'] ?? $syllabus->id ?? null) }}">
+@php $rp = $routePrefix ?? 'faculty.syllabi'; @endphp
+<form id="igaForm" method="POST" action="{{ route($rp . '.iga.update', $default['id'] ?? $syllabus->id ?? null) }}">
   @csrf
   @method('PUT')
 

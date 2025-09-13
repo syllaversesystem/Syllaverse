@@ -9,7 +9,8 @@
 -------------------------------------------------------------------------------
 --}}
 
-<form id="sdgForm" action="{{ route('faculty.syllabi.sdgs.save', $default['id']) }}" method="POST">
+@php $rp = $routePrefix ?? 'faculty.syllabi'; @endphp
+<form id="sdgForm" action="{{ route($rp . '.sdgs.save', $default['id']) }}" method="POST">
   @csrf
   <table class="table table-bordered mb-4 cis-table sdg-module" style="font-family: Georgia, serif; font-size: 13px; line-height: 1.4;">
     <style>
@@ -122,9 +123,10 @@
                 if (!confirm('Are you sure you want to delete this SDG?')) return;
                 // build delete url (match controller routes)
                 let deleteUrl = '';
-                if (entryId && syllabusId) deleteUrl = '/faculty/syllabi/' + syllabusId + '/sdgs/entry/' + entryId;
-                else if (sdgId && syllabusId) deleteUrl = '/faculty/syllabi/' + syllabusId + '/sdgs/' + sdgId;
-                else deleteUrl = '/faculty/syllabi/sdgs/' + entryId;
+                const base = window.syllabusBasePath || '/faculty/syllabi';
+                if (entryId && syllabusId) deleteUrl = base + '/' + syllabusId + '/sdgs/entry/' + entryId;
+                else if (sdgId && syllabusId) deleteUrl = base + '/' + syllabusId + '/sdgs/' + sdgId;
+                else deleteUrl = base + '/sdgs/' + entryId;
                 fetch(deleteUrl, { method: 'DELETE', credentials: 'same-origin', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' } })
                   .then(async (res) => {
                     if (!res.ok) throw new Error(await res.text().catch(() => 'Delete failed'));
@@ -146,7 +148,7 @@
                       if (syllabusId) {
                         const rows = Array.from(list.querySelectorAll('tr')).filter(r => r.querySelector && (r.querySelector('textarea[name="sdgs[]"]') || r.querySelector('.cdio-badge')) && (!r.id || r.id !== 'sdg-template-row'));
                         const positions = rows.map((r, idx) => ({ id: r.getAttribute('data-id') || null, position: idx + 1 })).filter(p => p.id);
-                        if (positions.length) fetch('/faculty/syllabi/' + syllabusId + '/sdgs/reorder', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' }, body: JSON.stringify({ positions }) }).catch(()=>{});
+                        if (positions.length) fetch((window.syllabusBasePath || '/faculty/syllabi') + '/' + syllabusId + '/sdgs/reorder', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' }, body: JSON.stringify({ positions }) }).catch(()=>{});
                       }
                     } catch (e) {}
                     try {
@@ -253,7 +255,7 @@
                               const syllabusId = list.dataset ? list.dataset.syllabusId : null; if (syllabusId) {
                                 const rows = Array.from(list.querySelectorAll('tr')).filter(r => r.querySelector && (r.querySelector('textarea[name="sdgs[]"]') || r.querySelector('.cdio-badge')) && (!r.id || r.id !== 'sdg-template-row'));
                                 const positions = rows.map((r, idx) => ({ id: r.getAttribute('data-id') || null, position: idx + 1 })).filter(p => p.id);
-                                if (positions.length) fetch('/faculty/syllabi/' + syllabusId + '/sdgs/reorder', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' }, body: JSON.stringify({ positions }) }).catch(()=>{});
+                                if (positions.length) fetch((window.syllabusBasePath || '/faculty/syllabi') + '/' + syllabusId + '/sdgs/reorder', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' }, body: JSON.stringify({ positions }) }).catch(()=>{});
                               }
                             } } catch (e) {}
                             // Mark module as unsaved and enable top Save button (fallback)
@@ -276,9 +278,10 @@
                           if (!entryId || entryId.startsWith('new-')) { row.remove(); try { if (window.updateVisibleCodes) window.updateVisibleCodes(); } catch (e) {} return; }
                           if (!confirm('Are you sure you want to delete this SDG?')) return;
                           let deleteUrl = '';
-                          if (entryId && syllabusId) deleteUrl = '/faculty/syllabi/' + syllabusId + '/sdgs/entry/' + entryId;
-                          else if (sdgId && syllabusId) deleteUrl = '/faculty/syllabi/' + syllabusId + '/sdgs/' + sdgId;
-                          else deleteUrl = '/faculty/syllabi/sdgs/' + entryId;
+                          const base = window.syllabusBasePath || '/faculty/syllabi';
+                          if (entryId && syllabusId) deleteUrl = base + '/' + syllabusId + '/sdgs/entry/' + entryId;
+                          else if (sdgId && syllabusId) deleteUrl = base + '/' + syllabusId + '/sdgs/' + sdgId;
+                          else deleteUrl = base + '/sdgs/' + entryId;
                           fetch(deleteUrl, { method: 'DELETE', credentials: 'same-origin', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' } })
                             .then(async (res) => {
                               if (!res.ok) throw new Error(await res.text().catch(() => 'Delete failed'));
@@ -431,7 +434,7 @@
 {{-- ➕ Add SDG Modal --}}
 <div class="modal fade" id="addSdgModal" tabindex="-1" aria-labelledby="addSdgModalLabel" aria-hidden="true">
   <div class="modal-dialog">
-    <form method="POST" action="{{ route('faculty.syllabi.sdgs.attach', $default['id']) }}">
+  <form method="POST" action="{{ route($rp . '.sdgs.attach', $default['id']) }}">
       @csrf
       <div class="modal-content">
         <div class="modal-header">

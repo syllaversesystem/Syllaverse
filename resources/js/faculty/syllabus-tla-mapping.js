@@ -21,7 +21,8 @@ document.addEventListener('DOMContentLoaded', () => {
       document.querySelectorAll('.ilo-checkbox').forEach(cb => cb.checked = false);
 
       if (tlaId) {
-        const res = await fetch(`/faculty/syllabi/tla/${tlaId}/sync-ilo`, {
+  const base = window.syllabusBasePath || '/faculty/syllabi';
+  const res = await fetch(`${base}/tla/${tlaId}/sync-ilo`, {
           method: 'GET',
           headers: { 'Accept': 'application/json' }
         });
@@ -46,7 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!confirm('Do you want to update the ILO mappings? Unchecked items will be removed.')) return;
 
-    await fetch(`/faculty/syllabi/tla/${tlaId}/sync-ilo`, {
+  await fetch((window.syllabusBasePath || '/faculty/syllabi') + `/tla/${tlaId}/sync-ilo`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -116,7 +117,7 @@ document.addEventListener('DOMContentLoaded', () => {
       body: JSON.stringify({ so_ids: selected })
     });
 
-    const res = await fetch(`/faculty/syllabi/tla/${tlaId}/sync-so`, {
+  const res = await fetch((window.syllabusBasePath || '/faculty/syllabi') + `/tla/${tlaId}/sync-so`, {
       method: 'GET',
       headers: { 'Accept': 'application/json' }
     });

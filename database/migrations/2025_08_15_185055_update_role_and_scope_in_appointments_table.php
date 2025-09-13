@@ -9,7 +9,7 @@ return new class extends Migration {
     {
         Schema::table('appointments', function (Blueprint $table) {
             // If you used ENUMs before, modify them here
-            $table->enum('role', ['DEPT_CHAIR', 'PROG_CHAIR', 'FACULTY'])
+        $table->enum('role', ['DEPT_CHAIR', 'FACULTY'])
                   ->change();
 
             $table->enum('scope_type', ['Department', 'Program', 'Faculty'])
@@ -21,7 +21,7 @@ return new class extends Migration {
     {
         Schema::table('appointments', function (Blueprint $table) {
             // Revert to original two options
-            $table->enum('role', ['DEPT_CHAIR', 'PROG_CHAIR'])
+        $table->enum('role', ['DEPT_CHAIR'])
                   ->change();
 
             $table->enum('scope_type', ['Department', 'Program'])

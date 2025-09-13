@@ -23,21 +23,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Role-request controls
   const cbDept = document.querySelector('#request_dept_chair');
-  const cbProg = document.querySelector('#request_prog_chair');
+  const cbProg = null; // Program Chair removed
+  const cbVcaa = document.querySelector('#request_vcaa');
+  const cbAssocVcaa = document.querySelector('#request_assoc_vcaa');
+  const cbDean = document.querySelector('#request_dean');
   const selDept = document.querySelector('#department_id');
-  const selProg = document.querySelector('#program_id');
+  const selProg = null; // Program select removed
 
   // If essential elements are missing, bail out gracefully.
   if (!step1 || !step2) return;
 
   // Determine if requests are locked (pending exists) by checking disabled state (set by Blade).
-  const requestsLocked = !!(cbDept && cbProg && cbDept.disabled && cbProg.disabled);
+  const allCheckboxes = [cbDept, cbVcaa, cbAssocVcaa, cbDean].filter(Boolean);
+  const requestsLocked = allCheckboxes.length > 0 && allCheckboxes.every(cb => cb.disabled);
 
   // --- Initial UI state
   showStep(1);
-  if (cbDept && cbProg && selDept && selProg) {
-    applyToggleState(cbDept, cbProg, selDept, selProg);
-    filterProgramsByDepartment(selDept, selProg);
+  if (selDept) {
+    applyToggleState(cbDept, cbProg, selDept, selProg, cbVcaa, cbAssocVcaa, cbDean);
   }
 
   // --- Stepper wiring
@@ -66,18 +69,20 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // --- Role toggles + filtering
-  if (cbDept && cbProg && selDept && selProg) {
-    cbDept.addEventListener('change', () => {
-      applyToggleState(cbDept, cbProg, selDept, selProg);
-    });
+  if (selDept) {
+    // Wire change handlers for role checkboxes so department enabling is consistent
+    const roleChangeHandler = () => {
+      applyToggleState(cbDept, cbProg, selDept, selProg, cbVcaa, cbAssocVcaa, cbDean);
+    };
 
-    cbProg.addEventListener('change', () => {
-      applyToggleState(cbDept, cbProg, selDept, selProg);
-      filterProgramsByDepartment(selDept, selProg);
-    });
+    if (cbDept) cbDept.addEventListener('change', roleChangeHandler);
+    if (cbVcaa) cbVcaa.addEventListener('change', roleChangeHandler);
+    if (cbAssocVcaa) cbAssocVcaa.addEventListener('change', roleChangeHandler);
+    if (cbDean) cbDean.addEventListener('change', roleChangeHandler);
 
     selDept.addEventListener('change', () => {
-      filterProgramsByDepartment(selDept, selProg);
+      // Keep department enabled state consistent
+      applyToggleState(cbDept, cbProg, selDept, selProg, cbVcaa, cbAssocVcaa, cbDean);
     });
   }
 
@@ -90,30 +95,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // If no role requested, allow submit (profile-only).
       const wantsDept = cbDept && cbDept.checked;
-      const wantsProg = cbProg && cbProg.checked;
+      const wantsDeanOnly = cbDean && cbDean.checked;
 
-      // If Dept Chair requested → require department.
-      if (wantsDept && selDept && !selDept.value) {
+      // Require department only when requesting Department Chair or Dean.
+      if ((wantsDept || wantsDeanOnly) && selDept && !selDept.value) {
         e.preventDefault();
-        markInvalid(selDept, 'Please select a department for the Department Chair request.');
+        markInvalid(selDept, 'Please select a department for the selected chair role.');
         showStep(2);
         return;
-      }
-
-      // If Program Chair requested → require department AND program.
-      if (wantsProg) {
-        if (selDept && !selDept.value) {
-          e.preventDefault();
-          markInvalid(selDept, 'Please select a department to filter programs.');
-          showStep(2);
-          return;
-        }
-        if (selProg && !selProg.value) {
-          e.preventDefault();
-          markInvalid(selProg, 'Please select a program for the Program Chair request.');
-          showStep(2);
-          return;
-        }
       }
     });
   }
@@ -145,26 +134,29 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   /* This turns Department/Program selects on/off depending on chosen chair roles. */
-  function applyToggleState(cbDept, cbProg, selDept, selProg) {
-    const wantsDept = !!cbDept.checked;
-    const wantsProg = !!cbProg.checked;
-    const anyChair = wantsDept || wantsProg;
+  function applyToggleState(cbDept, cbProg, selDept, selProg, cbVcaa, cbAssocVcaa, cbDean) {
+    const wantsDept = !!(cbDept && cbDept.checked);
+    const wantsProg = !!(cbProg && cbProg.checked);
+    const wantsDean = !!(cbDean && cbDean.checked);
+    const wantsInstitution = wantsDean; // only Dean counts for department enabling
 
-    // Department select is enabled when any chair role is requested
+    const anyChair = wantsDept || wantsProg || wantsInstitution;
+
+    // Department select is enabled when any chair role (including institution-level) is requested
     selDept.disabled = !anyChair || requestsLocked;
     if (!anyChair) {
       clearSelect(selDept);
     }
 
-    // Program select is only enabled for Program Chair
-    selProg.disabled = !wantsProg || requestsLocked;
-    if (!wantsProg) {
-      clearSelect(selProg);
+    // Program select is only enabled for Program Chair (selProg may be null)
+    if (selProg) {
+      selProg.disabled = !wantsProg || requestsLocked;
+      if (!wantsProg) clearSelect(selProg);
     }
 
     // Clear previous invalid state when toggling
     clearInvalid(selDept);
-    clearInvalid(selProg);
+    if (selProg) clearInvalid(selProg);
   }
 
   /* This keeps the Program list relevant by showing only options under the selected Department. */

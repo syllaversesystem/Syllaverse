@@ -26,7 +26,7 @@ return new class extends Migration
                 $table->foreignId('user_id')->constrained()->cascadeOnDelete();
 
                 // What authority they hold
-                $table->enum('role', ['DEPT_CHAIR', 'PROG_CHAIR']);
+                $table->enum('role', ['DEPT_CHAIR']);
 
                 // Where that authority applies (polymorphic-ish: enum + id; no FK due to dual targets)
                 $table->enum('scope_type', ['Department', 'Program']);

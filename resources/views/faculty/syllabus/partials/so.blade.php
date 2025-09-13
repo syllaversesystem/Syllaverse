@@ -8,7 +8,8 @@
 -------------------------------------------------------------------------------
 --}}
 
-<form id="soForm" method="POST" action="{{ route('faculty.syllabi.sos.update', $default['id']) }}">
+@php $rp = $routePrefix ?? 'faculty.syllabi'; @endphp
+<form id="soForm" method="POST" action="{{ route($rp . '.sos.update', $default['id']) }}">
   @csrf
   @method('PUT')
 

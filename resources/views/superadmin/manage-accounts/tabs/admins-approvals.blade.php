@@ -35,7 +35,13 @@
   // Merge pending chair requests (even if signup already approved)
   foreach ($pendingChairRequests as $r) {
     $uid   = $r->user_id;
-    $label = $r->requested_role === ChairRequest::ROLE_DEPT ? 'Dept Chair' : 'Program Chair';
+    $label = match ($r->requested_role) {
+      ChairRequest::ROLE_DEPT => 'Dept Chair',
+      ChairRequest::ROLE_VCAA => 'VCAA',
+      ChairRequest::ROLE_ASSOC_VCAA => 'Associate VCAA',
+      ChairRequest::ROLE_DEAN => 'Dean',
+      default => $r->requested_role,
+    };
     $dept  = optional($r->department)->name;
     $prog  = optional($r->program)->name;
 
@@ -78,7 +84,7 @@
             <th><i data-feather="tag"></i> Type</th>
             <th><i data-feather="award"></i> Role</th>
             <th><i data-feather="briefcase"></i> Department</th>
-            <th><i data-feather="layers"></i> Program</th>
+            <th><i data-feather="layers"></i> Scope</th>
             <th class="text-end"><i data-feather="more-vertical"></i></th>
           </tr>
         </thead>
@@ -115,10 +121,14 @@
               </td>
 
               @if ($reqCount === 1)
-                <td>{{ $req['label'] }}</td>
-                <td>{{ $req['dept'] ?: '—' }}</td>
-                <td>{{ $req['prog'] ?: '—' }}</td>
+                <td>
+                  <span class="badge bg-primary">{{ $req['label'] }}</span>
+                </td>
+                <td><small class="text-muted">{{ $req['dept'] ?: '—' }}</small></td>
+                <td><small class="text-muted">{{ $req['prog'] ?: ($req['dept'] ? 'Department' : 'Institution') }}</small></td>
               @elseif ($reqCount > 1)
+                <td>—</td><td>—</td><td>—</td>
+              @elseif ($reqCount > 2)
                 <td>—</td><td>—</td><td>—</td>
               @else
                 <td>—</td><td>—</td><td>—</td>
@@ -169,26 +179,35 @@
             @if ($reqCount > 1)
               <tr class="sv-detail-row">
                 <td class="sv-details-cell p-0" colspan="7">
-                  <div id="{{ $collapseId }}" class="collapse sv-details">
-                    <div class="sv-request-list">
+                  <div id="{{ $collapseId }}" class="collapse sv-details mt-2">
+                    <div class="sv-request-list p-2">
                       @foreach ($g['requests'] as $r)
-                        <div class="sv-request-item">
-                          <div class="sv-request-meta">
-                            <span class="sv-pill is-accent sv-pill--sm">{{ $r['label'] }}</span>
-                            @if($r['dept']) <span class="sv-pill is-muted sv-pill--sm">{{ $r['dept'] }}</span> @endif
-                            @if($r['prog']) <span class="sv-pill is-muted sv-pill--sm">{{ $r['prog'] }}</span> @endif
-                          </div>
-                          <div class="sv-request-actions">
-                            <form method="POST" action="{{ route('superadmin.chair-requests.approve', $r['id']) }}" class="d-inline">@csrf
-                              <button type="submit" class="action-btn approve" aria-label="Approve {{ $r['label'] }}" title="Approve {{ $r['label'] }}">
-                                <i data-feather="check"></i>
-                              </button>
-                            </form>
-                            <form method="POST" action="{{ route('superadmin.chair-requests.reject', $r['id']) }}" class="d-inline">@csrf
-                              <button type="submit" class="action-btn reject" aria-label="Reject {{ $r['label'] }}" title="Reject {{ $r['label'] }}">
-                                <i data-feather="x"></i>
-                              </button>
-                            </form>
+                        <div class="sv-request-item py-2 border-bottom mb-2">
+                          <div class="row align-items-center gx-3">
+                            <div class="col-auto" style="min-width: 240px;">
+                              <div class="d-flex align-items-center gap-2">
+                                <span class="sv-pill is-accent sv-pill--sm">{{ $r['label'] }}</span>
+                                @if($r['dept']) <small class="text-muted">{{ $r['dept'] }}</small> @endif
+                                @if($r['prog']) <small class="text-muted">{{ $r['prog'] }}</small> @endif
+                              </div>
+                            </div>
+                            <div class="col text-muted">
+                              <small>Submitted {{ optional($r['submitted_at'])->diffForHumans() }}</small>
+                            </div>
+                            <div class="col-auto">
+                              <div class="d-flex gap-2">
+                                <form method="POST" action="{{ route('superadmin.chair-requests.approve', $r['id']) }}" class="d-inline">@csrf
+                                  <button type="submit" class="action-btn approve" aria-label="Approve {{ $r['label'] }}" title="Approve {{ $r['label'] }}">
+                                    <i data-feather="check"></i>
+                                  </button>
+                                </form>
+                                <form method="POST" action="{{ route('superadmin.chair-requests.reject', $r['id']) }}" class="d-inline">@csrf
+                                  <button type="submit" class="action-btn reject" aria-label="Reject {{ $r['label'] }}" title="Reject {{ $r['label'] }}">
+                                    <i data-feather="x"></i>
+                                  </button>
+                                </form>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       @endforeach

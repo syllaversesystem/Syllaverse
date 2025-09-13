@@ -33,10 +33,9 @@ class AppointmentController extends Controller
     protected function normalizeRole(mixed $role): ?string
     {
         $r = strtoupper(trim((string) $role));
-        if (in_array($r, [Appointment::ROLE_DEPT, Appointment::ROLE_PROG], true)) return $r;
+        if ($r === Appointment::ROLE_DEPT) return $r;
         if (in_array($r, ['DEPT','DEPARTMENT','DEPARTMENT_CHAIR','0'], true)) return Appointment::ROLE_DEPT;
-        if (in_array($r, ['PROG','PROGRAM','PROGRAM_CHAIR','1'], true)) return Appointment::ROLE_PROG;
-        if (str_contains($r, 'PROG')) return Appointment::ROLE_PROG;
+        // Program Chair removed — do not attempt to map program-like inputs
         if (str_contains($r, 'DEPT')) return Appointment::ROLE_DEPT;
         return null;
     }
@@ -48,40 +47,23 @@ class AppointmentController extends Controller
         $active = $admin->appointments()->active()->get();
 
         $deptNames = Department::pluck('name', 'id');                                 // id => name
-        $progRows  = Program::select('id', 'name', 'department_id')->get()->keyBy('id'); // id => row
 
-        return $active->map(function (Appointment $a) use ($deptNames, $progRows) {
+        return $active->map(function (Appointment $a) use ($deptNames) {
             $isDept = $a->role === Appointment::ROLE_DEPT;
 
-            if ($isDept) {
-                $scopeLabel = (string) ($deptNames[$a->scope_id] ?? ('Dept #'.$a->scope_id));
-                $deptId     = (int) $a->scope_id;
-
-                return [
-                    'id'          => (int) $a->id,
-                    'role'        => $a->role,
-                    'role_label'  => 'Dept Chair',
-                    'is_dept'     => true,
-                    'scope_id'    => (int) $a->scope_id,
-                    'scope_label' => $scopeLabel,
-                    'dept_id'     => $deptId,
-                    'program_id'  => null,
-                ];
-            }
-
-            $prog       = $progRows[$a->scope_id] ?? null;
-            $scopeLabel = $prog ? $prog->name : ('Prog #'.$a->scope_id);
-            $deptId     = (int) ($prog->department_id ?? 0);
+            $scopeLabel = $isDept
+                ? (string) ($deptNames[$a->scope_id] ?? ('Dept #'.$a->scope_id))
+                : ($a->scope_type ? ($a->scope_type . ' #' . $a->scope_id) : 'Institution');
 
             return [
                 'id'          => (int) $a->id,
                 'role'        => $a->role,
-                'role_label'  => 'Program Chair',
-                'is_dept'     => false,
-                'scope_id'    => (int) $a->scope_id,
+                'role_label'  => $isDept ? 'Dept Chair' : ($a->role ?? 'Appointment'),
+                'is_dept'     => $isDept,
+                'scope_id'    => $a->scope_id ? (int) $a->scope_id : null,
                 'scope_label' => $scopeLabel,
-                'dept_id'     => $deptId,
-                'program_id'  => (int) $a->scope_id,
+                'dept_id'     => $isDept ? (int) $a->scope_id : null,
+                'program_id'  => null,
             ];
         })->values()->all();
     }
@@ -110,7 +92,6 @@ class AppointmentController extends Controller
             'user_id'       => ['required', 'integer', 'exists:users,id'],
             'role'          => ['required'],
             'department_id' => ['nullable', 'integer', 'exists:departments,id'],
-            'program_id'    => ['nullable', 'integer', 'exists:programs,id'],
         ]);
         if ($v->fails()) {
             return $this->respond($request, false, 'Validation failed.', 422, $v->errors()->toArray());
@@ -122,25 +103,21 @@ class AppointmentController extends Controller
             return $this->respond($request, false, 'Invalid role.', 422, ['role' => ['Invalid role value.']]);
         }
 
-        $isProg  = $role === Appointment::ROLE_PROG;
-        $scopeId = $isProg ? ($data['program_id'] ?? null) : ($data['department_id'] ?? null);
-
-        if ($isProg && !$scopeId) {
-            return $this->respond($request, false, 'Program is required for Program Chair.', 422, ['program_id' => ['Program is required for Program Chair.']]);
-        }
-        if (!$isProg && !$scopeId) {
+        // Only Department Chair requires department; other roles are institution-level.
+        $scopeId = $data['department_id'] ?? null;
+        if ($role === Appointment::ROLE_DEPT && !$scopeId) {
             return $this->respond($request, false, 'Department is required for Department Chair.', 422, ['department_id' => ['Department is required for Department Chair.']]);
         }
 
         // One active per role+scope
         $exists = Appointment::active()
             ->where('role', $role)
-            ->where('scope_type', $isProg ? Appointment::SCOPE_PROG : Appointment::SCOPE_DEPT)
-            ->where('scope_id', (int) $scopeId)
+            ->where('scope_type', $role === Appointment::ROLE_DEPT ? Appointment::SCOPE_DEPT : Appointment::SCOPE_INSTITUTION)
+            ->where('scope_id', (int) ($scopeId ?? 0))
             ->exists();
 
         if ($exists) {
-            $field = $isProg ? 'program_id' : 'department_id';
+            $field = 'department_id';
             return $this->respond($request, false, 'An active chair already exists for this selection.', 422, [
                 $field => ['An active chair already exists for this selection.'],
             ]);
@@ -151,7 +128,7 @@ class AppointmentController extends Controller
             'role'    => $role,
             'status'  => 'active',
         ]);
-        $appt->setRoleAndScope($role, $data['department_id'] ?? null, $data['program_id'] ?? null);
+        $appt->setRoleAndScope($role, $data['department_id'] ?? null, null);
         $appt->save();
 
         $admin = User::findOrFail((int) $data['user_id']);
@@ -168,7 +145,6 @@ class AppointmentController extends Controller
         $v = Validator::make($request->all(), [
             'role'          => ['required'],
             'department_id' => ['nullable', 'integer', 'exists:departments,id'],
-            'program_id'    => ['nullable', 'integer', 'exists:programs,id'],
         ]);
         if ($v->fails()) {
             return $this->respond($request, false, 'Validation failed.', 422, $v->errors()->toArray());
@@ -180,31 +156,27 @@ class AppointmentController extends Controller
             return $this->respond($request, false, 'Invalid role.', 422, ['role' => ['Invalid role value.']]);
         }
 
-        $isProg  = $role === Appointment::ROLE_PROG;
-        $scopeId = $isProg ? ($data['program_id'] ?? null) : ($data['department_id'] ?? null);
-
-        if ($isProg && !$scopeId) {
-            return $this->respond($request, false, 'Program is required for Program Chair.', 422, ['program_id' => ['Program is required for Program Chair.']]);
-        }
-        if (!$isProg && !$scopeId) {
-            return $this->respond($request, false, 'Department is required for Department Chair.', 422, ['department_id' => ['Department is required for Department Chair.']]);
-        }
+            // Only Department Chair requires department; other roles are institution-level.
+            $scopeId = $data['department_id'] ?? null;
+            if ($role === Appointment::ROLE_DEPT && !$scopeId) {
+                return $this->respond($request, false, 'Department is required for Department Chair.', 422, ['department_id' => ['Department is required for Department Chair.']]);
+            }
 
         $exists = Appointment::active()
             ->where('role', $role)
-            ->where('scope_type', $isProg ? Appointment::SCOPE_PROG : Appointment::SCOPE_DEPT)
+                ->where('scope_type', $role === Appointment::ROLE_DEPT ? Appointment::SCOPE_DEPT : Appointment::SCOPE_INSTITUTION)
             ->where('scope_id', (int) $scopeId)
             ->where('id', '!=', $appointment->id)
             ->exists();
 
         if ($exists) {
-            $field = $isProg ? 'program_id' : 'department_id';
+            $field = 'department_id';
             return $this->respond($request, false, 'An active chair already exists for this selection.', 422, [
                 $field => ['An active chair already exists for this selection.'],
             ]);
         }
 
-        $appointment->setRoleAndScope($role, $data['department_id'] ?? null, $data['program_id'] ?? null);
+            $appointment->setRoleAndScope($role, $data['department_id'] ?? null, null);
         $appointment->save();
 
         $admin = $appointment->user()->firstOrFail();

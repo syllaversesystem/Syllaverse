@@ -131,7 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
       }).filter(item => item.id && !item.id.startsWith('new-'));
 
-      fetch(`/faculty/syllabi/reorder/ilo`, {
+  fetch((window.syllabusBasePath || '/faculty/syllabi') + `/reorder/ilo`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -165,7 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
     })).filter(item => item.id && !item.id.startsWith('new-'));
 
     try {
-      const res = await fetch(`/faculty/syllabi/reorder/ilo`, {
+  const res = await fetch((window.syllabusBasePath || '/faculty/syllabi') + `/reorder/ilo`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -338,7 +338,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Persisted row: confirm and then delete via server call (same as delete button)
         if (!confirm('This ILO exists on the server. Press OK to delete it.')) return;
-        fetch(`/faculty/syllabi/ilos/${id}`, {
+  fetch((window.syllabusBasePath || '/faculty/syllabi') + `/ilos/${id}`, {
           method: 'DELETE',
           headers: {
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
@@ -394,7 +394,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!confirm('Are you sure you want to delete this ILO?')) return;
 
-    fetch(`/faculty/syllabi/ilos/${id}`, {
+  fetch((window.syllabusBasePath || '/faculty/syllabi') + `/ilos/${id}`, {
       method: 'DELETE',
       headers: {
         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,

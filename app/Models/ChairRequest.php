@@ -19,7 +19,10 @@ class ChairRequest extends Model
     use HasFactory;
 
     public const ROLE_DEPT = 'DEPT_CHAIR';
-    public const ROLE_PROG = 'PROG_CHAIR';
+    // Central/institution-level roles (no department/program scope)
+    public const ROLE_VCAA       = 'VCAA';
+    public const ROLE_ASSOC_VCAA = 'ASSOC_VCAA';
+    public const ROLE_DEAN       = 'DEAN';
 
     public const STATUS_PENDING  = 'pending';
     public const STATUS_APPROVED = 'approved';
@@ -56,7 +59,12 @@ class ChairRequest extends Model
 
     // Helpers
     public function isDeptRequest(): bool { return $this->requested_role === self::ROLE_DEPT; }
-    public function isProgRequest(): bool { return $this->requested_role === self::ROLE_PROG; }
+    // Program Chair has been removed from the product; keep method for BC but return false
+    public function isProgRequest(): bool { return false; }
+    public function isInstitutionRequest(): bool
+    {
+        return in_array($this->requested_role, [self::ROLE_VCAA, self::ROLE_ASSOC_VCAA, self::ROLE_DEAN], true);
+    }
 
     public function scopeConsistentWithDepartment(): bool
     {
@@ -88,11 +96,25 @@ class ChairRequest extends Model
 
     public function toAppointmentPayload(int $assignedByUserId, ?string $startAt = null): array
     {
+        // Map chair request types to appointment payloads. Institution-level roles have a special role string
+        // and use a null scope (they are not tied to a department or program).
+        if ($this->isDeptRequest()) {
+            $role = Appointment::ROLE_DEPT;
+            $scopeType = Appointment::SCOPE_DEPT;
+            $scopeId = $this->department_id;
+        } else {
+            // Institution-level roles: store role as the requested_role string and use a sentinel
+            // scope id (0) to represent the institution when the DB requires a non-null scope_id.
+            $role = $this->requested_role;
+            $scopeType = Appointment::SCOPE_INSTITUTION;
+            $scopeId = 0;
+        }
+
         return [
             'user_id'     => $this->user_id,
-            'role'        => $this->isDeptRequest() ? Appointment::ROLE_DEPT : Appointment::ROLE_PROG,
-            'scope_type'  => $this->isDeptRequest() ? Appointment::SCOPE_DEPT : Appointment::SCOPE_PROG,
-            'scope_id'    => $this->isDeptRequest() ? $this->department_id : $this->program_id,
+            'role'        => $role,
+            'scope_type'  => $scopeType,
+            'scope_id'    => $scopeId,
             'status'      => 'active',
             'start_at'    => $startAt ? \Carbon\Carbon::parse($startAt) : now(),
             'end_at'      => null,

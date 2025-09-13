@@ -481,7 +481,7 @@ document.addEventListener('DOMContentLoaded', function(){
 
 				const body = JSON.stringify({ mappings: mappings });
 				const csrf = (document.querySelector('meta[name="csrf-token"]') || {}).content || document.querySelector('input[name="_token"]')?.value || '';
-				const url = '/faculty/syllabi/' + encodeURIComponent(syllabusId) + '/assessment-mappings';
+				const url = (window.syllabusBasePath || '/faculty/syllabi') + '/' + encodeURIComponent(syllabusId) + '/assessment-mappings';
 
 				try {
 					const resp = await fetch(url, {

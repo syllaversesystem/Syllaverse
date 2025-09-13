@@ -5,7 +5,7 @@
 ------------------------------------------------ 
 --}}
 
-@extends('layouts.faculty')
+@extends($layout ?? 'layouts.faculty')
 
 @section('content')
   {{-- Assets --}}
@@ -26,7 +26,9 @@
 
   {{-- Global JS Variables --}}
   <script>
-  const syllabusExitUrl = @json(route('faculty.syllabi.index'));
+  @php $rp = $routePrefix ?? 'faculty.syllabi'; @endphp
+  const syllabusExitUrl = @json(route($rp . '.index'));
+  const syllabusBasePath = @json(route($rp . '.index', [], false));
   window.syllabusId = @json($default['id']);
   </script>
 
@@ -38,8 +40,8 @@
   <div class="container-fluid px-0 my-3 syllabus-doc">
     {{-- ===== START: Main Syllabus Form (Sections 1–4) ===== --}}
     <form id="syllabusForm"
-          method="POST"
-          action="{{ route('faculty.syllabi.update', $default['id']) }}"
+      method="POST"
+      action="{{ route(($routePrefix ?? 'faculty.syllabi') . '.update', $default['id']) }}"
           enctype="multipart/form-data">
       @csrf
       @method('PUT')
@@ -63,10 +65,10 @@
 
         <div class="d-flex align-items-center gap-2">
           <div class="btn-group">
-            <a href="{{ route('faculty.syllabi.export.pdf', $default['id']) }}" class="btn btn-outline-danger btn-sm">
+            <a href="{{ route(($routePrefix ?? 'faculty.syllabi') . '.export.pdf', $default['id']) }}" class="btn btn-outline-danger btn-sm">
               <i class="bi bi-filetype-pdf"></i> PDF
             </a>
-            <a href="{{ route('faculty.syllabi.export.word', $default['id']) }}" class="btn btn-outline-primary btn-sm">
+            <a href="{{ route(($routePrefix ?? 'faculty.syllabi') . '.export.word', $default['id']) }}" class="btn btn-outline-primary btn-sm">
               <i class="bi bi-file-earmark-word"></i> Word
             </a>
           </div>

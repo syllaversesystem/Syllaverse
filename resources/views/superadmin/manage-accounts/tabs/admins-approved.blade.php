@@ -52,10 +52,10 @@
                     @foreach ($activeAppointments as $appt)
                       @php
                         $isDept     = $appt->role === \App\Models\Appointment::ROLE_DEPT;
-                        $roleLabel  = $isDept ? 'Dept Chair' : 'Program Chair';
+                        $roleLabel  = $isDept ? 'Dept Chair' : ($appt->role ?? 'Appointment');
                         $scopeLabel = $isDept
                           ? ($deptById[$appt->scope_id]->name ?? ('Dept #'.$appt->scope_id))
-                          : ($progById[$appt->scope_id]->name ?? ('Prog #'.$appt->scope_id));
+                          : ($appt->scope_type ? ($appt->scope_type . ' #' . $appt->scope_id) : 'Institution');
                       @endphp
                       <span class="sv-pill is-accent sv-pill--sm">{{ $roleLabel }}</span>
                       <span class="sv-pill is-muted sv-pill--sm">{{ $scopeLabel }}</span>

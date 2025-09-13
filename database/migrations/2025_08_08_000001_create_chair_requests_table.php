@@ -26,10 +26,10 @@ return new class extends Migration
                 // Who is asking for the role
                 $table->foreignId('user_id')->constrained()->cascadeOnDelete();
 
-                // What role they want to hold
-                $table->enum('requested_role', ['DEPT_CHAIR', 'PROG_CHAIR']);
+                // What role they want to hold (Program Chair removed)
+                $table->enum('requested_role', ['DEPT_CHAIR']);
 
-                // Scope selection (dept is always required; program required only for PROG_CHAIR in app logic)
+                // Scope selection (department required; program-level requests removed). Keep program_id nullable for historical data.
                 $table->foreignId('department_id')->constrained()->cascadeOnDelete();
                 $table->foreignId('program_id')->nullable()->constrained()->cascadeOnDelete();
 

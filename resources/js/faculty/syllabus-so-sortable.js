@@ -120,7 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
         if (!confirm('This SO exists on the server. Press OK to delete it.')) return;
-        fetch(`/faculty/syllabi/sos/${id}`, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' } })
+  fetch((window.syllabusBasePath || '/faculty/syllabi') + `/sos/${id}`, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' } })
         .then(res => res.json()).then(data => { alert(data.message || 'SO deleted.'); location.reload(); }).catch(err => { console.error(err); alert('Failed to delete SO.'); });
       }
     }
@@ -133,7 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const rowIndex = allRows.indexOf(row); if (rowIndex === 0) { alert('At least one SO must be present.'); return; }
     const id = row.getAttribute('data-id'); if (!id || id.startsWith('new-')) { try { row.remove(); } catch (e) { row.remove(); } updateVisibleCodes(); return; }
     if (!confirm('Are you sure you want to delete this SO?')) return;
-    fetch(`/faculty/syllabi/sos/${id}`, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' } })
+  fetch((window.syllabusBasePath || '/faculty/syllabi') + `/sos/${id}`, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' } })
     .then(res => res.json()).then(data => { alert(data.message || 'SO deleted.'); location.reload(); }).catch(err => { console.error(err); alert('Failed to delete SO.'); });
   });
 

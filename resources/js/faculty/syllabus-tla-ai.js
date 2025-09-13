@@ -23,7 +23,8 @@ document.addEventListener('DOMContentLoaded', () => {
     generateBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Generating...';
 
     try {
-      const res = await fetch(`/faculty/syllabi/${syllabusId}/generate-tla`, {
+  const base = window.syllabusBasePath || '/faculty/syllabi';
+  const res = await fetch(`${base}/${syllabusId}/generate-tla`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

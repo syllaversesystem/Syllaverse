@@ -26,7 +26,8 @@ document.addEventListener('DOMContentLoaded', function () {
             });
             const ids = rows.map(r => r.getAttribute('data-id'));
             if (!ids.length) return;
-            await fetch(`/faculty/syllabi/${syllabusId}/sdgs/reorder`, {
+            const base = window.syllabusBasePath || '/faculty/syllabi';
+            await fetch(`${base}/${syllabusId}/sdgs/reorder`, {
                 method: 'POST', credentials: 'same-origin',
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' },
                 body: JSON.stringify({ ids })
@@ -166,8 +167,9 @@ document.addEventListener('DOMContentLoaded', function () {
             let deleteUrl = form.action; // fallback
             if (row) {
                 const entryId = row.getAttribute('data-id');
-                if (entryId) deleteUrl = `/faculty/syllabi/${syllabusId}/sdgs/entry/${entryId}`;
-                else deleteUrl = `/faculty/syllabi/${syllabusId}/sdgs/${sdgId}`;
+                const base = window.syllabusBasePath || '/faculty/syllabi';
+                if (entryId) deleteUrl = `${base}/${syllabusId}/sdgs/entry/${entryId}`;
+                else deleteUrl = `${base}/${syllabusId}/sdgs/${sdgId}`;
             } else {
                 deleteUrl = `/faculty/syllabi/${syllabusId}/sdgs/${sdgId}`;
             }
@@ -393,7 +395,7 @@ document.addEventListener('DOMContentLoaded', function () {
         async function doUpdate(payload) {
             try {
                 if (!syllabusId || !pivotId) return;
-                const url = `/faculty/syllabi/${syllabusId}/sdgs/update/${pivotId}`;
+                const url = `${(window.syllabusBasePath || '/faculty/syllabi')}/${syllabusId}/sdgs/update/${pivotId}`;
                 const headers = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
                 const token = document.querySelector('meta[name="csrf-token"]');
                 if (token) headers['X-CSRF-TOKEN'] = token.content;

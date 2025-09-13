@@ -28,7 +28,6 @@ class ChairRequestController extends Controller
     {
         $request->validate([
             'department_id' => ['nullable', 'integer', 'exists:departments,id'],
-            'program_id'    => ['nullable', 'integer', 'exists:programs,id'],
             'start_at'      => ['nullable', 'date'],
             'notes'         => ['nullable', 'string', 'max:2000'],
         ]);
@@ -40,23 +39,17 @@ class ChairRequestController extends Controller
         }
 
         $role   = $chairRequest->requested_role;
-        $deptId = (int) ($request->input('department_id') ?: $chairRequest->department_id);
-        $progId = $chairRequest->program_id;
+        $deptId = $request->filled('department_id') ? (int) $request->input('department_id') : ($chairRequest->department_id ? (int)$chairRequest->department_id : null);
+        $progId = $chairRequest->program_id; // kept for historical data but not required
 
-        if ($role === ChairRequest::ROLE_PROG) {
-            $progId = (int) ($request->input('program_id') ?: $chairRequest->program_id);
-            if (!$progId) {
-                return back()->withErrors(['program_id' => 'Program is required when approving a Program Chair request.']);
+        // Department-scoped roles require a department. Dean is department-scoped; institution-level VCAA/ASSOC_VCAA are not.
+        if ($role === ChairRequest::ROLE_DEPT || $role === ChairRequest::ROLE_DEAN) {
+            if (empty($deptId)) {
+                return back()->withErrors(['department_id' => 'Department is required when approving this request.']);
             }
-        }
-
-        if ($role === ChairRequest::ROLE_PROG) {
-            $program = Program::findOrFail($progId);
-            if ((int) $program->department_id !== $deptId) {
-                return back()->withErrors(['program_id' => 'Selected program does not belong to the selected department.']);
-            }
-        } else {
             Department::findOrFail($deptId);
+        } else {
+            // Institution-level roles (VCAA / ASSOC_VCAA) do not require department/program validation.
         }
 
         $startAt   = $request->filled('start_at') ? Carbon::parse($request->input('start_at')) : now();
@@ -64,14 +57,30 @@ class ChairRequestController extends Controller
         $deciderId = $this->resolveDeciderId($request); // may be null
 
         DB::transaction(function () use ($chairRequest, $role, $deptId, $progId, $startAt, $notes, $deciderId) {
-            $scopeType = $role === ChairRequest::ROLE_DEPT ? Appointment::SCOPE_DEPT : Appointment::SCOPE_PROG;
-            $scopeId   = $role === ChairRequest::ROLE_DEPT ? $deptId : $progId;
+            // Determine appointment role and scope based on the chair request type.
+            if ($role === ChairRequest::ROLE_DEPT) {
+                $apptRole  = Appointment::ROLE_DEPT;
+                $scopeType = Appointment::SCOPE_DEPT;
+                $scopeId   = $deptId;
+            } elseif ($role === ChairRequest::ROLE_DEAN) {
+                // Dean is department-scoped (one dean per department)
+                $apptRole  = Appointment::ROLE_DEAN;
+                $scopeType = Appointment::SCOPE_DEPT;
+                $scopeId   = $deptId;
+            } else {
+                // Institution-level roles: use the same role string and institution scope.
+                // Use a sentinel scope_id (0) to indicate "institution" so DB inserts don't fail
+                // when scope_id is non-nullable in some environments.
+                $apptRole  = $role; // matches Appointment::ROLE_VCAA, etc.
+                $scopeType = Appointment::SCOPE_INSTITUTION;
+                $scopeId   = 0;
+            }
 
-            $this->endConflictingActive($role, $scopeType, $scopeId);
+            $this->endConflictingActive($apptRole, $scopeType, $scopeId);
 
             Appointment::create([
                 'user_id'     => $chairRequest->user_id,
-                'role'        => $role === ChairRequest::ROLE_DEPT ? Appointment::ROLE_DEPT : Appointment::ROLE_PROG,
+                'role'        => $apptRole,
                 'scope_type'  => $scopeType,
                 'scope_id'    => $scopeId,
                 'status'      => 'active',
@@ -124,12 +133,15 @@ class ChairRequestController extends Controller
         return back()->with('success', 'Chair request rejected.');
     }
 
-    /** Only ONE active chair per (role, scope_type, scope_id). End conflicts before creating a new one. */
-    protected function endConflictingActive(string $role, string $scopeType, int $scopeId): void
+    /** Only ONE active chair per (role, scope_type, scope_id). End conflicts before creating a new one.
+     *
+     * Note: institution-level appointments pass null for scope_id, so this accepts a nullable int.
+     */
+    protected function endConflictingActive(string $role, string $scopeType, ?int $scopeId): void
     {
         $conflicts = Appointment::query()
             ->active()
-            ->where('role', $role === ChairRequest::ROLE_DEPT ? Appointment::ROLE_DEPT : Appointment::ROLE_PROG)
+            ->where('role', $role === ChairRequest::ROLE_DEPT ? Appointment::ROLE_DEPT : $role)
             ->where('scope_type', $scopeType)
             ->where('scope_id', $scopeId)
             ->get();

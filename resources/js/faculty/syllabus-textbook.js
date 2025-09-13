@@ -13,7 +13,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const inputId = type === 'main' ? 'textbook_main_files' : 'textbook_other_files';
     const label = type === 'main' ? 'Textbook' : 'Other Books and Articles';
 
-    fetch(`/faculty/syllabi/${syllabusId}/textbook/list?type=${type}`)
+  const base = window.syllabusBasePath || '/faculty/syllabi';
+  fetch(`${base}/${syllabusId}/textbook/list?type=${type}`)
       .then(res => res.json())
       .then(data => {
         if (data.success) {
@@ -83,7 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
     files.forEach(file => formData.append('textbook_files[]', file));
     formData.append('type', type);
 
-    fetch(`/faculty/syllabi/${syllabusId}/textbook`, {
+  fetch(`${base}/${syllabusId}/textbook`, {
       method: 'POST',
       headers: { 'X-CSRF-TOKEN': csrfToken },
       body: formData,
@@ -109,7 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Delete
     if (btn.classList.contains('delete-textbook-btn')) {
-      fetch(`/faculty/syllabi/textbook/${id}`, {
+  fetch((window.syllabusBasePath || '/faculty/syllabi') + `/textbook/${id}`, {
         method: 'DELETE',
         headers: { 'X-CSRF-TOKEN': csrfToken },
       })
@@ -149,7 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
       editor.querySelector('.save-textbook-name').addEventListener('click', () => {
         const newBase = input.value.trim();
         if (!newBase) return;
-        fetch(`/faculty/syllabi/textbook/${id}`, {
+  fetch((window.syllabusBasePath || '/faculty/syllabi') + `/textbook/${id}`, {
           method: 'PUT',
           headers: { 'X-CSRF-TOKEN': csrfToken, 'Content-Type': 'application/json' },
           // Send base name only; server preserves extension

@@ -22,7 +22,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const syllabusId = form.action.split('/').pop();
 
     try {
-      const res = await fetch(`/faculty/syllabi/${syllabusId}/tla/append`, {
+  const base = window.syllabusBasePath || '/faculty/syllabi';
+  const res = await fetch(`${base}/${syllabusId}/tla/append`, {
         method: 'POST',
         headers: {
           'X-CSRF-TOKEN': csrfToken,
@@ -103,7 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }));
 
     try {
-      const res = await fetch(`/faculty/syllabi/${syllabusId}/tla`, {
+  const res = await fetch(`${base}/${syllabusId}/tla`, {
         method: 'POST',
         credentials: 'same-origin',
         headers: {
@@ -230,7 +231,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!confirm('Are you sure you want to delete this row?')) return;
 
     try {
-      const res = await fetch(`/faculty/syllabi/tla/${tlaId}`, {
+  const res = await fetch((window.syllabusBasePath || '/faculty/syllabi') + `/tla/${tlaId}`, {
         method: 'DELETE',
         headers: {
           'X-CSRF-TOKEN': csrfToken,

@@ -8,7 +8,8 @@
 <div class="modal fade" id="selectSyllabusMetaModal" tabindex="-1" aria-labelledby="selectSyllabusMetaModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content shadow">
-      <form action="{{ route('faculty.syllabi.store') }}" method="POST">
+  @php $rp = $routePrefix ?? 'faculty.syllabi'; @endphp
+  <form action="{{ route($rp . '.store') }}" method="POST">
         @csrf
         <div class="modal-header bg-danger text-white">
           <h5 class="modal-title" id="selectSyllabusMetaModalLabel">Create Syllabus</h5>

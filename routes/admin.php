@@ -117,6 +117,16 @@ Route::post('/master-data/reorder/ilo', [\App\Http\Controllers\Admin\IntendedLea
     Route::post('/manage-accounts/{id}/approve',   [ManageFacultyAccountController::class, 'approve'])->name('admin.manage-accounts.approve');
     Route::post('/manage-accounts/{id}/reject',    [ManageFacultyAccountController::class, 'reject'])->name('admin.manage-accounts.reject');
 
+    // Admin Syllabi (view & export) — mirrors faculty routes but for admins
+    Route::get('/syllabi', [\App\Http\Controllers\Admin\SyllabusController::class, 'index'])->name('admin.syllabi.index');
+    Route::get('/syllabi/{id}', [\App\Http\Controllers\Admin\SyllabusController::class, 'show'])->name('admin.syllabi.show');
+    Route::get('/syllabi/{id}/export/pdf', [\App\Http\Controllers\Admin\SyllabusController::class, 'exportPdf'])->name('admin.syllabi.export.pdf');
+    Route::get('/syllabi/{id}/export/word', [\App\Http\Controllers\Admin\SyllabusController::class, 'exportWord'])->name('admin.syllabi.export.word');
+    Route::put('/syllabi/{id}', [\App\Http\Controllers\Admin\SyllabusController::class, 'update'])->name('admin.syllabi.update');
+    Route::post('/syllabi/{syllabus}/assessment-tasks', [\App\Http\Controllers\Admin\SyllabusController::class, 'saveAssessmentTasks'])->name('admin.syllabi.assessment_tasks.save');
+    Route::post('/syllabi/{syllabus}/assessment-mappings', [\App\Http\Controllers\Admin\SyllabusController::class, 'saveAssessmentMappings'])->name('admin.syllabi.assessment_mappings.save');
+    Route::delete('/syllabi/{id}', [\App\Http\Controllers\Admin\SyllabusController::class, 'destroy'])->name('admin.syllabi.destroy');
+
     // Logout
     Route::post('/logout', function () {
         Auth::guard('admin')->logout();

@@ -9,7 +9,8 @@
 -------------------------------------------------------------------------------
 --}}
 
-<form id="iloForm" method="POST" action="{{ route('faculty.syllabi.ilos.update', $default['id']) }}">
+@php $rp = $routePrefix ?? 'faculty.syllabi'; @endphp
+<form id="iloForm" method="POST" action="{{ route($rp . '.ilos.update', $default['id']) }}">
   @csrf
   @method('PUT')
 

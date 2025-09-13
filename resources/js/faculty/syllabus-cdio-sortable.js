@@ -85,7 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
           return;
         }
         if (!confirm('This CDIO exists on the server. Press OK to delete it.')) return;
-        fetch(`/faculty/syllabi/cdios/${id}`, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' } })
+  fetch((window.syllabusBasePath || '/faculty/syllabi') + `/cdios/${id}`, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' } })
         .then(res => res.json()).then(data => { alert(data.message || 'CDIO deleted.'); location.reload(); }).catch(err => { console.error(err); alert('Failed to delete CDIO.'); });
       }
     }
@@ -98,7 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const rowIndex = allRows.indexOf(row); if (rowIndex === 0) { alert('At least one CDIO must be present.'); return; }
     const id = row.getAttribute('data-id'); if (!id || id.startsWith('new-')) { try { row.remove(); } catch (e) { row.remove(); } updateVisibleCodes(); return; }
     if (!confirm('Are you sure you want to delete this CDIO?')) return;
-  fetch(`/faculty/syllabi/cdios/${id}`, { method: 'DELETE', credentials: 'same-origin', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' } })
+  fetch((window.syllabusBasePath || '/faculty/syllabi') + `/cdios/${id}`, { method: 'DELETE', credentials: 'same-origin', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' } })
   .then(res => res.json()).then(data => { alert(data.message || 'CDIO deleted.'); location.reload(); }).catch(err => { console.error(err); alert('Failed to delete CDIO.'); });
   });
 
@@ -109,7 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const id = row.getAttribute('data-id');
     if (!id || id.startsWith('new-')) return; // not persisted
     // send inline update to server
-    fetch(`/faculty/syllabi/${list.dataset.syllabusId}/cdios/${id}`, {
+  fetch((window.syllabusBasePath || '/faculty/syllabi') + `/${list.dataset.syllabusId}/cdios/${id}`, {
       method: 'PUT', credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' },
       body: JSON.stringify({ description: ta.value })
@@ -155,7 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const positions = rows.map((r, idx) => ({ id: r.getAttribute('data-id'), position: idx + 1 }));
     const syllabusId = list.dataset.syllabusId;
     if (!syllabusId) return { ok: false };
-    const res = await fetch(`/faculty/syllabi/${syllabusId}/cdios/reorder`, {
+  const res = await fetch((window.syllabusBasePath || '/faculty/syllabi') + `/${syllabusId}/cdios/reorder`, {
       method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' },
       body: JSON.stringify({ positions })
     });

@@ -71,7 +71,7 @@
     {{-- ░░░ END: Page Title + Alerts ░░░ --}}
 
     @php
-      $user->loadMissing(['chairRequests.program', 'chairRequests.department']);
+      $user->loadMissing(['chairRequests.department']);
       $pendingRequests = $user->chairRequests->where('status', 'pending');
       $hasPendingRequests = $pendingRequests->isNotEmpty();
     @endphp
@@ -90,16 +90,27 @@
           <table class="table table-sm align-middle mb-0">
             <thead class="table-light">
               <tr>
-                <th>#</th><th>Role</th><th>Department</th><th>Program</th><th>Status</th><th>Submitted</th><th>Decision</th>
+                <th>#</th><th>Role</th><th>Department</th><th>Status</th><th>Submitted</th><th>Decision</th>
               </tr>
             </thead>
             <tbody>
               @foreach ($user->chairRequests->sortByDesc('created_at') as $r)
                 <tr>
                   <td>{{ $r->id }}</td>
-                  <td>{{ $r->requested_role === \App\Models\ChairRequest::ROLE_DEPT ? 'Department Chair' : 'Program Chair' }}</td>
+                      <td>
+                        @php
+                          $roleLabel = match ($r->requested_role) {
+                            \App\Models\ChairRequest::ROLE_DEPT => 'Department Chair',
+                            // Program Chair removed
+                            \App\Models\ChairRequest::ROLE_VCAA => 'Vice Chancellor for Academic Affairs (VCAA)',
+                            \App\Models\ChairRequest::ROLE_ASSOC_VCAA => 'Associate VCAA',
+                            \App\Models\ChairRequest::ROLE_DEAN => 'Dean',
+                            default => $r->requested_role,
+                          };
+                        @endphp
+                        {{ $roleLabel }}
+                      </td>
                   <td>{{ $r->department->name ?? '—' }}</td>
-                  <td>{{ $r->program->name ?? '—' }}</td>
                   <td>
                     @switch($r->status)
                       @case('pending')  <span class="badge bg-primary">Pending</span> @break
@@ -215,36 +226,34 @@
           </option>
         @endforeach
       </select>
+  <div class="form-text small text-muted">Required when requesting Department Chair or Dean.</div>
       @error('department_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
     </div>
 
-    {{-- Program Chair --}}
-    <div class="col-md-6">
-      <label for="program_id" class="form-label d-flex align-items-center gap-2">
-        <input class="form-check-input m-0"
-               type="checkbox"
-               id="request_prog_chair"
-               name="request_prog_chair"
-               value="1"
-               {{ old('request_prog_chair') ? 'checked' : '' }}
-               {{ $hasPendingRequests ? 'disabled' : '' }}>
-        <span class="fw-semibold">Program Chair</span>
-      </label>
+    {{-- Program Chair removed --}}
+  </div>
 
-      <select id="program_id"
-              name="program_id"
-              class="form-select @error('program_id') is-invalid @enderror"
-              {{ old('request_prog_chair') && !$hasPendingRequests ? '' : 'disabled' }}>
-        <option value="">— Select Program —</option>
-        @foreach (($programs ?? []) as $prog)
-          <option value="{{ $prog->id }}"
-                  data-dept="{{ $prog->department_id }}"
-                  {{ (string) old('program_id') === (string) $prog->id ? 'selected' : '' }}>
-            {{ $prog->name }}
-          </option>
-        @endforeach
-      </select>
-      @error('program_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+  <div class="row g-3 mt-3">
+    {{-- Institution-level roles: VCAA, Associate VCAA, Dean --}}
+    <div class="col-md-4">
+      <label class="form-label d-flex align-items-center gap-2">
+        <input class="form-check-input m-0" type="checkbox" id="request_vcaa" name="request_vcaa" value="1" {{ old('request_vcaa') ? 'checked' : '' }} {{ $hasPendingRequests ? 'disabled' : '' }}>
+        <span class="fw-semibold">Vice Chancellor for Academic Affairs (VCAA)</span>
+      </label>
+    </div>
+
+    <div class="col-md-4">
+      <label class="form-label d-flex align-items-center gap-2">
+        <input class="form-check-input m-0" type="checkbox" id="request_assoc_vcaa" name="request_assoc_vcaa" value="1" {{ old('request_assoc_vcaa') ? 'checked' : '' }} {{ $hasPendingRequests ? 'disabled' : '' }}>
+        <span class="fw-semibold">Associate VCAA</span>
+      </label>
+    </div>
+
+    <div class="col-md-4">
+      <label class="form-label d-flex align-items-center gap-2">
+        <input class="form-check-input m-0" type="checkbox" id="request_dean" name="request_dean" value="1" {{ old('request_dean') ? 'checked' : '' }} {{ $hasPendingRequests ? 'disabled' : '' }}>
+        <span class="fw-semibold">Dean</span>
+      </label>
     </div>
   </div>
 

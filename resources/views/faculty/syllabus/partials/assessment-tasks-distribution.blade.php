@@ -1453,7 +1453,7 @@
           payload.append('_token', document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '');
           payload.append('assessment_tasks_data', ta ? ta.value : '');
 
-          const url = '/faculty/syllabi/' + encodeURIComponent(syllabusId);
+          const url = (window.syllabusBasePath || '/faculty/syllabi') + '/' + encodeURIComponent(syllabusId);
           const resp = await fetch(url, { method: 'POST', body: payload, credentials: 'same-origin' });
           if (!resp.ok) {
             const text = await resp.text().catch(()=>null);
@@ -1488,7 +1488,7 @@
           } catch (e) { /* noop */ }
 
           const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-          const url = '/faculty/syllabi/' + encodeURIComponent(syllabusId) + '/assessment-tasks';
+          const url = (window.syllabusBasePath || '/faculty/syllabi') + '/' + encodeURIComponent(syllabusId) + '/assessment-tasks';
 
           // Try fetch with keepalive to allow the browser to complete the request during navigation.
           try {

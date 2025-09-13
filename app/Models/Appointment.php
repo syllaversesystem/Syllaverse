@@ -27,13 +27,22 @@ class Appointment extends Model
 
     /** Role constants to avoid string typos. */
     public const ROLE_DEPT    = 'DEPT_CHAIR';
-    public const ROLE_PROG    = 'PROG_CHAIR';
     public const ROLE_FACULTY = 'FACULTY';
+    // Program-chair compatibility (shims) — program-scoped role was removed but
+    // some legacy code still references these constants. Keep as shims to avoid
+    // undefined constant errors; logic elsewhere treats program chair as removed.
+    public const ROLE_PROG    = 'PROG_CHAIR';
+    // Institution-level roles
+    public const ROLE_VCAA       = 'VCAA';
+    public const ROLE_ASSOC_VCAA = 'ASSOC_VCAA';
+    public const ROLE_DEAN       = 'DEAN';
 
     /** Scope type constants (polymorphic-ish discriminator). */
     public const SCOPE_DEPT    = 'Department';
+    // Program scope shim
     public const SCOPE_PROG    = 'Program';
     public const SCOPE_FACULTY = 'Faculty';
+    public const SCOPE_INSTITUTION = 'Institution';
 
     protected $fillable = [
         'user_id',
@@ -72,11 +81,7 @@ class Appointment extends Model
             ->where('scope_type', self::SCOPE_DEPT);
     }
 
-    public function program()
-    {
-        return $this->belongsTo(Program::class, 'scope_id')
-            ->where('scope_type', self::SCOPE_PROG);
-    }
+    // Program relation removed (Program Chair no longer exists)
 
     // ░░░ END: Relationships ░░░
 
@@ -99,12 +104,7 @@ class Appointment extends Model
             ->where('scope_id', $departmentId);
     }
 
-    public function scopeForProgram($query, int $programId)
-    {
-        return $query->where('role', self::ROLE_PROG)
-            ->where('scope_type', self::SCOPE_PROG)
-            ->where('scope_id', $programId);
-    }
+    // Program-scoped queries removed (Program Chair no longer exists)
 
     public function scopeForFaculty($query, int $departmentId)
     {
@@ -129,19 +129,26 @@ class Appointment extends Model
             }
             if (empty($appt->scope_type)) {
                 $appt->scope_type = match ($appt->role) {
-                    self::ROLE_PROG    => self::SCOPE_PROG,
-                    self::ROLE_FACULTY => self::SCOPE_FACULTY,
-                    default            => self::SCOPE_DEPT,
+                    // Program role removed
+                    self::ROLE_FACULTY      => self::SCOPE_FACULTY,
+                    self::ROLE_VCAA,
+                    self::ROLE_ASSOC_VCAA,
+                    self::ROLE_DEAN         => self::SCOPE_INSTITUTION,
+                    default                 => self::SCOPE_DEPT,
                 };
+                // For institution-level roles we allow scope_id to remain null.
             }
         });
 
         static::saving(function (Appointment $appt) {
             if (empty($appt->scope_type)) {
                 $appt->scope_type = match ($appt->role) {
-                    self::ROLE_PROG    => self::SCOPE_PROG,
-                    self::ROLE_FACULTY => self::SCOPE_FACULTY,
-                    default            => self::SCOPE_DEPT,
+                    // Program role removed
+                    self::ROLE_FACULTY      => self::SCOPE_FACULTY,
+                    self::ROLE_VCAA,
+                    self::ROLE_ASSOC_VCAA,
+                    self::ROLE_DEAN         => self::SCOPE_INSTITUTION,
+                    default                 => self::SCOPE_DEPT,
                 };
             }
         });
@@ -152,7 +159,6 @@ class Appointment extends Model
         $this->attributes['role'] = $value;
         if (!array_key_exists('scope_type', $this->attributes)) {
             $this->attributes['scope_type'] = match ($value) {
-                self::ROLE_PROG    => self::SCOPE_PROG,
                 self::ROLE_FACULTY => self::SCOPE_FACULTY,
                 default            => self::SCOPE_DEPT,
             };
@@ -177,7 +183,7 @@ class Appointment extends Model
 
     public function isProgChair(): bool
     {
-        return $this->role === self::ROLE_PROG && $this->scope_type === self::SCOPE_PROG;
+        return false; // Program Chair removed
     }
 
     public function isFaculty(): bool
@@ -219,9 +225,7 @@ class Appointment extends Model
             return $this->department->name;
         }
 
-        if ($this->isProgChair() && $this->relationLoaded('program') && $this->program) {
-            return $this->program->name;
-        }
+        // Program Chair removed
 
         if ($this->isFaculty() && $this->relationLoaded('department') && $this->department) {
             return $this->department->name . ' (Faculty)';
@@ -232,9 +236,7 @@ class Appointment extends Model
 
     public function coversProgram(Program $program): bool
     {
-        if ($this->isProgChair() && $this->scope_id === $program->id) {
-            return true;
-        }
+        // Program Chair removed: coverage determined by department/faculty only
 
         if (($this->isDeptChair() || $this->isFaculty()) && $program->department_id === $this->scope_id) {
             return true;

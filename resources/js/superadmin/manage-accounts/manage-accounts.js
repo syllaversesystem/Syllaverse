@@ -130,7 +130,7 @@
   }
 
   // ── Appointments render helpers (no Blade fragments) ───────────────────────
-  const roleLabel = (appt) => appt.is_dept ? 'Dept Chair' : 'Program Chair';
+  const roleLabel = (appt) => appt.is_dept ? 'Dept Chair' : (appt.role || 'Appointment');
 
   const getAddForm = (modal) => modal?.querySelector('form[data-sv-scope^="add-"]');
   const getDeptOptionsHTML = (modal, selectedId) => {
@@ -141,15 +141,7 @@
       return `<option value="${o.value}"${sel}>${o.text}</option>`;
     }).join('');
   };
-  const getProgOptionsHTML = (modal, selectedId) => {
-    const src = getAddForm(modal)?.querySelector('.sv-prog');
-    const opts = src ? Array.from(src.options) : [];
-    return opts.map(o => {
-      const sel = String(o.value) === String(selectedId || '') ? ' selected' : '';
-      const dd  = o.getAttribute('data-dept') ? ` data-dept="${o.getAttribute('data-dept')}"` : '';
-      return `<option value="${o.value}"${dd}${sel}>${o.text}</option>`;
-    }).join('');
-  };
+  // Program select removed — Program Chair no longer supported
 
   const renderApptItemHTML = (modal, adminId, appt) => {
     const csrf = getCsrf(modal);
@@ -187,7 +179,7 @@
             <label class="form-label small">Role</label>
             <select name="role" class="form-select form-select-sm sv-role">
               <option value="DEPT_CHAIR"${appt.is_dept ? ' selected' : ''}>Department Chair</option>
-              <option value="PROG_CHAIR"${!appt.is_dept ? ' selected' : ''}>Program Chair</option>
+              <!-- Program Chair removed -->
             </select>
           </div>
 
@@ -199,13 +191,7 @@
             </select>
           </div>
 
-          <div class="col-md-4">
-            <label class="form-label small">Program</label>
-            <select name="program_id" class="form-select form-select-sm sv-prog"${progDisabledAttr}>
-              <option value="">— Select —</option>
-              ${getProgOptionsHTML(modal, appt.program_id)}
-            </select>
-          </div>
+          <!-- Program selector removed (Program Chair no longer supported) -->
 
           <div class="col-md-1 d-flex">
             <button class="action-btn approve ms-auto" type="submit" title="Update appointment" aria-label="Update appointment">

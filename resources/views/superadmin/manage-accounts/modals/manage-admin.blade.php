@@ -56,7 +56,9 @@
               <label class="form-label small">Role</label>
               <select name="role" class="form-select form-select-sm sv-role" aria-label="Select role">
                 <option value="{{ \App\Models\Appointment::ROLE_DEPT }}">Department Chair</option>
-                <option value="{{ \App\Models\Appointment::ROLE_PROG }}">Program Chair</option>
+                <option value="{{ \App\Models\Appointment::ROLE_VCAA }}">VCAA</option>
+                <option value="{{ \App\Models\Appointment::ROLE_ASSOC_VCAA }}">Associate VCAA</option>
+                <option value="{{ \App\Models\Appointment::ROLE_DEAN }}">Dean</option>
               </select>
             </div>
 
@@ -70,15 +72,7 @@
               </select>
             </div>
 
-            <div class="col-md-4">
-              <label class="form-label small">Program</label>
-              <select name="program_id" class="form-select form-select-sm sv-prog" disabled aria-label="Select program">
-                <option value="">— Select —</option>
-                @foreach (($programs ?? []) as $prog)
-                  <option value="{{ $prog->id }}" data-dept="{{ $prog->department_id }}">{{ $prog->name }}</option>
-                @endforeach
-              </select>
-            </div>
+            {{-- Program selection removed (Program Chair no longer supported) --}}
 
             <div class="col-md-1 d-flex">
               <button class="action-btn approve ms-auto" type="submit" title="Save appointment" aria-label="Save appointment">
@@ -101,7 +95,7 @@
               @foreach ($activeAppointments as $appt)
                 @php
                   $isDept        = $appt->role === \App\Models\Appointment::ROLE_DEPT;
-                  $roleLabel     = $isDept ? 'Dept Chair' : 'Program Chair';
+                  $roleLabel     = $isDept ? 'Dept Chair' : ($appt->role ?? 'Appointment');
                   $scopeLabel    = $isDept
                     ? ($deptById[$appt->scope_id]->name ?? ('Dept #'.$appt->scope_id))
                     : ($progById[$appt->scope_id]->name ?? ('Prog #'.$appt->scope_id));
@@ -159,7 +153,9 @@
                       <label class="form-label small">Role</label>
                       <select name="role" class="form-select form-select-sm sv-role">
                         <option value="{{ \App\Models\Appointment::ROLE_DEPT }}" {{ $isDept ? 'selected' : '' }}>Department Chair</option>
-                        <option value="{{ \App\Models\Appointment::ROLE_PROG }}" {{ !$isDept ? 'selected' : '' }}>Program Chair</option>
+                        <option value="{{ \App\Models\Appointment::ROLE_VCAA }}">VCAA</option>
+                        <option value="{{ \App\Models\Appointment::ROLE_ASSOC_VCAA }}">Associate VCAA</option>
+                        <option value="{{ \App\Models\Appointment::ROLE_DEAN }}">Dean</option>
                       </select>
                     </div>
 
@@ -175,19 +171,7 @@
                       </select>
                     </div>
 
-                    <div class="col-md-4">
-                      <label class="form-label small">Program</label>
-                      <select name="program_id" class="form-select form-select-sm sv-prog" {{ $isDept ? 'disabled' : '' }}>
-                        <option value="">— Select —</option>
-                        @foreach (($programs ?? []) as $prog)
-                          <option value="{{ $prog->id }}"
-                                  data-dept="{{ $prog->department_id }}"
-                                  {{ (!$isDept && (int)$prog->id === (int)$appt->scope_id) ? 'selected' : '' }}>
-                            {{ $prog->name }}
-                          </option>
-                        @endforeach
-                      </select>
-                    </div>
+                    {{-- Program selection removed (Program Chair no longer supported) --}}
 
                     <div class="col-md-1 d-flex">
                       <button class="action-btn approve ms-auto" type="submit" title="Update appointment" aria-label="Update appointment">

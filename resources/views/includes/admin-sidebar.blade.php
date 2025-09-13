@@ -50,13 +50,15 @@
         </a>
       </li>
 
-      {{-- Syllabi (disabled placeholder) --}}
+      {{-- Syllabi --}}
+      @php $isActive = request()->routeIs('admin.syllabi.*'); @endphp
       <li class="nav-item">
-        <span class="nav-link d-flex align-items-center text-muted"
-              role="link" aria-disabled="true" tabindex="-1" style="cursor:not-allowed;">
+        <a class="nav-link d-flex align-items-center {{ $isActive ? 'active' : '' }}"
+           href="{{ route('admin.syllabi.index') }}"
+           aria-current="{{ $isActive ? 'page' : '' }}">
           <i class="bi bi-book"></i>
           <span class="label">Syllabi</span>
-        </span>
+        </a>
       </li>
 
       {{-- Manage Accounts --}}

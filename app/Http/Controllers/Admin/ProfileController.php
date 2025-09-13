@@ -32,12 +32,11 @@ class ProfileController extends Controller
             abort(403, 'Unauthorized');
         }
 
-        // Preload options for simple cascading selects (no extra API needed).
-        $departments = Department::orderBy('name')->get(['id', 'name']);
-        $programs = Program::orderBy('name')->get(['id', 'name', 'department_id']);
+    // Preload options for simple cascading selects (no extra API needed).
+    $departments = Department::orderBy('name')->get(['id', 'name']);
         // ░░░ END: Load Data for Form ░░░
 
-        return view('admin.complete-profile', compact('user', 'departments', 'programs'));
+    return view('admin.complete-profile', compact('user', 'departments'));
     }
 
     // This saves designation/employee_code and creates one or two ChairRequest rows (Dept and/or Program Chair).
@@ -58,7 +57,9 @@ class ProfileController extends Controller
 
             // Role-request inputs (optional)
             'request_dept_chair' => ['nullable', 'boolean'],
-            'request_prog_chair' => ['nullable', 'boolean'],
+            'request_vcaa'       => ['nullable', 'boolean'],
+            'request_assoc_vcaa' => ['nullable', 'boolean'],
+            'request_dean'       => ['nullable', 'boolean'],
 
             // Scope inputs (conditionally required in logic below)
             'department_id'   => ['nullable', 'integer', 'exists:departments,id'],
@@ -68,7 +69,9 @@ class ProfileController extends Controller
 
         // ░░░ START: Interpret Role Requests ░░░
         $wantsDept = (bool) $request->boolean('request_dept_chair');
-        $wantsProg = (bool) $request->boolean('request_prog_chair');
+        $wantsVcaa = (bool) $request->boolean('request_vcaa');
+        $wantsAssocVcaa = (bool) $request->boolean('request_assoc_vcaa');
+        $wantsDean = (bool) $request->boolean('request_dean');
         // ░░░ END: Interpret Role Requests ░░░
 
         // ░░░ START: Conditional Validation for Scope ░░░
@@ -78,35 +81,30 @@ class ProfileController extends Controller
                 ->withInput();
         }
 
-        if ($wantsProg) {
-            if (!$request->filled('department_id')) {
-                return back()
-                    ->withErrors(['department_id' => 'Please select a department to filter programs.'])
-                    ->withInput();
-            }
-            if (!$request->filled('program_id')) {
-                return back()
-                    ->withErrors(['program_id' => 'Please select a program for the Program Chair request.'])
-                    ->withInput();
-            }
-
-            // Guard: ensure chosen program belongs to chosen department.
-            $program = Program::find($request->input('program_id'));
-            if ($program && (int) $program->department_id !== (int) $request->input('department_id')) {
-                return back()
-                    ->withErrors(['program_id' => 'Selected program does not belong to the selected department.'])
-                    ->withInput();
-            }
+        // Require department only when requesting Dean (only Dean is department-scoped)
+        if ($wantsDean && !$request->filled('department_id')) {
+            return back()
+                ->withErrors(['department_id' => 'Please select your department for the Dean role request.'])
+                ->withInput();
         }
+
+        // Program Chair removed — no program-level requests processed server-side.
         // ░░░ END: Conditional Validation for Scope ░░░
 
         // ░░░ START: Save & Create Requests (Transaction) ░░░
-        DB::transaction(function () use ($user, $request, $wantsDept, $wantsProg) {
+    DB::transaction(function () use ($user, $request, $wantsDept, $wantsVcaa, $wantsAssocVcaa, $wantsDean) {
             // -- Save HR fields on the user
-            $user->update([
+            $userPayload = [
                 'designation'   => $request->input('designation'),
                 'employee_code' => $request->input('employee_code'),
-            ]);
+            ];
+
+            // If the user requested Dean and selected a department, persist that department on the user record.
+            if ($wantsDean && $request->filled('department_id')) {
+                $userPayload['department_id'] = (int) $request->input('department_id');
+            }
+
+            $user->update($userPayload);
 
             // -- Create Dept Chair request (dedupe pending)
             if ($wantsDept) {
@@ -122,14 +120,50 @@ class ProfileController extends Controller
                 );
             }
 
-            // -- Create Program Chair request (dedupe pending)
-            if ($wantsProg) {
+            // Program Chair removed — no program-level requests created.
+
+            // -- Create institution-level requests.
+            // Dean is department-scoped; VCAA and Associate VCAA are institution-level (no department).
+            $deptId = $request->input('department_id');
+
+            // For VCAA/Associate VCAA requests: some environments still require department_id non-null
+            // (migration to allow nullable exists). Use the user's department if present; otherwise fall
+            // back to the first department ID in the system to avoid DB constraint errors.
+            $fallbackDeptId = $user->department_id ?? Department::orderBy('id')->value('id') ?? null;
+
+            if ($wantsVcaa) {
                 ChairRequest::firstOrCreate(
                     [
                         'user_id'        => $user->id,
-                        'requested_role' => ChairRequest::ROLE_PROG,
-                        'department_id'  => $request->input('department_id'),
-                        'program_id'     => $request->input('program_id'),
+                        'requested_role' => ChairRequest::ROLE_VCAA,
+                        'department_id'  => $fallbackDeptId,
+                        'program_id'     => null,
+                        'status'         => ChairRequest::STATUS_PENDING,
+                    ],
+                    []
+                );
+            }
+
+            if ($wantsAssocVcaa) {
+                ChairRequest::firstOrCreate(
+                    [
+                        'user_id'        => $user->id,
+                        'requested_role' => ChairRequest::ROLE_ASSOC_VCAA,
+                        'department_id'  => $fallbackDeptId,
+                        'program_id'     => null,
+                        'status'         => ChairRequest::STATUS_PENDING,
+                    ],
+                    []
+                );
+            }
+
+            if ($wantsDean) {
+                ChairRequest::firstOrCreate(
+                    [
+                        'user_id'        => $user->id,
+                        'requested_role' => ChairRequest::ROLE_DEAN,
+                        'department_id'  => $deptId,
+                        'program_id'     => null,
                         'status'         => ChairRequest::STATUS_PENDING,
                     ],
                     []

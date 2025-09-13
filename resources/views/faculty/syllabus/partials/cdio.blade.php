@@ -12,7 +12,8 @@
 -------------------------------------------------------------------------------
 --}}
 
-<form id="cdioForm" method="POST" action="{{ route('faculty.syllabi.cdios.update', $default['id']) }}">
+@php $rp = $routePrefix ?? 'faculty.syllabi'; @endphp
+<form id="cdioForm" method="POST" action="{{ route($rp . '.cdios.update', $default['id']) }}">
   @csrf
   @method('PUT')
 
