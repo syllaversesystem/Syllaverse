@@ -28,6 +28,7 @@ class ChairRequestController extends Controller
     {
         $request->validate([
             'department_id' => ['nullable', 'integer', 'exists:departments,id'],
+            'program_id'    => ['nullable', 'integer', 'exists:programs,id'],
             'start_at'      => ['nullable', 'date'],
             'notes'         => ['nullable', 'string', 'max:2000'],
         ]);
@@ -40,7 +41,19 @@ class ChairRequestController extends Controller
 
         $role   = $chairRequest->requested_role;
         $deptId = $request->filled('department_id') ? (int) $request->input('department_id') : ($chairRequest->department_id ? (int)$chairRequest->department_id : null);
-        $progId = $chairRequest->program_id; // kept for historical data but not required
+        $progId = $request->filled('program_id') ? (int) $request->input('program_id') : ($chairRequest->program_id ? (int)$chairRequest->program_id : null);
+
+        // If this is a program-scoped request, ensure we have a program id available (try to infer
+        // from department when possible). If not, bail with a validation error so the approver can
+        // supply a program in the approval form.
+        if ($role === ChairRequest::ROLE_PROG) {
+            if (empty($progId) && !empty($deptId)) {
+                $progId = Program::where('department_id', $deptId)->value('id');
+            }
+            if (empty($progId)) {
+                return back()->withErrors(['program_id' => 'Program is required when approving a Program Chair request.']);
+            }
+        }
 
         // Department-scoped roles require a department. Dean is department-scoped; institution-level VCAA/ASSOC_VCAA are not.
         if ($role === ChairRequest::ROLE_DEPT || $role === ChairRequest::ROLE_DEAN) {
@@ -67,6 +80,11 @@ class ChairRequestController extends Controller
                 $apptRole  = Appointment::ROLE_DEAN;
                 $scopeType = Appointment::SCOPE_DEPT;
                 $scopeId   = $deptId;
+            } elseif ($role === ChairRequest::ROLE_PROG) {
+                // Program-scoped appointment
+                $apptRole  = Appointment::ROLE_PROG;
+                $scopeType = Appointment::SCOPE_PROG;
+                $scopeId   = $progId;
             } else {
                 // Institution-level roles: use the same role string and institution scope.
                 // Use a sentinel scope_id (0) to indicate "institution" so DB inserts don't fail

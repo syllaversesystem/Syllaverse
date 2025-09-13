@@ -56,6 +56,7 @@
               <label class="form-label small">Role</label>
               <select name="role" class="form-select form-select-sm sv-role" aria-label="Select role">
                 <option value="{{ \App\Models\Appointment::ROLE_DEPT }}">Department Chair</option>
+                <option value="{{ \App\Models\Appointment::ROLE_PROG }}">Program Chair</option>
                 <option value="{{ \App\Models\Appointment::ROLE_VCAA }}">VCAA</option>
                 <option value="{{ \App\Models\Appointment::ROLE_ASSOC_VCAA }}">Associate VCAA</option>
                 <option value="{{ \App\Models\Appointment::ROLE_DEAN }}">Dean</option>
@@ -72,7 +73,15 @@
               </select>
             </div>
 
-            {{-- Program selection removed (Program Chair no longer supported) --}}
+            <div class="col-md-4">
+              <label class="form-label small">Program</label>
+              <select name="program_id" class="form-select form-select-sm sv-prog" aria-label="Select program">
+                <option value="">— Select —</option>
+                @foreach (($programs ?? []) as $prog)
+                  <option value="{{ $prog->id }}" data-dept="{{ $prog->department_id }}">{{ $prog->name }}</option>
+                @endforeach
+              </select>
+            </div>
 
             <div class="col-md-1 d-flex">
               <button class="action-btn approve ms-auto" type="submit" title="Save appointment" aria-label="Save appointment">
@@ -103,6 +112,7 @@
                   $currentDeptId = $isDept
                     ? (int) $appt->scope_id
                     : (int) ($progById[$appt->scope_id]->department_id ?? 0);
+                  $currentProgId = $isDept ? 0 : (int) $appt->scope_id;
                 @endphp
 
                 {{-- Row summary (pills + actions) --}}
@@ -171,7 +181,17 @@
                       </select>
                     </div>
 
-                    {{-- Program selection removed (Program Chair no longer supported) --}}
+                    <div class="col-md-4">
+                      <label class="form-label small">Program</label>
+                      <select name="program_id" class="form-select form-select-sm sv-prog">
+                        <option value="">— Select —</option>
+                        @foreach (($programs ?? []) as $prog)
+                          <option value="{{ $prog->id }}" data-dept="{{ $prog->department_id }}" {{ (int)$prog->id === ($currentProgId ?? 0) ? 'selected' : '' }}>
+                            {{ $prog->name }}
+                          </option>
+                        @endforeach
+                      </select>
+                    </div>
 
                     <div class="col-md-1 d-flex">
                       <button class="action-btn approve ms-auto" type="submit" title="Update appointment" aria-label="Update appointment">

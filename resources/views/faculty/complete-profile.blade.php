@@ -56,6 +56,14 @@
                             </select>
                         </div>
 
+                                                <div class="mb-3">
+                                                    <label class="form-label d-flex align-items-center gap-2">
+                                                        <input class="form-check-input m-0" type="checkbox" id="request_dept_chair" name="request_dept_chair" value="1" {{ old('request_dept_chair') ? 'checked' : '' }}>
+                                                        <span class="fw-semibold">Department Chair / Program Chair</span>
+                                                    </label>
+                                                    <div class="form-text small text-muted">If your department has only one program, requesting this will submit a Program Chair request instead.</div>
+                                                </div>
+
                         <div class="d-grid">
                             <button type="submit" class="btn btn-danger">
                                 <i class="bi bi-save"></i> Save Profile

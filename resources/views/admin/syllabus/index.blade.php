@@ -26,9 +26,9 @@
     <div class="container-fluid px-3 py-3">
 
       <div class="d-flex justify-content-end mb-3">
-        <a href="{{ route('admin.syllabi.index') }}" class="btn btn-danger">
+        <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#selectSyllabusMetaModal">
           <i class="bi bi-plus-lg me-1"></i> Create Syllabus
-        </a>
+        </button>
       </div>
 
       @if ($syllabi->isEmpty())
@@ -36,9 +36,14 @@
           <div class="ico"><i class="bi bi-journal-text"></i></div>
           <h5 class="fw-bold mb-1">No syllabi yet</h5>
           <p class="text-muted mb-3">There are no syllabi available. Use the Create button to add the first syllabus.</p>
-          <a href="{{ route('admin.syllabi.index') }}" class="btn btn-danger fw-semibold">
+          <button class="btn btn-danger fw-semibold" data-bs-toggle="modal" data-bs-target="#selectSyllabusMetaModal">
             <i class="bi bi-plus-lg me-1"></i> Create Syllabus
-          </a>
+          </button>
+          @include('admin.syllabus.modals.create', [
+            'programs' => $programs ?? collect(),
+            'courses' => $courses ?? collect(),
+            'routePrefix' => 'admin.syllabi'
+          ])
       @else
         <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 svx-grid">
           @foreach ($syllabi as $syllabus)
@@ -73,6 +78,12 @@
           @endforeach
         </div>
       @endif
+      @include('admin.syllabus.modals.create', [
+        'programs' => $programs ?? collect(),
+        'courses' => $courses ?? collect(),
+        'faculties' => $faculties ?? collect(),
+        'routePrefix' => 'admin.syllabi'
+      ])
 
     </div>
   </div>

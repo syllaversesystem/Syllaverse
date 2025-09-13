@@ -130,7 +130,7 @@
   }
 
   // ── Appointments render helpers (no Blade fragments) ───────────────────────
-  const roleLabel = (appt) => appt.is_dept ? 'Dept Chair' : (appt.role || 'Appointment');
+  const roleLabel = (appt) => appt && appt.is_prog ? 'Program Chair' : (appt && appt.is_dept ? 'Dept Chair' : (appt && appt.role ? appt.role : 'Appointment'));
 
   const getAddForm = (modal) => modal?.querySelector('form[data-sv-scope^="add-"]');
   const getDeptOptionsHTML = (modal, selectedId) => {
@@ -178,8 +178,10 @@
           <div class="col-md-3">
             <label class="form-label small">Role</label>
             <select name="role" class="form-select form-select-sm sv-role">
-              <option value="DEPT_CHAIR"${appt.is_dept ? ' selected' : ''}>Department Chair</option>
-              <!-- Program Chair removed -->
+              ${appt && appt.is_prog ? `<option value="PROG_CHAIR" selected>Program Chair</option>` : `<option value="DEPT_CHAIR"${appt && appt.is_dept ? ' selected' : ''}>Department Chair</option>`}
+              <option value="VCAA">VCAA</option>
+              <option value="ASSOC_VCAA">Associate VCAA</option>
+              <option value="DEAN">Dean</option>
             </select>
           </div>
 

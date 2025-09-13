@@ -24,6 +24,66 @@ class SyllabusController extends Controller
         return view('admin.syllabus.index', compact('syllabi', 'programs', 'courses'));
     }
 
+    public function create()
+    {
+        $programs = Program::all();
+        $courses = Course::all();
+        $faculties = \App\Models\User::where('role', 'faculty')->get();
+        return view('admin.syllabus.create', compact('programs', 'courses', 'faculties'));
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'program_id' => 'nullable|exists:programs,id',
+            'course_id' => 'required|exists:courses,id',
+            'academic_year' => 'required|string',
+            'semester' => 'required|string',
+            'year_level' => 'required|string',
+            'faculty_id' => 'nullable|exists:users,id',
+        ]);
+
+        $facultyId = $request->input('faculty_id') ?: auth()->id();
+
+        $mission = \App\Models\GeneralInformation::where('section', 'mission')->first()?->content ?? '';
+        $vision  = \App\Models\GeneralInformation::where('section', 'vision')->first()?->content ?? '';
+
+        $syllabus = Syllabus::create([
+            'faculty_id' => $facultyId,
+            'program_id' => $request->program_id,
+            'course_id' => $request->course_id,
+            'title' => $request->title,
+            'academic_year' => $request->academic_year,
+            'semester' => $request->semester,
+            'year_level' => $request->year_level,
+        ]);
+
+        try { \Log::info('Admin created syllabus', ['syllabus_id' => $syllabus->id, 'faculty_id' => $facultyId]); } catch (\Throwable $__e) {}
+
+        // persist mission/vision
+        $syllabus->missionVision()->create(['mission' => $mission, 'vision' => $vision]);
+
+        // copy course ilos
+        $course = Course::with(['ilos', 'prerequisites'])->find($request->course_id);
+        foreach ($course->ilos as $ilo) {
+            \App\Models\SyllabusIlo::create(['syllabus_id' => $syllabus->id, 'code' => $ilo->code, 'description' => $ilo->description]);
+        }
+
+        // copy master IGAs if present
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasTable('igas')) {
+                $masterIgas = \App\Models\Iga::ordered()->get();
+                $pos = 1;
+                foreach ($masterIgas as $m) {
+                    \App\Models\SyllabusIga::create(['syllabus_id' => $syllabus->id, 'code' => $m->code ?? (\App\Models\Iga::makeCodeFromPosition($pos)), 'description' => $m->description ?? $m->title ?? null, 'position' => $pos++]);
+                }
+            }
+        } catch (\Throwable $e) { \Log::warning('Failed copying master IGAs for admin created syllabus', ['error' => $e->getMessage()]); }
+
+        return redirect()->route('admin.syllabi.show', $syllabus->id)->with('success', 'Syllabus created successfully.');
+    }
+
     public function show($id)
     {
         $syllabus = Syllabus::with([

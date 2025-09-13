@@ -101,7 +101,7 @@
                         @php
                           $roleLabel = match ($r->requested_role) {
                             \App\Models\ChairRequest::ROLE_DEPT => 'Department Chair',
-                            // Program Chair removed
+                            \App\Models\ChairRequest::ROLE_PROG => 'Program Chair',
                             \App\Models\ChairRequest::ROLE_VCAA => 'Vice Chancellor for Academic Affairs (VCAA)',
                             \App\Models\ChairRequest::ROLE_ASSOC_VCAA => 'Associate VCAA',
                             \App\Models\ChairRequest::ROLE_DEAN => 'Dean',
@@ -202,7 +202,7 @@
 
   <div class="row g-3">
     {{-- Department Chair --}}
-    <div class="col-md-6">
+      <div class="col-md-6">
       <label for="department_id" class="form-label d-flex align-items-center gap-2">
         <input class="form-check-input m-0"
                type="checkbox"
@@ -211,7 +211,7 @@
                value="1"
                {{ old('request_dept_chair') ? 'checked' : '' }}
                {{ $hasPendingRequests ? 'disabled' : '' }}>
-        <span class="fw-semibold">Department Chair</span>
+        <span class="fw-semibold">Department Chair / Program Chair</span>
       </label>
 
       <select id="department_id"

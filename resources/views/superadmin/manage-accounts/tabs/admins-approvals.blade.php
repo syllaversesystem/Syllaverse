@@ -37,6 +37,7 @@
     $uid   = $r->user_id;
     $label = match ($r->requested_role) {
       ChairRequest::ROLE_DEPT => 'Dept Chair',
+      ChairRequest::ROLE_PROG => 'Program Chair',
       ChairRequest::ROLE_VCAA => 'VCAA',
       ChairRequest::ROLE_ASSOC_VCAA => 'Associate VCAA',
       ChairRequest::ROLE_DEAN => 'Dean',

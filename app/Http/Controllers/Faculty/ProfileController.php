@@ -16,6 +16,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Appointment;
 use App\Models\Department;
+use App\Models\ChairRequest;
+use App\Models\Program;
 
 class ProfileController extends Controller
 {
@@ -56,6 +58,31 @@ class ProfileController extends Controller
             'status'      => 'active',
             'assigned_by' => null, // Will be set when formally assigned by admin
         ]);
+
+        // If the user requested department/program chair, create a ChairRequest.
+        if ($request->boolean('request_dept_chair')) {
+            $deptId = (int) $request->department_id;
+            $programCount = Program::where('department_id', $deptId)->count();
+
+            if ($programCount === 1) {
+                $singleProgramId = Program::where('department_id', $deptId)->value('id');
+                ChairRequest::firstOrCreate([
+                    'user_id' => $user->id,
+                    'requested_role' => ChairRequest::ROLE_PROG,
+                    'department_id' => $deptId,
+                    'program_id' => $singleProgramId,
+                    'status' => ChairRequest::STATUS_PENDING,
+                ], []);
+            } else {
+                ChairRequest::firstOrCreate([
+                    'user_id' => $user->id,
+                    'requested_role' => ChairRequest::ROLE_DEPT,
+                    'department_id' => $deptId,
+                    'program_id' => null,
+                    'status' => ChairRequest::STATUS_PENDING,
+                ], []);
+            }
+        }
 
         Auth::logout(); // Force re-login to trigger middleware again
         return redirect()->route('faculty.login.form')

@@ -46,24 +46,32 @@ class AppointmentController extends Controller
         $admin->loadMissing('appointments');
         $active = $admin->appointments()->active()->get();
 
-        $deptNames = Department::pluck('name', 'id');                                 // id => name
+    $deptNames = Department::pluck('name', 'id');                                 // id => name
+    $progNames = Program::pluck('name', 'id');                                     // id => name
 
         return $active->map(function (Appointment $a) use ($deptNames) {
             $isDept = $a->role === Appointment::ROLE_DEPT;
+            $isProg = $a->role === Appointment::ROLE_PROG;
 
-            $scopeLabel = $isDept
-                ? (string) ($deptNames[$a->scope_id] ?? ('Dept #'.$a->scope_id))
-                : ($a->scope_type ? ($a->scope_type . ' #' . $a->scope_id) : 'Institution');
+            $scopeLabel = 'Institution';
+            if ($isDept) {
+                $scopeLabel = (string) ($deptNames[$a->scope_id] ?? ('Dept #'.$a->scope_id));
+            } elseif ($isProg) {
+                $scopeLabel = (string) ($progNames[$a->scope_id] ?? ('Program #'.$a->scope_id));
+            } elseif ($a->scope_type) {
+                $scopeLabel = ($a->scope_type . ' #' . $a->scope_id);
+            }
 
             return [
                 'id'          => (int) $a->id,
                 'role'        => $a->role,
-                'role_label'  => $isDept ? 'Dept Chair' : ($a->role ?? 'Appointment'),
+                'role_label'  => $isDept ? 'Dept Chair' : ($isProg ? 'Program Chair' : ($a->role ?? 'Appointment')),
                 'is_dept'     => $isDept,
+                'is_prog'     => $isProg,
                 'scope_id'    => $a->scope_id ? (int) $a->scope_id : null,
                 'scope_label' => $scopeLabel,
                 'dept_id'     => $isDept ? (int) $a->scope_id : null,
-                'program_id'  => null,
+                'program_id'  => $isProg ? (int) $a->scope_id : null,
             ];
         })->values()->all();
     }

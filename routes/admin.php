@@ -118,6 +118,8 @@ Route::post('/master-data/reorder/ilo', [\App\Http\Controllers\Admin\IntendedLea
     Route::post('/manage-accounts/{id}/reject',    [ManageFacultyAccountController::class, 'reject'])->name('admin.manage-accounts.reject');
 
     // Admin Syllabi (view & export) — mirrors faculty routes but for admins
+    Route::get('/syllabi/create', [\App\Http\Controllers\Admin\SyllabusController::class, 'create'])->name('admin.syllabi.create');
+    Route::post('/syllabi', [\App\Http\Controllers\Admin\SyllabusController::class, 'store'])->name('admin.syllabi.store');
     Route::get('/syllabi', [\App\Http\Controllers\Admin\SyllabusController::class, 'index'])->name('admin.syllabi.index');
     Route::get('/syllabi/{id}', [\App\Http\Controllers\Admin\SyllabusController::class, 'show'])->name('admin.syllabi.show');
     Route::get('/syllabi/{id}/export/pdf', [\App\Http\Controllers\Admin\SyllabusController::class, 'exportPdf'])->name('admin.syllabi.export.pdf');

@@ -106,18 +106,39 @@ class ProfileController extends Controller
 
             $user->update($userPayload);
 
-            // -- Create Dept Chair request (dedupe pending)
+            // -- Create Dept/Program Chair request (dedupe pending)
             if ($wantsDept) {
-                ChairRequest::firstOrCreate(
-                    [
-                        'user_id'        => $user->id,
-                        'requested_role' => ChairRequest::ROLE_DEPT,
-                        'department_id'  => $request->input('department_id'),
-                        'program_id'     => null,
-                        'status'         => ChairRequest::STATUS_PENDING,
-                    ],
-                    [] // no extra defaults
-                );
+                $deptId = (int) $request->input('department_id');
+
+                // Count programs in the selected department. If there's only one program, the
+                // user should be requesting a Program Chair (PROG_CHAIR) instead of a Department Chair.
+                $programCount = Program::where('department_id', $deptId)->count();
+
+                if ($programCount === 1) {
+                    // Find the single program id
+                    $singleProgramId = Program::where('department_id', $deptId)->value('id');
+                    ChairRequest::firstOrCreate(
+                        [
+                            'user_id'        => $user->id,
+                            'requested_role' => ChairRequest::ROLE_PROG,
+                            'department_id'  => $deptId,
+                            'program_id'     => $singleProgramId,
+                            'status'         => ChairRequest::STATUS_PENDING,
+                        ],
+                        []
+                    );
+                } else {
+                    ChairRequest::firstOrCreate(
+                        [
+                            'user_id'        => $user->id,
+                            'requested_role' => ChairRequest::ROLE_DEPT,
+                            'department_id'  => $deptId,
+                            'program_id'     => null,
+                            'status'         => ChairRequest::STATUS_PENDING,
+                        ],
+                        [] // no extra defaults
+                    );
+                }
             }
 
             // Program Chair removed — no program-level requests created.

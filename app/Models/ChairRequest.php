@@ -19,6 +19,8 @@ class ChairRequest extends Model
     use HasFactory;
 
     public const ROLE_DEPT = 'DEPT_CHAIR';
+    // Program-level chair (assigned when a department has only one program)
+    public const ROLE_PROG = 'PROG_CHAIR';
     // Central/institution-level roles (no department/program scope)
     public const ROLE_VCAA       = 'VCAA';
     public const ROLE_ASSOC_VCAA = 'ASSOC_VCAA';
@@ -59,8 +61,7 @@ class ChairRequest extends Model
 
     // Helpers
     public function isDeptRequest(): bool { return $this->requested_role === self::ROLE_DEPT; }
-    // Program Chair has been removed from the product; keep method for BC but return false
-    public function isProgRequest(): bool { return false; }
+    public function isProgRequest(): bool { return $this->requested_role === self::ROLE_PROG; }
     public function isInstitutionRequest(): bool
     {
         return in_array($this->requested_role, [self::ROLE_VCAA, self::ROLE_ASSOC_VCAA, self::ROLE_DEAN], true);
@@ -102,6 +103,10 @@ class ChairRequest extends Model
             $role = Appointment::ROLE_DEPT;
             $scopeType = Appointment::SCOPE_DEPT;
             $scopeId = $this->department_id;
+        } elseif ($this->isProgRequest()) {
+            $role = Appointment::ROLE_PROG;
+            $scopeType = Appointment::SCOPE_PROG;
+            $scopeId = $this->program_id;
         } else {
             // Institution-level roles: store role as the requested_role string and use a sentinel
             // scope id (0) to represent the institution when the DB requires a non-null scope_id.
