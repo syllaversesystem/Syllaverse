@@ -157,7 +157,7 @@
     @includeIf('faculty.syllabus.partials.mapping-iga-at')
 
     {{-- ===== Section 17: ILO to CDIO/SDG Mapping ===== --}}
-    @includeIf('faculty.syllabus.partials.mapping-ilo-cdio-sdg')
+    {{-- mapping-ilo-cdio-sdg moved to bottom to avoid visual clutter; rendered later in the document --}}
 
   {{-- ===== Assessment Mapping (bottom) ===== --}}
   @includeIf('faculty.syllabus.partials.assessment-mapping')
@@ -167,6 +167,9 @@
 
   {{-- ===== ILO → IGA partial (small 2×1 box) ===== --}}
   @includeIf('faculty.syllabus.partials.ilo-iga-mapping')
+
+  {{-- ===== ILO to CDIO/SDG Mapping (moved to bottom) ===== --}}
+  @includeIf('faculty.syllabus.partials.mapping-ilo-cdio-sdg')
 
   {{-- ===== Footer: Signatories ===== --}}
   @includeIf('faculty.syllabus.partials.footers-prepared')
