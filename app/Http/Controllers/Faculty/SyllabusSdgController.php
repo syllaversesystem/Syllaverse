@@ -21,7 +21,7 @@ class SyllabusSdgController extends Controller
     public function attach(Request $request, Syllabus $syllabus)
     {
         // Ownership guard: only the faculty who owns the syllabus may modify its SDGs
-        if ($syllabus->faculty_id !== Auth::id()) {
+        if ($syllabus->faculty_id !== Auth::id() && ! Auth::guard('admin')->check()) {
             return response()->json(['error' => 'Forbidden'], 403);
         }
         // Accept either a single sdg_id or an array sdg_ids for bulk attach
@@ -96,7 +96,7 @@ class SyllabusSdgController extends Controller
      */
     public function update(Request $request, Syllabus $syllabus, $pivotId)
     {
-        if ($syllabus->faculty_id !== Auth::id()) {
+        if ($syllabus->faculty_id !== Auth::id() && ! Auth::guard('admin')->check()) {
             return response()->json(['error' => 'Forbidden'], 403);
         }
         // Accept partial updates (autosave of description only)
@@ -128,7 +128,7 @@ class SyllabusSdgController extends Controller
      */
     public function bulkUpdate(Request $request, Syllabus $syllabus)
     {
-        if ($syllabus->faculty_id !== Auth::id()) {
+        if ($syllabus->faculty_id !== Auth::id() && ! Auth::guard('admin')->check()) {
             return response()->json(['error' => 'Forbidden'], 403);
         }
     // Debug: log incoming payload for troubleshooting when update appears to silently fail
@@ -214,7 +214,7 @@ class SyllabusSdgController extends Controller
      */
     public function reorder(Request $request, Syllabus $syllabus)
     {
-        if ($syllabus->faculty_id !== Auth::id()) {
+        if ($syllabus->faculty_id !== Auth::id() && ! Auth::guard('admin')->check()) {
             return response()->json(['error' => 'Forbidden'], 403);
         }
         // Accept either { ids: [id1, id2, ...] } or legacy { positions: [{ id: pivotId, position }] }
@@ -280,7 +280,7 @@ class SyllabusSdgController extends Controller
      */
     public function detach(Syllabus $syllabus, Sdg $sdg)
     {
-        if ($syllabus->faculty_id !== Auth::id()) {
+        if ($syllabus->faculty_id !== Auth::id() && ! Auth::guard('admin')->check()) {
             return response()->json(['error' => 'Forbidden'], 403);
         }
         // remove any per-syllabus entries matching the SDG title or code
@@ -300,7 +300,7 @@ class SyllabusSdgController extends Controller
      */
     public function destroyEntry(Syllabus $syllabus, $id)
     {
-        if ($syllabus->faculty_id !== Auth::id()) {
+        if ($syllabus->faculty_id !== Auth::id() && ! Auth::guard('admin')->check()) {
             return response()->json(['error' => 'Forbidden'], 403);
         }
         $entry = SyllabusSdg::where('id', $id)->where('syllabus_id', $syllabus->id)->first();

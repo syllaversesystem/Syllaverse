@@ -14,7 +14,11 @@ class SyllabusController extends Controller
 {
     public function index()
     {
+        // Show only syllabi that belong to the currently authenticated admin user
+        // (stored in syllabus.faculty_id). This limits admin view to their own syllabi.
+        $adminId = \Illuminate\Support\Facades\Auth::guard('admin')->id();
         $syllabi = Syllabus::with('course', 'program', 'faculty')
+            ->where('faculty_id', $adminId)
             ->latest()
             ->get();
 

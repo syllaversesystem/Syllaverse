@@ -17,6 +17,7 @@ use Illuminate\Http\Request;
 use App\Models\Syllabus;
 use App\Models\TLA;
 use App\Services\TlaAiGeneratorService;
+use Illuminate\Support\Facades\Auth;
 
 class SyllabusTLAController extends Controller
 {
@@ -35,7 +36,7 @@ class SyllabusTLAController extends Controller
             'tla.*.position' => 'nullable|integer',
         ]);
 
-        $syllabus = Syllabus::where('faculty_id', auth()->id())->findOrFail($id);
+    $syllabus = $this->getSyllabusForAction($id);
         // Delete existing rows and recreate them preserving the order via position
         $syllabus->tla()->delete();
 
@@ -62,7 +63,7 @@ class SyllabusTLAController extends Controller
     // ➕ Immediately inserts a new blank TLA row
     public function append(Request $request, $id)
     {
-        $syllabus = Syllabus::where('faculty_id', auth()->id())->findOrFail($id);
+    $syllabus = $this->getSyllabusForAction($id);
 
         // Determine next position
         $max = (int) TLA::where('syllabus_id', $syllabus->id)->max('position');
@@ -83,7 +84,7 @@ class SyllabusTLAController extends Controller
     {
         $tla = TLA::findOrFail($id);
 
-        if ($tla->syllabus->faculty_id !== auth()->id()) {
+        if ($tla->syllabus->faculty_id !== auth()->id() && ! Auth::guard('admin')->check()) {
             return response()->json(['success' => false, 'message' => 'Unauthorized.'], 403);
         }
 
@@ -95,7 +96,7 @@ class SyllabusTLAController extends Controller
     // 🧩 Sync ILOs to a TLA row (GET = fetch mapped IDs + codes, POST = sync)
     public function syncIlo(Request $request, $id)
     {
-        $tla = TLA::with('ilos')->findOrFail($id);
+    $tla = TLA::with('ilos')->findOrFail($id);
 
         if ($request->isMethod('get')) {
             return response()->json([
@@ -179,6 +180,14 @@ public function generateWithAI(Request $request, Syllabus $syllabus)
         'message' => "✅ Successfully Generated.",
     ]);
 }
+
+    protected function getSyllabusForAction($id)
+    {
+        if (Auth::guard('admin')->check()) {
+            return Syllabus::findOrFail($id);
+        }
+        return Syllabus::where('faculty_id', auth()->id())->findOrFail($id);
+    }
 
 
 

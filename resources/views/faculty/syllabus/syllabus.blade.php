@@ -56,7 +56,7 @@
             <span class="badge bg-light text-danger ms-2" id="unsaved-count-badge" style="display:none;">0</span>
           </button>
 
-          <a href="{{ route('faculty.syllabi.index') }}" class="btn btn-outline-secondary fw-semibold">
+          <a href="{{ route(($routePrefix ?? 'faculty.syllabi') . '.index') }}" class="btn btn-outline-secondary fw-semibold" onclick="event.preventDefault(); try { if (typeof handleExit === 'function') { handleExit(this.href); } else { window.location.href = this.href; } } catch(e){ window.location.href = this.href; }">
             <i class="bi bi-box-arrow-left"></i> Exit
           </a>
         </div>

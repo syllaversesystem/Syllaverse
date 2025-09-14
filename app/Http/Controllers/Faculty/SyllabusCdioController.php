@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Faculty;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\SyllabusCdio;
-use Illuminate\Support\Facades\Auth;
 use App\Models\Syllabus;
+use Illuminate\Support\Facades\Auth;
 
 class SyllabusCdioController extends Controller
 {
@@ -17,7 +17,7 @@ class SyllabusCdioController extends Controller
             \Log::debug('SyllabusCdioController::update called', ['syllabusId' => $syllabusId, 'user' => Auth::id(), 'payload_keys' => array_keys($request->all())]);
             try { \Log::debug('SyllabusCdioController::update payload', ['cdios' => $request->input('cdios')]); } catch (\Throwable $__e) { /* noop */ }
         } catch (\Throwable $__e) { /* noop */ }
-        $syllabus = Syllabus::where('faculty_id', Auth::id())->findOrFail($syllabusId);
+    $syllabus = $this->getSyllabusForAction($syllabusId);
         $items = $request->input('cdios');
         if (! is_array($items)) {
             return response()->json(['ok' => false, 'message' => 'Invalid payload'], 422);
@@ -40,7 +40,7 @@ class SyllabusCdioController extends Controller
 
     public function reorder(Request $request, $syllabusId)
     {
-        $syllabus = Syllabus::where('faculty_id', Auth::id())->findOrFail($syllabusId);
+        $syllabus = $this->getSyllabusForAction($syllabusId);
 
         // Support two payload shapes: positions: [{id,pos}] or order: [id,...]
         $positions = $request->input('positions');
@@ -65,7 +65,7 @@ class SyllabusCdioController extends Controller
     {
         $cdio = SyllabusCdio::findOrFail($id);
         $syllabus = $cdio->syllabus;
-        if (! $syllabus || $syllabus->faculty_id !== Auth::id()) {
+        if (! $syllabus || ($syllabus->faculty_id !== Auth::id() && ! Auth::guard('admin')->check())) {
             return response()->json(['ok' => false, 'message' => 'Unauthorized'], 403);
         }
         $cdio->delete();
@@ -80,7 +80,7 @@ class SyllabusCdioController extends Controller
             'description' => 'nullable|string|max:1000'
         ]);
 
-        $syllabus = Syllabus::where('faculty_id', Auth::id())->findOrFail($request->syllabus_id);
+    $syllabus = $this->getSyllabusForAction($request->syllabus_id);
 
         $max = SyllabusCdio::where('syllabus_id', $syllabus->id)->max('position');
         $pos = ($max ?? 0) + 1;
@@ -99,9 +99,21 @@ class SyllabusCdioController extends Controller
     public function inlineUpdate(Request $request, $syllabusId, $cdioId)
     {
         $request->validate(['description' => 'nullable|string|max:1000']);
-        $syllabus = Syllabus::where('faculty_id', Auth::id())->findOrFail($syllabusId);
+        $syllabus = $this->getSyllabusForAction($syllabusId);
         $cdio = SyllabusCdio::where('syllabus_id', $syllabus->id)->findOrFail($cdioId);
         $cdio->update(['description' => $request->description]);
         return response()->json(['message' => 'CDIO updated.']);
+    }
+
+    /**
+     * Resolve syllabus by id with admin-aware scoping.
+     * Admin users may access any syllabus; faculty may only access their own.
+     */
+    protected function getSyllabusForAction($syllabusId)
+    {
+        if (Auth::guard('admin')->check()) {
+            return Syllabus::findOrFail($syllabusId);
+        }
+        return Syllabus::where('faculty_id', Auth::id())->findOrFail($syllabusId);
     }
 }

@@ -54,6 +54,7 @@ class SyllabusController extends Controller
         $request->validate([
             'title' => 'required|string|max:255',
             'program_id' => 'nullable|exists:programs,id',
+            'faculty_id' => 'nullable|exists:users,id',
             'course_id' => 'required|exists:courses,id',
             'academic_year' => 'required|string',
             'semester' => 'required|string',
@@ -63,8 +64,10 @@ class SyllabusController extends Controller
         $mission = GeneralInformation::where('section', 'mission')->first()?->content ?? '';
         $vision  = GeneralInformation::where('section', 'vision')->first()?->content ?? '';
 
+        $facultyId = $request->input('faculty_id') ?: Auth::id();
+
         $syllabus = Syllabus::create([
-            'faculty_id' => Auth::id(),
+            'faculty_id' => $facultyId,
             'program_id' => $request->program_id,
             'course_id' => $request->course_id,
             'title' => $request->title,
@@ -74,7 +77,7 @@ class SyllabusController extends Controller
         ]);
 
     // Diagnostic: log created syllabus id so we can correlate model-created seeding
-    try { \Log::info('SyllabusController::store created syllabus', ['syllabus_id' => $syllabus->id, 'faculty_id' => Auth::id()]); } catch (\Throwable $__e) {}
+    try { \Log::info('SyllabusController::store created syllabus', ['syllabus_id' => $syllabus->id, 'faculty_id' => $facultyId]); } catch (\Throwable $__e) {}
 
         // persist mission/vision into the dedicated table
         $syllabus->missionVision()->create([

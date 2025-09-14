@@ -125,9 +125,55 @@ Route::post('/master-data/reorder/ilo', [\App\Http\Controllers\Admin\IntendedLea
     Route::get('/syllabi/{id}/export/pdf', [\App\Http\Controllers\Admin\SyllabusController::class, 'exportPdf'])->name('admin.syllabi.export.pdf');
     Route::get('/syllabi/{id}/export/word', [\App\Http\Controllers\Admin\SyllabusController::class, 'exportWord'])->name('admin.syllabi.export.word');
     Route::put('/syllabi/{id}', [\App\Http\Controllers\Admin\SyllabusController::class, 'update'])->name('admin.syllabi.update');
+    // Admin ILO routes (mirror faculty ILO endpoints so the partial's route names resolve)
+    Route::put('/syllabi/{syllabus}/ilos', [\App\Http\Controllers\Faculty\SyllabusIloController::class, 'update'])->name('admin.syllabi.ilos.update');
+    Route::post('/syllabi/ilos/store', [\App\Http\Controllers\Faculty\SyllabusIloController::class, 'store'])->name('admin.syllabi.ilos.store');
+    Route::put('/syllabi/ilos/{syllabus}/{ilo}', [\App\Http\Controllers\Faculty\SyllabusIloController::class, 'inlineUpdate'])->name('admin.syllabi.ilos.inline');
+    Route::delete('/syllabi/ilos/{id}', [\App\Http\Controllers\Faculty\SyllabusIloController::class, 'destroy'])->name('admin.syllabi.ilos.destroy');
+    Route::post('/syllabi/reorder/ilo', [\App\Http\Controllers\Faculty\SyllabusIloController::class, 'reorder'])->name('admin.syllabi.ilos.reorder');
     Route::post('/syllabi/{syllabus}/assessment-tasks', [\App\Http\Controllers\Admin\SyllabusController::class, 'saveAssessmentTasks'])->name('admin.syllabi.assessment_tasks.save');
     Route::post('/syllabi/{syllabus}/assessment-mappings', [\App\Http\Controllers\Admin\SyllabusController::class, 'saveAssessmentMappings'])->name('admin.syllabi.assessment_mappings.save');
     Route::delete('/syllabi/{id}', [\App\Http\Controllers\Admin\SyllabusController::class, 'destroy'])->name('admin.syllabi.destroy');
+
+    // IGA (Institutional Graduate Attributes) mirrors
+    Route::put('/syllabi/{syllabus}/igas', [\App\Http\Controllers\Faculty\SyllabusIgaController::class, 'update'])->name('admin.syllabi.iga.update');
+    Route::post('/syllabi/igas/reorder', [\App\Http\Controllers\Faculty\SyllabusIgaController::class, 'reorder'])->name('admin.syllabi.iga.reorder');
+    Route::delete('/syllabi/igas/{id}', [\App\Http\Controllers\Faculty\SyllabusIgaController::class, 'destroy'])->name('admin.syllabi.iga.destroy');
+
+    // CDIO mirrors
+    Route::put('/syllabi/{syllabus}/cdios', [\App\Http\Controllers\Faculty\SyllabusCdioController::class, 'update'])->name('admin.syllabi.cdios.update');
+    Route::post('/syllabi/{syllabus}/cdios/reorder', [\App\Http\Controllers\Faculty\SyllabusCdioController::class, 'reorder'])->name('admin.syllabi.cdios.reorder');
+    Route::post('/syllabi/cdios', [\App\Http\Controllers\Faculty\SyllabusCdioController::class, 'store'])->name('admin.syllabi.cdios.store');
+    Route::put('/syllabi/{syllabus}/cdios/{cdio}', [\App\Http\Controllers\Faculty\SyllabusCdioController::class, 'inlineUpdate'])->name('admin.syllabi.cdios.inline');
+    Route::delete('/syllabi/cdios/{id}', [\App\Http\Controllers\Faculty\SyllabusCdioController::class, 'destroy'])->name('admin.syllabi.cdios.destroy');
+
+    // SO mirrors
+    Route::put('/syllabi/{syllabus}/sos', [\App\Http\Controllers\Faculty\SyllabusSoController::class, 'update'])->name('admin.syllabi.sos.update');
+    Route::post('/syllabi/{syllabus}/sos/reorder', [\App\Http\Controllers\Faculty\SyllabusSoController::class, 'reorder'])->name('admin.syllabi.sos.reorder');
+    Route::delete('/syllabi/sos/{id}', [\App\Http\Controllers\Faculty\SyllabusSoController::class, 'destroy'])->name('admin.syllabi.sos.destroy');
+
+    // SDG mirrors
+    Route::post('/syllabi/{syllabus}/sdgs', [\App\Http\Controllers\Faculty\SyllabusSdgController::class, 'attach'])->name('admin.syllabi.sdgs.attach');
+    Route::put('/syllabi/{syllabus}/sdgs', [\App\Http\Controllers\Faculty\SyllabusSdgController::class, 'bulkUpdate'])->name('admin.syllabi.sdgs.save');
+    Route::post('/syllabi/{syllabus}/sdgs/reorder', [\App\Http\Controllers\Faculty\SyllabusSdgController::class, 'reorder'])->name('admin.syllabi.sdgs.reorder');
+    Route::put('/syllabi/{syllabus}/sdgs/update/{pivot}', [\App\Http\Controllers\Faculty\SyllabusSdgController::class, 'update'])->name('admin.syllabi.sdgs.update');
+    Route::delete('/syllabi/{syllabus}/sdgs/{sdg}', [\App\Http\Controllers\Faculty\SyllabusSdgController::class, 'detach'])->name('admin.syllabi.sdgs.detach');
+    Route::delete('/syllabi/{syllabus}/sdgs/entry/{id}', [\App\Http\Controllers\Faculty\SyllabusSdgController::class, 'destroyEntry'])->name('admin.syllabi.sdgs.destroy_entry');
+
+    // Textbook mirrors
+    Route::post('/syllabi/{syllabus}/textbook', [\App\Http\Controllers\Faculty\SyllabusTextbookController::class, 'store'])->name('admin.syllabi.textbook.upload');
+    Route::delete('/syllabi/textbook/{textbook}', [\App\Http\Controllers\Faculty\SyllabusTextbookController::class, 'destroy'])->name('admin.syllabi.textbook.delete');
+    Route::put('/syllabi/textbook/{textbook}', [\App\Http\Controllers\Faculty\SyllabusTextbookController::class, 'update'])->name('admin.syllabi.textbook.update');
+    Route::get('/syllabi/{syllabus}/textbook/list', [\App\Http\Controllers\Faculty\SyllabusTextbookController::class, 'list'])->name('admin.syllabi.textbook.list');
+
+    // TLA mirrors
+    Route::post('/syllabi/{id}/tla', [\App\Http\Controllers\Faculty\SyllabusTLAController::class, 'update'])->name('admin.syllabi.tla.update');
+    Route::post('/syllabi/{id}/tla/append', [\App\Http\Controllers\Faculty\SyllabusTLAController::class, 'append'])->name('admin.syllabi.tla.append');
+    Route::delete('/syllabi/tla/{id}', [\App\Http\Controllers\Faculty\SyllabusTLAController::class, 'destroy'])->name('admin.syllabi.tla.delete');
+    Route::match(['get', 'post'], '/syllabi/tla/{id}/sync-ilo', [\App\Http\Controllers\Faculty\SyllabusTLAController::class, 'syncIlo'])->name('admin.syllabi.tla.sync-ilo');
+    Route::match(['get', 'post'], '/syllabi/tla/{id}/sync-so', [\App\Http\Controllers\Faculty\SyllabusTLAController::class, 'syncSo'])->name('admin.syllabi.tla.sync-so');
+    Route::post('/syllabi/{syllabus}/generate-tla', [\App\Http\Controllers\Faculty\SyllabusTLAController::class, 'generateWithAI'])
+        ->name('admin.syllabi.tla.generate');
 
     // Logout
     Route::post('/logout', function () {

@@ -70,13 +70,39 @@ function trackFormChanges(formSelector = '#syllabusForm') {
 
 function setupExitConfirmation(exitUrlVariable = 'syllabusExitUrl') {
   const targetUrl = window[exitUrlVariable];
-  window.handleExit = function () {
+  window.handleExit = function (url) {
+    // Determine destination URL: explicit URL passed, then globally provided syllabusExitUrl, then computed targetUrl
+    let dest = url || window.syllabusExitUrl || targetUrl;
+
+    // If we're on an admin path but the destination points to faculty index, rewrite to admin index.
+    try {
+      const currentPath = window.location.pathname || '';
+      if (currentPath.startsWith('/admin') && typeof dest === 'string' && dest.includes('/faculty/syllabi')) {
+        dest = dest.replace('/faculty/syllabi', '/admin/syllabi');
+      }
+    } catch (e) { /* noop */ }
+
+    // If dest is missing or contains the string 'undefined', fall back to a safer exit URL
+    try {
+      if (!dest || (typeof dest === 'string' && dest.indexOf('undefined') !== -1)) {
+        // Prefer explicit global syllabusExitUrl, otherwise build from syllabusBasePath
+        if (window.syllabusExitUrl) {
+          dest = window.syllabusExitUrl;
+        } else if (window.syllabusBasePath) {
+          const base = (typeof window.syllabusBasePath === 'string' && window.syllabusBasePath.startsWith('/')) ? window.syllabusBasePath : ('/' + (window.syllabusBasePath || ''));
+          dest = window.location.origin + base;
+        } else {
+          dest = '/admin/syllabi';
+        }
+      }
+    } catch (e) { /* noop */ }
+
     if (typeof isDirty !== 'undefined' && isDirty) {
       if (confirm("You have unsaved changes. Do you want to leave without saving?")) {
-        window.location.href = targetUrl;
+        window.location.href = dest;
       }
     } else {
-      window.location.href = targetUrl;
+      window.location.href = dest;
     }
   };
   window.addEventListener('beforeunload', function (e) {

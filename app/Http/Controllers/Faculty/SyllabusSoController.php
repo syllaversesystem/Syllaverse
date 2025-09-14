@@ -22,7 +22,7 @@ class SyllabusSoController extends Controller
     // ✅ Save updated SO list (code + description)
     public function update(Request $request, $syllabusId)
     {
-        $syllabus = Syllabus::where('faculty_id', Auth::id())->findOrFail($syllabusId);
+        $syllabus = $this->getSyllabusForAction($syllabusId);
 
         $request->validate([
             'sos' => 'required|array',
@@ -76,12 +76,20 @@ class SyllabusSoController extends Controller
         $so = SyllabusSo::findOrFail($id);
 
         // Only allow delete if owned by current faculty
-        if ($so->syllabus->faculty_id !== Auth::id()) {
+        if ($so->syllabus->faculty_id !== Auth::id() && ! Auth::guard('admin')->check()) {
             return response()->json(['message' => 'Unauthorized.'], 403);
         }
 
         $so->delete();
 
         return response()->json(['message' => 'SO deleted successfully.']);
+    }
+
+    protected function getSyllabusForAction($syllabusId)
+    {
+        if (Auth::guard('admin')->check()) {
+            return Syllabus::findOrFail($syllabusId);
+        }
+        return Syllabus::where('faculty_id', Auth::id())->findOrFail($syllabusId);
     }
 }

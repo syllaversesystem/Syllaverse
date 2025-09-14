@@ -70,8 +70,12 @@
                   <a href="{{ route('admin.syllabi.show', $syllabus->id) }}" class="btn btn-outline-primary btn-sm" title="Open syllabus" aria-label="Open syllabus">
                     <i class="bi bi-box-arrow-up-right me-1"></i> Open
                   </a>
-                  <a href="{{ route('admin.syllabi.export.pdf', $syllabus->id) }}" class="btn btn-outline-secondary btn-sm ms-1">PDF</a>
-                  <a href="{{ route('admin.syllabi.export.word', $syllabus->id) }}" class="btn btn-outline-secondary btn-sm ms-1">Word</a>
+                  <form action="{{ route('admin.syllabi.destroy', $syllabus->id) }}" method="POST" class="d-inline ms-1" onsubmit="return confirm('Delete this syllabus? This action cannot be undone.');">
+                    @csrf @method('DELETE')
+                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Delete syllabus" aria-label="Delete syllabus">
+                      <i class="bi bi-trash me-1"></i> Delete
+                    </button>
+                  </form>
                 </div>
               </article>
             </div>
