@@ -4,6 +4,28 @@
   including this partial won't error. Restore original UI here when needed.
 --}}
 
+<!-- Compact toolbar placed above the TLA module for actions → clean professional layout -->
+<div class="d-flex justify-content-end align-items-center mb-2">
+  <div class="btn-toolbar">
+    <div class="btn-group me-2" role="group" aria-label="TLA actions">
+      <button type="button" class="btn btn-sm btn-outline-secondary" data-action="distribute-task" title="Distribute task across weeks">Distribute Task</button>
+    </div>
+    <div class="btn-group" role="group">
+      <button type="button" class="btn btn-sm btn-primary" data-action="generate-tla" title="Generate TLA with AI">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="me-1">
+          <path d="M12 2v4"></path>
+          <path d="M12 18v4"></path>
+          <path d="M4.9 4.9l2.8 2.8"></path>
+          <path d="M16.3 16.3l2.8 2.8"></path>
+          <circle cx="12" cy="12" r="3"></circle>
+        </svg>
+        Generate TLA
+      </button>
+    </div>
+  </div>
+  </div>
+</div>
+
 <div class="tla-partial">
   <table class="table table-bordered mb-4 cis-table" id="tlaTable" style="width: 100%; margin: 0;">
     <colgroup>
@@ -20,13 +42,13 @@
         <th colspan="7" class="text-center">Teaching, Learning, and Assessment (TLA) Activities</th>
       </tr>
       <tr class="table-light text-center align-middle">
-  <th style="width: 4%;">Ch.</th>
-  <th style="width: 38%;">Topics / Reading List</th>
-  <th style="width: 6%;">Wks.</th>
-  <th style="width: 32%;">Topic Outcomes</th>
-  <th style="width: 6%;">ILO</th>
-  <th style="width: 6%;">SO</th>
-  <th style="width: 8%;">Delivery Method</th>
+        <th style="width: 4%;">Ch.</th>
+        <th style="width: 38%;">Topics / Reading List</th>
+        <th style="width: 6%;">Wks.</th>
+        <th style="width: 32%;">Topic Outcomes</th>
+        <th style="width: 6%;">ILO</th>
+        <th style="width: 6%;">SO</th>
+        <th style="width: 8%;">Delivery Method</th>
       </tr>
     </thead>
     <tbody>

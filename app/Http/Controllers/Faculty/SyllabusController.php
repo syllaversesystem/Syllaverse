@@ -289,7 +289,11 @@ class SyllabusController extends Controller
             'tla.ilos:id,code',
             'tla.sos:id,code',
             // eager-load assessmentMappings so the partial can hydrate saved rows
-            'assessmentMappings'
+            'assessmentMappings',
+            // eager-load normalized mapping rows so blade partials can render them
+            'iloSoCpa',
+            'iloIga',
+            'iloCdioSdg'
         ])->findOrFail($id);
 
         $programs = Program::all();
@@ -692,6 +696,265 @@ class SyllabusController extends Controller
             return response()->json(['success' => true, 'created' => $created]);
         } catch (\Throwable $e) {
             \Log::error('saveAssessmentMappings failed', ['error' => $e->getMessage()]);
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Persist ILO → SO → CPA mapping rows for a syllabus (AJAX endpoint).
+     */
+    public function saveIloSoCpa(Request $request, $syllabus)
+    {
+        try { \Log::info('saveIloSoCpa called', ['syllabus' => $syllabus, 'incoming' => $request->all()]); } catch (\Throwable $__e) {}
+
+        $sy = Syllabus::where('faculty_id', Auth::id())->findOrFail($syllabus);
+
+        // Read rows either as an array of rows (preferred) or fall back to reconstructing from parallel arrays
+        $rows = $request->input('rows');
+        // If rows were sent as a JSON string (FormData), decode them
+        if (is_string($rows)) {
+            $decoded = json_decode($rows, true);
+            if (is_array($decoded)) {
+                $rows = $decoded;
+            }
+        }
+
+        if (!is_array($rows)) {
+            // attempt to rebuild from arrays present in form inputs
+            $ilos = $request->input('ilo_so_cpa_ilos_text') ?? [];
+            $c = $request->input('ilo_so_cpa_c_text') ?? [];
+            $p = $request->input('ilo_so_cpa_p_text') ?? [];
+            $a = $request->input('ilo_so_cpa_a_text') ?? [];
+
+            // detect SO columns by scanning request keys like ilo_so_cpa_so1_text
+            $soCols = [];
+            foreach ($request->all() as $k => $v) {
+                if (preg_match('/^ilo_so_cpa_so(\d+)_text$/', $k, $m)) {
+                    $soCols[] = (int)$m[1];
+                }
+            }
+            sort($soCols);
+
+            $rows = [];
+            $count = max(1, count($ilos));
+            for ($i = 0; $i < $count; $i++) {
+                $row = [
+                    'ilo' => $ilos[$i] ?? null,
+                    'c' => $c[$i] ?? null,
+                    'p' => $p[$i] ?? null,
+                    'a' => $a[$i] ?? null,
+                    'sos' => [],
+                ];
+                foreach ($soCols as $col) {
+                    $key = 'ilo_so_cpa_so' . $col . '_text';
+                    $vals = $request->input($key) ?? [];
+                    $row['sos'][] = $vals[$i] ?? null;
+                }
+                $rows[] = $row;
+            }
+        }
+
+        try {
+            // Transactionally replace normalized rows with incoming rows
+            \DB::beginTransaction();
+
+            // Remove existing rows for this syllabus
+            \App\Models\SyllabusIloSoCpa::where('syllabus_id', $sy->id)->delete();
+
+            $created = 0;
+            foreach ($rows as $pos => $r) {
+                // Normalize row shape: accept either {ilo, sos, c, p, a} or {ilo_text, sos, c, p, a}
+                $rowIlo = $r['ilo'] ?? $r['ilo_text'] ?? null;
+                $rowSos = $r['sos'] ?? [];
+                // If sos was sent as an object-like map, coerce to array values
+                if (is_array($rowSos) && count($rowSos) && array_keys($rowSos) !== range(0, count($rowSos) - 1)) {
+                    $rowSos = array_values($rowSos);
+                }
+                $rowC = array_key_exists('c', $r) ? $r['c'] : (array_key_exists('c_text', $r) ? $r['c_text'] : null);
+                $rowP = array_key_exists('p', $r) ? $r['p'] : (array_key_exists('p_text', $r) ? $r['p_text'] : null);
+                $rowA = array_key_exists('a', $r) ? $r['a'] : (array_key_exists('a_text', $r) ? $r['a_text'] : null);
+
+                try {
+                    \Log::info('saveIloSoCpa creating row', ['syllabus_id' => $sy->id, 'pos' => $pos, 'ilo' => $rowIlo, 'sos' => $rowSos, 'c' => $rowC, 'p' => $rowP, 'a' => $rowA]);
+                } catch (\Throwable $__logEx) { }
+
+                $sy->iloSoCpa()->create([
+                    'ilo_text' => $rowIlo,
+                    'sos' => is_array($rowSos) ? $rowSos : [],
+                    'c' => $rowC,
+                    'p' => $rowP,
+                    'a' => $rowA,
+                    'position' => $pos,
+                ]);
+                $created++;
+            }
+
+            // Also persist serialized copy for backward compatibility
+            try {
+                $sy->ilo_so_cpa_data = json_encode($rows);
+                $sy->save();
+            } catch (\Throwable $__ex) {
+                \Log::warning('saveIloSoCpa failed to persist serialized copy', ['error' => $__ex->getMessage(), 'syllabus_id' => $sy->id]);
+            }
+
+            \DB::commit();
+
+            return response()->json(['success' => true, 'created' => $created]);
+        } catch (\Throwable $e) {
+            \DB::rollBack();
+            \Log::error('saveIloSoCpa failed', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Persist ILO → IGA mapping rows for a syllabus (AJAX endpoint).
+     */
+    public function saveIloIga(Request $request, $syllabus)
+    {
+        try { \Log::info('saveIloIga called', ['syllabus' => $syllabus, 'incoming' => $request->all()]); } catch (\Throwable $__e) {}
+
+        $sy = Syllabus::where('faculty_id', Auth::id())->findOrFail($syllabus);
+
+        $rows = $request->input('rows');
+        if (is_string($rows)) {
+            $decoded = json_decode($rows, true);
+            if (is_array($decoded)) $rows = $decoded;
+        }
+
+        if (!is_array($rows)) {
+            // rebuild from parallel arrays
+            $ilos = $request->input('ilo_iga_ilos_text') ?? [];
+            // detect IGA columns by scanning request keys like ilo_iga_iga1_text
+            $igaCols = [];
+            foreach ($request->all() as $k => $v) {
+                if (preg_match('/^ilo_iga_iga(\d+)_text$/', $k, $m)) {
+                    $igaCols[] = (int)$m[1];
+                }
+            }
+            sort($igaCols);
+
+            $rows = [];
+            $count = max(1, count($ilos));
+            for ($i = 0; $i < $count; $i++) {
+                $row = ['ilo' => $ilos[$i] ?? null, 'igas' => []];
+                foreach ($igaCols as $col) {
+                    $key = 'ilo_iga_iga' . $col . '_text';
+                    $vals = $request->input($key) ?? [];
+                    $row['igas'][] = $vals[$i] ?? null;
+                }
+                $rows[] = $row;
+            }
+        }
+
+        try {
+            \DB::beginTransaction();
+            \App\Models\SyllabusIloIga::where('syllabus_id', $sy->id)->delete();
+
+            $created = 0;
+            foreach ($rows as $pos => $r) {
+                $rowIlo = $r['ilo'] ?? $r['ilo_text'] ?? null;
+                $rowIgas = $r['igas'] ?? [];
+                if (is_array($rowIgas) && count($rowIgas) && array_keys($rowIgas) !== range(0, count($rowIgas) - 1)) {
+                    $rowIgas = array_values($rowIgas);
+                }
+
+                try { \Log::info('saveIloIga creating row', ['syllabus_id' => $sy->id, 'pos' => $pos, 'ilo' => $rowIlo, 'igas' => $rowIgas]); } catch (\Throwable $__logEx) {}
+
+                $sy->iloIga()->create([ 'ilo_text' => $rowIlo, 'igas' => is_array($rowIgas) ? $rowIgas : [], 'position' => $pos ]);
+                $created++;
+            }
+
+            try { $sy->ilo_iga_data = json_encode($rows); $sy->save(); } catch (\Throwable $__ex) { \Log::warning('saveIloIga failed to persist serialized copy', ['error' => $__ex->getMessage(), 'syllabus_id' => $sy->id]); }
+
+            \DB::commit();
+            return response()->json(['success' => true, 'created' => $created]);
+        } catch (\Throwable $e) {
+            \DB::rollBack();
+            \Log::error('saveIloIga failed', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Persist ILO → CDIO → SDG mapping rows for a syllabus (AJAX endpoint).
+     */
+    public function saveIloCdioSdg(Request $request, $syllabus)
+    {
+        try { \Log::info('saveIloCdioSdg called', ['syllabus' => $syllabus, 'incoming' => $request->all()]); } catch (\Throwable $__e) {}
+
+        $sy = Syllabus::where('faculty_id', Auth::id())->findOrFail($syllabus);
+
+        $rows = $request->input('rows');
+        if (is_string($rows)) {
+            $decoded = json_decode($rows, true);
+            if (is_array($decoded)) $rows = $decoded;
+        }
+
+        if (!is_array($rows)) {
+            // rebuild from parallel arrays
+            $ilos = $request->input('ilo_sdg_cdio_ilos_text') ?? [];
+            // detect cdio columns by scanning request keys like ilo_sdg_cdio_cdio1_text
+            $cdioCols = [];
+            $sdgCols = [];
+            foreach ($request->all() as $k => $v) {
+                if (preg_match('/^ilo_sdg_cdio_cdio(\d+)_text$/', $k, $m)) {
+                    $cdioCols[] = (int)$m[1];
+                }
+                if (preg_match('/^ilo_sdg_cdio_sdg(\d+)_text$/', $k, $m)) {
+                    $sdgCols[] = (int)$m[1];
+                }
+            }
+            sort($cdioCols);
+            sort($sdgCols);
+
+            $rows = [];
+            $count = max(1, count($ilos));
+            for ($i = 0; $i < $count; $i++) {
+                $row = ['ilo' => $ilos[$i] ?? null, 'cdios' => [], 'sdgs' => []];
+                foreach ($cdioCols as $col) {
+                    $key = 'ilo_sdg_cdio_cdio' . $col . '_text';
+                    $vals = $request->input($key) ?? [];
+                    $row['cdios'][] = $vals[$i] ?? null;
+                }
+                foreach ($sdgCols as $col) {
+                    $key = 'ilo_sdg_cdio_sdg' . $col . '_text';
+                    $vals = $request->input($key) ?? [];
+                    $row['sdgs'][] = $vals[$i] ?? null;
+                }
+                $rows[] = $row;
+            }
+        }
+
+        try {
+            \DB::beginTransaction();
+            \App\Models\SyllabusIloCdioSdg::where('syllabus_id', $sy->id)->delete();
+
+            $created = 0;
+            foreach ($rows as $pos => $r) {
+                $rowIlo = $r['ilo'] ?? $r['ilo_text'] ?? null;
+                $rowCdios = $r['cdios'] ?? [];
+                $rowSdgs = $r['sdgs'] ?? [];
+                if (is_array($rowCdios) && count($rowCdios) && array_keys($rowCdios) !== range(0, count($rowCdios) - 1)) {
+                    $rowCdios = array_values($rowCdios);
+                }
+                if (is_array($rowSdgs) && count($rowSdgs) && array_keys($rowSdgs) !== range(0, count($rowSdgs) - 1)) {
+                    $rowSdgs = array_values($rowSdgs);
+                }
+
+                try { \Log::info('saveIloCdioSdg creating row', ['syllabus_id' => $sy->id, 'pos' => $pos, 'ilo' => $rowIlo, 'cdios' => $rowCdios, 'sdgs' => $rowSdgs]); } catch (\Throwable $__logEx) {}
+
+                $sy->iloCdioSdg()->create([ 'ilo_text' => $rowIlo, 'cdios' => is_array($rowCdios) ? $rowCdios : [], 'sdgs' => is_array($rowSdgs) ? $rowSdgs : [], 'position' => $pos ]);
+                $created++;
+            }
+
+            try { $sy->ilo_sdg_cdio_data = json_encode($rows); $sy->save(); } catch (\Throwable $__ex) { \Log::warning('saveIloCdioSdg failed to persist serialized copy', ['error' => $__ex->getMessage(), 'syllabus_id' => $sy->id]); }
+
+            \DB::commit();
+            return response()->json(['success' => true, 'created' => $created]);
+        } catch (\Throwable $e) {
+            \DB::rollBack();
+            \Log::error('saveIloCdioSdg failed', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
         }
     }

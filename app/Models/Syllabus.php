@@ -55,6 +55,8 @@ class Syllabus extends Model
     'year_level',
     // Serialized assessment tasks JSON created by the AT module
     'assessment_tasks_data',
+    // Serialized ILO->SO->CPA mapping payload
+    'ilo_so_cpa_data',
     ];
 
     // 🔁 Each syllabus belongs to one faculty
@@ -133,6 +135,24 @@ class Syllabus extends Model
     public function assessmentMappings()
     {
         return $this->hasMany(SyllabusAssessmentMapping::class, 'syllabus_id')->orderBy('position');
+    }
+
+    // Per-syllabus ILO -> SO -> CPA mapping (normalized table)
+    public function iloSoCpa()
+    {
+        return $this->hasMany(SyllabusIloSoCpa::class, 'syllabus_id')->orderBy('position');
+    }
+
+    // Per-syllabus ILO -> IGA mapping (normalized table)
+    public function iloIga()
+    {
+        return $this->hasMany(SyllabusIloIga::class, 'syllabus_id')->orderBy('position');
+    }
+
+    // Per-syllabus ILO -> CDIO -> SDG mapping (normalized table)
+    public function iloCdioSdg()
+    {
+        return $this->hasMany(SyllabusIloCdioSdg::class, 'syllabus_id')->orderBy('position');
     }
 
     // mission/vision moved to a separate table so they can be managed independently

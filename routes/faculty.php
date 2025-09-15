@@ -109,6 +109,13 @@ Route::middleware([FacultyAuth::class])->group(function () {
     // Persist Assessment Mappings payload for a syllabus
     Route::post('/faculty/syllabi/{syllabus}/assessment-mappings', [SyllabusController::class, 'saveAssessmentMappings'])->name('faculty.syllabi.assessment_mappings.save');
 
+    // Persist ILO -> SO -> CPA mapping payload for a syllabus
+    Route::post('/faculty/syllabi/{syllabus}/ilo-so-cpa', [SyllabusController::class, 'saveIloSoCpa'])->name('faculty.syllabi.ilo_so_cpa.save');
+    // Persist ILO -> IGA mapping payload for a syllabus
+    Route::post('/faculty/syllabi/{syllabus}/ilo-iga', [SyllabusController::class, 'saveIloIga'])->name('faculty.syllabi.ilo_iga.save');
+    // Persist ILO -> CDIO -> SDG mapping payload for a syllabus
+    Route::post('/faculty/syllabi/{syllabus}/ilo-cdio-sdg', [SyllabusController::class, 'saveIloCdioSdg'])->name('faculty.syllabi.ilo_cdio_sdg.save');
+
 });
 
 // ---------- Logout ----------

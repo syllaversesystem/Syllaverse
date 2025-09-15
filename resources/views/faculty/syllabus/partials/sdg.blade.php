@@ -410,7 +410,7 @@
 
               {{-- Hidden template row for JS clone --}}
               <tr id="sdg-template-row" class="d-none">
-                <td class="text-center align-middle sdg-code-cell"><div class="cdio-badge">SDG#</div></td>
+                <td class="text-center align-middle sdg-code-cell"><div class="cdio-badge">SDG1</div></td>
                 <td class="sdg-cell">
                   <div class="d-flex align-items-center gap-2">
                     <span class="drag-handle text-muted" title="Drag to reorder" style="cursor: grab;"><i class="bi bi-grip-vertical"></i></span>
@@ -418,7 +418,7 @@
                       <input type="text" name="title[]" class="form-control form-control-sm sdg-title-input fw-semibold" value="" data-original="" style="background: transparent; border: none; padding: 0; margin-bottom: .15rem;" />
                       <textarea name="sdgs[]" class="form-control cis-textarea autosize" rows="1" required></textarea>
                     </div>
-                    <input type="hidden" name="code[]" value="SDG#">
+                    <input type="hidden" name="code[]" value="SDG1">
                     <button type="button" class="btn btn-sm btn-outline-danger btn-delete-cdio ms-2" title="Delete SDG" onclick="fallbackDeleteSdg(this)"><i class="bi bi-trash"></i></button>
                   </div>
                 </td>

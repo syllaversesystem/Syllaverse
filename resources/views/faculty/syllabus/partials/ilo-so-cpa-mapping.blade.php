@@ -49,29 +49,62 @@
 				<td style="border:1px solid #343a40; padding:0.5rem; min-height:3.5rem; vertical-align:middle; text-align:center;"><strong>P</strong></td>
 				<td style="border:1px solid #343a40; padding:0.5rem; min-height:3.5rem; vertical-align:middle; text-align:center;"><strong>A</strong></td>
 			</tr>
-			<tr>
-				<td style="border:1px solid #343a40; padding:0.5rem; min-height:3.5rem; vertical-align:middle; text-align:center;"></td>
-				<td style="border:1px solid #343a40; padding:0.5rem; min-height:3.5rem; vertical-align:middle; text-align:center;">
-					{{-- Visible badge-style label for ILO (non-editable) + hidden input so form submission remains unchanged --}}
-					<span class="ilo-badge fw-semibold d-inline-block text-center" tabindex="0" style="min-width:48px;">{{ old('ilo_so_cpa_ilos_text', $syllabus?->ilo_so_cpa_ilos_text ?? '') }}</span>
-					<input type="hidden" name="ilo_so_cpa_ilos_text[]" form="syllabusForm" value="{{ old('ilo_so_cpa_ilos_text', $syllabus?->ilo_so_cpa_ilos_text ?? '') }}" data-original="{{ $syllabus?->ilo_so_cpa_ilos_text ?? '' }}" />
-				</td>
-				@for ($i = 1; $i <= $soCount; $i++)
-					@php $prop = 'ilo_so_cpa_so' . $i . '_text'; @endphp
+			{{-- Render data rows from normalized relation if present, else fall back to the legacy single-row inputs or serialized syllabus field --}}
+			@php $rows = $syllabus?->iloSoCpa ?? null; @endphp
+			@if ($rows && $rows->count())
+				@foreach ($rows as $r)
+					@php
+						$soVals = is_array($r->sos) ? $r->sos : (json_decode((string)$r->sos, true) ?? []);
+						$rowIndex = $loop->index;
+					@endphp
+					<tr data-row-index="{{ $rowIndex }}" data-sos='@json($soVals)' data-c="{{ e($r->c ?? '') }}" data-p="{{ e($r->p ?? '') }}" data-a="{{ e($r->a ?? '') }}">
+						<td style="border:1px solid #343a40; padding:0.5rem; min-height:3.5rem; vertical-align:middle; text-align:center;"></td>
+						<td style="border:1px solid #343a40; padding:0.5rem; min-height:3.5rem; vertical-align:middle; text-align:center;">
+							<span class="ilo-badge fw-semibold d-inline-block text-center" tabindex="0" style="min-width:48px;">{{ e($r->ilo_text ?? ('ILO' . ($r->position + 1))) }}</span>
+							<input type="hidden" name="ilo_so_cpa_ilos_text[]" form="syllabusForm" value="{{ e($r->ilo_text ?? ('ILO' . ($r->position + 1))) }}" data-original="{{ e($r->ilo_text ?? '') }}" />
+						</td>
+						@for ($i = 0; $i < $soCount; $i++)
+							@php $val = $soVals[$i] ?? ''; @endphp
+							<td style="border:1px solid #343a40; padding:0.5rem; min-height:3.5rem; vertical-align:middle; text-align:center;">
+								<input id="ilo_so_cpa_so{{ $rowIndex }}_{{ $i+1 }}_text" name="ilo_so_cpa_so{{ $i+1 }}_text[]" form="syllabusForm" type="text" class="cis-input text-center cis-field" placeholder="-" value="{{ e($val) }}" />
+							</td>
+						@endfor
+						<td style="border:1px solid #343a40; padding:0.5rem; min-height:3.5rem; vertical-align:middle; text-align:center;">
+							<input id="ilo_so_cpa_c_text_{{ $rowIndex }}" name="ilo_so_cpa_c_text[]" form="syllabusForm" type="text" class="cis-input text-center cis-field" placeholder="-" value="{{ e($r->c ?? '') }}" />
+						</td>
+						<td style="border:1px solid #343a40; padding:0.5rem; min-height:3.5rem; vertical-align:middle; text-align:center;">
+							<input id="ilo_so_cpa_p_text_{{ $rowIndex }}" name="ilo_so_cpa_p_text[]" form="syllabusForm" type="text" class="cis-input text-center cis-field" placeholder="-" value="{{ e($r->p ?? '') }}" />
+						</td>
+						<td style="border:1px solid #343a40; padding:0.5rem; min-height:3.5rem; vertical-align:middle; text-align:center;">
+							<input id="ilo_so_cpa_a_text_{{ $rowIndex }}" name="ilo_so_cpa_a_text[]" form="syllabusForm" type="text" class="cis-input text-center cis-field" placeholder="-" value="{{ e($r->a ?? '') }}" />
+						</td>
+					</tr>
+				@endforeach
+			@else
+				<tr>
+					<td style="border:1px solid #343a40; padding:0.5rem; min-height:3.5rem; vertical-align:middle; text-align:center;"></td>
+					@php $visible = old('ilo_so_cpa_ilos_text', $syllabus?->ilo_so_cpa_ilos_text ?? ''); @endphp
 					<td style="border:1px solid #343a40; padding:0.5rem; min-height:3.5rem; vertical-align:middle; text-align:center;">
-						<input id="ilo_so_cpa_so{{ $i }}_text" name="ilo_so_cpa_so{{ $i }}_text[]" form="syllabusForm" type="text" class="cis-input text-center cis-field" placeholder="-" value="{{ old($prop, $syllabus?->{$prop} ?? '') }}" data-original="{{ $syllabus?->{$prop} ?? '' }}" />
+						<span class="ilo-badge fw-semibold d-inline-block text-center" tabindex="0" style="min-width:48px;">{{ e($visible) }}</span>
+						<input type="hidden" name="ilo_so_cpa_ilos_text[]" form="syllabusForm" value="{{ e($visible) }}" data-original="{{ e($syllabus?->ilo_so_cpa_ilos_text ?? '') }}" />
 					</td>
-				@endfor
-				<td style="border:1px solid #343a40; padding:0.5rem; min-height:3.5rem; vertical-align:middle; text-align:center;">
-					<input id="ilo_so_cpa_c_text" name="ilo_so_cpa_c_text[]" form="syllabusForm" type="text" class="cis-input text-center cis-field" placeholder="-" value="{{ old('ilo_so_cpa_c_text', $syllabus?->ilo_so_cpa_c_text ?? '') }}" data-original="{{ $syllabus?->ilo_so_cpa_c_text ?? '' }}" />
-				</td>
-				<td style="border:1px solid #343a40; padding:0.5rem; min-height:3.5rem; vertical-align:middle; text-align:center;">
-					<input id="ilo_so_cpa_p_text" name="ilo_so_cpa_p_text[]" form="syllabusForm" type="text" class="cis-input text-center cis-field" placeholder="-" value="{{ old('ilo_so_cpa_p_text', $syllabus?->ilo_so_cpa_p_text ?? '') }}" data-original="{{ $syllabus?->ilo_so_cpa_p_text ?? '' }}" />
-				</td>
-				<td style="border:1px solid #343a40; padding:0.5rem; min-height:3.5rem; vertical-align:middle; text-align:center;">
-					<input id="ilo_so_cpa_a_text" name="ilo_so_cpa_a_text[]" form="syllabusForm" type="text" class="cis-input text-center cis-field" placeholder="-" value="{{ old('ilo_so_cpa_a_text', $syllabus?->ilo_so_cpa_a_text ?? '') }}" data-original="{{ $syllabus?->ilo_so_cpa_a_text ?? '' }}" />
-				</td>
-			</tr>
+					@for ($i = 1; $i <= $soCount; $i++)
+						@php $prop = 'ilo_so_cpa_so' . $i . '_text'; @endphp
+						<td style="border:1px solid #343a40; padding:0.5rem; min-height:3.5rem; vertical-align:middle; text-align:center;">
+							<input id="ilo_so_cpa_so{{ $i }}_text" name="ilo_so_cpa_so{{ $i }}_text[]" form="syllabusForm" type="text" class="cis-input text-center cis-field" placeholder="-" value="{{ e(old($prop, $syllabus?->{$prop} ?? '')) }}" />
+						</td>
+					@endfor
+					<td style="border:1px solid #343a40; padding:0.5rem; min-height:3.5rem; vertical-align:middle; text-align:center;">
+						<input id="ilo_so_cpa_c_text" name="ilo_so_cpa_c_text[]" form="syllabusForm" type="text" class="cis-input text-center cis-field" placeholder="-" value="{{ e(old('ilo_so_cpa_c_text', $syllabus?->ilo_so_cpa_c_text ?? '')) }}" />
+					</td>
+					<td style="border:1px solid #343a40; padding:0.5rem; min-height:3.5rem; vertical-align:middle; text-align:center;">
+						<input id="ilo_so_cpa_p_text" name="ilo_so_cpa_p_text[]" form="syllabusForm" type="text" class="cis-input text-center cis-field" placeholder="-" value="{{ e(old('ilo_so_cpa_p_text', $syllabus?->ilo_so_cpa_p_text ?? '')) }}" />
+					</td>
+					<td style="border:1px solid #343a40; padding:0.5rem; min-height:3.5rem; vertical-align:middle; text-align:center;">
+						<input id="ilo_so_cpa_a_text" name="ilo_so_cpa_a_text[]" form="syllabusForm" type="text" class="cis-input text-center cis-field" placeholder="-" value="{{ e(old('ilo_so_cpa_a_text', $syllabus?->ilo_so_cpa_a_text ?? '')) }}" />
+					</td>
+				</tr>
+			@endif
 		</tbody>
 	</table>
 </div>
@@ -86,64 +119,7 @@ document.addEventListener('DOMContentLoaded', function(){
 		return Array.from(root.querySelectorAll('tbody tr')).filter(r => r.querySelector('input'));
 	}
 
-	document.addEventListener('keydown', function(e){
-		// Only act when focus is inside this partial
-		const active = document.activeElement;
-		if (!active || !root.contains(active)) return;
-
-		// Add row: Ctrl/Cmd + Enter
-				if ((e.ctrlKey || e.metaKey) && e.key === 'Enter'){
-			e.preventDefault();
-			const rows = dataRows();
-			if (!rows.length) return;
-			const template = rows[rows.length - 1];
-			const clone = template.cloneNode(true);
-			// Clear input values in the cloned row and strip id/data-original to avoid duplicates
-					clone.querySelectorAll('input').forEach(function(inp){
-						inp.value = '';
-						if (inp.hasAttribute('id')) inp.removeAttribute('id');
-						if (inp.hasAttribute('data-original')) inp.removeAttribute('data-original');
-					});
-					// Clear any visible ILO badge text in the clone so it's ready for new content
-					clone.querySelectorAll('.ilo-badge').forEach(function(lbl){ lbl.textContent = ''; lbl.className = 'ilo-badge fw-semibold d-inline-block text-center'; });
-					// insert after the last data row (append to tbody) to avoid placing above the title/header
-					const tbody = root.querySelector('tbody');
-					tbody.appendChild(clone);
-					// Immediately number the new row so it doesn't appear blank (match ILO list format e.g. ILO1)
-					const newRows = dataRows();
-					const idx = newRows.indexOf(clone);
-					const badge = clone.querySelector('.ilo-badge');
-					const newLabel = 'ILO' + (idx + 1);
-					if (badge) { badge.textContent = newLabel; }
-					const hidden = clone.querySelector('input[type="hidden"][name="ilo_so_cpa_ilos_text[]"]');
-					if (hidden) hidden.value = newLabel;
-					// Focus the visible badge (so keyboard shortcuts still work) or fallback to hidden input
-					const firstVisible = clone.querySelector('.ilo-badge');
-					if (firstVisible) firstVisible.focus(); else { const first = clone.querySelector('input'); if (first) first.focus(); }
-			return;
-		}
-
-		// Remove row: Ctrl/Cmd + Backspace
-		if ((e.ctrlKey || e.metaKey) && e.key === 'Backspace'){
-			e.preventDefault();
-			const rows = dataRows();
-			if (!rows.length) return;
-			// Find the row containing the active element
-			const row = active.closest('tr');
-			if (!row) return;
-			// If only one data row remains, clear its inputs instead of removing
-			if (rows.length <= 1){
-				row.querySelectorAll('input').forEach(function(inp){ inp.value = ''; });
-				return;
-			}
-			// Remove the row and move focus to the previous data row's first input
-			const idx = rows.indexOf(row);
-			row.parentNode.removeChild(row);
-			const prev = rows[Math.max(0, idx - 1)];
-			if (prev) { const fi = prev.querySelector('input'); if (fi) fi.focus(); }
-			return;
-		}
-	});
+	// Keyboard add/remove functionality removed: rows are managed programmatically via the ILO list or explicit UI controls.
 });
 </script>
 
@@ -212,13 +188,19 @@ document.addEventListener('DOMContentLoaded', function(){
 				// capture existing values (from hidden input)
 				const iloInput = row.querySelector('input[name="ilo_so_cpa_ilos_text[]"]');
 				const iloVal = iloInput ? iloInput.value : '';
-			const existingSoInputs = Array.from(row.querySelectorAll('input[id^="ilo_so_cpa_so"]')).map(i => i.value);
+			// Prefer rehydration from data-* attributes set server-side; fall back to inputs in the DOM
+			let existingSoInputs = [];
+			if (row.dataset && row.dataset.sos) {
+				try { existingSoInputs = JSON.parse(row.dataset.sos) || []; } catch (e) { existingSoInputs = []; }
+			} else {
+				existingSoInputs = Array.from(row.querySelectorAll('input[name^="ilo_so_cpa_so"]')).map(i => i.value);
+			}
 			const cInput = row.querySelector('input[name="ilo_so_cpa_c_text[]"]');
 			const pInput = row.querySelector('input[name="ilo_so_cpa_p_text[]"]');
 			const aInput = row.querySelector('input[name="ilo_so_cpa_a_text[]"]');
-			const cVal = cInput ? cInput.value : '';
-			const pVal = pInput ? pInput.value : '';
-			const aVal = aInput ? aInput.value : '';
+			const cVal = (row.dataset && typeof row.dataset.c !== 'undefined') ? row.dataset.c : (cInput ? cInput.value : '');
+			const pVal = (row.dataset && typeof row.dataset.p !== 'undefined') ? row.dataset.p : (pInput ? pInput.value : '');
+			const aVal = (row.dataset && typeof row.dataset.a !== 'undefined') ? row.dataset.a : (aInput ? aInput.value : '');
 
 			// rebuild row: first spacer cell + ILO cell
 			let html = '';
@@ -232,17 +214,21 @@ document.addEventListener('DOMContentLoaded', function(){
 			html += '</td>';
 
 			// SO input columns
+			// determine a stable row index (prefer dataset.rowIndex if available)
+			const rowIndex = (row.dataset && typeof row.dataset.rowIndex !== 'undefined') ? row.dataset.rowIndex : idx;
 			for (let i = 0; i < labels.length; i++) {
 				const propIndex = i + 1;
 				const propName = `ilo_so_cpa_so${propIndex}_text[]`;
 				const val = existingSoInputs[i] ?? '';
-				html += `<td style="border:1px solid #343a40; padding:0.5rem; min-height:3.5rem; vertical-align:middle; text-align:center;"><input name="${propName}" form="syllabusForm" type="text" class="cis-input text-center cis-field" placeholder="-" value="${escapeHtml(val)}" /></td>`;
+				// include a stable, per-row id for compatibility with scripts that query by id^
+				const inputId = `ilo_so_cpa_so${rowIndex}_${propIndex}_text`;
+				html += `<td style="border:1px solid #343a40; padding:0.5rem; min-height:3.5rem; vertical-align:middle; text-align:center;"><input id="${inputId}" name="${propName}" form="syllabusForm" type="text" class="cis-input text-center cis-field" placeholder="-" value="${escapeHtml(val)}" /></td>`;
 			}
 
 			// CPA inputs
-			html += `<td style="border:1px solid #343a40; padding:0.5rem; min-height:3.5rem; vertical-align:middle; text-align:center;"><input name="ilo_so_cpa_c_text[]" form="syllabusForm" type="text" class="cis-input text-center cis-field" placeholder="-" value="${escapeHtml(cVal)}" /></td>`;
-			html += `<td style="border:1px solid #343a40; padding:0.5rem; min-height:3.5rem; vertical-align:middle; text-align:center;"><input name="ilo_so_cpa_p_text[]" form="syllabusForm" type="text" class="cis-input text-center cis-field" placeholder="-" value="${escapeHtml(pVal)}" /></td>`;
-			html += `<td style="border:1px solid #343a40; padding:0.5rem; min-height:3.5rem; vertical-align:middle; text-align:center;"><input name="ilo_so_cpa_a_text[]" form="syllabusForm" type="text" class="cis-input text-center cis-field" placeholder="-" value="${escapeHtml(aVal)}" /></td>`;
+			html += `<td style="border:1px solid #343a40; padding:0.5rem; min-height:3.5rem; vertical-align:middle; text-align:center;"><input id="ilo_so_cpa_c_text" name="ilo_so_cpa_c_text[]" form="syllabusForm" type="text" class="cis-input text-center cis-field" placeholder="-" value="${escapeHtml(cVal)}" /></td>`;
+			html += `<td style="border:1px solid #343a40; padding:0.5rem; min-height:3.5rem; vertical-align:middle; text-align:center;"><input id="ilo_so_cpa_p_text" name="ilo_so_cpa_p_text[]" form="syllabusForm" type="text" class="cis-input text-center cis-field" placeholder="-" value="${escapeHtml(pVal)}" /></td>`;
+			html += `<td style="border:1px solid #343a40; padding:0.5rem; min-height:3.5rem; vertical-align:middle; text-align:center;"><input id="ilo_so_cpa_a_text" name="ilo_so_cpa_a_text[]" form="syllabusForm" type="text" class="cis-input text-center cis-field" placeholder="-" value="${escapeHtml(aVal)}" /></td>`;
 
 			row.innerHTML = html;
 		});
@@ -293,7 +279,9 @@ document.addEventListener('DOMContentLoaded', function(){
 						if (template) {
 							newRow = template.cloneNode(true);
 							// clear inputs and identifiers
-							newRow.querySelectorAll('input').forEach(inp => { inp.value = ''; if (inp.hasAttribute('id')) inp.removeAttribute('id'); if (inp.hasAttribute('data-original')) inp.removeAttribute('data-original'); });
+							newRow.querySelectorAll('input').forEach(inp => { inp.value = ''; if (inp.hasAttribute('data-original')) inp.removeAttribute('data-original'); });
+							// remove any id attributes to avoid collisions; we'll reassign row-index later
+							newRow.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
 							// reset visible badge(s)
 							newRow.querySelectorAll('.ilo-badge').forEach(b => { b.textContent = ''; b.className = 'ilo-badge fw-semibold d-inline-block text-center'; });
 						} else {
@@ -313,7 +301,18 @@ document.addEventListener('DOMContentLoaded', function(){
 							inner += '<td style="border:1px solid #343a40; padding:0.5rem; min-height:3.5rem; vertical-align:middle; text-align:center;"><input name="ilo_so_cpa_a_text[]" form="syllabusForm" type="text" class="cis-input text-center cis-field" placeholder="-" value="" /></td>';
 							newRow.innerHTML = inner;
 						}
-						// Always append new data rows to the end of the tbody so they appear after existing data rows
+						// Assign a data-row-index for stable id generation and then append
+						const existing = Array.from(tBody.querySelectorAll('tr')).filter(r => r.querySelector('input[name="ilo_so_cpa_ilos_text[]"]'));
+						const nextIndex = existing.length; // zero-based
+						newRow.dataset.rowIndex = nextIndex;
+						// If template-derived, assign ids to inputs inside newRow using the rowIndex
+						newRow.querySelectorAll('input[name^="ilo_so_cpa_so"]').forEach((inp, k) => {
+							inp.id = `ilo_so_cpa_so${nextIndex}_${k+1}_text`;
+						});
+						// c/p/a inputs
+						const c = newRow.querySelector('input[name="ilo_so_cpa_c_text[]"]'); if (c) c.id = `ilo_so_cpa_c_text_${nextIndex}`;
+						const p = newRow.querySelector('input[name="ilo_so_cpa_p_text[]"]'); if (p) p.id = `ilo_so_cpa_p_text_${nextIndex}`;
+						const a = newRow.querySelector('input[name="ilo_so_cpa_a_text[]"]'); if (a) a.id = `ilo_so_cpa_a_text_${nextIndex}`;
 						tBody.appendChild(newRow);
 						current++;
 					}

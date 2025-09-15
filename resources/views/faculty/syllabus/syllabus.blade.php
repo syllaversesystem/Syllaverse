@@ -10,13 +10,8 @@
 @section('content')
   {{-- Assets --}}
   @vite([
-    'resources/css/faculty/syllabus.css',
-    'resources/js/faculty/syllabus.js',
-    'resources/js/faculty/syllabus-ilo.js',
-    'resources/js/faculty/syllabus-so.js',
-    'resources/js/faculty/syllabus-tla-ai.js',
-    'resources/js/faculty/syllabus-textbook.js',
-    'resources/js/faculty/syllabus-iga-sortable.js',
+    'resources/css/app.css',
+    'resources/js/app.js',
   ])
 
   <style>
@@ -31,6 +26,36 @@
   const syllabusBasePath = @json(route($rp . '.index', [], false));
   window.syllabusId = @json($default['id']);
   </script>
+  @if(config('app.debug'))
+  <script>
+  // Debug: monkeypatch navigation and form submit APIs to LOG and PREVENT navigation while debugging
+  (function(){
+    try {
+      const noopWrap = (name, target, prop) => {
+        try {
+          const orig = target[prop];
+          target[prop] = function(){
+            try { console.warn(`DEBUG nav (blocked): ${name} called — prevented`); console.trace(); } catch(e){}
+            // do NOT call original to avoid navigation
+            return null;
+          };
+        } catch(e) { console.warn('DEBUG nav: wrap failed for', name, e); }
+      };
+      noopWrap('location.reload', window.location, 'reload');
+      noopWrap('location.assign', window.location, 'assign');
+      noopWrap('location.replace', window.location, 'replace');
+      // Form submit — block programmatic submit so dev can inspect DOM
+      const FormProto = HTMLFormElement && HTMLFormElement.prototype;
+      if (FormProto && typeof FormProto.submit === 'function') {
+        FormProto.submit = function(){
+          try { console.warn('DEBUG nav (blocked): form.submit called — prevented', this); console.trace(); } catch(e){}
+          return null;
+        };
+      }
+    } catch (e) { console.warn('DEBUG nav: monkeypatch failed', e); }
+  })();
+  </script>
+  @endif
 
   @php
     // expose per-syllabus courseInfo to all partials so they render current values
@@ -446,6 +471,35 @@
               } catch (igaErr) {
                 // Ignore IGA save failures so the rest of the syllabus can still save
                 console.warn('saveIga failed on top Save (ignored), continuing with form submit', igaErr);
+              }
+
+              // Persist ILO→SO→CPA mapping via its module (if present) before saving main form
+              try {
+                if (window.saveIloSoCpa && typeof window.saveIloSoCpa === 'function') {
+                  await Promise.resolve(window.saveIloSoCpa());
+                }
+              } catch (iloSoErr) {
+                // Ignore mapping save failures so the rest of the syllabus can still save
+                console.warn('saveIloSoCpa failed on top Save (ignored), continuing with form submit', iloSoErr);
+              }
+
+              // Persist ILO→IGA mapping via its module (if present) before saving main form
+              try {
+                if (window.saveIloIga && typeof window.saveIloIga === 'function') {
+                  await Promise.resolve(window.saveIloIga());
+                }
+              } catch (iloIgaErr) {
+                // Ignore mapping save failures so the rest of the syllabus can still save
+                console.warn('saveIloIga failed on top Save (ignored), continuing with form submit', iloIgaErr);
+              }
+
+              // Persist ILO→CDIO→SDG mapping via its module (if present) before saving main form
+              try {
+                if (window.saveIloCdioSdg && typeof window.saveIloCdioSdg === 'function') {
+                  await Promise.resolve(window.saveIloCdioSdg());
+                }
+              } catch (iloCdioSdgErr) {
+                console.warn('saveIloCdioSdg failed on top Save (ignored), continuing with form submit', iloCdioSdgErr);
               }
 
               // Persist CDIOs via their module (if present) before saving main form

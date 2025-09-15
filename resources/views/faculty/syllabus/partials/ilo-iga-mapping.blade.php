@@ -40,20 +40,47 @@
                     <td style="border:1px solid #343a40; padding:0.5rem; min-height:3.5rem; vertical-align:middle; text-align:center;"><strong>{{ $label ?: 'IGA' }}</strong></td>
                 @endforeach
             </tr>
-            <tr>
-                <td style="border:1px solid #343a40; padding:0.5rem; min-height:3.5rem; vertical-align:middle; text-align:center;"></td>
-                <td style="border:1px solid #343a40; padding:0.5rem; min-height:3.5rem; vertical-align:middle; text-align:center;">
-                    {{-- Visible label for ILO (non-editable) + hidden input for form submission --}}
-                    <span class="ilo-label d-block text-center" tabindex="0">{{ old('ilo_iga_ilos_text', $syllabus?->ilo_iga_ilos_text ?? '') }}</span>
-                    <input type="hidden" name="ilo_iga_ilos_text[]" form="syllabusForm" value="{{ old('ilo_iga_ilos_text', $syllabus?->ilo_iga_ilos_text ?? '') }}" data-original="{{ $syllabus?->ilo_iga_ilos_text ?? '' }}" />
-                </td>
-                @for ($i = 1; $i <= $igaCount; $i++)
-                    @php $prop = 'ilo_iga_iga' . $i . '_text'; @endphp
+            @php $rows = $syllabus?->iloIga ?? null; @endphp
+            {{-- Debug: expose normalized rows as JSON in a hidden pre tag for inspection (remove in prod) --}}
+            @if(config('app.debug') && $rows && $rows->count())
+                <pre class="d-none debug-ilo-iga-rows">{!! json_encode($rows->map(fn($r)=>['ilo_text'=>$r->ilo_text,'igas'=>$r->igas,'position'=>$r->position])->toArray(), JSON_PRETTY_PRINT) !!}</pre>
+            @endif
+            @if ($rows && $rows->count())
+                @foreach ($rows as $r)
+                    @php
+                        $igaVals = is_array($r->igas) ? $r->igas : (json_decode((string)$r->igas, true) ?? []);
+                        $rowIndex = $loop->index;
+                    @endphp
+                    <tr data-row-index="{{ $rowIndex }}" data-igas='@json($igaVals)'>
+                        <td style="border:1px solid #343a40; padding:0.5rem; min-height:3.5rem; vertical-align:middle; text-align:center;"></td>
+                        <td style="border:1px solid #343a40; padding:0.5rem; min-height:3.5rem; vertical-align:middle; text-align:center;">
+                        <span class="ilo-badge fw-semibold d-inline-block text-center" tabindex="0">{{ e($r->ilo_text ?? ('ILO' . ($r->position + 1))) }}</span>
+                        <input type="hidden" name="ilo_iga_ilos_text[]" form="syllabusForm" value="{{ e($r->ilo_text ?? ('ILO' . ($r->position + 1))) }}" data-original="{{ e($r->ilo_text ?? '') }}" />
+                        </td>
+                        @for ($i = 0; $i < $igaCount; $i++)
+                            @php $val = $igaVals[$i] ?? ''; @endphp
+                            <td style="border:1px solid #343a40; padding:0.5rem; min-height:3.5rem; vertical-align:middle; text-align:center;">
+                                <input id="ilo_iga_iga{{ $rowIndex }}_{{ $i+1 }}_text" name="ilo_iga_iga{{ $i+1 }}_text[]" form="syllabusForm" type="text" class="cis-input text-center cis-field" placeholder="-" value="{{ e($val) }}" />
+                            </td>
+                        @endfor
+                    </tr>
+                @endforeach
+            @else
+                <tr>
+                    <td style="border:1px solid #343a40; padding:0.5rem; min-height:3.5rem; vertical-align:middle; text-align:center;"></td>
+                    @php $visible = old('ilo_iga_ilos_text', $syllabus?->ilo_iga_ilos_text ?? ''); @endphp
                     <td style="border:1px solid #343a40; padding:0.5rem; min-height:3.5rem; vertical-align:middle; text-align:center;">
-                        <input id="ilo_iga_iga{{ $i }}_text" name="ilo_iga_iga{{ $i }}_text[]" form="syllabusForm" type="text" class="cis-input text-center cis-field" placeholder="-" value="{{ old($prop, $syllabus?->{$prop} ?? '') }}" data-original="{{ $syllabus?->{$prop} ?? '' }}" />
+                        <span class="ilo-badge fw-semibold d-inline-block text-center" tabindex="0">{{ e($visible) }}</span>
+                        <input type="hidden" name="ilo_iga_ilos_text[]" form="syllabusForm" value="{{ e($visible) }}" data-original="{{ e($syllabus?->ilo_iga_ilos_text ?? '') }}" />
                     </td>
-                @endfor
-            </tr>
+                    @for ($i = 1; $i <= $igaCount; $i++)
+                        @php $prop = 'ilo_iga_iga' . $i . '_text'; @endphp
+                        <td style="border:1px solid #343a40; padding:0.5rem; min-height:3.5rem; vertical-align:middle; text-align:center;">
+                            <input id="ilo_iga_iga{{ $i }}_text" name="ilo_iga_iga{{ $i }}_text[]" form="syllabusForm" type="text" class="cis-input text-center cis-field" placeholder="-" value="{{ e(old($prop, $syllabus?->{$prop} ?? '')) }}" />
+                        </td>
+                    @endfor
+                </tr>
+            @endif
         </tbody>
     </table>
 </div>
@@ -68,55 +95,7 @@ document.addEventListener('DOMContentLoaded', function(){
         return Array.from(root.querySelectorAll('tbody tr')).filter(r => r.querySelector('input'));
     }
 
-    document.addEventListener('keydown', function(e){
-        // Only act when focus is inside this partial
-        const active = document.activeElement;
-        if (!active || !root.contains(active)) return;
-
-        // Add row: Ctrl/Cmd + Enter
-        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter'){
-            e.preventDefault();
-            const rows = dataRows();
-            if (!rows.length) return;
-            const template = rows[rows.length - 1];
-            const clone = template.cloneNode(true);
-            // Clear input values in the cloned row and strip id/data-original to avoid duplicates
-            clone.querySelectorAll('input').forEach(function(inp){
-                inp.value = '';
-                if (inp.hasAttribute('id')) inp.removeAttribute('id');
-                if (inp.hasAttribute('data-original')) inp.removeAttribute('data-original');
-            });
-            // Clear visible ILO label text in the clone
-            clone.querySelectorAll('.ilo-label').forEach(function(lbl){ lbl.textContent = ''; });
-            // Append to tbody so new rows appear after existing data rows and below headers
-            const tbody = root.querySelector('tbody');
-            tbody.appendChild(clone);
-            // Focus the visible label in the new row (keeps keyboard UX)
-            const first = clone.querySelector('.ilo-label'); if (first) first.focus();
-            return;
-        }
-
-        // Remove row: Ctrl/Cmd + Backspace
-        if ((e.ctrlKey || e.metaKey) && e.key === 'Backspace'){
-            e.preventDefault();
-            const rows = dataRows();
-            if (!rows.length) return;
-            // Find the row containing the active element
-            const row = active.closest('tr');
-            if (!row) return;
-            // If only one data row remains, clear its inputs instead of removing
-            if (rows.length <= 1){
-                row.querySelectorAll('input').forEach(function(inp){ inp.value = ''; });
-                return;
-            }
-            // Remove the row and move focus to the previous data row's first input
-            const idx = rows.indexOf(row);
-            row.parentNode.removeChild(row);
-            const prev = rows[Math.max(0, idx - 1)];
-            if (prev) { const fi = prev.querySelector('input'); if (fi) fi.focus(); }
-            return;
-        }
-    });
+    // Keyboard add/remove functionality removed: rows are managed programmatically via the ILO list or explicit UI controls.
 });
 </script>
 
@@ -170,31 +149,40 @@ document.addEventListener('DOMContentLoaded', function(){
         const tBody = mappingRoot.querySelector('tbody');
         const allRows = Array.from(tBody.querySelectorAll('tr'));
         const dataRows = allRows.filter(r => r.querySelector('input'));
-        dataRows.forEach((row, idx) => {
-            // read ILO value from hidden input so the visible label is non-editable
-            const iloInput = row.querySelector('input[name="ilo_iga_ilos_text[]"]');
-            const iloVal = iloInput ? iloInput.value : '';
-            const existingIgaInputs = Array.from(row.querySelectorAll('input[id^="ilo_iga_iga"]')).map(i => i.value);
+            dataRows.forEach((row, idx) => {
+                // read ILO value from hidden input so the visible label is non-editable
+                const iloInput = row.querySelector('input[name="ilo_iga_ilos_text[]"]');
+                const iloVal = iloInput ? iloInput.value : '';
+                // prefer server-side data-* attribute when available
+                let existingIgaInputs = [];
+                if (row.dataset && row.dataset.igas) {
+                    try { existingIgaInputs = JSON.parse(row.dataset.igas) || []; } catch (e) { existingIgaInputs = []; }
+                } else {
+                    existingIgaInputs = Array.from(row.querySelectorAll('input[id^="ilo_iga_iga"]')).map(i => i.value);
+                }
 
-            // rebuild row: spacer + ILO cell
-            let html = '';
-            html += '<td style="border:1px solid #343a40; padding:0.5rem; min-height:3.5rem; vertical-align:middle; text-align:center;"></td>';
-            const visibleIlo = iloVal && String(iloVal).trim() ? iloVal : ('ILO ' + (idx + 1));
-            // visible non-editable label + hidden input; submit fallback when original is empty
-            html += `<td style="border:1px solid #343a40; padding:0.5rem; min-height:3.5rem; vertical-align:middle; text-align:center;">`;
-            html += `<span class="ilo-label d-block text-center" tabindex="0">${escapeHtml(visibleIlo)}</span>`;
-            html += `<input type="hidden" name="ilo_iga_ilos_text[]" form="syllabusForm" value="${escapeHtml(iloVal || visibleIlo)}" />`;
-            html += '</td>';
+                // rebuild row: spacer + ILO cell
+                let html = '';
+                html += '<td style="border:1px solid #343a40; padding:0.5rem; min-height:3.5rem; vertical-align:middle; text-align:center;"></td>';
+                const visibleIlo = iloVal && String(iloVal).trim() ? iloVal : ('ILO' + (idx + 1));
+                // visible non-editable label + hidden input; submit fallback when original is empty
+                html += `<td style="border:1px solid #343a40; padding:0.5rem; min-height:3.5rem; vertical-align:middle; text-align:center;">`;
+                html += `<span class="ilo-badge fw-semibold d-inline-block text-center" tabindex="0">${escapeHtml(visibleIlo)}</span>`;
+                html += `<input type="hidden" name="ilo_iga_ilos_text[]" form="syllabusForm" value="${escapeHtml(iloVal || visibleIlo)}" />`;
+                html += '</td>';
 
-            for (let i = 0; i < labels.length; i++) {
-                const propIndex = i + 1;
-                const propName = `ilo_iga_iga${propIndex}_text[]`;
-                const val = existingIgaInputs[i] ?? '';
-                html += `<td style="border:1px solid #343a40; padding:0.5rem; min-height:3.5rem; vertical-align:middle; text-align:center;"><input name="${propName}" form="syllabusForm" type="text" class="cis-input text-center cis-field" placeholder="-" value="${escapeHtml(val)}" /></td>`;
-            }
+                // include stable per-row ids for compatibility with other scripts
+                const rowIndex = (row.dataset && typeof row.dataset.rowIndex !== 'undefined') ? row.dataset.rowIndex : idx;
+                for (let i = 0; i < labels.length; i++) {
+                    const propIndex = i + 1;
+                    const propName = `ilo_iga_iga${propIndex}_text[]`;
+                    const val = existingIgaInputs[i] ?? '';
+                    const inputId = `ilo_iga_iga${rowIndex}_${propIndex}_text`;
+                    html += `<td style="border:1px solid #343a40; padding:0.5rem; min-height:3.5rem; vertical-align:middle; text-align:center;"><input id="${inputId}" name="${propName}" form="syllabusForm" type="text" class="cis-input text-center cis-field" placeholder="-" value="${escapeHtml(val)}" /></td>`;
+                }
 
-            row.innerHTML = html;
-        });
+                row.innerHTML = html;
+            });
     }
 
     function escapeHtml(str) {
@@ -211,6 +199,30 @@ document.addEventListener('DOMContentLoaded', function(){
 
     const debouncedSync = debounce(syncNow, 120);
     syncNow();
+
+    // Defensive rehydrate: if some client sync logic cleared IGA inputs, restore from server-rendered data-attributes
+    // This pass only writes values when inputs are empty to avoid overwriting user edits.
+    try {
+        setTimeout(() => {
+            const dataRows = Array.from(mappingRoot.querySelectorAll('tbody tr[data-igas]'));
+            dataRows.forEach((row) => {
+                try {
+                    const raw = row.getAttribute('data-igas');
+                    if (!raw) return;
+                    const vals = JSON.parse(raw);
+                    // find all inputs for IGA columns inside this row (by name pattern)
+                    const inputs = Array.from(row.querySelectorAll('input[name^="ilo_iga_iga"]'));
+                    for (let i = 0; i < Math.max(inputs.length, vals.length); i++) {
+                        const inp = inputs[i];
+                        const v = vals[i] ?? '';
+                        if (inp && (inp.value === '' || inp.value === null)) {
+                            inp.value = v ?? '';
+                        }
+                    }
+                } catch (e) { /* noop - defensive */ }
+            });
+        }, 40);
+    } catch (e) { /* noop */ }
 
     const mo = new MutationObserver(debouncedSync);
     mo.observe(igaContainer, { childList: true, subtree: true, attributes: true, attributeFilter: ['value'] });
@@ -279,3 +291,18 @@ document.addEventListener('DOMContentLoaded', function(){
     }
 });
 </script>
+@if(config('app.debug'))
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+    try {
+        const rows = Array.from(document.querySelectorAll('.ilo-iga-mapping tbody tr')).filter(r => r.querySelector('input[name="ilo_iga_ilos_text[]"]'));
+        console.info('DEBUG ilo-iga: found data rows', rows.length);
+        rows.forEach((r, idx) => {
+            const hidden = r.querySelector('input[name="ilo_iga_ilos_text[]"]');
+            const igas = Array.from(r.querySelectorAll('input[name^="ilo_iga_iga"]')).map(i => i.value);
+            console.info(`DEBUG ilo-iga row ${idx}: ilo=`, hidden ? hidden.value : null, ' igas=', igas);
+        });
+    } catch (e) { console.warn('DEBUG ilo-iga logging failed', e); }
+});
+</script>
+@endif

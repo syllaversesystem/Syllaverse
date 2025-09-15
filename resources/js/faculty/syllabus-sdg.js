@@ -100,7 +100,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         if (codeInput) codeInput.value = provisional;
                     }
                 }
-            } catch (e) { try { if (badge) badge.textContent = 'SDG#'; } catch (err) {} }
+            } catch (e) { try { if (badge) badge.textContent = 'SDG1'; } catch (err) {} }
 
             tbody.appendChild(newRow);
             // ensure event bindings for update/delete exist on the new row
