@@ -12,8 +12,8 @@
 <div class="tab-pane fade" id="admins-rejected" role="tabpanel" aria-labelledby="admins-rejected-tab">
   {{-- ░░░ START: Toolbar (Search) ░░░ --}}
   <div class="d-flex align-items-center justify-content-between mb-3">
-    <div class="input-group" style="max-width: 320px;">
-      <span class="input-group-text"><i class="bi bi-search"></i></span>
+    <div class="input-group">
+      <span class="input-group-text"><i data-feather="search"></i></span>
       <input
         id="svRejectedSearch"
         type="search"
@@ -27,8 +27,8 @@
   {{-- ░░░ START: Table Section (Approvals-style wrapper) ░░░ --}}
   <div class="table-wrapper position-relative">
     <div class="table-responsive">
-      <table class="table mb-0 sv-accounts-table" id="svRejectedAdminsTable">
-        <thead>
+      <table class="table superadmin-manage-account-table mb-0" id="svRejectedAdminsTable">
+        <thead class="superadmin-manage-account-table-header">
           <tr>
             <th><i data-feather="user-x"></i> Name</th>
             <th><i data-feather="mail"></i> Email</th>
@@ -61,7 +61,7 @@
               </td>
             </tr>
           @empty
-            <tr class="sv-empty-row">
+            <tr class="superadmin-manage-account-empty-row">
               <td colspan="3">
                 <div class="sv-empty">
                   <h6>No rejected admins</h6>

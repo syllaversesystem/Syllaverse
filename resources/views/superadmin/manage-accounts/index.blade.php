@@ -15,23 +15,18 @@
 @section('page-title', 'Manage Accounts')
 
 @section('content')
-  <div class="department-card"><!-- Reuses the polished glass card container -->
+  <div class="manage-account"><!-- Updated from department-card to manage-account -->
 
-    {{-- ░░░ START: Top Tabs (Admins / Faculty / Students) ░░░ --}}
-    <ul class="nav sv-tabs" id="accountTabs" role="tablist" aria-label="Account type tabs">
+    {{-- ░░░ START: Top Tabs (Admins / Faculty) ░░░ --}}
+    <ul class="nav superadmin-manage-account-main-tabs" id="accountTabs" role="tablist" aria-label="Account type tabs">
       <li class="nav-item" role="presentation">
-        <button class="nav-link sv-tab active" id="admins-tab" data-bs-toggle="tab" data-bs-target="#admins" type="button" role="tab" aria-controls="admins" aria-selected="true">
+        <button class="nav-link superadmin-manage-account-main-tab active" id="admins-tab" data-bs-toggle="tab" data-bs-target="#admins" type="button" role="tab" aria-controls="admins" aria-selected="true">
           Admins
         </button>
       </li>
       <li class="nav-item" role="presentation">
-        <button class="nav-link sv-tab" id="faculty-tab" data-bs-toggle="tab" data-bs-target="#faculty" type="button" role="tab" aria-controls="faculty" aria-selected="false">
+        <button class="nav-link superadmin-manage-account-main-tab" id="faculty-tab" data-bs-toggle="tab" data-bs-target="#faculty" type="button" role="tab" aria-controls="faculty" aria-selected="false">
           Faculty
-        </button>
-      </li>
-      <li class="nav-item" role="presentation">
-        <button class="nav-link sv-tab" id="students-tab" data-bs-toggle="tab" data-bs-target="#students" type="button" role="tab" aria-controls="students" aria-selected="false">
-          Students
         </button>
       </li>
     </ul>
@@ -50,12 +45,6 @@
         @include('superadmin.manage-accounts.tabs.faculty')
       </div>
       {{-- ░░░ END: Faculty Tab ░░░ --}}
-
-      {{-- ░░░ START: Students Tab ░░░ --}}
-      <div class="tab-pane fade" id="students" role="tabpanel" aria-labelledby="students-tab">
-        @include('superadmin.manage-accounts.tabs.students')
-      </div>
-      {{-- ░░░ END: Students Tab ░░░ --}}
     </div>
     {{-- ░░░ END: Tab Content ░░░ --}}
 

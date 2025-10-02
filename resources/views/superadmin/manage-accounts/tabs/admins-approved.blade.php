@@ -25,8 +25,8 @@
   {{-- ░░░ START: Table Section (Approvals-style wrapper) ░░░ --}}
   <div class="table-wrapper position-relative">
     <div class="table-responsive">
-      <table class="table mb-0 sv-accounts-table" id="svApprovedAdminsTable">
-        <thead>
+      <table class="table superadmin-manage-account-table mb-0" id="svApprovedAdminsTable">
+        <thead class="superadmin-manage-account-table-header">
           <tr>
             <th><i data-feather="user"></i> Name</th>
             <th><i data-feather="mail"></i> Email</th>
@@ -88,7 +88,7 @@
             @endpush
 
           @empty
-            <tr class="sv-empty-row">
+            <tr class="superadmin-manage-account-empty-row">
               <td colspan="4">
                 <div class="sv-empty">
                   <h6>No approved admins</h6>

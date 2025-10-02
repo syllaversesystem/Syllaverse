@@ -16,6 +16,7 @@
 /* resources/css/superadmin/manage-accounts/manage-accounts.css */
 @import './partials/tabs.css';
 @import './partials/table.css';
+@import './partials/toolbar.css';
 @import './partials/buttons.css';
 @import './partials/pills.css';
 @import './partials/details.css'; /* ⬅️ NEW */

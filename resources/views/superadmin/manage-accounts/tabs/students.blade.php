@@ -4,13 +4,13 @@
 ------------------------------------------------ --}}
 <div class="card border-0 shadow-sm p-4">
     <div class="d-flex justify-content-start mb-4">
-        <div class="input-group" style="max-width: 300px;">
-            <span class="input-group-text"><i class="bi bi-search"></i></span>
+        <div class="input-group">
+            <span class="input-group-text"><i data-feather="search"></i></span>
             <input type="search" class="form-control" placeholder="Search students..." aria-label="Search students">
         </div>
     </div>
-    <table class="table table-hover">
-        <thead class="table-light">
+    <table class="table superadmin-manage-account-table table-hover">
+        <thead class="superadmin-manage-account-table-header table-light">
             <tr>
                 <th>Name</th>
                 <th>Email</th>

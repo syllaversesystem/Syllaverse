@@ -10,9 +10,9 @@
 --}}
 
 {{-- ░░░ START: Admins Sub-Tabs (labels only updated; IDs/data-targets unchanged) ░░░ --}}
-<ul class="nav mb-4" id="adminsSubTabs" role="tablist">
+<ul class="nav superadmin-manage-account-sub-tabs mb-4" id="adminsSubTabs" role="tablist">
   <li class="nav-item" role="presentation">
-    <button class="nav-link sv-subtab active"
+    <button class="nav-link superadmin-manage-account-sub-tab active"
             id="admins-approvals-tab"
             data-bs-toggle="pill"
             data-bs-target="#admins-approvals"
@@ -22,7 +22,7 @@
     </button>
   </li>
   <li class="nav-item" role="presentation">
-    <button class="nav-link sv-subtab"
+    <button class="nav-link superadmin-manage-account-sub-tab"
             id="admins-approved-tab"
             data-bs-toggle="pill"
             data-bs-target="#admins-approved"
@@ -32,7 +32,7 @@
     </button>
   </li>
   <li class="nav-item" role="presentation">
-    <button class="nav-link sv-subtab"
+    <button class="nav-link superadmin-manage-account-sub-tab"
             id="admins-rejected-tab"
             data-bs-toggle="pill"
             data-bs-target="#admins-rejected"

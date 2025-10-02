@@ -8,7 +8,8 @@
 -------------------------------------------------------------------------------
 */
 
-.department-card {
+.department-card,
+.manage-account {
   position: relative;
   background: rgba(255, 255, 255, 0.65);
   backdrop-filter: blur(16px);

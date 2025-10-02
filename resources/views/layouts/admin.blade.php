@@ -62,7 +62,7 @@
       {{-- ░░░ END: Backdrop overlay for mobile drawer ░░░ --}}
 
       {{-- ░░░ START: Page Content ░░░ --}}
-      <main class="container-fluid px-4 py-4">
+      <main class="container-fluid px-3 py-3">
         @yield('content')
       </main>
       {{-- ░░░ END: Page Content ░░░ --}}

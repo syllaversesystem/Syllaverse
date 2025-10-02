@@ -38,7 +38,15 @@ document.addEventListener('DOMContentLoaded', function () {
     // 🗑️ Setup Delete Department modal
     window.setDeleteDepartment = function (button) {
         const id = button.dataset.id;
+        const name = button.dataset.name;
+        const code = button.dataset.code;
+        
+        // Set form action
         document.getElementById('deleteDepartmentForm').action = `/superadmin/departments/${id}`;
+        
+        // Populate department details in modal
+        document.getElementById('deleteDepartmentName').textContent = name || 'Unknown';
+        document.getElementById('deleteDepartmentCode').textContent = code || 'Unknown';
     };
 
     // 🎯 Setup draggable FAB

@@ -18,24 +18,15 @@
     <h6 class="mb-0 fw-semibold" style="font-size:.95rem;">Programs</h6>
 
     <div class="d-flex align-items-center gap-2">
-      {{-- Add Program – only Dept Chair can add --}}
-      @if (Auth::user()->isDeptChair())
-        <button type="button"
-                class="btn-brand-sm"
-                data-bs-toggle="modal"
-                data-bs-target="#addProgramModal"
-                aria-label="Add Program"
-                title="Add Program">
-          <i data-feather="plus"></i>
-        </button>
-      @else
-        <button type="button"
-                class="btn-brand-sm disabled"
-                aria-label="Add Program"
-                title="Add Program (disabled)">
-          <i data-feather="lock"></i>
-        </button>
-      @endif
+      {{-- Add Program Button --}}
+      <button type="button"
+              class="btn-brand-sm"
+              data-bs-toggle="modal"
+              data-bs-target="#addProgramModal"
+              aria-label="Add Program"
+              title="Add Program">
+        <i data-feather="plus"></i>
+      </button>
     </div>
   </div>
   {{-- ░░░ END: Toolbar Section ░░░ --}}

@@ -24,7 +24,8 @@
 
 
   /* ░░░ START: Top-Level Tabs – Underline pattern (unchanged) ░░░ */
-  .sv-tabs {
+  .sv-tabs,
+  .superadmin-manage-account-main-tabs {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -32,28 +33,36 @@
     border-bottom: 1px solid var(--sv-border);
     margin-bottom: 0.5rem;
   }
-  .sv-tabs .nav-item { flex: 1 1 0; text-align: center; }
-  .sv-tabs .nav-link {
+  .sv-tabs .nav-item,
+  .superadmin-manage-account-main-tabs .nav-item { flex: 1 1 0; text-align: center; }
+  .sv-tabs .nav-link,
+  .superadmin-manage-account-main-tab {
     position: relative; display: inline-flex; align-items: center; justify-content: center;
     height: var(--sv-tab-h); width: 100%; padding: 0;
     font-family: 'Poppins', sans-serif; font-weight: 600; font-size: var(--sv-tab-fs);
     letter-spacing: 0.01em; color: var(--sv-text-muted); background: transparent; border: 0;
     white-space: nowrap; transition: color .16s ease;
   }
-  .sv-tabs .nav-link:hover { color: var(--sv-tab-accent); }
-  .sv-tabs .nav-link:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(203,55,55,.18); }
-  .sv-tabs .nav-link::after {
+  .sv-tabs .nav-link:hover,
+  .superadmin-manage-account-main-tab:hover { color: var(--sv-tab-accent); }
+  .sv-tabs .nav-link:focus-visible,
+  .superadmin-manage-account-main-tab:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(203,55,55,.18); }
+  .sv-tabs .nav-link::after,
+  .superadmin-manage-account-main-tab::after {
     content:""; position:absolute; left:50%; transform:translateX(-50%); bottom:calc(var(--sv-underline)*-1);
     width: var(--sv-underline-w); height: var(--sv-underline); background: transparent; border-radius: 2px;
     transition: background-color .16s ease, width .16s ease;
   }
-  .sv-tabs .nav-link.active { color: var(--sv-tab-accent); }
-  .sv-tabs .nav-link.active::after { background: var(--sv-tab-accent); }
+  .sv-tabs .nav-link.active,
+  .superadmin-manage-account-main-tab.active { color: var(--sv-tab-accent); }
+  .sv-tabs .nav-link.active::after,
+  .superadmin-manage-account-main-tab.active::after { background: var(--sv-tab-accent); }
   /* ░░░ END: Top-Level Tabs ░░░ */
 
 
   /* ░░░ START: Sub-Tabs – Underline pattern with larger spacing ░░░ */
-  .sv-subtabs {
+  .sv-subtabs,
+  .superadmin-manage-account-sub-tabs {
     display: flex;
     align-items: center;
     justify-content: flex-start;
@@ -65,12 +74,15 @@
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
   }
-  .sv-subtabs::-webkit-scrollbar { display: none; }
+  .sv-subtabs::-webkit-scrollbar,
+  .superadmin-manage-account-sub-tabs::-webkit-scrollbar { display: none; }
 
-  .sv-subtabs .nav-item { flex: 0 0 auto; text-align: center; }
+  .sv-subtabs .nav-item,
+  .superadmin-manage-account-sub-tabs .nav-item { flex: 0 0 auto; text-align: center; }
 
   .sv-subtabs .nav-link,
-  .sv-subtab {
+  .sv-subtab,
+  .superadmin-manage-account-sub-tab {
     position: relative;
     display: inline-flex; align-items: center; justify-content: center;
     height: var(--sv-subtab-h);
@@ -81,16 +93,26 @@
     white-space: nowrap; transition: color .16s ease;
   }
 
-  .sv-subtabs .nav-link:hover, .sv-subtab:hover { color: var(--sv-tab-accent); }
-  .sv-subtabs .nav-link:focus-visible, .sv-subtab:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(203,55,55,.18); }
+  .sv-subtabs .nav-link:hover, 
+  .sv-subtab:hover,
+  .superadmin-manage-account-sub-tab:hover { color: var(--sv-tab-accent); }
+  .sv-subtabs .nav-link:focus-visible, 
+  .sv-subtab:focus-visible,
+  .superadmin-manage-account-sub-tab:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(203,55,55,.18); }
 
-  .sv-subtabs .nav-link::after, .sv-subtab::after {
+  .sv-subtabs .nav-link::after, 
+  .sv-subtab::after,
+  .superadmin-manage-account-sub-tab::after {
     content:""; position:absolute; left:50%; transform:translateX(-50%); bottom:-1px;
     width: 28%; height: var(--sv-underline); background: transparent; border-radius: 2px;
     transition: background-color .16s ease, width .16s ease;
   }
-  .sv-subtabs .nav-link.active, .sv-subtab.active { color: var(--sv-tab-accent); }
-  .sv-subtabs .nav-link.active::after, .sv-subtab.active::after { background: var(--sv-tab-accent); }
+  .sv-subtabs .nav-link.active, 
+  .sv-subtab.active,
+  .superadmin-manage-account-sub-tab.active { color: var(--sv-tab-accent); }
+  .sv-subtabs .nav-link.active::after, 
+  .sv-subtab.active::after,
+  .superadmin-manage-account-sub-tab.active::after { background: var(--sv-tab-accent); }
   /* ░░░ END: Sub-Tabs ░░░ */
 
 

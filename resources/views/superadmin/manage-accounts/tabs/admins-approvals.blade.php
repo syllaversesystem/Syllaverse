@@ -77,8 +77,8 @@
   {{-- ░░░ START: Table Section ░░░ --}}
   <div class="table-wrapper position-relative">
     <div class="table-responsive">
-      <table class="table mb-0" id="svMergedApprovalsTable">
-        <thead>
+      <table class="table superadmin-manage-account-table mb-0" id="svMergedApprovalsTable">
+        <thead class="superadmin-manage-account-table-header">
           <tr>
             <th><i data-feather="user"></i> Name</th>
             <th><i data-feather="mail"></i> Email</th>
@@ -219,7 +219,7 @@
             @endif
 
           @empty
-            <tr class="sv-empty-row">
+            <tr class="superadmin-manage-account-empty-row">
               <td colspan="7">
                 <div class="sv-empty">
                   <h6>No approvals pending</h6>

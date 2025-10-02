@@ -87,16 +87,6 @@
 .btn-brand-sm:focus svg {
   stroke: #CB3737;
 }
-
-.btn-brand-sm:active {
-  background: linear-gradient(135deg, rgba(255, 230, 225, 0.98), rgba(255, 255, 255, 0.62));
-  box-shadow: 0 1px 8px rgba(204, 55, 55, 0.16);
-}
-
-.btn-brand-sm:active i,
-.btn-brand-sm:active svg {
-  stroke: #CB3737;
-}
 /* ░░░ END: Mini Add Button ░░░ */
 
 

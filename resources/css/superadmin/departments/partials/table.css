@@ -21,7 +21,8 @@
 /* ░░░ END: Table Container ░░░ */
 
 /* ░░░ START: Base Table Layout ░░░ */
-.table {
+.table,
+.superadmin-manage-department-table {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
@@ -29,11 +30,15 @@
   font-family: 'Poppins', sans-serif;
 }
 
-.table thead {
+.table thead,
+.superadmin-manage-department-table thead,
+.superadmin-manage-department-table-header {
   background: var(--sv-bg);
 }
 
-.table thead th {
+.table thead th,
+.superadmin-manage-department-table thead th,
+.superadmin-manage-department-table-header th {
   font-weight: 600;
   color: var(--sv-text-muted);
   padding: 0.65rem 0.9rem;
@@ -44,7 +49,11 @@
 }
 
 .table thead th i,
-.table thead th svg {
+.table thead th svg,
+.superadmin-manage-department-table thead th i,
+.superadmin-manage-department-table thead th svg,
+.superadmin-manage-department-table-header th i,
+.superadmin-manage-department-table-header th svg {
   margin-right: 0.45rem;
   stroke: var(--sv-text-muted);
   width: 1rem;
@@ -53,18 +62,21 @@
   
 }
 
-.table tbody tr { 
+.table tbody tr,
+.superadmin-manage-department-table tbody tr { 
   transition: background-color 0.2s ease;
   background-color: #fff;
   border-radius: 10px;
 }
 
-.table tbody tr:hover {
+.table tbody tr:hover,
+.superadmin-manage-department-table tbody tr:hover {
   background-color: #fff5f4;
   border-left: 4px solid var(--sv-primary);
 }
 
-.table td {
+.table td,
+.superadmin-manage-department-table td {
   color: var(--sv-text);
   padding: 0.01rem 0.75rem; /* 🔽 reduced vertical padding */
   border-bottom: 0px solid var(--sv-border);
@@ -73,28 +85,33 @@
 }
 
 
-.table td:first-child {
+.table td:first-child,
+.superadmin-manage-department-table td:first-child {
   font-weight: 500;
   color: var(--sv-primary-dark);
 }
 
-.table td:last-child {
+.table td:last-child,
+.superadmin-manage-department-table td:last-child {
   text-align: right;
   padding-right: 1rem;
 }
 /* ░░░ END: Base Table Layout ░░░ */
 
 /* ░░░ START: Zebra Striping (Soft) ░░░ */
-.table tbody tr:nth-child(odd) {
+.table tbody tr:nth-child(odd),
+.superadmin-manage-department-table tbody tr:nth-child(odd) {
   background-color: #FDFDFD;
 }
-.table tbody tr:nth-child(even) {
+.table tbody tr:nth-child(even),
+.superadmin-manage-department-table tbody tr:nth-child(even) {
   background-color: #FAFAFA;
 }
 /* ░░░ END: Zebra Striping ░░░ */
 
 /* ░░░ START: Inline Empty Row ░░░ */
-.empty-row {
+.empty-row,
+.superadmin-manage-department-empty-row {
   padding: 0;
   background-color: #fff;
   border-radius: 0 0 12px 12px;

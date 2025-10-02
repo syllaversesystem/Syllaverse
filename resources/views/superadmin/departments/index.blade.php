@@ -20,7 +20,7 @@
 <div class="department-card">
 
     {{-- ░░░ START: Toolbar Section ░░░ --}}
-    <div class="toolbar">
+    <div class="superadmin-manage-department-toolbar">
         <div class="input-group">
             <span class="input-group-text"><i data-feather="search"></i></span>
             <input type="search" class="form-control" placeholder="Search departments..." aria-label="Search departments">
@@ -41,8 +41,8 @@
     {{-- ░░░ START: Table Section ░░░ --}}
     <div class="table-wrapper position-relative">
         <div class="table-responsive">
-            <table class="table mb-0">
-                <thead class="d-none d-md-table-header-group">
+            <table class="table superadmin-manage-department-table mb-0">
+                <thead class="superadmin-manage-department-table-header d-none d-md-table-header-group">
                     <tr>
                         <th><i data-feather="code"></i> Code</th>
                         <th><i data-feather="briefcase"></i> Name</th>
@@ -53,7 +53,7 @@
                 </thead>
                 <tbody>
                     @if($departments->isEmpty())
-                    <tr class="empty-row">
+                    <tr class="superadmin-manage-department-empty-row">
                         <td colspan="6">
                             <div class="empty-table">
                                 <h6>No departments found</h6>
@@ -95,6 +95,8 @@
                                                         data-bs-toggle="modal"
                                                         data-bs-target="#deleteDepartmentModal"
                                                         data-id="{{ $department->id }}"
+                                                        data-name="{{ $department->name }}"
+                                                        data-code="{{ $department->code }}"
                                                         onclick="setDeleteDepartment(this)">
                                                         <i data-feather="trash" class="me-2"></i> Delete
                                                     </button>
@@ -130,6 +132,8 @@
                                     data-bs-toggle="modal"
                                     data-bs-target="#deleteDepartmentModal"
                                     data-id="{{ $department->id }}"
+                                    data-name="{{ $department->name }}"
+                                    data-code="{{ $department->code }}"
                                     onclick="setDeleteDepartment(this)">
                                     <i data-feather="trash"></i>
                                 </button>

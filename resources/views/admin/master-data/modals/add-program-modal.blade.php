@@ -19,17 +19,21 @@
       <div class="modal-body">
         <div class="mb-3">
           <label for="programName" class="form-label small fw-medium text-muted">Program Name</label>
-          <input type="text" class="form-control form-control-sm" id="programName" name="name" required>
+          <input type="text" class="form-control form-control-sm" id="programName" name="name" placeholder="e.g., Bachelor of Science in Computer Science" required>
         </div>
 
         <div class="mb-3">
           <label for="programCode" class="form-label small fw-medium text-muted">Program Code</label>
-          <input type="text" class="form-control form-control-sm" id="programCode" name="code" required>
+          <input type="text" class="form-control form-control-sm" id="programCode" name="code" placeholder="e.g., BSCS, BSIT, BSEE" required>
         </div>
 
         <div class="mb-3">
           <label for="programDescription" class="form-label small fw-medium text-muted">Description (optional)</label>
-          <textarea class="form-control" id="programDescription" name="description" rows="5"></textarea>
+          <textarea class="form-control" id="programDescription" name="description" rows="5" placeholder="Enter a brief description of the program, its objectives, and key features..."></textarea>
+          <div class="form-text text-muted mt-1">
+            <i data-feather="info" class="me-1" style="width: 14px; height: 14px;"></i>
+            This description will be used in AI prompts to generate more relevant and accurate syllabi content for this program.
+          </div>
         </div>
       </div>
 
