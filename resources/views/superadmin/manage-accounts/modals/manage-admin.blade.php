@@ -52,33 +52,23 @@
             @csrf
             <input type="hidden" name="user_id" value="{{ $admin->id }}">
 
-            <div class="col-md-3">
+            <div class="col-md-4">
               <label class="form-label small">Role</label>
               <select name="role" class="form-select form-select-sm sv-role" aria-label="Select role">
-                <option value="{{ \App\Models\Appointment::ROLE_DEPT }}">Department Chair</option>
-                <option value="{{ \App\Models\Appointment::ROLE_PROG }}">Program Chair</option>
+                <option value="">— Select Role —</option>
+                <option value="{{ \App\Models\Appointment::ROLE_DEPT }}">Program/Department Chair</option>
+                <option value="{{ \App\Models\Appointment::ROLE_DEAN }}">Dean</option>
                 <option value="{{ \App\Models\Appointment::ROLE_VCAA }}">VCAA</option>
                 <option value="{{ \App\Models\Appointment::ROLE_ASSOC_VCAA }}">Associate VCAA</option>
-                <option value="{{ \App\Models\Appointment::ROLE_DEAN }}">Dean</option>
               </select>
             </div>
 
-            <div class="col-md-4">
+            <div class="col-md-7">
               <label class="form-label small">Department</label>
-              <select name="department_id" class="form-select form-select-sm sv-dept" aria-label="Select department">
-                <option value="">— Select —</option>
+              <select name="department_id" class="form-select form-select-sm sv-dept" aria-label="Select department" disabled>
+                <option value="">— Select Role First —</option>
                 @foreach (($departments ?? []) as $dept)
                   <option value="{{ $dept->id }}">{{ $dept->name }}</option>
-                @endforeach
-              </select>
-            </div>
-
-            <div class="col-md-4">
-              <label class="form-label small">Program</label>
-              <select name="program_id" class="form-select form-select-sm sv-prog" aria-label="Select program">
-                <option value="">— Select —</option>
-                @foreach (($programs ?? []) as $prog)
-                  <option value="{{ $prog->id }}" data-dept="{{ $prog->department_id }}">{{ $prog->name }}</option>
                 @endforeach
               </select>
             </div>
@@ -104,10 +94,35 @@
               @foreach ($activeAppointments as $appt)
                 @php
                   $isDept        = $appt->role === \App\Models\Appointment::ROLE_DEPT;
-                  $roleLabel     = $isDept ? 'Dept Chair' : ($appt->role ?? 'Appointment');
-                  $scopeLabel    = $isDept
-                    ? ($deptById[$appt->scope_id]->name ?? ('Dept #'.$appt->scope_id))
-                    : ($progById[$appt->scope_id]->name ?? ('Prog #'.$appt->scope_id));
+                  $isProg        = $appt->role === \App\Models\Appointment::ROLE_PROG;
+                  $isDean        = $appt->role === \App\Models\Appointment::ROLE_DEAN;
+                  
+                  // Show specific role labels based on stored role
+                  if ($isDept) {
+                    $roleLabel = 'Department Chair';
+                  } elseif ($isProg) {
+                    $roleLabel = 'Program Chair';
+                  } elseif ($isDean) {
+                    $roleLabel = 'Dean';
+                  } elseif ($appt->role === \App\Models\Appointment::ROLE_VCAA) {
+                    $roleLabel = 'VCAA';
+                  } elseif ($appt->role === \App\Models\Appointment::ROLE_ASSOC_VCAA) {
+                    $roleLabel = 'Associate VCAA';
+                  } else {
+                    $roleLabel = $appt->role ?? 'Appointment';
+                  }
+                  
+                  // Handle scope label properly - show department for department-scoped roles
+                  if ($appt->scope_id === null || $appt->scope_id == 0) {
+                    $scopeLabel = 'Institution-wide';
+                  } elseif ($isDept || $isProg || $isDean) {
+                    // Chair types and Dean use department scope
+                    $scopeLabel = $deptById[$appt->scope_id]->name ?? 'Unknown Department';
+                  } else {
+                    // For other appointment types (VCAA, Associate VCAA)
+                    $scopeLabel = 'Institution-wide';
+                  }
+                  
                   $collapseId    = "sv-appt-edit-{$appt->id}";
                   $currentDeptId = $isDept
                     ? (int) $appt->scope_id
@@ -142,7 +157,7 @@
                           class="d-inline"
                           data-ajax="true">
                       @csrf
-                      <button class="action-btn reject" type="submit" title="End appointment" aria-label="End appointment">
+                      <button class="action-btn reject" type="submit" title="Delete appointment" aria-label="Delete appointment">
                         <i data-feather="x"></i>
                       </button>
                     </form>
@@ -159,20 +174,23 @@
                     @csrf
                     @method('PUT')
 
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                       <label class="form-label small">Role</label>
                       <select name="role" class="form-select form-select-sm sv-role">
-                        <option value="{{ \App\Models\Appointment::ROLE_DEPT }}" {{ $isDept ? 'selected' : '' }}>Department Chair</option>
-                        <option value="{{ \App\Models\Appointment::ROLE_VCAA }}">VCAA</option>
-                        <option value="{{ \App\Models\Appointment::ROLE_ASSOC_VCAA }}">Associate VCAA</option>
-                        <option value="{{ \App\Models\Appointment::ROLE_DEAN }}">Dean</option>
+                        <option value="{{ \App\Models\Appointment::ROLE_DEPT }}" {{ ($isDept || $isProg) ? 'selected' : '' }}>Program/Department Chair</option>
+                        <option value="{{ \App\Models\Appointment::ROLE_DEAN }}" {{ $appt->role === \App\Models\Appointment::ROLE_DEAN ? 'selected' : '' }}>Dean</option>
+                        <option value="{{ \App\Models\Appointment::ROLE_VCAA }}" {{ $appt->role === \App\Models\Appointment::ROLE_VCAA ? 'selected' : '' }}>VCAA</option>
+                        <option value="{{ \App\Models\Appointment::ROLE_ASSOC_VCAA }}" {{ $appt->role === \App\Models\Appointment::ROLE_ASSOC_VCAA ? 'selected' : '' }}>Associate VCAA</option>
                       </select>
                     </div>
 
-                    <div class="col-md-4">
+                    <div class="col-md-7">
                       <label class="form-label small">Department</label>
-                      <select name="department_id" class="form-select form-select-sm sv-dept">
-                        <option value="">— Select —</option>
+                      <select name="department_id" class="form-select form-select-sm sv-dept" 
+                              {{ in_array($appt->role, [\App\Models\Appointment::ROLE_VCAA, \App\Models\Appointment::ROLE_ASSOC_VCAA]) ? 'disabled' : '' }}>
+                        @if (in_array($appt->role, [\App\Models\Appointment::ROLE_VCAA, \App\Models\Appointment::ROLE_ASSOC_VCAA]))
+                          <option value="">— Not Required —</option>
+                        @endif
                         @foreach (($departments ?? []) as $dept)
                           <option value="{{ $dept->id }}" {{ (int)$dept->id === $currentDeptId ? 'selected' : '' }}>
                             {{ $dept->name }}
@@ -181,20 +199,8 @@
                       </select>
                     </div>
 
-                    <div class="col-md-4">
-                      <label class="form-label small">Program</label>
-                      <select name="program_id" class="form-select form-select-sm sv-prog">
-                        <option value="">— Select —</option>
-                        @foreach (($programs ?? []) as $prog)
-                          <option value="{{ $prog->id }}" data-dept="{{ $prog->department_id }}" {{ (int)$prog->id === ($currentProgId ?? 0) ? 'selected' : '' }}>
-                            {{ $prog->name }}
-                          </option>
-                        @endforeach
-                      </select>
-                    </div>
-
                     <div class="col-md-1 d-flex">
-                      <button class="action-btn approve ms-auto" type="submit" title="Update appointment" aria-label="Update appointment">
+                      <button class="action-btn approve ms-auto" type="submit" title="Save changes" aria-label="Save changes">
                         <i data-feather="check"></i>
                       </button>
                     </div>
@@ -227,3 +233,52 @@
     </div>
   </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Handle department dropdown accessibility based on role selection
+  const modal = document.getElementById('manageAdmin-{{ $admin->id }}');
+  if (modal) {
+    const roleSelects = modal.querySelectorAll('.sv-role');
+    const deptSelects = modal.querySelectorAll('.sv-dept');
+    
+    // Define roles that require department selection
+    const deptRequiredRoles = ['{{ \App\Models\Appointment::ROLE_DEPT }}', '{{ \App\Models\Appointment::ROLE_DEAN }}'];
+    const chairRole = '{{ \App\Models\Appointment::ROLE_DEPT }}';
+    
+    // Program count data removed - not needed for static dropdown labels
+    
+    // Removed dynamic chair role label function - keeping static "Program/Department Chair" text
+    
+    function updateDeptDropdownState(roleSelect, deptSelect) {
+      const selectedRole = roleSelect.value;
+      const requiresDept = deptRequiredRoles.includes(selectedRole);
+      
+      if (requiresDept) {
+        deptSelect.disabled = false;
+        deptSelect.querySelector('option[value=""]').textContent = '— Select Department —';
+      } else {
+        deptSelect.disabled = true;
+        deptSelect.value = '';
+        deptSelect.querySelector('option[value=""]').textContent = '— Not Required —';
+      }
+    }
+    
+    // Initialize and add event listeners for each role/dept pair
+    roleSelects.forEach((roleSelect, index) => {
+      const deptSelect = deptSelects[index];
+      if (deptSelect) {
+        // Initialize on page load
+        updateDeptDropdownState(roleSelect, deptSelect);
+        
+        // Add change listener for role
+        roleSelect.addEventListener('change', function() {
+          updateDeptDropdownState(roleSelect, deptSelect);
+        });
+        
+        // Department change listener removed - no dynamic label updates needed
+      }
+    });
+  }
+});
+</script>

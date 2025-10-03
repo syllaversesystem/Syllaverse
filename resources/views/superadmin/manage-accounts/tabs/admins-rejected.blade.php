@@ -10,20 +10,6 @@
 --}}
 
 <div class="tab-pane fade" id="admins-rejected" role="tabpanel" aria-labelledby="admins-rejected-tab">
-  {{-- ░░░ START: Toolbar (Search) ░░░ --}}
-  <div class="d-flex align-items-center justify-content-between mb-3">
-    <div class="input-group">
-      <span class="input-group-text"><i data-feather="search"></i></span>
-      <input
-        id="svRejectedSearch"
-        type="search"
-        class="form-control"
-        placeholder="Search rejected admins…"
-        aria-label="Search rejected admins" />
-    </div>
-  </div>
-  {{-- ░░░ END: Toolbar (Search) ░░░ --}}
-
   {{-- ░░░ START: Table Section (Approvals-style wrapper) ░░░ --}}
   <div class="table-wrapper position-relative">
     <div class="table-responsive">

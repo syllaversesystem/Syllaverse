@@ -9,7 +9,7 @@
 //              added DELETE /appointments/{appointment} (destroy) and standardized names.
 // [2025-08-12] Master Data – added POST /master-data/{type}/reorder for drag-to-reorder with renumbering.
 // [2025-08-17] Fix – corrected reorder path to '/master-data/{type}/reorder' within the group
-//              (removed absolute '/superadmin/...' duplication).
+//              (removed absolute '/superladmin/...' duplication).
 // -----------------------------------------------------------------------------
 
 use Illuminate\Support\Facades\Route;
@@ -54,6 +54,8 @@ Route::middleware([SuperAdminAuth::class])->prefix('superadmin')->group(function
     // ---------- Chair Requests (Approve/Reject) ----------
     Route::post('/chair-requests/{id}/approve', [ChairRequestController::class, 'approve'])->name('superadmin.chair-requests.approve');
     Route::post('/chair-requests/{id}/reject',  [ChairRequestController::class, 'reject'])->name('superadmin.chair-requests.reject');
+    Route::post('/chair-requests/user/{userId}/approve-all', [ChairRequestController::class, 'approveAll'])->name('superadmin.chair-requests.approve-all');
+    Route::post('/chair-requests/user/{userId}/reject-all', [ChairRequestController::class, 'rejectAll'])->name('superadmin.chair-requests.reject-all');
 
     // ---------- Appointments (Create/Update/End/Destroy) ----------
     Route::post('/appointments',                   [AppointmentController::class, 'store'])->name('superadmin.appointments.store');

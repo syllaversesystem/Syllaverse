@@ -9,7 +9,8 @@
 */
 
 .department-card,
-.manage-account {
+.manage-account,
+.master-data-card {
   position: relative;
   background: rgba(255, 255, 255, 0.65);
   backdrop-filter: blur(16px);

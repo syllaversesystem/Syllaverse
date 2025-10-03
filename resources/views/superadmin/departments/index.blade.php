@@ -46,7 +46,6 @@
                     <tr>
                         <th><i data-feather="code"></i> Code</th>
                         <th><i data-feather="briefcase"></i> Name</th>
-                        <th><i data-feather="user"></i> Handled By</th>
                         <th><i data-feather="layers"></i> Programs</th>
                         <th class="text-end"><i data-feather="more-vertical"></i></th>
                     </tr>
@@ -106,7 +105,6 @@
                                     </div>
 
                                     <div class="dept-name">{{ $department->name }}</div>
-                                    <div class="dept-handled-by">{{ $department->admin->name ?? '—' }}</div>
                                 </div>
                             </td>
                             {{-- ░░░ END: Mobile Card Layout ░░░ --}}
@@ -114,7 +112,6 @@
                             {{-- ░░░ START: Desktop Row Layout (hidden on mobile) ░░░ --}}
                             <td class="d-none d-md-table-cell">{{ $department->code }}</td>
                             <td class="d-none d-md-table-cell">{{ $department->name }}</td>
-                            <td class="d-none d-md-table-cell">{{ $department->admin->name ?? '—' }}</td>
                             <td class="d-none d-md-table-cell">
                                 {{ $department->programs->count() }} {{ Str::plural('program', $department->programs->count()) }}
                             </td>

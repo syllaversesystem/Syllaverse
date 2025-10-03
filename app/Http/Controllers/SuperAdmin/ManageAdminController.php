@@ -17,6 +17,7 @@ use App\Models\User;
 use App\Models\Department;
 use App\Models\Program;       // ✅ Added
 use App\Models\ChairRequest;  // ✅ Added
+use App\Models\Appointment;   // ✅ Added for appointment deletion
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -27,7 +28,12 @@ class ManageAdminController extends Controller
     /** Show Manage Accounts datasets (admins, faculty/students, chairs, taxonomies). */
     public function index()
     {
-        $pendingAdmins  = User::where('role','admin')->where('status','pending')->get();
+        // Only show pending admins who have completed their profiles (designation and employee_code filled)
+        $pendingAdmins  = User::where('role','admin')
+                             ->where('status','pending')
+                             ->whereNotNull('designation')
+                             ->whereNotNull('employee_code')
+                             ->get();
         $approvedAdmins = User::where('role','admin')->where('status','active')->get();
         $rejectedAdmins = User::where('role','admin')->where('status','rejected')->get();
 
@@ -96,20 +102,27 @@ public function reject($id)
     $user = User::findOrFail($id);
 
     if ($user->role === 'admin') {
+        // Delete all active appointments for this admin before revoking
+        $deletedCount = $user->appointments()->where('status', 'active')->delete();
+        
+        // Set admin status to rejected
         $user->status = 'rejected';
         $user->save();
+        
+        // Log the deletion for audit purposes
+        \Log::info("Admin revoked: User {$user->id} ({$user->name}) - {$deletedCount} appointments deleted");
     }
 
     // Return JSON if AJAX
     if (request()->ajax()) {
         return response()->json([
             'status'  => 'success',
-            'message' => 'Admin revoked successfully.'
+            'message' => 'Admin revoked successfully. All appointments removed.'
         ]);
     }
 
     // Fallback for non-AJAX
-    return redirect()->back()->with('success', 'Admin revoked successfully.');
+    return redirect()->back()->with('success', 'Admin revoked successfully. All appointments removed.');
 }
 
     // ░░░ END: Reject/Revoke ░░░

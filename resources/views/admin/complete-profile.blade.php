@@ -51,23 +51,10 @@
     <div class="mb-3">
 {{-- Page header text (replace the two lines) --}}
 <h1 class="h4 mb-1">Complete Your Profile</h1>
-<p class="text-muted mb-0">Tell us who you are and request your chair role (required). Your designation and employee code will appear on generated syllabi/exports.</p>
 
     </div>
 
-    @if (session('info'))
-      <div class="alert alert-warning">{{ session('info') }}</div>
-    @endif
-    @if ($errors->any())
-      <div class="alert alert-danger">
-        <strong>We found some issues:</strong>
-        <ul class="mb-0">
-          @foreach ($errors->all() as $err)
-            <li>{{ $err }}</li>
-          @endforeach
-        </ul>
-      </div>
-    @endif
+
     {{-- ░░░ END: Page Title + Alerts ░░░ --}}
 
     @php
@@ -110,7 +97,13 @@
                         @endphp
                         {{ $roleLabel }}
                       </td>
-                  <td>{{ $r->department->name ?? '—' }}</td>
+                  <td>
+                    @if($r->department)
+                      {{ $r->department->name }}
+                    @else
+                      <span class="text-muted">Institution-wide</span>
+                    @endif
+                  </td>
                   <td>
                     @switch($r->status)
                       @case('pending')  <span class="badge bg-primary">Pending</span> @break
@@ -158,11 +151,11 @@
             <div class="row g-3">
               <div class="col-md-6">
                 <label class="form-label">Full Name</label>
-                <input type="text" class="form-control" value="{{ $user->name }}" disabled>
+                <input type="text" name="name" class="form-control" value="{{ old('name', $user->name) }}">
               </div>
               <div class="col-md-6">
                 <label class="form-label">Email</label>
-                <input type="email" class="form-control" value="{{ $user->email }}" disabled>
+                <input type="email" name="email" class="form-control" value="{{ old('email', $user->email) }}">
               </div>
 
               <div class="col-md-6">
@@ -192,68 +185,123 @@
           {{-- ░░░ END: Step 1 – Profile & Employment ░░░ --}}
 
           {{-- ░░░ START: Step 2 – Chair Role Request ░░░ --}}
+          {{-- ░░░ START: Step 2 – Chair Role Request ░░░ --}}
 <section id="svStep2" class="sv-step-pane" hidden>
   @if ($hasPendingRequests)
     <div class="alert alert-info">
       You currently have a <strong>pending chair request</strong>. You can update your profile fields above,
-      but you’ll need to wait for Superadmin to decide before submitting another request.
+      but you'll need to wait for Superadmin to decide before submitting another request.
     </div>
   @endif
 
-  <div class="row g-3">
-    {{-- Department Chair --}}
-      <div class="col-md-6">
-      <label for="department_id" class="form-label d-flex align-items-center gap-2">
-        <input class="form-check-input m-0"
-               type="checkbox"
-               id="request_dept_chair"
-               name="request_dept_chair"
-               value="1"
-               {{ old('request_dept_chair') ? 'checked' : '' }}
-               {{ $hasPendingRequests ? 'disabled' : '' }}>
-        <span class="fw-semibold">Department Chair / Program Chair</span>
-      </label>
+  {{-- Leadership Role Requests --}}
+  <div class="mb-4">
+    <h6 class="text-muted mb-3">Request Leadership Roles</h6>
+    
+    {{-- Department-Specific Leadership --}}
+    <div class="card border-0 bg-light mb-4">
+      <div class="card-body p-3">
+        <h6 class="card-title text-dark mb-2">
+          <i class="bi bi-building me-2"></i>Department-Specific Leadership
+        </h6>
+        <p class="text-muted small mb-3">These roles manage and oversee a specific department</p>
+        
+        <div class="row g-3 mb-3">
+          <div class="col-md-6">
+            <div class="form-check">
+              <input class="form-check-input" 
+                     type="checkbox" 
+                     id="request_dept_chair" 
+                     name="request_dept_chair" 
+                     value="1" 
+                     {{ old('request_dept_chair') ? 'checked' : '' }}
+                     {{ $hasPendingRequests ? 'disabled' : '' }}>
+              <label class="form-check-label fw-semibold" for="request_dept_chair">
+                Department Chair
+              </label>
+              <div class="form-text small text-muted">Manages department operations and faculty</div>
+            </div>
+          </div>
+          
+          <div class="col-md-6">
+            <div class="form-check">
+              <input class="form-check-input" 
+                     type="checkbox" 
+                     id="request_dean" 
+                     name="request_dean" 
+                     value="1" 
+                     {{ old('request_dean') ? 'checked' : '' }}
+                     {{ $hasPendingRequests ? 'disabled' : '' }}>
+              <label class="form-check-label fw-semibold" for="request_dean">
+                Dean
+              </label>
+              <div class="form-text small text-muted">Leads department administration and strategy</div>
+            </div>
+          </div>
+        </div>
 
-      <select id="department_id"
-              name="department_id"
-              class="form-select @error('department_id') is-invalid @enderror"
-              {{ $hasPendingRequests ? 'disabled' : '' }}>
-        <option value="">— Select Department —</option>
-        @foreach (($departments ?? []) as $dept)
-          <option value="{{ $dept->id }}"
-            {{ (string) old('department_id') === (string) $dept->id ? 'selected' : '' }}>
-            {{ $dept->name }}
-          </option>
-        @endforeach
-      </select>
-  <div class="form-text small text-muted">Required when requesting Department Chair or Dean.</div>
-      @error('department_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+        <div class="mb-2">
+          <label for="department_id" class="form-label small text-muted">Select Department</label>
+          <select id="department_id"
+                  name="department_id"
+                  class="form-select @error('department_id') is-invalid @enderror"
+                  {{ $hasPendingRequests ? 'disabled' : '' }}>
+            <option value="">— Select Department —</option>
+            @foreach (($departments ?? []) as $dept)
+              <option value="{{ $dept->id }}"
+                {{ (string) old('department_id') === (string) $dept->id ? 'selected' : '' }}>
+                {{ $dept->name }}
+              </option>
+            @endforeach
+          </select>
+          @error('department_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+          <div class="form-text small text-muted">Required when requesting Department Chair or Dean roles.</div>
+        </div>
+      </div>
     </div>
 
-    {{-- Program Chair removed --}}
-  </div>
-
-  <div class="row g-3 mt-3">
-    {{-- Institution-level roles: VCAA, Associate VCAA, Dean --}}
-    <div class="col-md-4">
-      <label class="form-label d-flex align-items-center gap-2">
-        <input class="form-check-input m-0" type="checkbox" id="request_vcaa" name="request_vcaa" value="1" {{ old('request_vcaa') ? 'checked' : '' }} {{ $hasPendingRequests ? 'disabled' : '' }}>
-        <span class="fw-semibold">Vice Chancellor for Academic Affairs (VCAA)</span>
-      </label>
-    </div>
-
-    <div class="col-md-4">
-      <label class="form-label d-flex align-items-center gap-2">
-        <input class="form-check-input m-0" type="checkbox" id="request_assoc_vcaa" name="request_assoc_vcaa" value="1" {{ old('request_assoc_vcaa') ? 'checked' : '' }} {{ $hasPendingRequests ? 'disabled' : '' }}>
-        <span class="fw-semibold">Associate VCAA</span>
-      </label>
-    </div>
-
-    <div class="col-md-4">
-      <label class="form-label d-flex align-items-center gap-2">
-        <input class="form-check-input m-0" type="checkbox" id="request_dean" name="request_dean" value="1" {{ old('request_dean') ? 'checked' : '' }} {{ $hasPendingRequests ? 'disabled' : '' }}>
-        <span class="fw-semibold">Dean</span>
-      </label>
+    {{-- Institution-Wide Leadership --}}
+    <div class="card border-0 bg-light">
+      <div class="card-body p-3">
+        <h6 class="card-title text-dark mb-2">
+          <i class="bi bi-mortarboard me-2"></i>Institution-Wide Leadership
+        </h6>
+        <p class="text-muted small mb-3">These roles oversee all departments across the entire institution</p>
+        
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div class="form-check">
+              <input class="form-check-input" 
+                     type="checkbox" 
+                     id="request_vcaa" 
+                     name="request_vcaa" 
+                     value="1" 
+                     {{ old('request_vcaa') ? 'checked' : '' }}
+                     {{ $hasPendingRequests ? 'disabled' : '' }}>
+              <label class="form-check-label fw-semibold" for="request_vcaa">
+                Vice Chancellor for Academic Affairs (VCAA)
+              </label>
+              <div class="form-text small text-muted">Oversees all academic programs and departments</div>
+            </div>
+          </div>
+          
+          <div class="col-md-6">
+            <div class="form-check">
+              <input class="form-check-input" 
+                     type="checkbox" 
+                     id="request_assoc_vcaa" 
+                     name="request_assoc_vcaa" 
+                     value="1" 
+                     {{ old('request_assoc_vcaa') ? 'checked' : '' }}
+                     {{ $hasPendingRequests ? 'disabled' : '' }}>
+              <label class="form-check-label fw-semibold" for="request_assoc_vcaa">
+                Associate VCAA
+              </label>
+              <div class="form-text small text-muted">Assists VCAA with institution-wide academic oversight</div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -261,7 +309,6 @@
     <button type="button" class="btn btn-outline-secondary" id="svBackToStep1">Back</button>
     <button type="submit" class="btn btn-danger" {{ $hasPendingRequests ? 'disabled' : '' }}>Submit</button>
   </div>
-</section>
 {{-- ░░░ END: Step 2 – Chair Role Request ░░░ --}}
 
         </form>

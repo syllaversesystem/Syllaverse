@@ -163,7 +163,7 @@
           </button>
           <form method="POST" action="${base}/${appt.id}/end" class="d-inline" data-ajax="true" data-inline-errors="false">
             <input type="hidden" name="_token" value="${csrf}">
-            <button class="action-btn reject" type="submit" title="End appointment" aria-label="End appointment">
+            <button class="action-btn reject" type="submit" title="Delete appointment" aria-label="Delete appointment">
               <i data-feather="x"></i>
             </button>
           </form>
@@ -175,28 +175,26 @@
           <input type="hidden" name="_token" value="${csrf}">
           <input type="hidden" name="_method" value="PUT">
 
-          <div class="col-md-3">
+          <div class="col-md-4">
             <label class="form-label small">Role</label>
             <select name="role" class="form-select form-select-sm sv-role">
-              ${appt && appt.is_prog ? `<option value="PROG_CHAIR" selected>Program Chair</option>` : `<option value="DEPT_CHAIR"${appt && appt.is_dept ? ' selected' : ''}>Department Chair</option>`}
-              <option value="VCAA">VCAA</option>
-              <option value="ASSOC_VCAA">Associate VCAA</option>
-              <option value="DEAN">Dean</option>
+              <option value="DEPT_CHAIR"${(appt && (appt.is_dept || appt.is_prog)) ? ' selected' : ''}>Program/Department Chair</option>
+              <option value="DEAN"${appt && appt.role === 'DEAN' ? ' selected' : ''}>Dean</option>
+              <option value="VCAA"${appt && appt.role === 'VCAA' ? ' selected' : ''}>VCAA</option>
+              <option value="ASSOC_VCAA"${appt && appt.role === 'ASSOC_VCAA' ? ' selected' : ''}>Associate VCAA</option>
             </select>
           </div>
 
-          <div class="col-md-4">
+          <div class="col-md-7">
             <label class="form-label small">Department</label>
-            <select name="department_id" class="form-select form-select-sm sv-dept">
-              <option value="">— Select —</option>
+            <select name="department_id" class="form-select form-select-sm sv-dept"${(appt && (appt.role === 'VCAA' || appt.role === 'ASSOC_VCAA')) ? ' disabled' : ''}>
+              ${(appt && (appt.role === 'VCAA' || appt.role === 'ASSOC_VCAA')) ? '<option value="">— Not Required —</option>' : ''}
               ${getDeptOptionsHTML(modal, appt.dept_id)}
             </select>
           </div>
 
-          <!-- Program selector removed (Program Chair no longer supported) -->
-
           <div class="col-md-1 d-flex">
-            <button class="action-btn approve ms-auto" type="submit" title="Update appointment" aria-label="Update appointment">
+            <button class="action-btn approve ms-auto" type="submit" title="Save changes" aria-label="Save changes">
               <i data-feather="check"></i>
             </button>
           </div>
@@ -216,13 +214,21 @@
     list.innerHTML = appointments.map(a => renderApptItemHTML(modal, adminId, a)).join('');
     modal.dispatchEvent(new CustomEvent('shown.bs.modal', { bubbles: true }));
     refreshIcons();
+    
+    // Re-initialize appointment forms for the new edit forms
+    if (window.initAllForms && typeof window.initAllForms === 'function') {
+      // Use setTimeout to ensure DOM is fully updated before initializing forms
+      setTimeout(() => {
+        window.initAllForms();
+      }, 10);
+    }
   };
 
   const renderBadgesCell = (adminId, appointments) => {
     const cell = document.getElementById(`sv-active-badges-${adminId}`);
     if (!cell) return;
     if (!appointments || !appointments.length) {
-      cell.innerHTML = `<span class="text-muted">No active appointment.</span>`;
+      cell.innerHTML = `<span class="text-muted">—</span>`;
       return;
     }
     const html = [
@@ -378,7 +384,11 @@
       const url = form.action;
       const fd  = new FormData(form);
       let method = (form.getAttribute('method') || 'POST').toUpperCase();
-      if (fd.has('_method')) { method = String(fd.get('_method')).toUpperCase(); fd.delete('_method'); }
+      
+      // Always use POST for Laravel method spoofing to work properly
+      if (fd.has('_method')) { 
+        method = 'POST'; // Keep as POST and let Laravel handle method spoofing
+      }
       const token = getCsrf(form);
 
       try {

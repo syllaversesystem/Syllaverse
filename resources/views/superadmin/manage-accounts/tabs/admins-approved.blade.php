@@ -51,18 +51,30 @@
                   <div class="d-flex flex-wrap gap-2">
                     @foreach ($activeAppointments as $appt)
                       @php
-                        $isDept     = $appt->role === \App\Models\Appointment::ROLE_DEPT;
-                        $roleLabel  = $isDept ? 'Dept Chair' : ($appt->role ?? 'Appointment');
-                        $scopeLabel = $isDept
-                          ? ($deptById[$appt->scope_id]->name ?? ('Dept #'.$appt->scope_id))
-                          : ($appt->scope_type ? ($appt->scope_type . ' #' . $appt->scope_id) : 'Institution');
+                        $isDept = $appt->role === \App\Models\Appointment::ROLE_DEPT;
+                        $isProg = $appt->role === \App\Models\Appointment::ROLE_PROG;
+                        $isDean = $appt->role === \App\Models\Appointment::ROLE_DEAN;
+                        
+                        // Show specific chair type based on stored role
+                        if ($isDept) {
+                          $roleLabel = 'Department Chair';
+                        } elseif ($isProg) {
+                          $roleLabel = 'Program Chair';
+                        } elseif ($isDean) {
+                          $roleLabel = 'Dean';
+                        } elseif ($appt->role === \App\Models\Appointment::ROLE_VCAA) {
+                          $roleLabel = 'VCAA';
+                        } elseif ($appt->role === \App\Models\Appointment::ROLE_ASSOC_VCAA) {
+                          $roleLabel = 'Associate VCAA';
+                        } else {
+                          $roleLabel = $appt->role ?? 'Appointment';
+                        }
                       @endphp
                       <span class="sv-pill is-accent sv-pill--sm">{{ $roleLabel }}</span>
-                      <span class="sv-pill is-muted sv-pill--sm">{{ $scopeLabel }}</span>
                     @endforeach
                   </div>
                 @else
-                  <span class="text-muted">No active appointment.</span>
+                  <span class="text-muted">—</span>
                 @endif
               </td>
 

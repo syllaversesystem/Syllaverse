@@ -50,8 +50,10 @@ class ProfileController extends Controller
         }
         // ░░░ END: Identify User ░░░
 
-        // ░░░ START: Validate Core Fields (HR) ░░░
+        // ░░░ START: Validate Core Fields (HR + Profile) ░░░
         $request->validate([
+            'name'            => ['required', 'string', 'max:255'],
+            'email'           => ['required', 'email', 'max:255', 'unique:users,email,' . $user->id],
             'designation'     => ['required', 'string', 'max:255'],
             'employee_code'   => ['required', 'string', 'max:255'],
 
@@ -93,8 +95,10 @@ class ProfileController extends Controller
 
         // ░░░ START: Save & Create Requests (Transaction) ░░░
     DB::transaction(function () use ($user, $request, $wantsDept, $wantsVcaa, $wantsAssocVcaa, $wantsDean) {
-            // -- Save HR fields on the user
+            // -- Save profile and HR fields on the user
             $userPayload = [
+                'name'          => $request->input('name'),
+                'email'         => $request->input('email'),
                 'designation'   => $request->input('designation'),
                 'employee_code' => $request->input('employee_code'),
             ];
@@ -144,20 +148,16 @@ class ProfileController extends Controller
             // Program Chair removed — no program-level requests created.
 
             // -- Create institution-level requests.
-            // Dean is department-scoped; VCAA and Associate VCAA are institution-level (no department).
+            // Dean is department-scoped; VCAA and Associate VCAA are institution-wide (no specific department).
             $deptId = $request->input('department_id');
 
-            // For VCAA/Associate VCAA requests: some environments still require department_id non-null
-            // (migration to allow nullable exists). Use the user's department if present; otherwise fall
-            // back to the first department ID in the system to avoid DB constraint errors.
-            $fallbackDeptId = $user->department_id ?? Department::orderBy('id')->value('id') ?? null;
-
+            // VCAA and Associate VCAA have institution-wide authority (department_id = null)
             if ($wantsVcaa) {
                 ChairRequest::firstOrCreate(
                     [
                         'user_id'        => $user->id,
                         'requested_role' => ChairRequest::ROLE_VCAA,
-                        'department_id'  => $fallbackDeptId,
+                        'department_id'  => null, // Institution-wide authority
                         'program_id'     => null,
                         'status'         => ChairRequest::STATUS_PENDING,
                     ],
@@ -170,7 +170,7 @@ class ProfileController extends Controller
                     [
                         'user_id'        => $user->id,
                         'requested_role' => ChairRequest::ROLE_ASSOC_VCAA,
-                        'department_id'  => $fallbackDeptId,
+                        'department_id'  => null, // Institution-wide authority
                         'program_id'     => null,
                         'status'         => ChairRequest::STATUS_PENDING,
                     ],
@@ -178,12 +178,13 @@ class ProfileController extends Controller
                 );
             }
 
+            // Dean requires a specific department
             if ($wantsDean) {
                 ChairRequest::firstOrCreate(
                     [
                         'user_id'        => $user->id,
                         'requested_role' => ChairRequest::ROLE_DEAN,
-                        'department_id'  => $deptId,
+                        'department_id'  => $deptId, // Department-specific authority
                         'program_id'     => null,
                         'status'         => ChairRequest::STATUS_PENDING,
                     ],

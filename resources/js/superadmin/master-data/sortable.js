@@ -13,6 +13,63 @@
 
 import Sortable from 'sortablejs';
 
+// ░░░ START: Auto-size functionality ░░░
+/** Auto-size textareas that have .autosize */
+function autosize(el) { 
+  // Reset height to recalculate
+  el.style.height = 'auto';
+  
+  // Get the scroll height (full content height)
+  const scrollHeight = el.scrollHeight;
+  
+  // Get minimum height from CSS
+  const computed = window.getComputedStyle(el);
+  const minHeight = parseFloat(computed.minHeight) || 0;
+  
+  // Set height to either scroll height or minimum height, whichever is larger
+  // This ensures all text is visible without scrolling
+  const newHeight = Math.max(scrollHeight, minHeight);
+  el.style.height = newHeight + 'px';
+  
+  // Ensure no scrollbar appears
+  el.style.overflowY = 'hidden';
+}
+
+function initAutosize() {
+  const areas = document.querySelectorAll('textarea.autosize');
+  areas.forEach((ta) => {
+    // Force initial calculation
+    ta.style.height = 'auto';
+    
+    // Initial sizing for existing content
+    autosize(ta);
+    
+    // Add event listeners for dynamic resizing
+    ta.addEventListener('input', () => {
+      autosize(ta);
+    });
+    
+    ta.addEventListener('paste', () => {
+      // Delay to allow paste content to be processed
+      setTimeout(() => autosize(ta), 10);
+    });
+    
+    ta.addEventListener('keydown', (e) => {
+      // Handle Enter key immediately
+      if (e.key === 'Enter') {
+        setTimeout(() => autosize(ta), 5);
+      }
+    });
+    
+    // Handle content changes from external sources (like form resets)
+    ta.addEventListener('change', () => autosize(ta));
+    
+    // Final adjustment after DOM is fully rendered
+    setTimeout(() => autosize(ta), 100);
+  });
+}
+// ░░░ END: Auto-size functionality ░░░
+
 // ░░░ START: Internal state ░░░
 /** Track Sortable instances per table so we can safely destroy/re-init. */
 const _instances = new WeakMap();
@@ -112,3 +169,10 @@ export function destroySortable(table) {
   // Do not mutate dirty state here; caller decides (often after replacing <tbody>)
 }
 // ░░░ END: Initialization ░░░
+
+// ░░░ START: DOM Ready initialization ░░░
+document.addEventListener('DOMContentLoaded', () => {
+  // Initialize autosize for all textareas with .autosize class
+  initAutosize();
+});
+// ░░░ END: DOM Ready initialization ░░░

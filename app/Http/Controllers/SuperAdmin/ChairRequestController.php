@@ -151,6 +151,124 @@ class ChairRequestController extends Controller
         return back()->with('success', 'Chair request rejected.');
     }
 
+    /**
+     * Approve all pending chair requests for a specific user.
+     */
+    public function approveAll(Request $request, int $userId)
+    {
+        $pendingRequests = ChairRequest::with(['user', 'department', 'program'])
+            ->where('user_id', $userId)
+            ->where('status', ChairRequest::STATUS_PENDING)
+            ->get();
+
+        if ($pendingRequests->isEmpty()) {
+            return back()->with('error', 'No pending requests found for this user.');
+        }
+
+        $deciderId = $this->resolveDeciderId($request);
+        $startAt = now();
+        $approvedCount = 0;
+
+        DB::transaction(function () use ($pendingRequests, $deciderId, $startAt, &$approvedCount) {
+            foreach ($pendingRequests as $chairRequest) {
+                $role = $chairRequest->requested_role;
+                $deptId = $chairRequest->department_id;
+                $progId = $chairRequest->program_id;
+
+                // Determine appointment details based on role
+                if ($role === ChairRequest::ROLE_DEPT) {
+                    $apptRole = Appointment::ROLE_DEPT;
+                    $scopeType = Appointment::SCOPE_DEPT;
+                    $scopeId = $deptId;
+                } elseif ($role === ChairRequest::ROLE_DEAN) {
+                    $apptRole = Appointment::ROLE_DEAN;
+                    $scopeType = Appointment::SCOPE_DEPT;
+                    $scopeId = $deptId;
+                } elseif ($role === ChairRequest::ROLE_PROG) {
+                    $apptRole = Appointment::ROLE_PROG;
+                    $scopeType = Appointment::SCOPE_PROG;
+                    $scopeId = $progId;
+                } else {
+                    // Institution-level roles (VCAA, Associate VCAA)
+                    $apptRole = $role;
+                    $scopeType = Appointment::SCOPE_INSTITUTION;
+                    $scopeId = 0;
+                }
+
+                // End conflicting appointments
+                $this->endConflictingActive($apptRole, $scopeType, $scopeId);
+
+                // Create new appointment
+                Appointment::create([
+                    'user_id' => $chairRequest->user_id,
+                    'role' => $apptRole,
+                    'scope_type' => $scopeType,
+                    'scope_id' => $scopeId,
+                    'status' => 'active',
+                    'start_at' => $startAt,
+                    'end_at' => null,
+                    'assigned_by' => $deciderId,
+                ]);
+
+                // Mark request as approved
+                $chairRequest->markApproved($deciderId, 'Approved via batch approval');
+                $approvedCount++;
+            }
+
+            // Activate user account if still pending
+            $user = $pendingRequests->first()->user;
+            if ($user && $user->status !== 'active') {
+                $user->status = 'active';
+                $user->save();
+            }
+        });
+
+        return back()->with('success', "Successfully approved all {$approvedCount} chair requests for {$pendingRequests->first()->user->name}.");
+    }
+
+    /**
+     * Reject all pending chair requests for a specific user.
+     */
+    public function rejectAll(Request $request, int $userId)
+    {
+        $pendingRequests = ChairRequest::with(['user', 'department', 'program'])
+            ->where('user_id', $userId)
+            ->where('status', ChairRequest::STATUS_PENDING)
+            ->get();
+
+        if ($pendingRequests->isEmpty()) {
+            return back()->with('error', 'No pending requests found for this user.');
+        }
+
+        $deciderId = $this->resolveDeciderId($request);
+        $rejectedCount = 0;
+
+        DB::transaction(function () use ($pendingRequests, $deciderId, $userId, &$rejectedCount) {
+            foreach ($pendingRequests as $chairRequest) {
+                // Mark request as rejected
+                $chairRequest->markRejected($deciderId, 'Rejected via batch rejection');
+                $rejectedCount++;
+            }
+
+            // Check if user should be auto-rejected (if signup is still pending and all requests are rejected)
+            $user = $pendingRequests->first()->user;
+            if ($user && $user->status === 'pending') {
+                // Check if user has any other pending requests
+                $remainingPendingRequests = ChairRequest::where('user_id', $userId)
+                    ->where('status', ChairRequest::STATUS_PENDING)
+                    ->count();
+
+                if ($remainingPendingRequests === 0) {
+                    // No pending requests left, reject the user account
+                    $user->status = 'rejected';
+                    $user->save();
+                }
+            }
+        });
+
+        return back()->with('success', "Successfully rejected all {$rejectedCount} chair requests for {$pendingRequests->first()->user->name}.");
+    }
+
     /** Only ONE active chair per (role, scope_type, scope_id). End conflicts before creating a new one.
      *
      * Note: institution-level appointments pass null for scope_id, so this accepts a nullable int.

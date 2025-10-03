@@ -98,7 +98,8 @@
   align-items: stretch;
 }
 
-.department-card {
+.department-card,
+.master-data-card {
   width: 100%;
 }
 

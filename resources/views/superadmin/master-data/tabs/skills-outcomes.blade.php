@@ -25,7 +25,7 @@
 {{-- ░░░ START: Subtabs (match Manage Accounts Admins structure) ░░░ --}}
 <ul class="nav mb-4" id="masterDataSubTabs" role="tablist">
   <li class="nav-item" role="presentation">
-    <button class="nav-link sv-subtab active"
+    <button class="nav-link master-data-subtab active"
             id="sdg-tab"
             data-bs-toggle="pill"
             data-bs-target="#sdg"
@@ -35,7 +35,7 @@
     </button>
   </li>
   <li class="nav-item" role="presentation">
-    <button class="nav-link sv-subtab"
+    <button class="nav-link master-data-subtab"
             id="iga-tab"
             data-bs-toggle="pill"
             data-bs-target="#iga"
@@ -45,7 +45,7 @@
     </button>
   </li>
   <li class="nav-item" role="presentation">
-    <button class="nav-link sv-subtab"
+    <button class="nav-link master-data-subtab"
             id="cdio-tab"
             data-bs-toggle="pill"
             data-bs-target="#cdio"

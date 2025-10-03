@@ -45,6 +45,11 @@
     };
     $dept  = optional($r->department)->name;
     $prog  = optional($r->program)->name;
+    
+    // Show "Institution-wide" for VCAA and Associate VCAA roles
+    if (!$dept && in_array($r->requested_role, [ChairRequest::ROLE_VCAA, ChairRequest::ROLE_ASSOC_VCAA])) {
+      $dept = 'Institution-wide';
+    }
 
     if (!isset($groups[$uid])) {
       $groups[$uid] = [
@@ -83,9 +88,7 @@
             <th><i data-feather="user"></i> Name</th>
             <th><i data-feather="mail"></i> Email</th>
             <th><i data-feather="tag"></i> Type</th>
-            <th><i data-feather="award"></i> Role</th>
             <th><i data-feather="briefcase"></i> Department</th>
-            <th><i data-feather="layers"></i> Scope</th>
             <th class="text-end"><i data-feather="more-vertical"></i></th>
           </tr>
         </thead>
@@ -122,17 +125,13 @@
               </td>
 
               @if ($reqCount === 1)
-                <td>
-                  <span class="badge bg-primary">{{ $req['label'] }}</span>
-                </td>
                 <td><small class="text-muted">{{ $req['dept'] ?: '—' }}</small></td>
-                <td><small class="text-muted">{{ $req['prog'] ?: ($req['dept'] ? 'Department' : 'Institution') }}</small></td>
               @elseif ($reqCount > 1)
-                <td>—</td><td>—</td><td>—</td>
+                <td>—</td>
               @elseif ($reqCount > 2)
-                <td>—</td><td>—</td><td>—</td>
+                <td>—</td>
               @else
-                <td>—</td><td>—</td><td>—</td>
+                <td>—</td>
               @endif
 
               <td class="text-end">
@@ -183,7 +182,7 @@
                   <div id="{{ $collapseId }}" class="collapse sv-details mt-2">
                     <div class="sv-request-list p-2">
                       @foreach ($g['requests'] as $r)
-                        <div class="sv-request-item py-2 border-bottom mb-2">
+                        <div class="sv-request-item py-2 border-top mb-2">
                           <div class="row align-items-center gx-3">
                             <div class="col-auto" style="min-width: 240px;">
                               <div class="d-flex align-items-center gap-2">
@@ -212,6 +211,29 @@
                           </div>
                         </div>
                       @endforeach
+                      
+                      {{-- Approve All & Reject All Buttons --}}
+                      <div class="sv-approve-all-section mt-3 pt-3 border-top">
+                        <div class="d-flex justify-content-center gap-3">
+                          <form method="POST" action="{{ route('superadmin.chair-requests.approve-all', $user->id) }}" class="d-inline">
+                            @csrf
+                            <button type="submit" class="btn btn-sm btn-success d-flex align-items-center gap-2" 
+                                    title="Approve all role requests">
+                              <i data-feather="check"></i>
+                              <span>Approve All {{ $reqCount }} Requests</span>
+                            </button>
+                          </form>
+                          
+                          <form method="POST" action="{{ route('superadmin.chair-requests.reject-all', $user->id) }}" class="d-inline">
+                            @csrf
+                            <button type="submit" class="btn btn-sm sv-reject-all d-flex align-items-center gap-2" 
+                                    title="Reject all role requests">
+                              <i data-feather="x"></i>
+                              <span>Reject All {{ $reqCount }} Requests</span>
+                            </button>
+                          </form>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </td>

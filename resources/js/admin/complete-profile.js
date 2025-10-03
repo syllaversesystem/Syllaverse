@@ -18,6 +18,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const stepBadges = document.querySelectorAll('.sv-step'); // [0]=Step1, [1]=Step2
 
   // Core inputs
+  const name = document.getElementById('name');
+  const email = document.getElementById('email');
   const designation = document.getElementById('designation');
   const employeeCode = document.getElementById('employee_code');
 
@@ -48,6 +50,9 @@ document.addEventListener('DOMContentLoaded', () => {
     nextBtn.addEventListener('click', () => {
       // Gentle client-side validation for Step 1
       let ok = true;
+      ok &= validateRequired(name);
+      ok &= validateRequired(email);
+      ok &= validateEmail(email);
       ok &= validateRequired(designation);
       ok &= validateRequired(employeeCode);
 
@@ -218,7 +223,19 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!ok) markInvalid(el, 'This field is required.');
     else clearInvalid(el);
     return ok;
-    }
+  }
+
+  /* Email format validation. */
+  function validateEmail(el) {
+    if (!el) return true;
+    const email = String(el.value || '').trim();
+    if (!email) return true; // Let validateRequired handle empty emails
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const ok = emailRegex.test(email);
+    if (!ok) markInvalid(el, 'Please enter a valid email address.');
+    else clearInvalid(el);
+    return ok;
+  }
 
   /* Resets a <select> to its placeholder option. */
   function clearSelect(selectEl) {

@@ -146,26 +146,84 @@
   }
 
   /**
-   * This enables/disables the Program select based on role + department,
+   * Helper function to update department dropdown placeholder text
+   */
+  function updateDepartmentPlaceholder(deptSelect, text, removeForRequired = false) {
+    if (!deptSelect) return;
+    
+    // Find existing placeholder option
+    let placeholder = deptSelect.querySelector('option[value=""]');
+    
+    // If we want to remove the placeholder for required fields, remove it
+    if (removeForRequired && placeholder) {
+      placeholder.remove();
+      return;
+    }
+    
+    // If no placeholder option exists, create one (only for non-required cases)
+    if (!placeholder && !removeForRequired) {
+      placeholder = document.createElement('option');
+      placeholder.value = '';
+      deptSelect.insertBefore(placeholder, deptSelect.firstChild);
+    }
+    
+    // Update the text if placeholder exists
+    if (placeholder) {
+      placeholder.textContent = text;
+    }
+  }
+
+  /**
+   * This enables/disables the Department and Program selects based on role,
    * and applies the filtering.
    */
   function updateFormState(form) {
     const { role, dept, prog } = getFormEls(form);
-    if (!role || !dept || !prog) return;
+    if (!role || !dept) return;
 
+    const selectedRole = role.value;
+    const requiresDept = ['DEPT_CHAIR', 'DEAN'].includes(selectedRole);
+    const isInstitutionWide = ['VCAA', 'ASSOC_VCAA'].includes(selectedRole);
     const programMode = isProgramRole(role);
     const deptId = dept.value;
 
-    if (programMode && deptId) {
-      prog.disabled = false;
-      prog.removeAttribute('disabled');
-      filterProgramsByDept(prog, deptId);
+    // Ensure role dropdown is never disabled
+    role.disabled = false;
+    role.removeAttribute('disabled');
+
+    // Enable/disable department dropdown based on role
+    if (requiresDept) {
+      dept.disabled = false;
+      dept.removeAttribute('disabled');
+      // Remove placeholder option for department-required roles (Dean, Chair)
+      updateDepartmentPlaceholder(dept, '', true);
+      
+      // If this was previously disabled and had a placeholder, clear the value
+      if (dept.value === '') {
+        dept.value = '';
+      }
     } else {
-      // Not in Program mode, or no department yet — keep Program off
-      prog.value = '';
-      prog.disabled = true;
-      prog.setAttribute('disabled', 'disabled');
-      filterProgramsByDept(prog, ''); // unhide placeholder, hide others
+      // Institution-wide roles (VCAA, Associate VCAA) don't need department
+      dept.value = '';
+      dept.disabled = true;
+      dept.setAttribute('disabled', 'disabled');
+      // Add placeholder for institution-wide roles
+      updateDepartmentPlaceholder(dept, '— Not Required —', false);
+    }
+
+    // Handle program dropdown (only if prog exists - not in edit forms)
+    if (prog) {
+      if (programMode && deptId) {
+        prog.disabled = false;
+        prog.removeAttribute('disabled');
+        filterProgramsByDept(prog, deptId);
+      } else {
+        // Not in Program mode, or no department yet — keep Program off
+        prog.value = '';
+        prog.disabled = true;
+        prog.setAttribute('disabled', 'disabled');
+        filterProgramsByDept(prog, ''); // unhide placeholder, hide others
+      }
     }
   }
 
@@ -176,6 +234,7 @@
     const { role, dept } = getFormEls(form);
     if (role) role.addEventListener('change', () => updateFormState(form));
     if (dept) dept.addEventListener('change', () => updateFormState(form));
+    
     // Initial state
     updateFormState(form);
   }
@@ -186,6 +245,9 @@
   function initAllForms() {
     document.querySelectorAll('.sv-appt-form').forEach(bindForm);
   }
+
+  // Make initAllForms available globally for re-initialization after AJAX updates
+  window.initAllForms = initAllForms;
 
   // ░░░ END: Form-State Utilities ░░░
 

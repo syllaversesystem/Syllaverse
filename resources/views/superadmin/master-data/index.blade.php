@@ -22,13 +22,13 @@
 @section('content')
   <meta name="csrf-token" content="{{ csrf_token() }}">
 
-  <div class="department-card"><!-- Reuses the polished glass card container -->
+  <div class="master-data-card"><!-- Master data content card container -->
 
     {{-- ░░░ START: Top Tabs (Skills & Outcomes / Assessment Tasks / Information) ░░░ --}}
-    <ul class="nav sv-tabs" id="masterDataTabs" role="tablist" aria-label="Master Data tabs">
+    <ul class="nav master-data-tabs" id="masterDataTabs" role="tablist" aria-label="Master Data tabs">
       <li class="nav-item" role="presentation">
         <button
-          class="nav-link sv-tab active"
+          class="nav-link master-data-tab active"
           id="skills-outcomes-tab"
           data-bs-toggle="tab"
           data-bs-target="#skills-outcomes"
@@ -42,7 +42,7 @@
   {{-- Assessment Tasks tab removed for this deployment (table not present) --}}
       <li class="nav-item" role="presentation">
         <button
-          class="nav-link sv-tab"
+          class="nav-link master-data-tab"
           id="information-tab"
           data-bs-toggle="tab"
           data-bs-target="#information"
@@ -74,7 +74,7 @@
     </div>
     {{-- ░░░ END: Tab Content ░░░ --}}
 
-  </div>
+  </div><!-- END: master-data-card -->
 
   @push('modals')
     @include('superadmin.master-data.modals.add-modals')
