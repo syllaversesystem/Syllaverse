@@ -53,14 +53,7 @@
           <span class="label">Dashboard</span>
         </a>
       </li>
-      <li class="nav-item">
-        <a class="nav-link d-flex align-items-center @if(request()->is('superadmin/departments')) active @endif"
-           href="{{ route('superadmin.departments.index') }}"
-           aria-current="@if(request()->is('superadmin/departments')) page @endif">
-          <i class="bi bi-diagram-3"></i>
-          <span class="label">Departments</span>
-        </a>
-      </li>
+
       <li class="nav-item">
         <a class="nav-link d-flex align-items-center @if(request()->is('superadmin/manage-accounts')) active @endif"
            href="{{ route('superadmin.manage-accounts') }}"

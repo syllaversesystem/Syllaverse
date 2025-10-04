@@ -19,96 +19,39 @@
 <div class="manage-accounts">
   <div class="department-card"><!-- Reuses the polished glass card container -->
 
-    {{-- ░░░ START: Main Tabs (SO/ILO vs Programs/Courses) ░░░ --}}
-    <ul class="nav sv-tabs" id="masterDataTabs" role="tablist" aria-label="Master Data tabs">
+    {{-- ░░░ START: Main Tab (Student & Intended Learning Outcomes) ░░░ --}}
+    <div class="text-center mb-3">
+      <h5 class="mb-0 text-sv-primary fw-semibold">Student & Intended Learning Outcomes</h5>
+    </div>
+    {{-- ░░░ END: Main Tab ░░░ --}}
+
+    {{-- ░░░ START: SO/ILO Subtabs ░░░ --}}
+    <ul class="nav mb-4" id="soIloSubTabs" role="tablist">
       <li class="nav-item" role="presentation">
-        <button class="nav-link sv-tab active" id="soilo-tab"
-                data-bs-toggle="tab" data-bs-target="#soilo"
-                type="button" role="tab" aria-controls="soilo" aria-selected="true">
-          Student & Intended Learning Outcomes
+        <button class="nav-link sv-subtab active" id="so-tab"
+                data-bs-toggle="tab" data-bs-target="#so"
+                type="button" role="tab" aria-controls="so" aria-selected="true">
+          Student Outcomes
         </button>
       </li>
       <li class="nav-item" role="presentation">
-        <button class="nav-link sv-tab" id="programcourse-tab"
-                data-bs-toggle="tab" data-bs-target="#programcourse"
-                type="button" role="tab" aria-controls="programcourse" aria-selected="false">
-          Programs & Courses
+        <button class="nav-link sv-subtab" id="ilo-tab"
+                data-bs-toggle="tab" data-bs-target="#ilo"
+                type="button" role="tab" aria-controls="ilo" aria-selected="false">
+          Intended Learning Outcomes
         </button>
       </li>
     </ul>
-    {{-- ░░░ END: Main Tabs ░░░ --}}
-
-    {{-- ░░░ START: SO/ILO Subtabs ░░░ --}}
-    <div id="soilo-subtabs" class="subtab-container">
-      <ul class="nav mb-4" id="soIloSubTabs" role="tablist">
-        <li class="nav-item" role="presentation">
-          <button class="nav-link sv-subtab active" id="so-tab"
-                  data-bs-toggle="tab" data-bs-target="#so"
-                  type="button" role="tab" aria-controls="so" aria-selected="true">
-            Student Outcomes
-          </button>
-        </li>
-        <li class="nav-item" role="presentation">
-          <button class="nav-link sv-subtab" id="ilo-tab"
-                  data-bs-toggle="tab" data-bs-target="#ilo"
-                  type="button" role="tab" aria-controls="ilo" aria-selected="false">
-            Intended Learning Outcomes
-          </button>
-        </li>
-      </ul>
-    </div>
     {{-- ░░░ END: SO/ILO Subtabs ░░░ --}}
 
-    {{-- ░░░ START: Programs/Courses Subtabs ░░░ --}}
-    <div id="programcourse-subtabs" class="subtab-container d-none">
-      <ul class="nav mb-4" id="progCourseSubTabs" role="tablist">
-        <li class="nav-item" role="presentation">
-          <button class="nav-link sv-subtab active" id="programs-tab"
-                  data-bs-toggle="tab" data-bs-target="#programs"
-                  type="button" role="tab" aria-controls="programs" aria-selected="true">
-            Programs
-          </button>
-        </li>
-        <li class="nav-item" role="presentation">
-          <button class="nav-link sv-subtab" id="courses-tab"
-                  data-bs-toggle="tab" data-bs-target="#courses"
-                  type="button" role="tab" aria-controls="courses" aria-selected="false">
-            Courses
-          </button>
-        </li>
-      </ul>
-    </div>
-    {{-- ░░░ END: Programs/Courses Subtabs ░░░ --}}
-
     {{-- ░░░ START: Tab Content ░░░ --}}
-    <div class="tab-content">
-
-      {{-- ░░░ START: SO & ILO Section ░░░ --}}
-      <div class="tab-pane fade show active p-4" id="soilo" role="tabpanel" aria-labelledby="soilo-tab">
-        <div class="tab-content" id="soIloTabContent">
-          <div class="tab-pane fade show active" id="so" role="tabpanel" aria-labelledby="so-tab">
-            @include('admin.master-data.tabs.so')
-          </div>
-          <div class="tab-pane fade" id="ilo" role="tabpanel" aria-labelledby="ilo-tab">
-            @include('admin.master-data.tabs.ilo')
-          </div>
-        </div>
+    <div class="tab-content" id="soIloTabContent">
+      <div class="tab-pane fade show active" id="so" role="tabpanel" aria-labelledby="so-tab">
+        @include('admin.master-data.tabs.so')
       </div>
-      {{-- ░░░ END: SO & ILO Section ░░░ --}}
-
-      {{-- ░░░ START: Programs & Courses Section ░░░ --}}
-      <div class="tab-pane fade p-4" id="programcourse" role="tabpanel" aria-labelledby="programcourse-tab">
-        <div class="tab-content" id="progCourseTabContent">
-          <div class="tab-pane fade show active" id="programs" role="tabpanel" aria-labelledby="programs-tab">
-            @include('admin.master-data.tabs.programs-tab')
-          </div>
-          <div class="tab-pane fade" id="courses" role="tabpanel" aria-labelledby="courses-tab">
-            @include('admin.master-data.tabs.courses-tab')
-          </div>
-        </div>
+      <div class="tab-pane fade" id="ilo" role="tabpanel" aria-labelledby="ilo-tab">
+        @include('admin.master-data.tabs.ilo')
       </div>
-      {{-- ░░░ END: Programs & Courses Section ░░░ --}}
-
     </div>
     {{-- ░░░ END: Tab Content ░░░ --}}
 
@@ -117,16 +60,10 @@
 </div>
 
 @push('modals')
-  {{-- ░░░ START: Modals for Programs & Courses ░░░ --}}
-  @include('admin.master-data.modals.add-program-modal')
-  @include('admin.master-data.modals.edit-program-modal')
-  @include('admin.master-data.modals.add-course-modal')
-  @include('admin.master-data.modals.edit-course-modal')
-  @include('admin.master-data.modals.delete-program-modal')
-
+  {{-- ░░░ START: Modals for SO & ILO ░░░ --}}
   @include('admin.master-data.modals.add-so-modal')
   @include('admin.master-data.modals.edit-so-modal')
-  {{-- ░░░ END: Modals for Programs & Courses ░░░ --}}
+  {{-- ░░░ END: Modals for SO & ILO ░░░ --}}
 @endpush
 
 @push('scripts')

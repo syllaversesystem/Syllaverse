@@ -22,6 +22,11 @@ use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\AcademicStructureController;
 use App\Http\Controllers\Admin\ManageFacultyAccountController;
 use App\Http\Controllers\Admin\MasterDataController;
+use App\Http\Controllers\Admin\DepartmentsController;
+use App\Http\Controllers\Admin\ProgramsCoursesController;
+use App\Http\Controllers\Admin\ArchiveController;
+use App\Http\Controllers\Admin\RecycleBinController;
+use App\Http\Controllers\Admin\ApprovalsController;
 
 use App\Http\Controllers\Admin\ProgramController;
 use App\Http\Controllers\Admin\CourseController;
@@ -111,6 +116,16 @@ Route::post('/master-data/reorder/ilo', [\App\Http\Controllers\Admin\IntendedLea
         ]);
 
     // ───────────────────────────────────────────────────────────────────────────
+    // Approvals (Syllabus Review & Approval)
+    // ───────────────────────────────────────────────────────────────────────────
+    Route::get('/approvals', [\App\Http\Controllers\Admin\ApprovalsController::class, 'index'])->name('admin.approvals.index');
+    Route::post('/approvals/{id}/approve', [\App\Http\Controllers\Admin\ApprovalsController::class, 'approve'])->name('admin.approvals.approve');
+    Route::post('/approvals/{id}/reject', [\App\Http\Controllers\Admin\ApprovalsController::class, 'reject'])->name('admin.approvals.reject');
+    Route::get('/approvals/{id}/review', [\App\Http\Controllers\Admin\ApprovalsController::class, 'review'])->name('admin.approvals.review');
+    Route::post('/approvals/bulk-approve', [\App\Http\Controllers\Admin\ApprovalsController::class, 'bulkApprove'])->name('admin.approvals.bulk-approve');
+    Route::post('/approvals/bulk-reject', [\App\Http\Controllers\Admin\ApprovalsController::class, 'bulkReject'])->name('admin.approvals.bulk-reject');
+
+    // ───────────────────────────────────────────────────────────────────────────
     // Manage Faculty Accounts
     // ───────────────────────────────────────────────────────────────────────────
     Route::get('/manage-accounts',                 [ManageFacultyAccountController::class, 'index'])->name('admin.manage-accounts');
@@ -174,6 +189,47 @@ Route::post('/master-data/reorder/ilo', [\App\Http\Controllers\Admin\IntendedLea
     Route::match(['get', 'post'], '/syllabi/tla/{id}/sync-so', [\App\Http\Controllers\Faculty\SyllabusTLAController::class, 'syncSo'])->name('admin.syllabi.tla.sync-so');
     Route::post('/syllabi/{syllabus}/generate-tla', [\App\Http\Controllers\Faculty\SyllabusTLAController::class, 'generateWithAI'])
         ->name('admin.syllabi.tla.generate');
+
+    // ───────────────────────────────────────────────────────────────────────────
+    // Departments
+    // ───────────────────────────────────────────────────────────────────────────
+    Route::get('/departments', [\App\Http\Controllers\Admin\DepartmentsController::class, 'index'])->name('admin.departments.index');
+    Route::get('/departments/table-content', [\App\Http\Controllers\Admin\DepartmentsController::class, 'getTableContent'])->name('admin.departments.table-content');
+    Route::post('/departments', [\App\Http\Controllers\Admin\DepartmentsController::class, 'store'])->name('admin.departments.store');
+    Route::put('/departments/{department}', [\App\Http\Controllers\Admin\DepartmentsController::class, 'update'])->name('admin.departments.update');
+    Route::delete('/departments/{department}', [\App\Http\Controllers\Admin\DepartmentsController::class, 'destroy'])->name('admin.departments.destroy');
+
+    // ───────────────────────────────────────────────────────────────────────────
+    // Programs & Courses (Dedicated Page)
+    // ───────────────────────────────────────────────────────────────────────────
+    Route::get('/programs-courses', [\App\Http\Controllers\Admin\ProgramsCoursesController::class, 'index'])->name('admin.programs-courses.index');
+    
+    // Use existing Program and Course controllers for CRUD operations
+    Route::post('/programs-courses/programs', [ProgramController::class, 'store'])->name('admin.programs-courses.programs.store');
+    Route::put('/programs-courses/programs/{id}', [ProgramController::class, 'update'])->name('admin.programs-courses.programs.update');
+    Route::delete('/programs-courses/programs/{id}', [ProgramController::class, 'destroy'])->name('admin.programs-courses.programs.destroy');
+    Route::post('/programs-courses/courses', [CourseController::class, 'store'])->name('admin.programs-courses.courses.store');
+    Route::put('/programs-courses/courses/{id}', [CourseController::class, 'update'])->name('admin.programs-courses.courses.update');
+    Route::delete('/programs-courses/courses/{id}', [CourseController::class, 'destroy'])->name('admin.programs-courses.courses.destroy');
+
+    // ───────────────────────────────────────────────────────────────────────────
+    // Archive
+    // ───────────────────────────────────────────────────────────────────────────
+    Route::get('/archive', [\App\Http\Controllers\Admin\ArchiveController::class, 'index'])->name('admin.archive.index');
+    Route::post('/archive/{id}/restore', [\App\Http\Controllers\Admin\ArchiveController::class, 'restore'])->name('admin.archive.restore');
+    Route::delete('/archive/{id}', [\App\Http\Controllers\Admin\ArchiveController::class, 'permanentDelete'])->name('admin.archive.delete');
+    Route::post('/archive/bulk-restore', [\App\Http\Controllers\Admin\ArchiveController::class, 'bulkRestore'])->name('admin.archive.bulk-restore');
+    Route::delete('/archive/bulk-delete', [\App\Http\Controllers\Admin\ArchiveController::class, 'bulkDelete'])->name('admin.archive.bulk-delete');
+
+    // ───────────────────────────────────────────────────────────────────────────
+    // Recycle Bin
+    // ───────────────────────────────────────────────────────────────────────────
+    Route::get('/recycle-bin', [\App\Http\Controllers\Admin\RecycleBinController::class, 'index'])->name('admin.recycle-bin.index');
+    Route::post('/recycle-bin/{id}/restore', [\App\Http\Controllers\Admin\RecycleBinController::class, 'restore'])->name('admin.recycle-bin.restore');
+    Route::delete('/recycle-bin/{id}', [\App\Http\Controllers\Admin\RecycleBinController::class, 'permanentDelete'])->name('admin.recycle-bin.delete');
+    Route::post('/recycle-bin/bulk-restore', [\App\Http\Controllers\Admin\RecycleBinController::class, 'bulkRestore'])->name('admin.recycle-bin.bulk-restore');
+    Route::delete('/recycle-bin/bulk-delete', [\App\Http\Controllers\Admin\RecycleBinController::class, 'bulkDelete'])->name('admin.recycle-bin.bulk-delete');
+    Route::delete('/recycle-bin/empty', [\App\Http\Controllers\Admin\RecycleBinController::class, 'emptyBin'])->name('admin.recycle-bin.empty');
 
     // Logout
     Route::post('/logout', function () {

@@ -7,14 +7,26 @@
 [2025-08-17] Added form id=addProgramForm for AJAX submit.
 -------------------------------------------------------------------------------
 --}}
-<div class="modal fade sv-appt-modal" id="addProgramModal" tabindex="-1" aria-labelledby="addProgramModalLabel" aria-hidden="true">
+<div class="modal fade" id="addProgramModal" tabindex="-1" aria-labelledby="addProgramModalLabel" aria-hidden="true" data-bs-backdrop="true" data-bs-keyboard="true">
   <div class="modal-dialog modal-dialog-centered modal-lg">
-    <form id="addProgramForm" action="{{ route('admin.programs.store') }}" method="POST" class="modal-content">
-      @csrf
-      <div class="modal-header">
-        <h5 class="modal-title fw-semibold" id="addProgramModalLabel">Add New Program</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
+    <div class="modal-content">
+      <style>
+        #addProgramModal {
+          z-index: 1055 !important;
+        }
+        #addProgramModal .modal-backdrop {
+          z-index: 1054 !important;
+        }
+        #addProgramModal .modal-dialog {
+          z-index: 1056 !important;
+        }
+      </style>
+      <form id="addProgramForm" action="{{ route('admin.programs.store') }}" method="POST">
+        @csrf
+        <div class="modal-header">
+          <h5 class="modal-title fw-semibold" id="addProgramModalLabel">Add New Program</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
 
       <div class="modal-body">
         <div class="mb-3">
@@ -37,12 +49,13 @@
         </div>
       </div>
 
-      <div class="modal-footer">
-        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-        <button type="submit" class="btn btn-danger">
-          <i data-feather="plus"></i> Create Program
-        </button>
-      </div>
-    </form>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-danger">
+            <i data-feather="plus"></i> Create Program
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
 </div>

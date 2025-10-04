@@ -14,6 +14,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Appointment;
 use App\Models\User;
+use App\Models\Program;
+use App\Models\Course;
 
 class Department extends Model
 {
@@ -53,6 +55,12 @@ class Department extends Model
     public function programs()
     {
         return $this->hasMany(Program::class);
+    }
+
+    /** Courses under this department. */
+    public function courses()
+    {
+        return $this->hasMany(Course::class);
     }
     // ░░░ END: Helpful collections ░░░
 }

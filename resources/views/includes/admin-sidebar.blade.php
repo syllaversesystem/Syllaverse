@@ -50,15 +50,58 @@
         </a>
       </li>
 
-      {{-- Syllabi --}}
+      {{-- Separator --}}
+      <li class="nav-item">
+        <div class="sidebar-separator"></div>
+      </li>
+
+      {{-- My Syllabi --}}
       @php $isActive = request()->routeIs('admin.syllabi.*'); @endphp
       <li class="nav-item">
         <a class="nav-link d-flex align-items-center {{ $isActive ? 'active' : '' }}"
            href="{{ route('admin.syllabi.index') }}"
            aria-current="{{ $isActive ? 'page' : '' }}">
           <i class="bi bi-book"></i>
-          <span class="label">Syllabi</span>
+          <span class="label">My Syllabi</span>
         </a>
+      </li>
+
+      {{-- Approvals --}}
+      @php $isActive = request()->routeIs('admin.approvals.*'); @endphp
+      <li class="nav-item">
+        <a class="nav-link d-flex align-items-center {{ $isActive ? 'active' : '' }}"
+           href="{{ route('admin.approvals.index') }}"
+           aria-current="{{ $isActive ? 'page' : '' }}">
+          <i class="bi bi-clipboard-check"></i>
+          <span class="label">Approvals</span>
+        </a>
+      </li>
+
+      {{-- Archive --}}
+      @php $isActive = request()->routeIs('admin.archive.*'); @endphp
+      <li class="nav-item">
+        <a class="nav-link d-flex align-items-center {{ $isActive ? 'active' : '' }}"
+           href="{{ route('admin.archive.index') }}"
+           aria-current="{{ $isActive ? 'page' : '' }}">
+          <i class="bi bi-archive"></i>
+          <span class="label">Archive</span>
+        </a>
+      </li>
+
+      {{-- Recycle Bin --}}
+      @php $isActive = request()->routeIs('admin.recycle-bin.*'); @endphp
+      <li class="nav-item">
+        <a class="nav-link d-flex align-items-center {{ $isActive ? 'active' : '' }}"
+           href="{{ route('admin.recycle-bin.index') }}"
+           aria-current="{{ $isActive ? 'page' : '' }}">
+          <i class="bi bi-trash"></i>
+          <span class="label">Recycle Bin</span>
+        </a>
+      </li>
+
+      {{-- Separator --}}
+      <li class="nav-item">
+        <div class="sidebar-separator"></div>
       </li>
 
       {{-- Manage Accounts --}}
@@ -69,6 +112,33 @@
            aria-current="{{ $isActive ? 'page' : '' }}">
           <i class="bi bi-people"></i>
           <span class="label">Manage Accounts</span>
+        </a>
+      </li>
+
+      {{-- Separator --}}
+      <li class="nav-item">
+        <div class="sidebar-separator"></div>
+      </li>
+
+      {{-- Departments --}}
+      @php $isActive = request()->routeIs('admin.departments.*'); @endphp
+      <li class="nav-item">
+        <a class="nav-link d-flex align-items-center {{ $isActive ? 'active' : '' }}"
+           href="{{ route('admin.departments.index') }}"
+           aria-current="{{ $isActive ? 'page' : '' }}">
+          <i class="bi bi-buildings"></i>
+          <span class="label">Departments</span>
+        </a>
+      </li>
+
+      {{-- Programs & Courses --}}
+      @php $isActive = request()->routeIs('admin.programs-courses.*'); @endphp
+      <li class="nav-item">
+        <a class="nav-link d-flex align-items-center {{ $isActive ? 'active' : '' }}"
+           href="{{ route('admin.programs-courses.index') }}"
+           aria-current="{{ $isActive ? 'page' : '' }}">
+          <i class="bi bi-collection"></i>
+          <span class="label">Programs & Courses</span>
         </a>
       </li>
 

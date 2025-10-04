@@ -15,34 +15,37 @@
 <div class="table-wrapper position-relative">
 
   {{-- ░░░ START: Toolbar ░░░ --}}
-  <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-    <h6 class="mb-0 fw-semibold" style="font-size:.95rem;">Courses</h6>
-
-    <div class="d-flex align-items-center gap-2">
-      @php
-        $canManageCourses = Auth::user()->role === 'admin' 
-          || (method_exists(Auth::user(), 'isDeptChair') && Auth::user()->isDeptChair())
-          || (method_exists(Auth::user(), 'isProgChair') && Auth::user()->isProgChair());
-      @endphp
-
-      @if ($canManageCourses)
-        <button type="button"
-                class="btn-brand-sm"
-                data-bs-toggle="modal"
-                data-bs-target="#addCourseModal"
-                aria-label="Add Course"
-                title="Add Course">
-          <i data-feather="plus"></i>
-        </button>
-      @else
-        <button type="button"
-                class="btn-brand-sm disabled"
-                aria-label="Add Course"
-                title="Add Course (disabled)">
-          <i data-feather="lock"></i>
-        </button>
-      @endif
+  <div class="superadmin-manage-department-toolbar">
+    <div class="input-group">
+      <span class="input-group-text"><i data-feather="search"></i></span>
+      <input type="search" class="form-control" placeholder="Search courses..." aria-label="Search courses" id="coursesSearch">
     </div>
+
+    <span class="flex-spacer"></span>
+
+    @php
+      $canManageCourses = Auth::user()->role === 'admin' 
+        || (method_exists(Auth::user(), 'isDeptChair') && Auth::user()->isDeptChair())
+        || (method_exists(Auth::user(), 'isProgChair') && Auth::user()->isProgChair());
+    @endphp
+
+    @if ($canManageCourses)
+      <button type="button"
+              class="btn-brand-sm d-none d-md-inline-flex"
+              data-bs-toggle="modal"
+              data-bs-target="#addCourseModal"
+              aria-label="Add Course"
+              title="Add Course">
+        <i data-feather="plus"></i>
+      </button>
+    @else
+      <button type="button"
+              class="btn-brand-sm d-none d-md-inline-flex disabled"
+              aria-label="Add Course"
+              title="Add Course (disabled)">
+        <i data-feather="lock"></i>
+      </button>
+    @endif
   </div>
   {{-- ░░░ END: Toolbar ░░░ --}}
 

@@ -14,7 +14,6 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\SuperAdmin\AuthController;
-use App\Http\Controllers\SuperAdmin\DepartmentController;
 use App\Http\Controllers\SuperAdmin\MasterDataController;
 use App\Http\Controllers\SuperAdmin\ManageAdminController;
 use App\Http\Controllers\SuperAdmin\ChairRequestController;
@@ -76,12 +75,4 @@ Route::middleware([SuperAdminAuth::class])->prefix('superadmin')->group(function
 
     // ---------- General Academic Information ----------
     Route::put('/general-info/{section}', [MasterDataController::class, 'updateGeneralInfo'])->name('superadmin.general-info.update');
-
-    // ---------- Departments ----------
-    Route::prefix('departments')->group(function () {
-        Route::get('/',        [DepartmentController::class, 'index'])->name('superadmin.departments.index');
-        Route::post('/',       [DepartmentController::class, 'store'])->name('superadmin.departments.store');
-        Route::put('/{id}',    [DepartmentController::class, 'update'])->name('superadmin.departments.update');
-        Route::delete('/{id}', [DepartmentController::class, 'destroy'])->name('superadmin.departments.destroy');
-    });
 });

@@ -14,20 +14,22 @@
 <div class="table-wrapper position-relative">
 
   {{-- ░░░ START: Toolbar Section ░░░ --}}
-  <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-3">
-    <h6 class="mb-0 fw-semibold" style="font-size:.95rem;">Programs</h6>
-
-    <div class="d-flex align-items-center gap-2">
-      {{-- Add Program Button --}}
-      <button type="button"
-              class="btn-brand-sm"
-              data-bs-toggle="modal"
-              data-bs-target="#addProgramModal"
-              aria-label="Add Program"
-              title="Add Program">
-        <i data-feather="plus"></i>
-      </button>
+  <div class="superadmin-manage-department-toolbar">
+    <div class="input-group">
+      <span class="input-group-text"><i data-feather="search"></i></span>
+      <input type="search" class="form-control" placeholder="Search programs..." aria-label="Search programs" id="programsSearch">
     </div>
+
+    <span class="flex-spacer"></span>
+
+    <button type="button"
+            class="btn-brand-sm d-none d-md-inline-flex"
+            data-bs-toggle="modal"
+            data-bs-target="#addProgramModal"
+            aria-label="Add Program"
+            title="Add Program">
+      <i data-feather="plus"></i>
+    </button>
   </div>
   {{-- ░░░ END: Toolbar Section ░░░ --}}
 
