@@ -114,7 +114,7 @@ class CourseController extends Controller
         $departmentFilter = $request->get('department_filter');
         
         // Build courses query with optional department filter
-        $coursesQuery = Course::with(['department'])->orderBy('name');
+        $coursesQuery = Course::with(['department'])->orderBy('title');
         if ($departmentFilter && $departmentFilter !== 'all') {
             $coursesQuery->where('department_id', $departmentFilter);
         }

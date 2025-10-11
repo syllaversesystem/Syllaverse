@@ -108,4 +108,5 @@
 
 @push('scripts')
 <script src="{{ asset('js/admin/master-data/courses.js') }}"></script>
+<script src="{{ asset('js/admin/courses-search.js') }}"></script>
 @endpush
