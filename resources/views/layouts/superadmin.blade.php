@@ -1,5 +1,6 @@
 {{-- 
--------------------------------------------------------------------------------
+--------------------------------------------------------------------  @vite('resources/js/superadmin/appointments.js')
+  @vite('resources/js/superladmin/manage-accounts/manage-accounts.js')----
 * File: resources/views/layouts/superadmin.blade.php
 * Description: Base layout with drawer and desktop collapse sidebar (Syllaverse)
 -------------------------------------------------------------------------------
@@ -37,7 +38,6 @@
   @vite('resources/css/superadmin/layouts/superadmin-navbar.css')
   @vite('resources/css/superadmin/layouts/superadmin-layout.css')
  @vite('resources/css/components/alert-overlay.css')
-  @vite('resources/css/superadmin/master-data.css')
   @vite('resources/css/superadmin/departments/departments.css')
   @vite('resources/css/superadmin/manage-accounts/manage-accounts.css')
   {{-- END: Custom Vite CSS --}}

@@ -1,6 +1,6 @@
 {{-- 
 -------------------------------------------------------------------------------
-* File: resources/views/superadmin/master-data/modals/delete-modal.blade.php
+* File: resources/views/admin/master-data/modals/delete-master-data-modal.blade.php
 * Description: Shared Delete confirmation modal for SDG/IGA/CDIO – submitted with AJAX
 -------------------------------------------------------------------------------
 📜 Log:
@@ -9,7 +9,7 @@
 --}}
 
 {{-- ░░░ START: Delete Confirm Modal (Shared) ░░░ --}}
-<div class="modal fade sv-appt-modal"
+<div class="modal fade"
      id="deleteMasterDataModal"
      tabindex="-1"
      aria-labelledby="deleteMasterDataModalLabel"

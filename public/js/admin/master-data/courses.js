@@ -7,7 +7,28 @@
 // [2025-08-16] Extracted initial AJAX handlers.
 // [2025-08-17] Hardened modal lifecycle (CDN Bootstrap only) + checkbox prerequisites.
 // [2025-08-17] Sync lists after add/edit/delete; fixed multi-click to open.
-// [2025-08-17] Fix after refresh – robust delegation on document + hydrateRows().
+// [2025-08-17] Fix after refresh – robu    // Clean any stray backdrops
+    document.querySelectorAll('.modal-backdrop').forEach((b) => b.remove());
+    document.body.classList.remove('modal-open');
+    document.body.style.removeProperty('padding-right');
+  })();
+  // ░░░ END: Boot ░░░
+
+  // ░░░ START: Department Filtering ░░░
+  window.filterByDepartment = function(departmentId) {
+    const currentUrl = new URL(window.location.href);
+    
+    if (departmentId === 'all') {
+      currentUrl.searchParams.delete('department_filter');
+    } else {
+      currentUrl.searchParams.set('department_filter', departmentId);
+    }
+    
+    // Reload the page with the new filter
+    window.location.href = currentUrl.toString();
+  };
+  // ░░░ END: Department Filtering ░░░
+}gation on document + hydrateRows().
 // [2025-08-17] Edit modal prereqs – ALL courses shown, self excluded, prechecked current.
 // [2025-08-17] ✅ Prereq column refresh – recompute table “Prerequisites” preview
 //              after add/edit/delete and on boot; rowHtml updated to include col.

@@ -9,7 +9,7 @@
 -------------------------------------------------------------------------------
 --}}
 
-<div class="modal fade sv-appt-modal" id="addSoModal" tabindex="-1" aria-labelledby="addSoModalLabel" aria-hidden="true">
+<div class="modal fade" id="addSoModal" tabindex="-1" aria-labelledby="addSoModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <form id="addSoForm" action="{{ route('admin.so.store') }}" method="POST" class="modal-content">
       @csrf

@@ -1,6 +1,6 @@
 {{-- 
 -------------------------------------------------------------------------------
-* File: resources/views/superadmin/master-data/modals/edit-modal.blade.php
+* File: resources/views/admin/master-data/modals/edit-master-data-modal.blade.php
 * Description: Shared Edit modal for SDG/IGA/CDIO – prefilled via JS and submitted with AJAX
 -------------------------------------------------------------------------------
 📜 Log:
@@ -10,7 +10,7 @@
 --}}
 
 {{-- ░░░ START: Edit Modal (Shared) ░░░ --}}
-<div class="modal fade sv-appt-modal"
+<div class="modal fade"
      id="editMasterDataModal"
      tabindex="-1"
      aria-labelledby="editMasterDataModalLabel"

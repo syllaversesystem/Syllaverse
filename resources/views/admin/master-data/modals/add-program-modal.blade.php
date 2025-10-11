@@ -10,17 +10,6 @@
 <div class="modal fade" id="addProgramModal" tabindex="-1" aria-labelledby="addProgramModalLabel" aria-hidden="true" data-bs-backdrop="true" data-bs-keyboard="true">
   <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content">
-      <style>
-        #addProgramModal {
-          z-index: 1055 !important;
-        }
-        #addProgramModal .modal-backdrop {
-          z-index: 1054 !important;
-        }
-        #addProgramModal .modal-dialog {
-          z-index: 1056 !important;
-        }
-      </style>
       <form id="addProgramForm" action="{{ route('admin.programs.store') }}" method="POST">
         @csrf
         <div class="modal-header">
@@ -29,15 +18,34 @@
         </div>
 
       <div class="modal-body">
-        <div class="mb-3">
+        <div class="mb-3 position-relative">
           <label for="programName" class="form-label small fw-medium text-muted">Program Name</label>
-          <input type="text" class="form-control form-control-sm" id="programName" name="name" placeholder="e.g., Bachelor of Science in Computer Science" required>
+          <input type="text" class="form-control form-control-sm" id="programName" name="name" placeholder="e.g., Bachelor of Science in Computer Science" required autocomplete="off">
+          <div id="programNameSuggestions" class="suggestions-dropdown" style="display: none;"></div>
         </div>
 
-        <div class="mb-3">
+        <div class="mb-3 position-relative">
           <label for="programCode" class="form-label small fw-medium text-muted">Program Code</label>
-          <input type="text" class="form-control form-control-sm" id="programCode" name="code" placeholder="e.g., BSCS, BSIT, BSEE" required>
+          <input type="text" class="form-control form-control-sm" id="programCode" name="code" placeholder="e.g., BSCS, BSIT, BSEE" required autocomplete="off">
+          <div id="programCodeSuggestions" class="suggestions-dropdown" style="display: none;"></div>
         </div>
+
+        @if($showDepartmentDropdown)
+        <div class="mb-3">
+          <label for="programDepartment" class="form-label small fw-medium text-muted">Department</label>
+          <select class="form-select form-select-sm" id="programDepartment" name="department_id" required>
+            <option value="">Select Department</option>
+            @if(isset($departments))
+              @foreach($departments as $department)
+                <option value="{{ $department->id }}">{{ $department->name }}</option>
+              @endforeach
+            @endif
+          </select>
+        </div>
+        @else
+        <!-- Hidden field for department when user has specific role -->
+        <input type="hidden" name="department_id" value="{{ $userDepartment }}">
+        @endif
 
         <div class="mb-3">
           <label for="programDescription" class="form-label small fw-medium text-muted">Description (optional)</label>
@@ -59,3 +67,57 @@
     </div>
   </div>
 </div>
+
+<style>
+.suggestions-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #dee2e6;
+  border-top: none;
+  border-radius: 0 0 0.375rem 0.375rem;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  z-index: 1050;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.suggestion-item {
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  border-bottom: 1px solid #f8f9fa;
+  transition: background-color 0.15s ease-in-out;
+}
+
+.suggestion-item:hover {
+  background-color: #f8f9fa;
+}
+
+.suggestion-item:last-child {
+  border-bottom: none;
+}
+
+.suggestion-item .suggestion-main {
+  font-weight: 500;
+  color: #495057;
+  margin-bottom: 0.25rem;
+}
+
+.suggestion-item .suggestion-meta {
+  font-size: 0.75rem;
+  color: #6c757d;
+}
+
+.suggestion-restore-badge {
+  display: inline-block;
+  background-color: #ffc107;
+  color: #212529;
+  font-size: 0.6875rem;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  font-weight: 500;
+  margin-left: 0.5rem;
+}
+</style>

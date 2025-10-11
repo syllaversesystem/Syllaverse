@@ -133,12 +133,6 @@
   {{-- table always present; when no course is selected, tbody shows a placeholder row --}}
 </div>
 
-{{-- ░░░ START: Modals (consistent with Program/Course modals) ░░░ --}}
-@include('admin.master-data.modals.add-ilo-modal')
-@include('admin.master-data.modals.edit-ilo-modal')
-@include('admin.master-data.modals.delete-ilo-modal')
-{{-- ░░░ END: Modals ░░░ --}}
-
 @push('scripts')
   @vite('resources/js/admin/master-data/ilo.js')
 @endpush

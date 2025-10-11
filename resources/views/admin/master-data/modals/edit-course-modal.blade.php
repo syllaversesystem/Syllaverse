@@ -11,7 +11,7 @@
 -------------------------------------------------------------------------------
 --}}
 
-<div class="modal fade sv-appt-modal" id="editCourseModal" tabindex="-1" aria-labelledby="editCourseModalLabel" aria-hidden="true">
+<div class="modal fade" id="editCourseModal" tabindex="-1" aria-labelledby="editCourseModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-xl">
     <form id="editCourseForm" method="POST" class="modal-content">
       @csrf

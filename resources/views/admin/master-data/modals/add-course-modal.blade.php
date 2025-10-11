@@ -11,7 +11,7 @@
 --}}
 
 {{-- ░░░ START: Add Course Modal ░░░ --}}
-<div class="modal fade sv-appt-modal" id="addCourseModal" tabindex="-1" aria-labelledby="addCourseModalLabel" aria-hidden="true">
+<div class="modal fade" id="addCourseModal" tabindex="-1" aria-labelledby="addCourseModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-xl">
     <form id="addCourseForm" action="{{ route('admin.courses.store') }}" method="POST" class="modal-content">
       @csrf

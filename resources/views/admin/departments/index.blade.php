@@ -13,6 +13,52 @@
 @section('title', 'Departments • Admin • Syllaverse')
 @section('page-title', 'Manage Departments')
 
+@push('styles')
+<style>
+/* Empty state styles for departments table */
+.superadmin-manage-department-table .sv-empty-row td {
+  padding: 0;
+  background-color: #fff;
+  border-radius: 0 0 12px 12px;
+  border-top: 1px solid #dee2e6;
+  height: 220px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.superadmin-manage-department-table .sv-empty {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  max-width: 360px;
+  margin: 1.5rem auto 0 auto;
+  padding: 0 1rem;
+}
+
+.superadmin-manage-department-table .sv-empty h6 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #CB3737;
+  margin-bottom: 0.3rem;
+  font-family: 'Poppins', sans-serif;
+}
+
+.superadmin-manage-department-table .sv-empty p {
+  font-size: 0.85rem;
+  color: #777;
+  margin-bottom: 0;
+}
+
+.superadmin-manage-department-table .sv-empty i {
+  width: 16px;
+  height: 16px;
+  color: #CB3737;
+}
+</style>
+@endpush
+
 @section('content')
 <div class="department-card">
 

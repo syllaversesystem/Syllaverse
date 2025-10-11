@@ -8,7 +8,7 @@
 -------------------------------------------------------------------------------
 --}}
 
-<div class="modal fade sv-appt-modal" id="addIloModal" tabindex="-1" aria-labelledby="addIloLabel" aria-hidden="true">
+<div class="modal fade" id="addIloModal" tabindex="-1" aria-labelledby="addIloLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <form id="addIloForm" action="{{ route('admin.ilo.store') }}" method="POST" class="modal-content">
       @csrf

@@ -7,7 +7,7 @@
 [2025-08-17] Updated with form id=editProgramForm for AJAX submit.
 -------------------------------------------------------------------------------
 --}}
-<div class="modal fade sv-appt-modal" id="editProgramModal" tabindex="-1" aria-labelledby="editProgramModalLabel" aria-hidden="true">
+<div class="modal fade" id="editProgramModal" tabindex="-1" aria-labelledby="editProgramModalLabel" aria-hidden="true" data-bs-backdrop="true" data-bs-keyboard="true">
   <div class="modal-dialog modal-dialog-centered modal-lg">
     <div class="modal-content">
       <form id="editProgramForm" action="{{ route('admin.programs.update', 0) }}" method="POST" class="edit-program-form">
@@ -31,6 +31,23 @@
             <label for="editProgramCode" class="form-label small">Program Code</label>
             <input type="text" name="code" id="editProgramCode" class="form-control form-control-sm" required>
           </div>
+
+          @if($showDepartmentDropdown)
+          <div class="mb-3">
+            <label for="editProgramDepartment" class="form-label small">Department</label>
+            <select class="form-select form-select-sm" id="editProgramDepartment" name="department_id" required>
+              <option value="">Select Department</option>
+              @if(isset($departments))
+                @foreach($departments as $department)
+                  <option value="{{ $department->id }}">{{ $department->name }}</option>
+                @endforeach
+              @endif
+            </select>
+          </div>
+          @else
+          <!-- Hidden field for department when user has specific role -->
+          <input type="hidden" id="editProgramDepartment" name="department_id" value="{{ $userDepartment }}">
+          @endif
 
           <div class="mb-2">
             <label for="editProgramDescription" class="form-label small">Description</label>

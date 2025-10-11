@@ -1,10 +1,10 @@
 {{-- 
 -------------------------------------------------------------------------------
-* File: resources/views/admin/departments/modals/deleteDepartmentModal.blade.php
-* Description: Delete confirmation modal for departments with brand-aligned UI styling (Admin version)
+* File: resources/views/superadmin/departments/modals/deleteDepartmentModal.blade.php
+* Description: Delete confirmation modal for departments with brand-aligned UI styling
 -------------------------------------------------------------------------------
 📜 Log:
-[2025-10-04] Reverted to original superadmin modal structure with admin routes
+[2025-10-02] Updated to match add department modal UI design - brand colors, improved styling, glass morphism buttons.
 -------------------------------------------------------------------------------
 --}}
 
@@ -100,37 +100,42 @@
       </style>
       {{-- ░░░ END: Local styles ░░░ --}}
 
+      {{-- ░░░ START: Header ░░░ --}}
+      <div class="modal-header">
+        <h5 class="modal-title fw-semibold d-flex align-items-center gap-2" id="deleteDepartmentModalLabel">
+          <i data-feather="trash-2"></i> Confirm Delete
+        </h5>
+      </div>
+      {{-- ░░░ END: Header ░░░ --}}
+
       {{-- ░░░ START: Body ░░░ --}}
       <div class="modal-body">
-        {{-- Department Information Card --}}
-        <div class="text-center mb-4">
-          <div class="d-inline-flex align-items-center justify-content-center bg-danger bg-opacity-10 rounded-circle mb-3" style="width: 64px; height: 64px;">
-            <i data-feather="trash-2" class="text-danger" style="width: 28px; height: 28px;"></i>
-          </div>
-          <h6 class="fw-semibold mb-2">Delete Department</h6>
-          <p class="text-muted mb-0">Are you sure you want to permanently delete this department?</p>
-        </div>
-
-        {{-- Department Details --}}
-        <div class="bg-light rounded-3 p-3 mb-4">
-          <div class="small text-muted mb-1">You are about to delete:</div>
-          <div class="fw-semibold mb-1" id="deleteDepartmentName">Loading...</div>
-          <div class="small text-muted">Code: <span id="deleteDepartmentCode" class="fw-medium">Loading...</span></div>
-        </div>
-
-        {{-- Warning Information --}}
-        <div class="alert alert-warning border-0 mb-0" style="background: rgba(255, 193, 7, 0.1);">
-          <div class="d-flex align-items-start gap-3">
-            <i data-feather="alert-triangle" class="text-warning flex-shrink-0 mt-1" style="width: 18px; height: 18px;"></i>
-            <div class="small">
-              <div class="fw-medium text-dark mb-2">This action cannot be undone</div>
-              <ul class="list-unstyled mb-0 text-muted">
-                <li class="mb-1">• All programs in this department will be removed</li>
-                <li class="mb-1">• All courses in those programs will be removed</li>
-                <li class="mb-0">• User syllabi will remain safe and unaffected</li>
-              </ul>
+        <div class="alert alert-danger d-flex align-items-start gap-3 mb-4" role="alert">
+          <i data-feather="alert-triangle" class="flex-shrink-0 mt-1" style="width: 1.2rem; height: 1.2rem;"></i>
+          <div>
+            <div class="fw-semibold mb-2">Permanent Deletion Warning</div>
+            <p class="mb-2 small">This action will permanently delete the department and cannot be undone.</p>
+            <div class="small mb-2">
+              <p class="mb-1">
+                <i data-feather="layers" class="me-1" style="width: 0.9rem; height: 0.9rem;"></i>
+                <strong>All programs within this department will be deleted.</strong>
+              </p>
+              <p class="mb-1">
+                <i data-feather="book" class="me-1" style="width: 0.9rem; height: 0.9rem;"></i>
+                <strong>All courses within those programs will be deleted.</strong>
+              </p>
+            </div>
+            <div class="alert alert-success py-2 px-3 mb-0 small" role="alert">
+              <i data-feather="shield-check" class="me-1" style="width: 0.9rem; height: 0.9rem;"></i>
+              <strong>User syllabi will remain safe</strong> and will not be affected by this deletion.
             </div>
           </div>
+        </div>
+        
+        <div class="border rounded p-3 bg-light">
+          <div class="small text-muted mb-1">You are about to delete:</div>
+          <div class="fw-medium"><span id="deleteDepartmentName">Loading...</span></div>
+          <div class="small text-muted">Code: <span id="deleteDepartmentCode" class="fw-medium">Loading...</span></div>
         </div>
       </div>
       {{-- ░░░ END: Body ░░░ --}}
@@ -140,11 +145,10 @@
         <button type="button" class="btn btn-light" data-bs-dismiss="modal">
           <i data-feather="x"></i> Cancel
         </button>
-        <form id="deleteDepartmentForm" method="POST" class="d-inline">
+        <form id="deleteDepartmentForm" method="POST" action="" class="d-inline">
           @csrf
           @method('DELETE')
-          <input type="hidden" id="deleteDepartmentId" name="id" value="">
-          <button type="submit" id="deleteDepartmentSubmit" class="btn btn-danger">
+          <button type="submit" class="btn btn-danger">
             <i data-feather="trash-2"></i> Delete
           </button>
         </form>

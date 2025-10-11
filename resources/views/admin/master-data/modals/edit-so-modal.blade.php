@@ -10,7 +10,7 @@
 -------------------------------------------------------------------------------
 --}}
 
-<div class="modal fade sv-appt-modal" id="editSoModal" tabindex="-1" aria-labelledby="editSoModalLabel" aria-hidden="true">
+<div class="modal fade" id="editSoModal" tabindex="-1" aria-labelledby="editSoModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <form id="editSoForm" action="" method="POST" class="modal-content">
       @csrf

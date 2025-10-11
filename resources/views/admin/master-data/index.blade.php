@@ -19,39 +19,79 @@
 <div class="manage-accounts">
   <div class="department-card"><!-- Reuses the polished glass card container -->
 
-    {{-- ░░░ START: Main Tab (Student & Intended Learning Outcomes) ░░░ --}}
-    <div class="text-center mb-3">
-      <h5 class="mb-0 text-sv-primary fw-semibold">Student & Intended Learning Outcomes</h5>
-    </div>
-    {{-- ░░░ END: Main Tab ░░░ --}}
-
-    {{-- ░░░ START: SO/ILO Subtabs ░░░ --}}
-    <ul class="nav mb-4" id="soIloSubTabs" role="tablist">
+    {{-- ░░░ START: Master Data Main Tabs ░░░ --}}
+    <ul class="nav sv-tabs" id="masterDataMainTabs" role="tablist" aria-label="Master Data tabs">
       <li class="nav-item" role="presentation">
-        <button class="nav-link sv-subtab active" id="so-tab"
-                data-bs-toggle="tab" data-bs-target="#so"
-                type="button" role="tab" aria-controls="so" aria-selected="true">
-          Student Outcomes
+        <button class="nav-link sv-tab active" id="so-main-tab"
+                data-bs-toggle="tab" data-bs-target="#so-main"
+                type="button" role="tab" aria-controls="so-main" aria-selected="true">
+          SO
         </button>
       </li>
       <li class="nav-item" role="presentation">
-        <button class="nav-link sv-subtab" id="ilo-tab"
-                data-bs-toggle="tab" data-bs-target="#ilo"
-                type="button" role="tab" aria-controls="ilo" aria-selected="false">
-          Intended Learning Outcomes
+        <button class="nav-link sv-tab" id="ilo-main-tab"
+                data-bs-toggle="tab" data-bs-target="#ilo-main"
+                type="button" role="tab" aria-controls="ilo-main" aria-selected="false">
+          ILO
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link sv-tab" id="sdg-main-tab"
+                data-bs-toggle="tab" data-bs-target="#sdg-main"
+                type="button" role="tab" aria-controls="sdg-main" aria-selected="false">
+          SDG
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link sv-tab" id="iga-main-tab"
+                data-bs-toggle="tab" data-bs-target="#iga-main"
+                type="button" role="tab" aria-controls="iga-main" aria-selected="false">
+          IGA
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link sv-tab" id="cdio-main-tab"
+                data-bs-toggle="tab" data-bs-target="#cdio-main"
+                type="button" role="tab" aria-controls="cdio-main" aria-selected="false">
+          CDIO
         </button>
       </li>
     </ul>
-    {{-- ░░░ END: SO/ILO Subtabs ░░░ --}}
+    {{-- ░░░ END: Master Data Main Tabs ░░░ --}}
 
     {{-- ░░░ START: Tab Content ░░░ --}}
-    <div class="tab-content" id="soIloTabContent">
-      <div class="tab-pane fade show active" id="so" role="tabpanel" aria-labelledby="so-tab">
+    <div class="tab-content">
+
+      {{-- ░░░ START: Student Outcomes Section ░░░ --}}
+      <div class="tab-pane fade show active" id="so-main" role="tabpanel" aria-labelledby="so-main-tab">
         @include('admin.master-data.tabs.so')
       </div>
-      <div class="tab-pane fade" id="ilo" role="tabpanel" aria-labelledby="ilo-tab">
+      {{-- ░░░ END: Student Outcomes Section ░░░ --}}
+
+      {{-- ░░░ START: Intended Learning Outcomes Section ░░░ --}}
+      <div class="tab-pane fade" id="ilo-main" role="tabpanel" aria-labelledby="ilo-main-tab">
         @include('admin.master-data.tabs.ilo')
       </div>
+      {{-- ░░░ END: Intended Learning Outcomes Section ░░░ --}}
+
+      {{-- ░░░ START: SDG Section ░░░ --}}
+      <div class="tab-pane fade" id="sdg-main" role="tabpanel" aria-labelledby="sdg-main-tab">
+        @include('admin.master-data.tabs.sdg')
+      </div>
+      {{-- ░░░ END: SDG Section ░░░ --}}
+
+      {{-- ░░░ START: IGA Section ░░░ --}}
+      <div class="tab-pane fade" id="iga-main" role="tabpanel" aria-labelledby="iga-main-tab">
+        @include('admin.master-data.tabs.iga')
+      </div>
+      {{-- ░░░ END: IGA Section ░░░ --}}
+
+      {{-- ░░░ START: CDIO Section ░░░ --}}
+      <div class="tab-pane fade" id="cdio-main" role="tabpanel" aria-labelledby="cdio-main-tab">
+        @include('admin.master-data.tabs.cdio')
+      </div>
+      {{-- ░░░ END: CDIO Section ░░░ --}}
+
     </div>
     {{-- ░░░ END: Tab Content ░░░ --}}
 
@@ -59,45 +99,141 @@
 
 </div>
 
-@push('modals')
-  {{-- ░░░ START: Modals for SO & ILO ░░░ --}}
-  @include('admin.master-data.modals.add-so-modal')
-  @include('admin.master-data.modals.edit-so-modal')
-  {{-- ░░░ END: Modals for SO & ILO ░░░ --}}
-@endpush
+{{-- ░░░ START: Modals for SO & ILO ░░░ --}}
+@include('admin.master-data.modals.add-so-modal')
+@include('admin.master-data.modals.edit-so-modal')
+@include('admin.master-data.modals.delete-so-modal')
+@include('admin.master-data.modals.add-ilo-modal')
+@include('admin.master-data.modals.edit-ilo-modal')
+@include('admin.master-data.modals.delete-ilo-modal')
+{{-- ░░░ END: Modals for SO & ILO ░░░ --}}
+
+{{-- ░░░ START: Modals for Programs & Courses ░░░ --}}
+@include('admin.master-data.modals.add-program-modal')
+@include('admin.master-data.modals.edit-program-modal')
+@include('admin.master-data.modals.delete-program-modal')
+@include('admin.master-data.modals.add-course-modal')
+@include('admin.master-data.modals.edit-course-modal')
+{{-- ░░░ END: Modals for Programs & Courses ░░░ --}}
+
+{{-- ░░░ START: Modals for SDG/IGA/CDIO ░░░ --}}
+@include('admin.master-data.modals.add-master-data-modals')
+@include('admin.master-data.modals.edit-master-data-modal')
+@include('admin.master-data.modals.delete-master-data-modal')
+{{-- ░░░ END: Modals for SDG/IGA/CDIO ░░░ --}}
 
 @push('scripts')
 <script>
   document.addEventListener('DOMContentLoaded', function () {
-    const soIloSubtabs = document.getElementById('soilo-subtabs');
-    const programCourseSubtabs = document.getElementById('programcourse-subtabs');
+    // Initialize feather icons
+    if (typeof feather !== 'undefined') {
+      feather.replace();
+    }
     
-    // Show/hide subtabs based on main tab selection
-    document.querySelectorAll('#masterDataTabs button[data-bs-toggle="tab"]').forEach(function (tab) {
+    // Tab change handler to refresh icons
+    document.querySelectorAll('#masterDataMainTabs button[data-bs-toggle="tab"]').forEach(function (tab) {
       tab.addEventListener('shown.bs.tab', function (event) {
-        const targetId = event.target.getAttribute('data-bs-target');
-        
-        if (targetId === '#soilo') {
-          soIloSubtabs.classList.remove('d-none');
-          programCourseSubtabs.classList.add('d-none');
-        } else if (targetId === '#programcourse') {
-          soIloSubtabs.classList.add('d-none');
-          programCourseSubtabs.classList.remove('d-none');
+        if (typeof feather !== 'undefined') {
+          feather.replace();
         }
       });
     });
-
-    // Reset subtabs to first option when switching main tabs
-    document.getElementById('soilo-tab').addEventListener('shown.bs.tab', function () {
-      // Activate first SO/ILO subtab
-      document.getElementById('so-tab').click();
+    
+    // Fix modal backdrop cleanup issue
+    const modals = document.querySelectorAll('.modal');
+    
+    modals.forEach(function(modal) {
+        modal.addEventListener('hidden.bs.modal', function () {
+            // Remove any lingering backdrops
+            const backdrops = document.querySelectorAll('.modal-backdrop');
+            backdrops.forEach(function(backdrop) {
+                backdrop.remove();
+            });
+            
+            // Remove modal-open class from body
+            document.body.classList.remove('modal-open');
+            
+            // Reset body styling
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
+        });
+        
+        // Additional cleanup on modal show
+        modal.addEventListener('show.bs.modal', function () {
+            // Clean up any existing backdrops before showing new modal
+            const existingBackdrops = document.querySelectorAll('.modal-backdrop');
+            existingBackdrops.forEach(function(backdrop) {
+                backdrop.remove();
+            });
+        });
     });
-
-    document.getElementById('programcourse-tab').addEventListener('shown.bs.tab', function () {
-      // Activate first Programs/Courses subtab
-      document.getElementById('programs-tab').click();
+    
+    // Global backdrop cleanup on any click outside modal
+    document.addEventListener('click', function(event) {
+        // If clicking outside any visible modal, clean up backdrops
+        const visibleModals = document.querySelectorAll('.modal.show');
+        if (visibleModals.length === 0) {
+            const backdrops = document.querySelectorAll('.modal-backdrop');
+            if (backdrops.length > 0) {
+                backdrops.forEach(function(backdrop) {
+                    backdrop.remove();
+                });
+                document.body.classList.remove('modal-open');
+                document.body.style.overflow = '';
+                document.body.style.paddingRight = '';
+            }
+        }
+    });
+    
+    // Escape key cleanup
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            setTimeout(function() {
+                const visibleModals = document.querySelectorAll('.modal.show');
+                if (visibleModals.length === 0) {
+                    const backdrops = document.querySelectorAll('.modal-backdrop');
+                    backdrops.forEach(function(backdrop) {
+                        backdrop.remove();
+                    });
+                    document.body.classList.remove('modal-open');
+                    document.body.style.overflow = '';
+                    document.body.style.paddingRight = '';
+                }
+            }, 300); // Small delay to let Bootstrap finish its cleanup
+        }
     });
   });
+
+  // Modal setup functions for SDG/IGA/CDIO - only handle data setup, Bootstrap handles showing
+  function setupAddModal(type, label) {
+    // This function is called before the modal opens to prepare data if needed
+    // For add modals, no setup needed as they're blank forms
+    console.log(`Setting up add modal for ${type}`);
+  }
+
+  function setupEditModal(type, id, description) {
+    // Set form data for edit modal
+    try {
+      document.getElementById('editMasterDataModalLabel').textContent = `Edit ${type.toUpperCase()}`;
+      document.getElementById('editMasterDataForm').action = `/admin/master-data/${type}/${id}`;
+      document.getElementById('mdEditDescription').value = description;
+      console.log(`Edit modal setup complete for ${type} ID ${id}`);
+    } catch (error) {
+      console.error('Error setting up edit modal:', error);
+    }
+  }
+
+  function setupDeleteModal(type, id, description) {
+    // Set form data for delete modal
+    try {
+      document.getElementById('deleteMasterDataModalLabel').textContent = `Delete ${type.toUpperCase()}`;
+      document.getElementById('deleteMasterDataForm').action = `/admin/master-data/${type}/${id}`;
+      document.getElementById('mdDeleteWhat').textContent = description;
+      console.log(`Delete modal setup complete for ${type} ID ${id}`);
+    } catch (error) {
+      console.error('Error setting up delete modal:', error);
+    }
+  }
 </script>
 @endpush
 

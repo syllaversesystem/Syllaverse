@@ -69,6 +69,10 @@
     </div>
   </div>
 
+  {{-- ░░░ START: Modal Stack ░░░ --}}
+  @stack('modals')
+  {{-- ░░░ END: Modal Stack ░░░ --}}
+
   @stack('scripts')
 
   {{-- ░░░ START: Vite JS (Global) ░░░ --}}

@@ -8,7 +8,7 @@
 -------------------------------------------------------------------------------
 --}}
 
-<div class="modal fade sv-appt-modal" id="editIloModal" tabindex="-1" aria-labelledby="editIloLabel" aria-hidden="true">
+<div class="modal fade" id="editIloModal" tabindex="-1" aria-labelledby="editIloLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <form id="editIloForm" action="" method="POST" class="modal-content">
       @csrf

@@ -104,6 +104,70 @@ class CourseController extends Controller
     }
 
     /**
+     * Display the courses management page
+     */
+    public function index(Request $request)
+    {
+        $user = auth()->user();
+        
+        // Get filter parameter for department
+        $departmentFilter = $request->get('department_filter');
+        
+        // Build courses query with optional department filter
+        $coursesQuery = Course::with(['department'])->orderBy('name');
+        if ($departmentFilter && $departmentFilter !== 'all') {
+            $coursesQuery->where('department_id', $departmentFilter);
+        }
+        $courses = $coursesQuery->get();
+        
+        // Get all departments for dropdowns
+        $departments = \App\Models\Department::all();
+        
+        // Check user roles and determine department dropdown visibility
+        $userDepartment = null;
+        $showDepartmentDropdown = true;
+        
+        // Get all active appointments for the user
+        $userAppointments = $user->appointments()->active()->get();
+        
+        // Check for institution-wide roles (roles with Institution scope)
+        $hasInstitutionWideRole = $userAppointments->contains(function($appointment) {
+            return in_array($appointment->role, ['VCAA', 'ASSOC_VCAA']) || 
+                   ($appointment->scope_type === 'Institution') ||
+                   ($appointment->role === 'DEAN' && $appointment->scope_type === 'Institution');
+        });
+        
+        // Check specifically for VCAA/ASSOC_VCAA roles for department filter
+        $showDepartmentFilter = $userAppointments->contains(function($appointment) {
+            return in_array($appointment->role, ['VCAA', 'ASSOC_VCAA']);
+        });
+        
+        // Check for department-specific roles
+        $departmentSpecificAppointments = $userAppointments->filter(function($appointment) {
+            return in_array($appointment->role, ['DEAN', 'DEPT_CHAIR', 'PROG_CHAIR']) && 
+                   $appointment->scope_type === 'Department' && 
+                   !empty($appointment->scope_id);
+        });
+        
+        // Role-based dropdown logic
+        if ($departmentSpecificAppointments->isNotEmpty() && !$hasInstitutionWideRole) {
+            // User has ONLY department-specific roles - restrict to their department
+            $firstDeptAppointment = $departmentSpecificAppointments->first();
+            $userDepartment = $firstDeptAppointment->scope_id;
+            $showDepartmentDropdown = false;
+        }
+        
+        return view('admin.courses.index', compact(
+            'courses', 
+            'departments',
+            'userDepartment',
+            'showDepartmentDropdown',
+            'showDepartmentFilter',
+            'departmentFilter'
+        ));
+    }
+
+    /**
      * Create: Validates, resolves department from appointments, creates course,
      * syncs prerequisites. Returns JSON (201) or redirects.
      */

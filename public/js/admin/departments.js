@@ -445,4 +445,71 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Note: AJAX table manipulation functions removed to prevent pretty print issues
     // Using page reload instead for cleaner, more reliable experience
+
+    // 🔍 Search functionality
+    const searchInput = document.querySelector('input[type="search"]');
+    if (searchInput) {
+        let searchTimeout;
+        
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                filterDepartments(this.value.toLowerCase());
+            }, 300); // Debounce search
+        });
+    }
+
+    function filterDepartments(searchTerm) {
+        const tableBody = document.getElementById('departmentsTableBody');
+        if (!tableBody) return;
+
+        const rows = tableBody.querySelectorAll('tr');
+        let visibleCount = 0;
+
+        rows.forEach(row => {
+            const codeCell = row.querySelector('td:first-child');
+            const nameCell = row.querySelector('td:nth-child(2)');
+            
+            if (codeCell && nameCell) {
+                const code = codeCell.textContent.toLowerCase();
+                const name = nameCell.textContent.toLowerCase();
+                
+                const matches = code.includes(searchTerm) || name.includes(searchTerm);
+                row.style.display = matches ? '' : 'none';
+                
+                if (matches) visibleCount++;
+            }
+        });
+
+        // Show/hide empty state if needed
+        showEmptyState(visibleCount === 0 && searchTerm !== '');
+    }
+
+    function showEmptyState(show) {
+        const tableBody = document.getElementById('departmentsTableBody');
+        if (!tableBody) return;
+
+        let emptyRow = tableBody.querySelector('.sv-empty-row');
+        
+        if (show && !emptyRow) {
+            emptyRow = document.createElement('tr');
+            emptyRow.className = 'sv-empty-row';
+            emptyRow.innerHTML = `
+                <td colspan="4">
+                    <div class="sv-empty">
+                        <h6><i data-feather="search"></i> No departments found</h6>
+                        <p>Try adjusting your search terms or check your spelling.</p>
+                    </div>
+                </td>
+            `;
+            tableBody.appendChild(emptyRow);
+            
+            // Re-initialize feather icons
+            if (typeof feather !== 'undefined') {
+                feather.replace();
+            }
+        } else if (!show && emptyRow) {
+            emptyRow.remove();
+        }
+    }
 });

@@ -19,8 +19,16 @@ use App\Models\Course;
 use App\Models\IntendedLearningOutcome;
 use App\Models\Program;
 use App\Models\StudentOutcome;
+use App\Models\Sdg;
+use App\Models\Iga;
+use App\Models\Cdio;
+use App\Models\GeneralInformation;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class MasterDataController extends Controller
 {
@@ -53,6 +61,10 @@ class MasterDataController extends Controller
                 'intendedLearningOutcomes' => $iloList,
                 'programs'                 => $programs,
                 'courses'                  => $courses,
+                'sdgs'                     => Sdg::ordered()->get(),
+                'igas'                     => Iga::ordered()->get(),
+                'cdios'                    => Cdio::ordered()->get(),
+                'info'                     => GeneralInformation::all()->keyBy('section'),
             ]);
         }
 
@@ -169,4 +181,172 @@ public function fetchIlos(Request $request)
         'ilos' => $ilos,
     ]);
 }
+
+    // ░░░ START: SDG/CDIO/IGA CRUD Methods ░░░
+    
+    /** Create a new SDG/CDIO/IGA item */
+    public function store(Request $request, string $type)
+    {
+        if (!in_array($type, ['sdg', 'iga', 'cdio'])) {
+            return response()->json(['message' => 'Invalid type'], 400);
+        }
+
+        $modelClass = $this->getModelClass($type);
+        $maxSortOrder = $modelClass::max('sort_order') ?? 0;
+        $maxCode = $modelClass::max('code') ?? 0;
+
+        $validated = $request->validate([
+            'description' => 'required|string',
+        ]);
+
+        $item = $modelClass::create([
+            'code' => $maxCode + 1,
+            'description' => $validated['description'],
+            'sort_order' => $maxSortOrder + 1,
+        ]);
+
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'item' => $item]);
+        }
+
+        return redirect()
+            ->route('admin.master-data')
+            ->with('success', ucfirst($type) . ' created successfully!');
+    }
+
+    /** Update an existing SDG/CDIO/IGA item */
+    public function update(Request $request, string $type, int $id)
+    {
+        if (!in_array($type, ['sdg', 'iga', 'cdio'])) {
+            return response()->json(['message' => 'Invalid type'], 400);
+        }
+
+        $modelClass = $this->getModelClass($type);
+        $item = $modelClass::findOrFail($id);
+
+        $validated = $request->validate([
+            'description' => 'required|string',
+        ]);
+
+        $item->update($validated);
+
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'item' => $item]);
+        }
+
+        return redirect()
+            ->route('admin.master-data')
+            ->with('success', ucfirst($type) . ' updated successfully!');
+    }
+
+    /** Delete an SDG/CDIO/IGA item */
+    public function destroy(Request $request, string $type, int $id)
+    {
+        if (!in_array($type, ['sdg', 'iga', 'cdio'])) {
+            return response()->json(['message' => 'Invalid type'], 400);
+        }
+
+        $modelClass = $this->getModelClass($type);
+        $item = $modelClass::findOrFail($id);
+        $item->delete();
+
+        // Resequence codes and sort orders
+        $this->resequenceCodes($type);
+
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true]);
+        }
+
+        return redirect()
+            ->route('admin.master-data')
+            ->with('success', ucfirst($type) . ' deleted successfully!');
+    }
+
+    /** Reorder SDG/CDIO/IGA items */
+    public function reorder(Request $request, string $type)
+    {
+        if (!in_array($type, ['sdg', 'iga', 'cdio'])) {
+            return response()->json(['message' => 'Invalid type'], 400);
+        }
+
+        $validated = $request->validate([
+            'ids' => 'array',
+            'ids.*' => 'numeric',
+            'order' => 'array',
+            'order.*' => 'numeric',
+        ]);
+
+        $ids = $validated['ids'] ?? $validated['order'] ?? [];
+        $modelClass = $this->getModelClass($type);
+
+        DB::transaction(function () use ($modelClass, $ids) {
+            // Two-phase update to avoid unique constraint violations
+            foreach ($ids as $index => $id) {
+                $modelClass::where('id', $id)->update(['sort_order' => -($index + 1)]);
+            }
+            foreach ($ids as $index => $id) {
+                $modelClass::where('id', $id)->update([
+                    'sort_order' => $index + 1,
+                    'code' => $index + 1,
+                ]);
+            }
+        });
+
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true]);
+        }
+
+        return redirect()
+            ->route('admin.master-data')
+            ->with('success', ucfirst($type) . ' order updated!');
+    }
+
+    /** Update general information */
+    public function updateGeneralInfo(Request $request, string $section)
+    {
+        $validated = $request->validate([
+            'content' => 'required|string',
+        ]);
+
+        GeneralInformation::updateOrCreate(
+            ['section' => $section],
+            ['content' => $validated['content']]
+        );
+
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true]);
+        }
+
+        return redirect()
+            ->route('admin.master-data')
+            ->with('success', 'Information updated successfully!');
+    }
+
+    // ░░░ START: Helper Methods ░░░
+    
+    private function getModelClass(string $type): string
+    {
+        return match ($type) {
+            'sdg' => Sdg::class,
+            'iga' => Iga::class,
+            'cdio' => Cdio::class,
+            default => throw new \InvalidArgumentException("Invalid type: $type"),
+        };
+    }
+
+    private function resequenceCodes(string $type): void
+    {
+        $modelClass = $this->getModelClass($type);
+        $items = $modelClass::orderBy('sort_order')->get();
+
+        foreach ($items as $index => $item) {
+            $item->update([
+                'code' => $index + 1,
+                'sort_order' => $index + 1,
+            ]);
+        }
+    }
+    // ░░░ END: Helper Methods ░░░
+    
+    // ░░░ END: SDG/CDIO/IGA CRUD Methods ░░░
 }

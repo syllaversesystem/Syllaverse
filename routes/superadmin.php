@@ -14,7 +14,6 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\SuperAdmin\AuthController;
-use App\Http\Controllers\SuperAdmin\MasterDataController;
 use App\Http\Controllers\SuperAdmin\ManageAdminController;
 use App\Http\Controllers\SuperAdmin\ChairRequestController;
 use App\Http\Controllers\SuperAdmin\AppointmentController;
@@ -61,18 +60,4 @@ Route::middleware([SuperAdminAuth::class])->prefix('superadmin')->group(function
     Route::put('/appointments/{appointment}',      [AppointmentController::class, 'update'])->name('superadmin.appointments.update');
     Route::post('/appointments/{appointment}/end', [AppointmentController::class, 'end'])->name('superadmin.appointments.end');
     Route::delete('/appointments/{appointment}',   [AppointmentController::class, 'destroy'])->name('superadmin.appointments.destroy');
-
-    // ---------- Master Data ----------
-    Route::prefix('master-data')->group(function () {
-        Route::get('/',               [MasterDataController::class, 'index'])->name('superadmin.master-data');
-        Route::post('/{type}',        [MasterDataController::class, 'store'])->name('superadmin.master-data.store');
-        Route::put('/{type}/{id}',    [MasterDataController::class, 'update'])->name('superadmin.master-data.update');
-        Route::delete('/{type}/{id}', [MasterDataController::class, 'destroy'])->name('superadmin.master-data.destroy');
-
-        // ✅ Drag-to-reorder within a master data type (e.g., sdg/iga/cdio/assessment-tasks)
-        Route::post('/{type}/reorder', [MasterDataController::class, 'reorder'])->name('superadmin.master-data.reorder');
-    });
-
-    // ---------- General Academic Information ----------
-    Route::put('/general-info/{section}', [MasterDataController::class, 'updateGeneralInfo'])->name('superadmin.general-info.update');
 });

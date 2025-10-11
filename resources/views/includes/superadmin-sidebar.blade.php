@@ -62,14 +62,6 @@
           <span class="label">Manage Accounts</span>
         </a>
       </li>
-      <li class="nav-item">
-        <a class="nav-link d-flex align-items-center @if(request()->is('superadmin/master-data')) active @endif"
-           href="{{ route('superadmin.master-data') }}"
-           aria-current="@if(request()->is('superadmin/master-data')) page @endif">
-          <i class="bi bi-journals"></i>
-          <span class="label">Master Data</span>
-        </a>
-      </li>
     </ul>  
   </div>  
   {{-- END: Navigation Links --}}  

@@ -131,14 +131,25 @@
         </a>
       </li>
 
-      {{-- Programs & Courses --}}
-      @php $isActive = request()->routeIs('admin.programs-courses.*'); @endphp
+      {{-- Programs --}}
+      @php $isActive = request()->routeIs('admin.programs.*'); @endphp
       <li class="nav-item">
         <a class="nav-link d-flex align-items-center {{ $isActive ? 'active' : '' }}"
-           href="{{ route('admin.programs-courses.index') }}"
+           href="{{ route('admin.programs.index') }}"
            aria-current="{{ $isActive ? 'page' : '' }}">
-          <i class="bi bi-collection"></i>
-          <span class="label">Programs & Courses</span>
+          <i class="bi bi-layers"></i>
+          <span class="label">Programs</span>
+        </a>
+      </li>
+
+      {{-- Courses --}}
+      @php $isActive = request()->routeIs('admin.courses.*'); @endphp
+      <li class="nav-item">
+        <a class="nav-link d-flex align-items-center {{ $isActive ? 'active' : '' }}"
+           href="{{ route('admin.courses.index') }}"
+           aria-current="{{ $isActive ? 'page' : '' }}">
+          <i class="bi bi-book-half"></i>
+          <span class="label">Courses</span>
         </a>
       </li>
 

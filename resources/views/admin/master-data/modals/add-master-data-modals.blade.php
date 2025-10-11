@@ -1,24 +1,22 @@
 {{-- 
 -------------------------------------------------------------------------------
-* File: resources/views/superadmin/master-data/modals/add-modals.blade.php
-* Description: Add modals for SDG / IGA / CDIO – AJAX-friendly with helpful placeholders
+* File: resources/views/admin/master-data/modals/add-master-data-modals.blade.php
+* Description: Add modals for SDG / IGA / CDIO – Admin version
 -------------------------------------------------------------------------------
 📜 Log:
-[2025-08-12] Initial creation – (existing in project).
-[2025-08-12] UX – Added meaningful placeholders for Title and Description; consistent labels/ARIA.
-[2025-08-12] UX – enlarged Description fields (modal-lg, rows=6, min-height) for professional readability.
+[2025-10-04] Created admin version from superadmin add modals
 -------------------------------------------------------------------------------
 --}}
 
 {{-- ░░░ START: Add SDG Modal ░░░ --}}
-<div class="modal fade sv-appt-modal"
+<div class="modal fade"
      id="addSdgModal"
      tabindex="-1"
      aria-labelledby="addSdgModalLabel"
      aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-lg"><!-- wider -->
     <div class="modal-content">
-      <form action="{{ route('superadmin.master-data.store', 'sdg') }}"
+      <form action="{{ route('admin.master-data.store', 'sdg') }}"
             method="POST"
             class="add-master-data-form">
         @csrf
@@ -63,14 +61,14 @@
 {{-- ░░░ END: Add SDG Modal ░░░ --}}
 
 {{-- ░░░ START: Add IGA Modal ░░░ --}}
-<div class="modal fade sv-appt-modal"
+<div class="modal fade"
      id="addIgaModal"
      tabindex="-1"
      aria-labelledby="addIgaModalLabel"
      aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-lg"><!-- wider -->
     <div class="modal-content">
-      <form action="{{ route('superadmin.master-data.store', 'iga') }}"
+      <form action="{{ route('admin.master-data.store', 'iga') }}"
             method="POST"
             class="add-master-data-form">
         @csrf
@@ -115,14 +113,14 @@
 {{-- ░░░ END: Add IGA Modal ░░░ --}}
 
 {{-- ░░░ START: Add CDIO Modal ░░░ --}}
-<div class="modal fade sv-appt-modal"
+<div class="modal fade"
      id="addCdioModal"
      tabindex="-1"
      aria-labelledby="addCdioModalLabel"
      aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-lg"><!-- wider -->
     <div class="modal-content">
-      <form action="{{ route('superadmin.master-data.store', 'cdio') }}"
+      <form action="{{ route('admin.master-data.store', 'cdio') }}"
             method="POST"
             class="add-master-data-form">
         @csrf

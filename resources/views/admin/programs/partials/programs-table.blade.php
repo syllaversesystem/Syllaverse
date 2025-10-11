@@ -1,13 +1,7 @@
 {{-- 
 -------------------------------------------------------------------------------
-* File: resources/views/admin/master-data/tabs/programs-tab.blade.php
-* Description: Programs list tab – aligned with Superadmin modal UX, Dept Chair controls
--------------------------------------------------------------------------------
-📜 Log:
-[2025-08-17] Synced with ProgramController routes (store/update/destroy).
-              Added placeholders, success/error flash handling.
-[2025-08-17] AJAX-ready: added #programAlerts container, row IDs, switched Delete to modal.
-[2025-08-18] UI: Removed leading number column; adjusted table headers and colspans.
+* File: resources/views/admin/programs/partials/programs-table.blade.php
+* Description: Programs table with filtering and CRUD operations
 -------------------------------------------------------------------------------
 --}}
 
@@ -94,6 +88,7 @@
                       data-bs-target="#deleteProgramModal"
                       data-id="{{ $program->id }}"
                       data-name="{{ $program->name }}"
+                      data-code="{{ $program->code }}"
                       title="Delete"
                       aria-label="Delete">
                 <i data-feather="trash"></i>
@@ -116,23 +111,3 @@
   {{-- ░░░ END: Table ░░░ --}}
 
 </div>
-
-<style>
-.department-filter-wrapper {
-  margin-left: 10px;
-  margin-right: 10px;
-}
-
-.department-filter-wrapper .form-select {
-  min-width: 200px;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  padding: 5px 10px;
-  font-size: 14px;
-}
-
-.department-filter-wrapper .form-select:focus {
-  border-color: #007bff;
-  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-}
-</style>

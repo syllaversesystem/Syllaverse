@@ -18,6 +18,7 @@ class Program extends Model
         'name',
         'code',
         'description',
+        'status',
     ];
 
     public function department()
@@ -32,7 +33,36 @@ class Program extends Model
 
     public function courses()
     {
-        return $this->hasMany(ProgramCourse::class);
+        // Temporarily disabled - need to determine correct relationship structure
+        // Get courses that belong to the same department as this program
+        return $this->hasMany(Course::class, 'department_id', 'department_id');
+    }
+
+    // Status constants
+    const STATUS_ACTIVE = 'active';
+    const STATUS_INACTIVE = 'inactive';
+    const STATUS_DELETED = 'deleted';
+
+    // Scopes
+    public function scopeActive($query)
+    {
+        return $query->where('status', self::STATUS_ACTIVE);
+    }
+
+    public function scopeNotDeleted($query)
+    {
+        return $query->whereIn('status', [self::STATUS_ACTIVE, self::STATUS_INACTIVE]);
+    }
+
+    // Helper methods
+    public function isActive()
+    {
+        return $this->status === self::STATUS_ACTIVE;
+    }
+
+    public function isDeleted()
+    {
+        return $this->status === self::STATUS_DELETED;
     }
 }
 

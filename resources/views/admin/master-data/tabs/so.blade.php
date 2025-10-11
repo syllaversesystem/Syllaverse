@@ -97,8 +97,3 @@
     </div>
   </div>
 </div>
-
-{{-- Include Modals --}}
-@include('admin.master-data.modals.add-so-modal')
-@include('admin.master-data.modals.edit-so-modal')
-@include('admin.master-data.modals.delete-so-modal')

@@ -98,8 +98,18 @@ Route::post('/master-data/reorder/ilo', [\App\Http\Controllers\Admin\IntendedLea
     Route::delete('/master-data/ilo/{id}', [IntendedLearningOutcomeController::class, 'destroy'])->name('admin.ilo.destroy');
 
     // ───────────────────────────────────────────────────────────────────────────
+    // SDG/CDIO/IGA Master Data (AJAX modals)
+    // ───────────────────────────────────────────────────────────────────────────
+    Route::post('/master-data/{type}',        [MasterDataController::class, 'store'])->name('admin.master-data.store');
+    Route::put('/master-data/{type}/{id}',    [MasterDataController::class, 'update'])->name('admin.master-data.update');
+    Route::delete('/master-data/{type}/{id}', [MasterDataController::class, 'destroy'])->name('admin.master-data.destroy');
+    Route::post('/master-data/{type}/reorder', [MasterDataController::class, 'reorder'])->name('admin.master-data.reorder');
+    Route::put('/general-info/{section}', [MasterDataController::class, 'updateGeneralInfo'])->name('admin.general-info.update');
+
+    // ───────────────────────────────────────────────────────────────────────────
     // Programs (AJAX modals)
     // ───────────────────────────────────────────────────────────────────────────
+    Route::get('/programs/search-deleted', [ProgramController::class, 'searchDeleted'])->name('admin.programs.search-deleted');
     Route::post('/programs',        [ProgramController::class, 'store'])->name('admin.programs.store');
     Route::put('/programs/{id}',    [ProgramController::class, 'update'])->name('admin.programs.update');
     Route::delete('/programs/{id}', [ProgramController::class, 'destroy'])->name('admin.programs.destroy');
@@ -200,17 +210,21 @@ Route::post('/master-data/reorder/ilo', [\App\Http\Controllers\Admin\IntendedLea
     Route::delete('/departments/{department}', [\App\Http\Controllers\Admin\DepartmentsController::class, 'destroy'])->name('admin.departments.destroy');
 
     // ───────────────────────────────────────────────────────────────────────────
-    // Programs & Courses (Dedicated Page)
+    // Programs (Standalone Module)
     // ───────────────────────────────────────────────────────────────────────────
-    Route::get('/programs-courses', [\App\Http\Controllers\Admin\ProgramsCoursesController::class, 'index'])->name('admin.programs-courses.index');
-    
-    // Use existing Program and Course controllers for CRUD operations
-    Route::post('/programs-courses/programs', [ProgramController::class, 'store'])->name('admin.programs-courses.programs.store');
-    Route::put('/programs-courses/programs/{id}', [ProgramController::class, 'update'])->name('admin.programs-courses.programs.update');
-    Route::delete('/programs-courses/programs/{id}', [ProgramController::class, 'destroy'])->name('admin.programs-courses.programs.destroy');
-    Route::post('/programs-courses/courses', [CourseController::class, 'store'])->name('admin.programs-courses.courses.store');
-    Route::put('/programs-courses/courses/{id}', [CourseController::class, 'update'])->name('admin.programs-courses.courses.update');
-    Route::delete('/programs-courses/courses/{id}', [CourseController::class, 'destroy'])->name('admin.programs-courses.courses.destroy');
+    Route::get('/programs', [ProgramController::class, 'index'])->name('admin.programs.index');
+    Route::post('/programs', [ProgramController::class, 'store'])->name('admin.programs.store');
+    Route::put('/programs/{id}', [ProgramController::class, 'update'])->name('admin.programs.update');
+    Route::delete('/programs/{id}', [ProgramController::class, 'destroy'])->name('admin.programs.destroy');
+    Route::get('/programs/search-deleted', [ProgramController::class, 'searchDeleted'])->name('admin.programs.search-deleted');
+
+    // ───────────────────────────────────────────────────────────────────────────
+    // Courses (Standalone Module)
+    // ───────────────────────────────────────────────────────────────────────────
+    Route::get('/courses', [CourseController::class, 'index'])->name('admin.courses.index');
+    Route::post('/courses', [CourseController::class, 'store'])->name('admin.courses.store');
+    Route::put('/courses/{id}', [CourseController::class, 'update'])->name('admin.courses.update');
+    Route::delete('/courses/{id}', [CourseController::class, 'destroy'])->name('admin.courses.destroy');
 
     // ───────────────────────────────────────────────────────────────────────────
     // Archive
