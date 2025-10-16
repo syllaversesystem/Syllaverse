@@ -91,7 +91,7 @@
   <div class="tab-content" id="courseTabContent">
     {{-- ░░░ START: Courses Section ░░░ --}}
     <div class="tab-pane fade show active" id="courses-main" role="tabpanel" aria-labelledby="courses-main-tab">
-      @include('admin.master-data.tabs.courses-tab')
+      @include('admin.courses.partials.courses-table')
     </div>
     {{-- ░░░ END: Courses Section ░░░ --}}
   </div>
@@ -131,14 +131,14 @@
 {{-- ░░░ END: Modal Fix CSS ░░░ --}}
 
 {{-- ░░░ START: Modals for Courses ░░░ --}}
-@include('admin.master-data.modals.add-course-modal')
-@include('admin.master-data.modals.edit-course-modal')
-@include('admin.master-data.modals.delete-course-modal')
+@include('admin.courses.partials.add-course-modal')
+@include('admin.courses.partials.edit-course-modal')
+@include('admin.courses.partials.delete-course-modal')
 {{-- ░░░ END: Modals for Courses ░░░ --}}
 
 @endsection
 
 {{-- JavaScript --}}
 @push('scripts')
-@vite('resources/js/admin/master-data/courses.js')
+@vite('resources/js/admin/courses/courses.js')
 @endpush

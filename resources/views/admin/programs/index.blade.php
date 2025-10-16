@@ -147,5 +147,5 @@
 @endsection
 
 @push('scripts')
-@vite('resources/js/admin/master-data/programs.js')
+@vite('resources/js/admin/programs/programs.js')
 @endpush

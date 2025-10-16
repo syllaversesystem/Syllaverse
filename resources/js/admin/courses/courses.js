@@ -1,5 +1,5 @@
 // -------------------------------------------------------------------------------
-// * File: resources/js/admin/master-data/courses.js
+// * File: resources/js/admin/courses/courses.js
 // * Description: AJAX add/edit/delete for Courses with searchable checkbox
 //                prerequisites (Add + Edit modals). Robust after-refresh delegation.
 // -------------------------------------------------------------------------------
@@ -9,8 +9,10 @@
 // [2025-08-17] Sync lists after add/edit/delete; fixed multi-click to open.
 // [2025-08-17] Fix after refresh – robust delegation on document + hydrateRows().
 // [2025-08-17] Edit modal prereqs – ALL courses shown, self excluded, prechecked current.
-// [2025-08-17] ✅ Prereq column refresh – recompute table “Prerequisites” preview
+// [2025-08-17] ✅ Prereq column refresh – recompute table "Prerequisites" preview
 //              after add/edit/delete and on boot; rowHtml updated to include col.
+// [2025-10-16] 📁 Moved from master-data to standalone courses module
+// -------------------------------------------------------------------------------
 // -------------------------------------------------------------------------------
 
 

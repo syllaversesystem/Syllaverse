@@ -1,7 +1,15 @@
 {{-- 
 -------------------------------------------------------------------------------
 * File: resources/views/admin/courses/partials/courses-table.blade.php
-* Description: Courses table with original styling from master-data design
+* Description: Admin • Courses Module – AJAX add/edit/delete with prerequisites
+-------------------------------------------------------------------------------
+📜 Log:
+[2025-08-16] Recreated from scratch – contact-hours-only flow, prerequisites multi-select,
+             inline AJAX for add, instant row injection (no page reload).
+[2025-08-16] Refactor – moved inline JS to resources/js/admin/master-data/courses.js (Vite).
+[2025-08-17] Updated action buttons to mirror Programs tab structure
+             (uses editCourseBtn/deleteCourseBtn + modal targets).
+[2025-10-16] 📁 Moved from master-data/tabs/courses-tab.blade.php to courses/partials/courses-table.blade.php
 -------------------------------------------------------------------------------
 --}}
 
@@ -13,6 +21,19 @@
       <span class="input-group-text"><i data-feather="search"></i></span>
       <input type="search" class="form-control" placeholder="Search courses..." aria-label="Search courses" id="coursesSearch">
     </div>
+
+    @if($showDepartmentFilter ?? false)
+    <div class="department-filter-wrapper">
+      <select class="form-select form-select-sm" id="departmentFilter" onchange="filterByDepartment(this.value)">
+        <option value="all" {{ ($departmentFilter ?? 'all') == 'all' ? 'selected' : '' }}>All Departments</option>
+        @foreach($departments as $department)
+          <option value="{{ $department->id }}" {{ ($departmentFilter ?? '') == $department->id ? 'selected' : '' }}>
+            {{ $department->code }}
+          </option>
+        @endforeach
+      </select>
+    </div>
+    @endif
 
     <span class="flex-spacer"></span>
 
@@ -50,8 +71,9 @@
     <table class="table mb-0 sv-accounts-table" id="svCoursesTable">
       <thead>
         <tr>
-          <th><i data-feather="hash"></i> Code</th>
           <th><i data-feather="book"></i> Title</th>
+          <th><i data-feather="hash"></i> Code</th>
+          <th class="department-column" style="{{ $departmentFilter ? 'display: none;' : '' }}"><i data-feather="layers"></i> Department</th>
           <th><i data-feather="git-branch"></i> Prerequisites</th>
           <th><i data-feather="clock"></i> Contact Hours</th>
           <th class="text-end"><i data-feather="more-vertical"></i></th>
@@ -68,15 +90,23 @@
               data-id="{{ $course->id }}"
               data-code="{{ $course->code }}"
               data-title="{{ $course->title }}"
+              data-course-category="{{ $course->course_category ?? '' }}"
+              data-course-type="{{ $course->course_type ?? '' }}"
+              data-has-iga="{{ $course->has_iga ? 'true' : 'false' }}"
               data-description="{{ $course->description }}"
               data-contact-hours-lec="{{ $course->contact_hours_lec }}"
               data-contact-hours-lab="{{ $course->contact_hours_lab }}"
+              data-department-id="{{ $course->department_id ?? '' }}"
+              data-department-name="{{ $course->department->name ?? '' }}"
               data-prereq='@json(($course->prerequisites ?? collect())->pluck("id"))'>
-            <td class="fw-semibold">{{ $course->code }}</td>
-            <td class="fw-medium">{{ $course->title }}</td>
+            <td class="course-title-cell">
+              {{ $course->title }}
+            </td>
+            <td class="course-code-cell">{{ $course->code }}</td>
+            <td class="course-department-cell department-column" style="{{ $departmentFilter ? 'display: none;' : '' }}" data-dept-code="{{ $course->department->code ?? 'N/A' }}">{{ $course->department->code ?? 'N/A' }}</td>
 
             {{-- Prerequisites column --}}
-            <td class="text-muted">
+            <td class="course-prerequisites-cell text-muted">
               @if($preReqCodes->isEmpty())
                 <span class="text-secondary">—</span>
               @else
@@ -88,32 +118,69 @@
             </td>
 
             {{-- Contact hours --}}
-            <td class="text-muted">
+            <td class="course-contact-hours-cell text-muted">
               {{ $course->contact_hours_lec }} Lec
               @if($course->contact_hours_lab) + {{ $course->contact_hours_lab }} Lab @endif
+              <span class="ms-1 text-secondary small">
+                ({{ ($course->contact_hours_lec ?? 0) + ($course->contact_hours_lab ?? 0) }} hrs)
+              </span>
             </td>
 
-            {{-- Actions --}}
-            <td class="text-end">
+            {{-- ░░░ START: Actions (mirror Programs tab structure) ░░░ --}}
+            <td class="course-actions-cell text-end">
               @if ($canManageCourses)
+                {{-- Edit --}}
                 <button type="button"
                         class="btn action-btn rounded-circle edit me-2 editCourseBtn"
                         data-bs-toggle="modal"
                         data-bs-target="#editCourseModal"
                         data-id="{{ $course->id }}"
+                        data-code="{{ $course->code }}"
+                        data-title="{{ $course->title }}"
+                        data-description="{{ $course->description }}"
+                        data-contact_hours_lec="{{ $course->contact_hours_lec }}"
+                        data-contact_hours_lab="{{ $course->contact_hours_lab }}"
+                        data-prereq='@json(($course->prerequisites ?? collect())->pluck("id"))'
+                        data-action="edit-course"
                         title="Edit"
                         aria-label="Edit">
                   <i data-feather="edit"></i>
                 </button>
+
+                {{-- Delete (opens a confirm modal like Programs tab) --}}
+                <button type="button"
+                        class="btn action-btn rounded-circle delete deleteCourseBtn"
+                        data-bs-toggle="modal"
+                        data-bs-target="#deleteCourseModal"
+                        data-id="{{ $course->id }}"
+                        data-code="{{ $course->code }}"
+                        data-title="{{ $course->title }}"
+                        data-action="delete-course"
+                        title="Delete"
+                        aria-label="Delete">
+                  <i data-feather="trash"></i>
+                </button>
+              @else
+                <button class="btn action-btn rounded-circle disabled me-2"
+                        title="Edit disabled" aria-label="Edit disabled">
+                  <i data-feather="lock"></i>
+                </button>
+                <button class="btn action-btn rounded-circle disabled"
+                        title="Delete disabled" aria-label="Delete disabled">
+                  <i data-feather="lock"></i>
+                </button>
               @endif
             </td>
+            {{-- ░░░ END: Actions ░░░ --}}
           </tr>
         @empty
           <tr class="sv-empty-row">
-            <td colspan="5">
+            <td colspan="6">
               <div class="sv-empty">
                 <h6>No courses found</h6>
-                <p>Click the <i data-feather="plus"></i> button to add one.</p>
+                @if ($canManageCourses)
+                  <p>Click the <i data-feather="plus"></i> button to add one.</p>
+                @endif
               </div>
             </td>
           </tr>
@@ -122,5 +189,14 @@
     </table>
   </div>
   {{-- ░░░ END: Table ░░░ --}}
-
 </div>
+
+{{-- Optional: include a delete modal like Programs tab --}}
+{{-- @include('admin.master-data.modals.delete-course-modal') --}}
+
+<script>
+// Pass department filter state to JavaScript
+window.coursesConfig = {
+  departmentFilter: @json($departmentFilter ?? null)
+};
+</script>
