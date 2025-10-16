@@ -30,6 +30,14 @@
           border-bottom: 1px solid var(--sv-bdr);
           background: var(--sv-bg);
         }
+        #editCourseModal .modal-body {
+          max-height: 70vh;
+          overflow-y: auto;
+        }
+        #editCourseModal .modal-title {
+          font-size: 1rem;
+          font-weight: 600;
+        }
         #editCourseModal .sv-card {
           border: 1px solid var(--sv-bdr);
           background: #fff;
@@ -48,6 +56,48 @@
         #editCourseModal .form-select {
           border-color: var(--sv-bdr);
         }
+        #editCourseModal .form-control-sm {
+          font-size: 0.875rem;
+        }
+        /* Form Label Typography */
+        #editCourseModal .form-label {
+          font-size: 0.8125rem;
+          font-weight: 500;
+          color: #6c757d;
+          letter-spacing: 0.025em;
+          margin-bottom: 0.375rem;
+          text-transform: none;
+        }
+        /* Input Field Typography */
+        #editCourseModal .form-control,
+        #editCourseModal .form-control-sm {
+          font-size: 0.875rem;
+          font-weight: 400;
+          line-height: 1.4;
+          color: #495057;
+        }
+        #editCourseModal .form-control::placeholder,
+        #editCourseModal .form-control-sm::placeholder {
+          color: var(--sv-text-muted, #6c757d);
+          font-size: 0.87rem;
+        }
+        /* Textarea specific styling */
+        #editCourseModal textarea.form-control {
+          font-size: 0.875rem;
+          line-height: 1.5;
+          resize: vertical;
+        }
+        #editCourseModal textarea.form-control::placeholder {
+          color: var(--sv-text-muted, #6c757d);
+          font-size: 0.87rem;
+        }
+        /* Section Title Typography */
+        #editCourseModal .sv-section-title {
+          font-size: 0.875rem;
+          font-weight: 600;
+          color: #495057;
+          letter-spacing: 0.025em;
+        }
         #editCourseModal .form-control:focus,
         #editCourseModal .form-select:focus {
           border-color: var(--sv-acct);
@@ -55,13 +105,82 @@
         }
         #editCourseModal .btn-primary,
         #editCourseModal .btn-danger {
-          background-color: var(--sv-danger);
-          border-color: var(--sv-danger);
+          background: var(--sv-card-bg, #fff);
+          border: none;
+          color: #000;
+          transition: all 0.2s ease-in-out;
+          box-shadow: none;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.5rem 1rem;
+          border-radius: 0.375rem;
         }
         #editCourseModal .btn-primary:hover,
-        #editCourseModal .btn-danger:hover {
-          background-color: #b52d2d;
-          border-color: #b52d2d;
+        #editCourseModal .btn-primary:focus,
+        #editCourseModal .btn-danger:hover,
+        #editCourseModal .btn-danger:focus {
+          background: linear-gradient(135deg, rgba(255, 240, 235, 0.88), rgba(255, 255, 255, 0.46));
+          backdrop-filter: blur(7px);
+          -webkit-backdrop-filter: blur(7px);
+          box-shadow: 0 4px 10px rgba(204, 55, 55, 0.12);
+          color: #CB3737;
+        }
+        #editCourseModal .btn-primary:hover i,
+        #editCourseModal .btn-primary:hover svg,
+        #editCourseModal .btn-primary:focus i,
+        #editCourseModal .btn-primary:focus svg,
+        #editCourseModal .btn-danger:hover i,
+        #editCourseModal .btn-danger:hover svg,
+        #editCourseModal .btn-danger:focus i,
+        #editCourseModal .btn-danger:focus svg {
+          stroke: #CB3737;
+        }
+        #editCourseModal .btn-primary:active,
+        #editCourseModal .btn-danger:active {
+          background: linear-gradient(135deg, rgba(255, 230, 225, 0.98), rgba(255, 255, 255, 0.62));
+          box-shadow: 0 1px 8px rgba(204, 55, 55, 0.16);
+        }
+        #editCourseModal .btn-primary:active i,
+        #editCourseModal .btn-primary:active svg,
+        #editCourseModal .btn-danger:active i,
+        #editCourseModal .btn-danger:active svg {
+          stroke: #CB3737;
+        }
+        /* Cancel button styling */
+        #editCourseModal .btn-light {
+          background: var(--sv-card-bg, #fff);
+          border: none;
+          color: #6c757d;
+          transition: all 0.2s ease-in-out;
+          box-shadow: none;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.5rem 1rem;
+          border-radius: 0.375rem;
+        }
+        #editCourseModal .btn-light:hover,
+        #editCourseModal .btn-light:focus {
+          background: linear-gradient(135deg, rgba(220, 220, 220, 0.88), rgba(240, 240, 240, 0.46));
+          backdrop-filter: blur(7px);
+          -webkit-backdrop-filter: blur(7px);
+          box-shadow: 0 4px 10px rgba(108, 117, 125, 0.12);
+          color: #495057;
+        }
+        #editCourseModal .btn-light:hover i,
+        #editCourseModal .btn-light:hover svg,
+        #editCourseModal .btn-light:focus i,
+        #editCourseModal .btn-light:focus svg {
+          stroke: #495057;
+        }
+        #editCourseModal .btn-light:active {
+          background: linear-gradient(135deg, rgba(240, 242, 245, 0.98), rgba(255, 255, 255, 0.62));
+          box-shadow: 0 1px 8px rgba(108, 117, 125, 0.16);
+        }
+        #editCourseModal .btn-light:active i,
+        #editCourseModal .btn-light:active svg {
+          stroke: #495057;
         }
         #editCourseModal .sv-divider {
           height: 1px;
@@ -125,10 +244,38 @@
       </style>
       {{-- ░░░ END: Local styles ░░░ --}}
 
+      <script>
+        function toggleContactHours(inputId, checkbox) {
+          const input = document.getElementById(inputId);
+          if (checkbox.checked) {
+            input.disabled = false;
+            input.required = true;
+            if (!input.value) {
+              input.value = '';
+            }
+          } else {
+            input.disabled = true;
+            input.required = false;
+            input.value = '';
+          }
+        }
+
+        // IGA Toggle functionality
+        document.addEventListener('DOMContentLoaded', function() {
+          const igaToggle = document.getElementById('editIgaToggle');
+          const igaStatus = document.getElementById('editIgaStatus');
+          
+          if (igaToggle && igaStatus) {
+            igaToggle.addEventListener('change', function() {
+              igaStatus.textContent = this.checked ? 'Enabled' : 'Disabled';
+            });
+          }
+        });
+      </script>
+
       {{-- ░░░ START: Header ░░░ --}}
       <div class="modal-header">
         <h5 class="modal-title fw-semibold" id="editCourseModalLabel">Edit Course</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       {{-- ░░░ END: Header ░░░ --}}
 
@@ -155,19 +302,54 @@
             </div>
 
             <div class="mb-3">
+              <label for="editCourseDepartment" class="form-label small fw-medium text-muted">Department</label>
+              <select class="form-select form-select-sm" id="editCourseDepartment" name="department_id" required>
+                <option value="">Select Department</option>
+                @if(isset($departments))
+                  @foreach($departments as $department)
+                    <option value="{{ $department->id }}">
+                      {{ $department->name }}
+                    </option>
+                  @endforeach
+                @endif
+              </select>
+            </div>
+
+            <div class="mb-3">
               <label for="editCourseCategory" class="form-label small fw-medium text-muted">Course Category</label>
               <input type="text" class="form-control form-control-sm" id="editCourseCategory" name="course_category" required>
             </div>
 
-            <div class="row g-3">
+            <div class="row g-3 mb-4">
               <div class="col-sm-6">
-                <label for="editContactHoursLec" class="form-label small fw-medium text-muted">Contact Hours (Lecture)</label>
+                <div class="d-flex align-items-center mb-2">
+                  <input type="checkbox" class="form-check-input me-2" id="editLecCheckbox" checked onchange="toggleContactHours('editContactHoursLec', this)">
+                  <label for="editContactHoursLec" class="form-label small fw-medium text-muted mb-0">Contact Hours (Lecture)</label>
+                </div>
                 <input type="number" class="form-control form-control-sm" id="editContactHoursLec" name="contact_hours_lec" min="0" required>
               </div>
               <div class="col-sm-6">
-                <label for="editContactHoursLab" class="form-label small fw-medium text-muted">Contact Hours (Lab)</label>
-                <input type="number" class="form-control form-control-sm" id="editContactHoursLab" name="contact_hours_lab" min="0">
+                <div class="d-flex align-items-center mb-2">
+                  <input type="checkbox" class="form-check-input me-2" id="editLabCheckbox" onchange="toggleContactHours('editContactHoursLab', this)">
+                  <label for="editContactHoursLab" class="form-label small fw-medium text-muted mb-0">Contact Hours (Lab)</label>
+                </div>
+                <input type="number" class="form-control form-control-sm" id="editContactHoursLab" name="contact_hours_lab" min="0" disabled>
               </div>
+            </div>
+
+            <div class="sv-divider"></div>
+
+            <div class="mb-3">
+              <div class="d-flex align-items-center justify-content-between">
+                <label class="form-label small fw-medium text-muted mb-0">Include IGA (Intended Graduate Attributes)</label>
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="editIgaToggle" name="has_iga" value="1">
+                  <label class="form-check-label small text-muted" for="editIgaToggle">
+                    <span id="editIgaStatus">Disabled</span>
+                  </label>
+                </div>
+              </div>
+              <small class="text-muted">Toggle to include Intended Graduate Attributes mapping for this course</small>
             </div>
 
             <div class="sv-divider"></div>
@@ -197,10 +379,6 @@
               <div id="editPrereqList" class="prereq-list p-2">
                 <div class="text-center text-muted small py-4">Will load when course is selected…</div>
               </div>
-
-              <small class="text-muted d-block mt-2">
-                Only the course’s current prerequisites are shown here. Uncheck to remove. (Adding new prerequisites is done via the Add Course flow.)
-              </small>
             </div>
           </div>
           {{-- ░░░ END: Right – CURRENT Prerequisites (searchable checkboxes) ░░░ --}}
@@ -210,9 +388,11 @@
 
       {{-- ░░░ START: Footer ░░░ --}}
       <div class="modal-footer">
-        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">
+          <i data-feather="x"></i> Cancel
+        </button>
         <button type="submit" class="btn btn-primary" id="editCourseSubmit">
-          Save Changes
+          <i data-feather="save"></i> Save Changes
         </button>
       </div>
       {{-- ░░░ END: Footer ░░░ --}}

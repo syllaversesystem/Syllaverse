@@ -125,7 +125,7 @@
 
 {{-- JavaScript --}}
 @push('scripts')
-<script src="{{ asset('js/admin/departments.js') }}"></script>
+@vite('resources/js/admin/departments.js')
 @endpush
 
 @endsection

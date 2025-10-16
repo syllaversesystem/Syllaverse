@@ -21,6 +21,19 @@
       <input type="search" class="form-control" placeholder="Search courses..." aria-label="Search courses" id="coursesSearch">
     </div>
 
+    @if($showDepartmentFilter ?? false)
+    <div class="department-filter-wrapper">
+      <select class="form-select form-select-sm" id="departmentFilter" onchange="filterByDepartment(this.value)">
+        <option value="all" {{ ($departmentFilter ?? 'all') == 'all' ? 'selected' : '' }}>All Departments</option>
+        @foreach($departments as $department)
+          <option value="{{ $department->id }}" {{ ($departmentFilter ?? '') == $department->id ? 'selected' : '' }}>
+            {{ $department->code }}
+          </option>
+        @endforeach
+      </select>
+    </div>
+    @endif
+
     <span class="flex-spacer"></span>
 
     @php
@@ -57,8 +70,9 @@
     <table class="table mb-0 sv-accounts-table" id="svCoursesTable">
       <thead>
         <tr>
-          <th><i data-feather="hash"></i> Code</th>
           <th><i data-feather="book"></i> Title</th>
+          <th><i data-feather="hash"></i> Code</th>
+          <th class="department-column" style="{{ $departmentFilter ? 'display: none;' : '' }}"><i data-feather="layers"></i> Department</th>
           <th><i data-feather="git-branch"></i> Prerequisites</th>
           <th><i data-feather="clock"></i> Contact Hours</th>
           <th class="text-end"><i data-feather="more-vertical"></i></th>
@@ -75,15 +89,23 @@
               data-id="{{ $course->id }}"
               data-code="{{ $course->code }}"
               data-title="{{ $course->title }}"
+              data-course-category="{{ $course->course_category ?? '' }}"
+              data-course-type="{{ $course->course_type ?? '' }}"
+              data-has-iga="{{ $course->has_iga ? 'true' : 'false' }}"
               data-description="{{ $course->description }}"
               data-contact-hours-lec="{{ $course->contact_hours_lec }}"
               data-contact-hours-lab="{{ $course->contact_hours_lab }}"
+              data-department-id="{{ $course->department_id ?? '' }}"
+              data-department-name="{{ $course->department->name ?? '' }}"
               data-prereq='@json(($course->prerequisites ?? collect())->pluck("id"))'>
-            <td class="fw-semibold">{{ $course->code }}</td>
-            <td class="fw-medium">{{ $course->title }}</td>
+            <td class="course-title-cell">
+              {{ $course->title }}
+            </td>
+            <td class="course-code-cell">{{ $course->code }}</td>
+            <td class="course-department-cell department-column" style="{{ $departmentFilter ? 'display: none;' : '' }}" data-dept-code="{{ $course->department->code ?? 'N/A' }}">{{ $course->department->code ?? 'N/A' }}</td>
 
             {{-- Prerequisites column --}}
-            <td class="text-muted">
+            <td class="course-prerequisites-cell text-muted">
               @if($preReqCodes->isEmpty())
                 <span class="text-secondary">—</span>
               @else
@@ -95,7 +117,7 @@
             </td>
 
             {{-- Contact hours --}}
-            <td class="text-muted">
+            <td class="course-contact-hours-cell text-muted">
               {{ $course->contact_hours_lec }} Lec
               @if($course->contact_hours_lab) + {{ $course->contact_hours_lab }} Lab @endif
               <span class="ms-1 text-secondary small">
@@ -104,7 +126,7 @@
             </td>
 
             {{-- ░░░ START: Actions (mirror Programs tab structure) ░░░ --}}
-            <td class="text-end">
+            <td class="course-actions-cell text-end">
               @if ($canManageCourses)
                 {{-- Edit --}}
                 <button type="button"
@@ -152,7 +174,7 @@
           </tr>
         @empty
           <tr class="sv-empty-row">
-            <td colspan="5">
+            <td colspan="6">
               <div class="sv-empty">
                 <h6>No courses found</h6>
                 @if ($canManageCourses)
@@ -170,3 +192,10 @@
 
 {{-- Optional: include a delete modal like Programs tab --}}
 {{-- @include('admin.master-data.modals.delete-course-modal') --}}
+
+<script>
+// Pass department filter state to JavaScript
+window.coursesConfig = {
+  departmentFilter: @json($departmentFilter ?? null)
+};
+</script>

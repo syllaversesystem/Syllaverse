@@ -222,6 +222,7 @@ Route::post('/master-data/reorder/ilo', [\App\Http\Controllers\Admin\IntendedLea
     // Courses (Standalone Module)
     // ───────────────────────────────────────────────────────────────────────────
     Route::get('/courses', [CourseController::class, 'index'])->name('admin.courses.index');
+    Route::get('/courses/search-deleted', [CourseController::class, 'searchDeleted'])->name('admin.courses.search-deleted');
     Route::post('/courses', [CourseController::class, 'store'])->name('admin.courses.store');
     Route::put('/courses/{id}', [CourseController::class, 'update'])->name('admin.courses.update');
     Route::delete('/courses/{id}', [CourseController::class, 'destroy'])->name('admin.courses.destroy');

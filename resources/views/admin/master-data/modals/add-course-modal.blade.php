@@ -29,6 +29,14 @@
           border-bottom: 1px solid var(--sv-bdr);
           background: var(--sv-bg);
         }
+        #addCourseModal .modal-body {
+          max-height: 70vh;
+          overflow-y: auto;
+        }
+        #addCourseModal .modal-title {
+          font-size: 1rem;
+          font-weight: 600;
+        }
         #addCourseModal .sv-card {
           border: 1px solid var(--sv-bdr);
           background: #fff;
@@ -47,18 +55,121 @@
         #addCourseModal .form-select {
           border-color: var(--sv-bdr);
         }
+        #addCourseModal .form-control-sm {
+          font-size: 0.875rem;
+        }
+        /* Form Label Typography */
+        #addCourseModal .form-label {
+          font-size: 0.8125rem;
+          font-weight: 500;
+          color: #6c757d;
+          letter-spacing: 0.025em;
+          margin-bottom: 0.375rem;
+          text-transform: none;
+        }
+        /* Input Field Typography */
+        #addCourseModal .form-control,
+        #addCourseModal .form-control-sm {
+          font-size: 0.875rem;
+          font-weight: 400;
+          line-height: 1.4;
+          color: #495057;
+        }
+        #addCourseModal .form-control::placeholder,
+        #addCourseModal .form-control-sm::placeholder {
+          color: var(--sv-text-muted, #6c757d);
+          font-size: 0.87rem;
+        }
+        /* Textarea specific styling */
+        #addCourseModal textarea.form-control {
+          font-size: 0.875rem;
+          line-height: 1.5;
+          resize: vertical;
+        }
+        #addCourseModal textarea.form-control::placeholder {
+          color: var(--sv-text-muted, #6c757d);
+          font-size: 0.87rem;
+        }
+        /* Section Title Typography */
+        #addCourseModal .sv-section-title {
+          font-size: 0.875rem;
+          font-weight: 600;
+          color: #495057;
+          letter-spacing: 0.025em;
+        }
         #addCourseModal .form-control:focus,
         #addCourseModal .form-select:focus {
           border-color: var(--sv-acct);
           box-shadow: 0 0 0 .2rem rgb(238 111 87 / 15%);
         }
         #addCourseModal .btn-danger {
-          background-color: var(--sv-danger);
-          border-color: var(--sv-danger);
+          background: var(--sv-card-bg, #fff);
+          border: none;
+          color: #000;
+          transition: all 0.2s ease-in-out;
+          box-shadow: none;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.5rem 1rem;
+          border-radius: 0.375rem;
         }
-        #addCourseModal .btn-danger:hover {
-          background-color: #b52d2d;
-          border-color: #b52d2d;
+        #addCourseModal .btn-danger:hover,
+        #addCourseModal .btn-danger:focus {
+          background: linear-gradient(135deg, rgba(255, 240, 235, 0.88), rgba(255, 255, 255, 0.46));
+          backdrop-filter: blur(7px);
+          -webkit-backdrop-filter: blur(7px);
+          box-shadow: 0 4px 10px rgba(204, 55, 55, 0.12);
+          color: #CB3737;
+        }
+        #addCourseModal .btn-danger:hover i,
+        #addCourseModal .btn-danger:hover svg,
+        #addCourseModal .btn-danger:focus i,
+        #addCourseModal .btn-danger:focus svg {
+          stroke: #CB3737;
+        }
+        #addCourseModal .btn-danger:active {
+          background: linear-gradient(135deg, rgba(255, 230, 225, 0.98), rgba(255, 255, 255, 0.62));
+          box-shadow: 0 1px 8px rgba(204, 55, 55, 0.16);
+        }
+        #addCourseModal .btn-danger:active i,
+        #addCourseModal .btn-danger:active svg {
+          stroke: #CB3737;
+        }
+        /* Cancel button styling */
+        #addCourseModal .btn-light {
+          background: var(--sv-card-bg, #fff);
+          border: none;
+          color: #6c757d;
+          transition: all 0.2s ease-in-out;
+          box-shadow: none;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.5rem 1rem;
+          border-radius: 0.375rem;
+        }
+        #addCourseModal .btn-light:hover,
+        #addCourseModal .btn-light:focus {
+          background: linear-gradient(135deg, rgba(220, 220, 220, 0.88), rgba(240, 240, 240, 0.46));
+          backdrop-filter: blur(7px);
+          -webkit-backdrop-filter: blur(7px);
+          box-shadow: 0 4px 10px rgba(108, 117, 125, 0.12);
+          color: #495057;
+        }
+        #addCourseModal .btn-light:hover i,
+        #addCourseModal .btn-light:hover svg,
+        #addCourseModal .btn-light:focus i,
+        #addCourseModal .btn-light:focus svg {
+          stroke: #495057;
+        }
+        #addCourseModal .btn-light:active {
+          background: linear-gradient(135deg, rgba(240, 242, 245, 0.98), rgba(255, 255, 255, 0.62));
+          box-shadow: 0 1px 8px rgba(108, 117, 125, 0.16);
+        }
+        #addCourseModal .btn-light:active i,
+        #addCourseModal .btn-light:active svg {
+          stroke: #495057;
         }
         #addCourseModal .sv-divider {
           height: 1px;
@@ -68,7 +179,7 @@
 
         /* Prereq list */
         #addCourseModal .prereq-list {
-          max-height: 360px;
+          max-height: 280px;
           overflow: auto;
           background: var(--sv-bg);
           border: 1px dashed var(--sv-bdr);
@@ -123,10 +234,36 @@
       </style>
       {{-- ░░░ END: Local styles ░░░ --}}
 
+      <script>
+        function toggleContactHours(inputId, checkbox) {
+          const input = document.getElementById(inputId);
+          if (checkbox.checked) {
+            input.disabled = false;
+            input.required = true;
+            input.value = '';
+          } else {
+            input.disabled = true;
+            input.required = false;
+            input.value = '';
+          }
+        }
+
+        // IGA Toggle functionality
+        document.addEventListener('DOMContentLoaded', function() {
+          const igaToggle = document.getElementById('addIgaToggle');
+          const igaStatus = document.getElementById('addIgaStatus');
+          
+          if (igaToggle && igaStatus) {
+            igaToggle.addEventListener('change', function() {
+              igaStatus.textContent = this.checked ? 'Enabled' : 'Disabled';
+            });
+          }
+        });
+      </script>
+
       {{-- ░░░ START: Header ░░░ --}}
       <div class="modal-header">
         <h5 class="modal-title fw-semibold" id="addCourseModalLabel">Add New Course</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       {{-- ░░░ END: Header ░░░ --}}
 
@@ -143,37 +280,79 @@
               <span class="sv-section-title fw-semibold">Course Details</span>
             </div>
 
-            <div class="mb-3">
+            <div class="mb-3 position-relative">
               <label for="addCourseCode" class="form-label small fw-medium text-muted">Course Code</label>
-              <input type="text" class="form-control form-control-sm" id="addCourseCode" name="code" placeholder="e.g., IT 221" required>
+              <input type="text" class="form-control form-control-sm" id="addCourseCode" name="code" placeholder="e.g., IT 221" required autocomplete="off">
+              <div id="courseCodeSuggestions" class="suggestions-dropdown" style="display: none;"></div>
             </div>
 
-            <div class="mb-3">
+            <div class="mb-3 position-relative">
               <label for="addCourseTitle" class="form-label small fw-medium text-muted">Course Title</label>
-              <input type="text" class="form-control form-control-sm" id="addCourseTitle" name="title" placeholder="e.g., Fundamentals of Enterprise Data Management" required>
+              <input type="text" class="form-control form-control-sm" id="addCourseTitle" name="title" placeholder="e.g., Fundamentals of Enterprise Data Management" required autocomplete="off">
+              <div id="courseTitleSuggestions" class="suggestions-dropdown" style="display: none;"></div>
             </div>
+
+            @if($showDepartmentDropdownInModal ?? false)
+            <div class="mb-3">
+              <label for="addCourseDepartment" class="form-label small fw-medium text-muted">Department</label>
+              <select class="form-select form-select-sm" id="addCourseDepartment" name="department_id" required>
+                <option value="">Select Department</option>
+                @if(isset($departments))
+                  @foreach($departments as $department)
+                    <option value="{{ $department->id }}" {{ ($userDepartment ?? null) == $department->id ? 'selected' : '' }}>
+                      {{ $department->name }}
+                    </option>
+                  @endforeach
+                @endif
+              </select>
+            </div>
+            @else
+            <!-- Hidden field for department when user has specific role -->
+            <input type="hidden" name="department_id" value="{{ $userDepartment ?? '' }}">
+            @endif
 
             <div class="mb-3">
               <label for="addCourseCategory" class="form-label small fw-medium text-muted">Course Category</label>
               <input type="text" class="form-control form-control-sm" id="addCourseCategory" name="course_category" placeholder="e.g., Core, Elective, General Education" required>
             </div>
 
-            <div class="row g-3">
+            <div class="row g-3 mb-4">
               <div class="col-sm-6">
-                <label for="addContactHoursLec" class="form-label small fw-medium text-muted">Contact Hours (Lecture)</label>
+                <div class="d-flex align-items-center mb-2">
+                  <input type="checkbox" class="form-check-input me-2" id="addLecCheckbox" checked onchange="toggleContactHours('addContactHoursLec', this)">
+                  <label for="addContactHoursLec" class="form-label small fw-medium text-muted mb-0">Contact Hours (Lecture)</label>
+                </div>
                 <input type="number" class="form-control form-control-sm" id="addContactHoursLec" name="contact_hours_lec" placeholder="e.g., 2" min="0" required>
               </div>
               <div class="col-sm-6">
-                <label for="addContactHoursLab" class="form-label small fw-medium text-muted">Contact Hours (Lab)</label>
-                <input type="number" class="form-control form-control-sm" id="addContactHoursLab" name="contact_hours_lab" placeholder="e.g., 3" min="0">
+                <div class="d-flex align-items-center mb-2">
+                  <input type="checkbox" class="form-check-input me-2" id="addLabCheckbox" onchange="toggleContactHours('addContactHoursLab', this)">
+                  <label for="addContactHoursLab" class="form-label small fw-medium text-muted mb-0">Contact Hours (Lab)</label>
+                </div>
+                <input type="number" class="form-control form-control-sm" id="addContactHoursLab" name="contact_hours_lab" placeholder="e.g., 3" min="0" disabled>
               </div>
+            </div>
+
+            <div class="sv-divider"></div>
+
+            <div class="mb-3">
+              <div class="d-flex align-items-center justify-content-between">
+                <label class="form-label small fw-medium text-muted mb-0">Include IGA (Intended Graduate Attributes)</label>
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="addIgaToggle" name="has_iga" value="1">
+                  <label class="form-check-label small text-muted" for="addIgaToggle">
+                    <span id="addIgaStatus">Disabled</span>
+                  </label>
+                </div>
+              </div>
+              <small class="text-muted">Toggle to include Intended Graduate Attributes mapping for this course</small>
             </div>
 
             <div class="sv-divider"></div>
 
             <div class="mt-3">
               <label for="addCourseDescription" class="form-label small fw-medium text-muted">Course Rationale and Description</label>
-              <textarea class="form-control" id="addCourseDescription" name="description" rows="6" style="min-height:160px" placeholder="Explain the course rationale and provide a short description (topics, scope, etc.)" required></textarea>
+              <textarea class="form-control" id="addCourseDescription" name="description" rows="4" style="min-height:120px" placeholder="Explain the course rationale and provide a short description (topics, scope, etc.)" required></textarea>
             </div>
             {{-- ░░░ END: Course Details Section ░░░ --}}
           </div>
@@ -213,9 +392,6 @@
               </div>
               {{-- ░░░ END: Checkbox List ░░░ --}}
 
-              <small class="text-muted d-block mt-2">
-                Tip: Use the search box to filter quickly. Newly added or deleted courses stay in sync.
-              </small>
             </div>
           </div>
           {{-- ░░░ END: Right – Prerequisites (searchable checkbox list) ░░░ --}}
@@ -225,7 +401,9 @@
 
       {{-- ░░░ START: Footer ░░░ --}}
       <div class="modal-footer">
-        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">
+          <i data-feather="x"></i> Cancel
+        </button>
         <button type="submit" class="btn btn-danger" id="addCourseSubmit">
           <i data-feather="plus"></i> Create Course
         </button>
@@ -234,4 +412,68 @@
     </form>
   </div>
 </div>
+
+{{-- ░░░ START: Suggestions Dropdown Styles ░░░ --}}
+<style>
+.suggestions-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #ddd;
+  border-top: none;
+  border-radius: 0 0 0.375rem 0.375rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  z-index: 1060;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.suggestion-item {
+  padding: 8px 12px;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.suggestion-item:hover {
+  background-color: #f8f9fa;
+}
+
+.suggestion-item:last-child {
+  border-bottom: none;
+}
+
+.suggestion-item .suggestion-main {
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 2px;
+}
+
+.suggestion-item .suggestion-meta {
+  font-size: 0.85em;
+  color: #666;
+}
+
+.suggestion-restore-badge {
+  background-color: #ffc107;
+  color: #000;
+  font-size: 0.75em;
+  padding: 2px 6px;
+  border-radius: 0.25rem;
+  font-weight: 500;
+  margin-left: 8px;
+}
+
+.form-control:focus + .suggestions-dropdown {
+  border-color: var(--sv-acct, #EE6F57);
+}
+
+.position-relative {
+  position: relative;
+}
+</style>
+{{-- ░░░ END: Suggestions Dropdown Styles ░░░ --}}
+
 {{-- ░░░ END: Add Course Modal ░░░ --}}

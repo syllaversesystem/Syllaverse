@@ -32,7 +32,7 @@
             <input type="text" name="code" id="editProgramCode" class="form-control form-control-sm" required>
           </div>
 
-          @if($showDepartmentDropdown)
+          @if($showDepartmentDropdown ?? true)
           <div class="mb-3">
             <label for="editProgramDepartment" class="form-label small">Department</label>
             <select class="form-select form-select-sm" id="editProgramDepartment" name="department_id" required>
@@ -46,7 +46,7 @@
           </div>
           @else
           <!-- Hidden field for department when user has specific role -->
-          <input type="hidden" id="editProgramDepartment" name="department_id" value="{{ $userDepartment }}">
+          <input type="hidden" id="editProgramDepartment" name="department_id" value="{{ $userDepartment ?? '' }}">
           @endif
 
           <div class="mb-2">

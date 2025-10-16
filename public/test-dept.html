@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Quick Test - Department Column</title>
+    <script>
+        setTimeout(() => {
+            const cells = document.querySelectorAll('.course-department-cell');
+            console.log('Department cells found:', cells.length);
+            cells.forEach((cell, i) => {
+                console.log(`Cell ${i + 1}:`, {
+                    text: cell.textContent,
+                    html: cell.innerHTML,
+                    classes: cell.className,
+                    dataAttr: cell.getAttribute('data-dept-code')
+                });
+            });
+        }, 100);
+    </script>
+</head>
+<body>
+    <h2>Quick Test</h2>
+    <table>
+        <tr>
+            <td class="course-department-cell" data-dept-code="CICS">CICS</td>
+            <td class="course-prerequisites-cell">No prerequisites</td>
+        </tr>
+    </table>
+    <p>Check console for cell inspection results.</p>
+</body>
+</html>

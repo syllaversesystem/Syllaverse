@@ -30,7 +30,7 @@
           <div id="programCodeSuggestions" class="suggestions-dropdown" style="display: none;"></div>
         </div>
 
-        @if($showDepartmentDropdown)
+        @if($showDepartmentDropdown ?? true)
         <div class="mb-3">
           <label for="programDepartment" class="form-label small fw-medium text-muted">Department</label>
           <select class="form-select form-select-sm" id="programDepartment" name="department_id" required>
@@ -44,7 +44,7 @@
         </div>
         @else
         <!-- Hidden field for department when user has specific role -->
-        <input type="hidden" name="department_id" value="{{ $userDepartment }}">
+        <input type="hidden" name="department_id" value="{{ $userDepartment ?? '' }}">
         @endif
 
         <div class="mb-3">

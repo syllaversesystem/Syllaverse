@@ -13,9 +13,14 @@
 //              after add/edit/delete and on boot; rowHtml updated to include col.
 // -------------------------------------------------------------------------------
 
+
+
 /* IMPORTANT:
    Do NOT `import 'bootstrap'` here. The layout already loads Bootstrap 5 bundle via CDN.
 */
+
+// Department cells should remain untouched by prerequisite logic
+
 if (!window.__svCoursesInit) {
   window.__svCoursesInit = true;
 
@@ -101,9 +106,13 @@ if (!window.__svCoursesInit) {
 
   // ░░░ START: Table helpers (rows + prerequisites column) ░░░
   // Build row HTML (now includes prerequisites column placeholder)
-  function rowHtml({ id, code, title, lec, lab, prereqIds = [], description = '', course_category = '' }) {
+  function rowHtml({ id, code, title, lec, lab, prereqIds = [], description = '', course_category = '', department_code = '', department_id = '', department_name = '' }) {
     const total = (Number(lec) || 0) + (Number(lab) || 0);
-    const categoryBadge = course_category ? `<div class="small text-muted">${course_category}</div>` : '';
+    
+    // Check if department column should be hidden
+    const isDepartmentFiltered = window.coursesConfig?.departmentFilter;
+    const departmentColumnStyle = isDepartmentFiltered ? 'display: none;' : '';
+    
     return `
       <tr id="course-row-${id}"
           data-id="${id}"
@@ -113,15 +122,18 @@ if (!window.__svCoursesInit) {
           data-description="${String(description).replace(/"/g,'&quot;')}"
           data-contact-hours-lec="${Number(lec) || 0}"
           data-contact-hours-lab="${Number(lab) || 0}"
+          data-department-id="${department_id || ''}"
+          data-department-name="${String(department_name || '').replace(/"/g,'&quot;')}"
           data-prereq='${JSON.stringify(prereqIds)}'>
-        <td class="fw-semibold">${code}</td>
-        <td class="fw-medium">${title}${categoryBadge}</td>
-        <td class="text-muted prereq-cell"><span class="js-prereq-preview">—</span></td>
-        <td class="text-muted">
+        <td class="course-title-cell">${title}</td>
+        <td class="course-code-cell">${code}</td>
+        <td class="course-department-cell department-column" style="${departmentColumnStyle}" data-dept-code="${department_code || 'N/A'}">${department_code || 'N/A'}</td>
+        <td class="course-prerequisites-cell text-muted prereq-cell"><span class="js-prereq-preview">—</span></td>
+        <td class="course-contact-hours-cell text-muted">
           ${lec} Lec${lab ? ' + ' + lab + ' Lab' : ''}
           <span class="ms-1 text-secondary small">(${total} hrs)</span>
         </td>
-        <td class="text-end">
+        <td class="course-actions-cell text-end">
           <button type="button" class="btn action-btn rounded-circle me-2" data-action="edit-course"  title="Edit"   aria-label="Edit">
             <i data-feather="edit"></i>
           </button>
@@ -145,18 +157,27 @@ if (!window.__svCoursesInit) {
       if (btns[0]) { btns[0].dataset.action = 'edit-course';   btns[0].type = 'button'; btns[0].removeAttribute('disabled'); }
       if (btns[1]) { btns[1].dataset.action = 'delete-course';  btns[1].type = 'button'; btns[1].removeAttribute('disabled'); }
 
-      // Ensure there is a prereq-cell in 3rd column even on server-render
-      const third = tr.children[2];
-      if (third && !third.classList.contains('prereq-cell')) {
-        third.classList.add('prereq-cell');
-        if (!third.querySelector('.js-prereq-preview')) {
-          const span = document.createElement('span');
-          span.className = 'js-prereq-preview';
-          span.textContent = third.textContent.trim() || '—';
-          third.innerHTML = '';
-          third.appendChild(span);
+      // Ensure there is a prereq-cell (find by class name instead of position)
+      // IMPORTANT: Only target cells that have EXACTLY the prerequisites class, not department
+      const prereqCells = tr.querySelectorAll('.course-prerequisites-cell:not(.course-department-cell)');
+      
+      prereqCells.forEach((prereqCell) => {
+        if (prereqCell && !prereqCell.classList.contains('prereq-cell')) {
+          // Double-check: ensure this is NOT a department cell
+          if (prereqCell.classList.contains('course-department-cell')) {
+            return;
+          }
+          
+          prereqCell.classList.add('prereq-cell');
+          if (!prereqCell.querySelector('.js-prereq-preview')) {
+            const span = document.createElement('span');
+            span.className = 'js-prereq-preview';
+            span.textContent = prereqCell.textContent.trim() || '—';
+            prereqCell.innerHTML = '';
+            prereqCell.appendChild(span);
+          }
         }
-      }
+      });
     });
 
     if (window.feather) window.feather.replace();
@@ -228,7 +249,7 @@ if (!window.__svCoursesInit) {
     if (!hasRows) {
       tbody.insertAdjacentHTML('beforeend', `
         <tr class="sv-empty-row">
-          <td colspan="5">
+          <td colspan="6">
             <div class="sv-empty">
               <h6>No courses found</h6>
               <p>Click the <i data-feather="plus"></i> button to add one.</p>
@@ -390,10 +411,11 @@ if (!window.__svCoursesInit) {
     const id    = tr.dataset.id;
     const code  = tr.dataset.code || '';
     const title = tr.dataset.title || '';
-  const lec   = tr.dataset.contactHoursLec || '0';
-  const lab   = tr.dataset.contactHoursLab || '0';
-  const category = tr.dataset.courseCategory || '';
+    const lec   = tr.dataset.contactHoursLec || '0';
+    const lab   = tr.dataset.contactHoursLab || '0';
+    const category = tr.dataset.courseCategory || '';
     const desc  = tr.dataset.description || '';
+    const departmentId = tr.dataset.departmentId || '';
 
     const form = $('#editCourseForm');
     if (!form) return;
@@ -404,10 +426,16 @@ if (!window.__svCoursesInit) {
 
     $('#editCourseCode').value         = code;
     $('#editCourseTitle').value        = title;
-  $('#editCourseCategory').value     = category;
+    $('#editCourseCategory').value     = category;
     $('#editContactHoursLec').value    = lec;
     $('#editContactHoursLab').value    = lab;
     const d = $('#editCourseDescription'); if (d) d.value = desc;
+    
+    // Set the department dropdown
+    const deptSelect = $('#editCourseDepartment');
+    if (deptSelect && departmentId) {
+      deptSelect.value = departmentId;
+    }
 
     rebuildEditPrereqCheckboxesFromRow(tr);
     wireEditPrereqSearch();
@@ -439,6 +467,8 @@ if (!window.__svCoursesInit) {
     modalEl.addEventListener('shown.bs.modal', () => {
       rebuildAddPrereqList();
       wireAddPrereqSearch();
+      setupDeletedCourseSearch();
+      resetCourseFormUI();
     });
 
     form.addEventListener('submit', async (e) => {
@@ -469,11 +499,19 @@ if (!window.__svCoursesInit) {
           const chosenPrereqIds = Array
             .from($('#addPrereqList')?.querySelectorAll('input[type="checkbox"]:checked') || [])
             .map(i => Number(i.value));
-
+          
+          // Get department information from form or response
+          const deptSelect = $('#addCourseDepartment');
+          const department_id = data.department_id || deptSelect?.value || '';
+          const department_code = data.department_code || 
+                                (deptSelect?.options[deptSelect.selectedIndex]?.textContent?.trim()) || '';
+          const department_name = data.department_name || department_code;
+          
           if (tbody) {
             tbody.querySelector('.sv-empty-row')?.remove();
             tbody.insertAdjacentHTML('afterbegin', rowHtml({
-              id: data.id, code, title, lec, lab, description, prereqIds: chosenPrereqIds, course_category
+              id: data.id, code, title, lec, lab, description, prereqIds: chosenPrereqIds, course_category, 
+              department_code, department_id, department_name
             }));
             const newTr = document.getElementById(`course-row-${data.id}`);
             hydrateRows();
@@ -551,9 +589,18 @@ if (!window.__svCoursesInit) {
           const tbody = getTbody();
           const old = document.getElementById(`course-row-${p.id}`);
           if (tbody && old) {
+            // Get department code from form or existing row
+            const deptSelect = $('#editCourseDepartment');
+            const department_id = p.department_id || deptSelect?.value || '';
+            const department_code = p.department_code || 
+                                  (deptSelect?.options[deptSelect.selectedIndex]?.textContent?.trim()) || 
+                                  old.querySelector('.course-department-cell')?.textContent?.trim() || '';
+            const department_name = p.department_name || department_code;
+            
             old.insertAdjacentHTML('afterend', rowHtml({
               id: p.id, code: p.code, title: p.title, lec: p.lec, lab: p.lab,
-              description: p.description, prereqIds: p.prereqIds, course_category: p.course_category
+              description: p.description, prereqIds: p.prereqIds, course_category: p.course_category, 
+              department_code, department_id, department_name
             }));
             const newTr = old.nextElementSibling;
             old.remove();
@@ -594,7 +641,18 @@ if (!window.__svCoursesInit) {
 
   // ░░░ START: INIT – Delete ░░░
   function initDelete() {
-    document.addEventListener('click', async (e) => {
+    const form = $('#deleteCourseForm');
+    const modal = $('#deleteCourseModal');
+    const titleSpan = $('#deleteCourseTitle');
+    const codeSpan = $('#deleteCourseCode');
+    const idInput = $('#deleteCourseId');
+    const actionInput = $('#actionType');
+    const confirmBtn = $('#confirmActionBtn');
+    const removeRadio = $('#removeCourse');
+    const deleteRadio = $('#deleteCourse');
+
+    // Handle delete button clicks to open modal
+    document.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-action="delete-course"]');
       if (!btn) return;
       const tr = btn.closest('tr[id^="course-row-"]');
@@ -602,42 +660,480 @@ if (!window.__svCoursesInit) {
       if (!tr.closest('#svCoursesTable')) return;
 
       const id = tr.dataset.id;
-      const code = tr.dataset.code || 'this course';
-      if (!window.confirm(`Delete ${code}?`)) return;
+      const code = tr.dataset.code || 'Unknown Course';
+      const title = tr.dataset.title || 'Unknown Course';
 
-      try {
-        const fd = new FormData();
-        fd.append('_method', 'DELETE');
-        fd.append('_token', csrf());
+      // Update modal content
+      if (titleSpan) titleSpan.textContent = title;
+      if (codeSpan) codeSpan.textContent = code;
+      if (idInput) idInput.value = id;
+      
+      // Update form action
+      if (form) {
+        const base = getUpdateBase();
+        form.setAttribute('action', `${base}/${id}`);
+        form.dataset.courseId = id;
+      }
 
-        const res = await fetch(`${getUpdateBase()}/${id}`, {
-          method: 'POST',
-          headers: { 'X-Requested-With': 'XMLHttpRequest', Accept: 'application/json' },
-          body: fd,
-        });
+      // Reset to remove option
+      if (removeRadio) removeRadio.checked = true;
+      if (actionInput) actionInput.value = 'remove';
+      
+      // Update button to remove style
+      if (confirmBtn) {
+        confirmBtn.className = 'btn btn-warning';
+        confirmBtn.innerHTML = '<i data-feather="minus-circle"></i> Remove';
+        // Replace feather icons with proper timing
+        setTimeout(() => {
+          if (window.feather) {
+            window.feather.replace();
+          } else if (typeof feather !== 'undefined') {
+            feather.replace();
+          }
+        }, 10);
+      }
 
-        if (res.ok) {
-          tr.remove();
-          ensureEmptyRow();
-          // ✅ a deleted course may have been used as a prereq elsewhere; recompute previews
-          refreshPrereqColumnForAllRows();
-          rebuildAddPrereqList();
-          toastSuccess('Course deleted successfully!');
-        } else if (res.status === 403) {
-          const data = await res.json().catch(() => ({}));
-          toastError(data.message || 'Not allowed to delete this course.');
-        } else {
-          const text = await res.text();
-          console.error(text);
-          toastError('Unexpected error deleting course.');
+      // Show modal
+      if (hasBS()) window.bootstrap.Modal.getOrCreateInstance(modal).show();
+    });
+
+    // Handle radio button changes to update button styling
+    if (removeRadio && deleteRadio && confirmBtn && actionInput) {
+      removeRadio.addEventListener('change', () => {
+        if (removeRadio.checked) {
+          actionInput.value = 'remove';
+          confirmBtn.className = 'btn btn-warning';
+          confirmBtn.innerHTML = '<i data-feather="minus-circle"></i> Remove';
+          // Replace feather icons with proper timing
+          setTimeout(() => {
+            if (window.feather) {
+              window.feather.replace();
+            } else if (typeof feather !== 'undefined') {
+              feather.replace();
+            }
+          }, 10);
         }
-      } catch (err) {
-        console.error(err);
-        toastError('Network error. Please try again.');
+      });
+
+      deleteRadio.addEventListener('change', () => {
+        if (deleteRadio.checked) {
+          actionInput.value = 'delete';
+          confirmBtn.className = 'btn btn-danger';
+          confirmBtn.innerHTML = '<i data-feather="trash-2"></i> Delete';
+          // Replace feather icons with proper timing
+          setTimeout(() => {
+            if (window.feather) {
+              window.feather.replace();
+            } else if (typeof feather !== 'undefined') {
+              feather.replace();
+            }
+          }, 10);
+        }
+      });
+    }
+
+    // Handle form submission
+    if (form) {
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const courseId = form.dataset.courseId;
+        if (!courseId) return;
+
+        try {
+          const formData = new FormData(form);
+          
+          const res = await fetch(form.getAttribute('action'), {
+            method: 'POST',
+            headers: { 
+              'X-Requested-With': 'XMLHttpRequest', 
+              'Accept': 'application/json' 
+            },
+            body: formData,
+          });
+
+          if (res.ok) {
+            const tr = document.getElementById(`course-row-${courseId}`);
+            if (tr) {
+              tr.remove();
+              ensureEmptyRow();
+            }
+            
+            // Hide modal
+            if (hasBS()) window.bootstrap.Modal.getOrCreateInstance(modal).hide();
+            
+            // Refresh prerequisites and lists
+            refreshPrereqColumnForAllRows();
+            rebuildAddPrereqList();
+            toastSuccess('Course managed successfully!');
+          } else if (res.status === 403) {
+            const errorText = await res.text().catch(() => 'Access denied.');
+            toastError(`Error: ${errorText}`);
+          } else {
+            const errorText = await res.text().catch(() => 'An error occurred.');
+            toastError(`Error: ${errorText}`);
+          }
+        } catch (err) {
+          console.error('Delete course error:', err);
+          toastError('Failed to process request.');
+        }
+      });
+    }
+  }
+  // ░░░ END: INIT – Delete ░░░
+
+  // ░░░ START: Deleted Course Suggestions Functionality ░░░
+  let courseSuggestionTimeout = null;
+
+  async function searchDeletedCourses(query) {
+    if (query.length < 2) return [];
+    
+    try {
+      const response = await fetch(`/admin/courses/search-deleted?q=${encodeURIComponent(query)}`, {
+        headers: {
+          'X-CSRF-TOKEN': csrf(),
+          'Accept': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        return await response.json();
+      }
+    } catch (error) {
+      console.error('Error searching deleted courses:', error);
+    }
+    
+    return [];
+  }
+
+  function showCourseSuggestions(inputElement, suggestions, suggestionsContainer) {
+    if (suggestions.length === 0) {
+      suggestionsContainer.style.display = 'none';
+      return;
+    }
+    
+    const html = suggestions.map(course => `
+      <div class="suggestion-item" data-course='${JSON.stringify(course)}'>
+        <div class="suggestion-main">
+          ${course.title} (${course.code})
+          <span class="suggestion-restore-badge">RESTORE</span>
+        </div>
+        <div class="suggestion-meta">${course.department_name}</div>
+      </div>
+    `).join('');
+    
+    suggestionsContainer.innerHTML = html;
+    suggestionsContainer.style.display = 'block';
+    
+    // Add click handlers for suggestions
+    suggestionsContainer.querySelectorAll('.suggestion-item').forEach(item => {
+      item.addEventListener('click', function() {
+        const course = JSON.parse(this.dataset.course);
+        populateAddFormWithDeletedCourse(course);
+        hideCourseSuggestions();
+      });
+    });
+  }
+
+  function hideCourseSuggestions() {
+    const titleSuggestions = $('#courseTitleSuggestions');
+    const codeSuggestions = $('#courseCodeSuggestions');
+    if (titleSuggestions) titleSuggestions.style.display = 'none';
+    if (codeSuggestions) codeSuggestions.style.display = 'none';
+  }
+
+  function populateAddFormWithDeletedCourse(course) {
+    // Populate form fields
+    const titleField = $('#addCourseTitle');
+    const codeField = $('#addCourseCode');
+    const categoryField = $('#addCourseCategory');
+    const descField = $('#addCourseDescription');
+    const lecHoursField = $('#addContactHoursLec');
+    const labHoursField = $('#addContactHoursLab');
+    const igaToggle = $('#addIgaToggle');
+    const deptField = $('#addCourseDepartment');
+
+    if (titleField) titleField.value = course.title;
+    if (codeField) codeField.value = course.code;
+    if (categoryField) categoryField.value = course.course_category || '';
+    if (descField) descField.value = course.description || '';
+    if (lecHoursField) lecHoursField.value = course.contact_hours_lec || 0;
+    if (labHoursField) labHoursField.value = course.contact_hours_lab || 0;
+    if (igaToggle) igaToggle.checked = course.has_iga || false;
+    
+    // Set department if dropdown exists
+    if (deptField && course.department_id) {
+      deptField.value = course.department_id;
+    }
+    
+    // Show confirmation
+    toastSuccess(`Populated with deleted course "${course.title}". Creating this will restore the course.`);
+  }
+
+  function setupCourseSuggestionListeners() {
+    const courseTitle = $('#addCourseTitle');
+    const courseCode = $('#addCourseCode');
+    const titleSuggestions = $('#courseTitleSuggestions');
+    const codeSuggestions = $('#courseCodeSuggestions');
+    
+    if (!courseTitle || !courseCode) return;
+    
+    // Course title input handler
+    courseTitle.addEventListener('input', function() {
+      const query = this.value.trim();
+      
+      clearTimeout(courseSuggestionTimeout);
+      
+      if (query.length < 2) {
+        if (titleSuggestions) titleSuggestions.style.display = 'none';
+        return;
+      }
+      
+      courseSuggestionTimeout = setTimeout(async () => {
+        const suggestions = await searchDeletedCourses(query);
+        if (titleSuggestions) showCourseSuggestions(courseTitle, suggestions, titleSuggestions);
+      }, 300);
+    });
+    
+    // Course code input handler
+    courseCode.addEventListener('input', function() {
+      const query = this.value.trim();
+      
+      clearTimeout(courseSuggestionTimeout);
+      
+      if (query.length < 2) {
+        if (codeSuggestions) codeSuggestions.style.display = 'none';
+        return;
+      }
+      
+      courseSuggestionTimeout = setTimeout(async () => {
+        const suggestions = await searchDeletedCourses(query);
+        if (codeSuggestions) showCourseSuggestions(courseCode, suggestions, codeSuggestions);
+      }, 300);
+    });
+    
+    // Hide suggestions when clicking outside
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.position-relative')) {
+        hideCourseSuggestions();
+      }
+    });
+    
+    // Hide suggestions when modal is closed
+    const addModal = $('#addCourseModal');
+    if (addModal) {
+      addModal.addEventListener('hidden.bs.modal', function() {
+        hideCourseSuggestions();
+      });
+    }
+  }
+  // ░░░ END: Deleted Course Suggestions Functionality ░░░
+
+  // ░░░ START: Department Filter Function ░░░
+  function filterByDepartment(departmentId) {
+    const url = new URL(window.location);
+    if (departmentId === 'all') {
+      url.searchParams.delete('department_filter');
+    } else {
+      url.searchParams.set('department_filter', departmentId);
+    }
+    window.location.href = url.toString();
+  }
+
+  // Helper function to toggle department column visibility
+  function toggleDepartmentColumnVisibility(shouldHide) {
+    const departmentColumns = document.querySelectorAll('.department-column');
+    departmentColumns.forEach(column => {
+      column.style.display = shouldHide ? 'none' : '';
+    });
+    
+    // Update the global config
+    if (window.coursesConfig) {
+      window.coursesConfig.departmentFilter = shouldHide ? 'filtered' : null;
+    }
+  }
+
+  // Make functions globally available
+  window.filterByDepartment = filterByDepartment;
+  window.toggleDepartmentColumnVisibility = toggleDepartmentColumnVisibility;
+  // ░░░ END: Department Filter Function ░░░
+
+  // ░░░ START: Deleted Course Search & Restore ░░░
+  function setupDeletedCourseSearch() {
+    const courseCodeInput = $('#addCourseCode');
+    const courseTitleInput = $('#addCourseTitle');
+    const codeContainer = $('#courseCodeSuggestions');
+    const titleContainer = $('#courseTitleSuggestions');
+    
+    if (!courseCodeInput || !courseTitleInput || !codeContainer || !titleContainer) {
+      console.log('Course search elements not found - skipping setup');
+      return;
+    }
+    
+    let codeSearchTimeout, titleSearchTimeout;
+    
+    console.log('Setting up deleted course search functionality');
+    
+    // Setup search for course code field
+    setupCourseSearch(courseCodeInput, codeContainer, 'code', codeSearchTimeout);
+    
+    // Setup search for course title field
+    setupCourseSearch(courseTitleInput, titleContainer, 'title', titleSearchTimeout);
+    
+    // Hide suggestions when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!courseCodeInput.contains(e.target) && !codeContainer.contains(e.target)) {
+        hideCoursesuggestions(codeContainer);
+      }
+      if (!courseTitleInput.contains(e.target) && !titleContainer.contains(e.target)) {
+        hideCoursesuggestions(titleContainer);
       }
     });
   }
-  // ░░░ END: INIT – Delete ░░░
+  
+  function setupCourseSearch(inputElement, containerElement, searchType, timeoutRef) {
+    inputElement.addEventListener('input', (e) => {
+      const query = e.target.value.trim();
+      
+      // Clear previous timeout
+      if (timeoutRef) {
+        clearTimeout(timeoutRef);
+      }
+      
+      // Hide suggestions if query is too short
+      if (query.length < 2) {
+        hideCoursesuggestions(containerElement);
+        return;
+      }
+      
+      // Debounce search requests
+      timeoutRef = setTimeout(() => {
+        searchDeletedCourses(query, containerElement, searchType);
+      }, 300);
+    });
+    
+    // Handle suggestion clicks
+    containerElement.addEventListener('click', (e) => {
+      const suggestionItem = e.target.closest('.suggestion-item');
+      if (!suggestionItem) return;
+      
+      const courseData = JSON.parse(suggestionItem.dataset.courseData);
+      restoreDeletedCourse(courseData);
+    });
+  }
+  
+  function searchDeletedCourses(query, containerElement, searchType) {
+    console.log(`Searching deleted courses by ${searchType}:`, query);
+    
+    fetch(`/admin/courses/search-deleted?q=${encodeURIComponent(query)}`, {
+      method: 'GET',
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        'Accept': 'application/json',
+      }
+    })
+    .then(response => response.json())
+    .then(courses => {
+      console.log('Found deleted courses:', courses);
+      displayCourseSuggestions(courses, containerElement);
+    })
+    .catch(error => {
+      console.error('Error searching deleted courses:', error);
+      hideCoursesuggestions(containerElement);
+    });
+  }
+  
+  function displayCourseSuggestions(courses, containerElement) {
+    if (courses.length === 0) {
+      hideCoursesuggestions(containerElement);
+      return;
+    }
+    
+    const suggestionHtml = courses.map(course => `
+      <div class="suggestion-item" data-course-data='${JSON.stringify(course)}'>
+        <div class="suggestion-main">
+          ${course.code} - ${course.title}
+          <span class="suggestion-restore-badge">Restore</span>
+        </div>
+        <div class="suggestion-meta">
+          Department: ${course.department_name} | Category: ${course.course_category}
+        </div>
+      </div>
+    `).join('');
+    
+    containerElement.innerHTML = suggestionHtml;
+    containerElement.style.display = 'block';
+  }
+  
+  function hideCoursesuggestions(containerElement) {
+    containerElement.style.display = 'none';
+    containerElement.innerHTML = '';
+  }
+  
+  function restoreDeletedCourse(courseData) {
+    console.log('Restoring deleted course:', courseData);
+    
+    // Fill the form fields with the deleted course data
+    const form = $('#addCourseForm');
+    if (!form) return;
+    
+    // Populate form fields
+    const codeField = $('#addCourseCode');
+    const titleField = $('#addCourseTitle');
+    const categoryField = $('#addCourseCategory');
+    const descriptionField = $('#addCourseDescription');
+    const lecHoursField = $('#addContactHoursLec');
+    const labHoursField = $('#addContactHoursLab');
+    const departmentField = $('#addCourseDepartment') || $('[name="department_id"]');
+    
+    if (codeField) codeField.value = courseData.code;
+    if (titleField) titleField.value = courseData.title;
+    if (categoryField && courseData.course_category) categoryField.value = courseData.course_category;
+    if (descriptionField && courseData.description) descriptionField.value = courseData.description;
+    if (lecHoursField && courseData.contact_hours_lec) lecHoursField.value = courseData.contact_hours_lec;
+    if (labHoursField && courseData.contact_hours_lab) labHoursField.value = courseData.contact_hours_lab;
+    if (departmentField && courseData.department_id) departmentField.value = courseData.department_id;
+    
+    // Hide all suggestions
+    hideCoursesuggestions($('#courseCodeSuggestions'));
+    hideCoursesuggestions($('#courseTitleSuggestions'));
+    
+    // Show confirmation message
+    toastSuccess(`Course "${courseData.code} - ${courseData.title}" data loaded. Click "Create" to restore it.`);
+    
+    // Change submit button text to indicate restoration
+    const submitButton = $('#addCourseSubmit');
+    if (submitButton) {
+      submitButton.innerHTML = '<i data-feather="refresh-cw"></i> Restore Course';
+      // Re-initialize feather icons if available
+      if (typeof feather !== 'undefined') {
+        setTimeout(() => feather.replace(), 10);
+      }
+    }
+  }
+  
+  function resetCourseFormUI() {
+    // Reset button text when modal opens fresh
+    const submitButton = $('#addCourseSubmit');
+    if (submitButton) {
+      submitButton.innerHTML = '<i data-feather="plus"></i> Create Course';
+      // Re-initialize feather icons if available
+      if (typeof feather !== 'undefined') {
+        setTimeout(() => feather.replace(), 10);
+      }
+    }
+    
+    // Clear form
+    const form = $('#addCourseForm');
+    if (form) {
+      form.reset();
+    }
+    
+    // Hide any open suggestions
+    hideCoursesuggestions($('#courseCodeSuggestions'));
+    hideCoursesuggestions($('#courseTitleSuggestions'));
+  }
+  // ░░░ END: Deleted Course Search & Restore ░░░
 
   // ░░░ START: Boot ░░░
   (function boot() {
@@ -648,15 +1144,20 @@ if (!window.__svCoursesInit) {
     initAdd();
     initEdit();
     initDelete();
+    setupCourseSuggestionListeners();
 
     // Normalize server-rendered table & compute initial prerequisites previews
     hydrateRows();
     refreshPrereqColumnForAllRows();
 
+    // Department cells should display the department code correctly
+
     // Clean any stray backdrops
     document.querySelectorAll('.modal-backdrop').forEach((b) => b.remove());
     document.body.classList.remove('modal-open');
     document.body.style.removeProperty('padding-right');
+
+    // Department cells are now protected from prerequisite logic interference
   })();
   // ░░░ END: Boot ░░░
 }

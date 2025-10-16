@@ -68,6 +68,12 @@
   border: 1px solid #ddd;
   border-radius: 5px;
   padding: 5px 10px;
+}
+
+/* Override any red coloring for the first column (title) */
+#svCoursesTable tbody tr td:first-child {
+  color: #333 !important;
+}
   font-size: 14px;
 }
 
@@ -79,34 +85,60 @@
 @endpush
 
 @section('content')
-<div class="container-fluid">
-
-  {{-- ░░░ START: Course Management Section ░░░ --}}
-  <div class="sv-section-wrap">
-    <div class="sv-section-header">
-      <h3 class="sv-section-title">
-        <i data-feather="book"></i>
-        Course Management
-      </h3>
-      <p class="sv-section-subtitle">Manage academic courses and their details</p>
+{{-- ░░░ START: Department Card (Original Style) ░░░ --}}
+<div class="department-card">
+  {{-- ░░░ START: Single Course Tab ░░░ --}}
+  <div class="tab-content" id="courseTabContent">
+    {{-- ░░░ START: Courses Section ░░░ --}}
+    <div class="tab-pane fade show active" id="courses-main" role="tabpanel" aria-labelledby="courses-main-tab">
+      @include('admin.master-data.tabs.courses-tab')
     </div>
-
-    <div class="sv-section-body">
-      @include('admin.courses.partials.courses-table')
-    </div>
+    {{-- ░░░ END: Courses Section ░░░ --}}
   </div>
-  {{-- ░░░ END: Course Management Section ░░░ --}}
+  {{-- ░░░ END: Tab Content ░░░ --}}
 
-</div>
+</div><!-- END: department-card -->
 
-{{-- Include Course Modals --}}
-@include('admin.courses.partials.add-course-modal')
-@include('admin.courses.partials.edit-course-modal')
-@include('admin.courses.partials.delete-course-modal')
+{{-- ░░░ START: Modal Fix CSS ░░░ --}}
+<style>
+  /* Ensure modals appear properly and clean up correctly */
+  .modal {
+    z-index: 1055 !important;
+  }
+  .modal-backdrop {
+    z-index: 1050 !important;
+    transition: opacity 0.15s linear;
+  }
+  .modal.show .modal-dialog {
+    z-index: 1056 !important;
+  }
+  
+  /* Ensure body cleanup when modal is closed */
+  body:not(.modal-open) {
+    overflow: visible !important;
+    padding-right: 0 !important;
+  }
+  
+  /* Allow Bootstrap to handle backdrop visibility naturally */
+  .modal-backdrop.show {
+    opacity: 0.5;
+  }
+  .modal-backdrop:not(.show) {
+    opacity: 0;
+    /* Removed display: none !important to let Bootstrap control visibility */
+  }
+</style>
+{{-- ░░░ END: Modal Fix CSS ░░░ --}}
+
+{{-- ░░░ START: Modals for Courses ░░░ --}}
+@include('admin.master-data.modals.add-course-modal')
+@include('admin.master-data.modals.edit-course-modal')
+@include('admin.master-data.modals.delete-course-modal')
+{{-- ░░░ END: Modals for Courses ░░░ --}}
 
 @endsection
 
+{{-- JavaScript --}}
 @push('scripts')
-<script src="{{ asset('js/admin/master-data/courses.js') }}"></script>
-<script src="{{ asset('js/admin/courses-search.js') }}"></script>
+@vite('resources/js/admin/master-data/courses.js')
 @endpush

@@ -151,9 +151,8 @@
 
 {{-- JavaScript --}}
 @push('scripts')
-<script src="{{ asset('js/admin/programs-courses-search.js') }}"></script>
-<script src="{{ asset('js/admin/master-data/programs.js') }}?v={{ time() }}&t=2025-10-05-suggestions"></script>
-<script src="{{ asset('js/admin/master-data/courses.js') }}"></script>
+@vite('resources/js/admin/master-data/programs.js')
+@vite('resources/js/admin/master-data/courses.js')
 
 <script>
 // Inline empty state function to ensure it's available

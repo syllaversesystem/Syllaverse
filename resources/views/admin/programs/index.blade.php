@@ -147,5 +147,5 @@
 @endsection
 
 @push('scripts')
-<script src="{{ asset('js/admin/master-data/programs.js') }}"></script>
+@vite('resources/js/admin/master-data/programs.js')
 @endpush

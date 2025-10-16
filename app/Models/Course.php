@@ -20,13 +20,42 @@ class Course extends Model
 
     protected $fillable = [
         'department_id',
-    'course_category',
+        'course_category',
         'code',
         'title',
+        'has_iga',
         'contact_hours_lec',
         'contact_hours_lab',
         'description',
+        'status',
     ];
+
+    // Status constants
+    const STATUS_ACTIVE = 'active';
+    const STATUS_INACTIVE = 'inactive';
+    const STATUS_DELETED = 'deleted';
+
+    // Query scopes
+    public function scopeActive($query)
+    {
+        return $query->where('status', self::STATUS_ACTIVE);
+    }
+
+    public function scopeNotDeleted($query)
+    {
+        return $query->whereIn('status', [self::STATUS_ACTIVE, self::STATUS_INACTIVE]);
+    }
+
+    // Status check methods
+    public function isActive()
+    {
+        return $this->status === self::STATUS_ACTIVE;
+    }
+
+    public function isDeleted()
+    {
+        return $this->status === self::STATUS_DELETED;
+    }
 
     // 🔁 Belongs to a department
     public function department()
