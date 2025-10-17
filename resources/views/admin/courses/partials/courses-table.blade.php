@@ -13,10 +13,10 @@
 -------------------------------------------------------------------------------
 --}}
 
-<div class="table-wrapper position-relative">
+<div class="courses-table-wrapper position-relative">
 
   {{-- ░░░ START: Toolbar ░░░ --}}
-  <div class="superadmin-manage-department-toolbar">
+  <div class="courses-toolbar">
     <div class="input-group">
       <span class="input-group-text"><i data-feather="search"></i></span>
       <input type="search" class="form-control" placeholder="Search courses..." aria-label="Search courses" id="coursesSearch">
@@ -45,7 +45,7 @@
 
     @if ($canManageCourses)
       <button type="button"
-              class="btn-brand-sm d-none d-md-inline-flex"
+              class="btn courses-add-btn d-none d-md-inline-flex"
               data-bs-toggle="modal"
               data-bs-target="#addCourseModal"
               aria-label="Add Course"
@@ -68,7 +68,7 @@
 
   {{-- ░░░ START: Table ░░░ --}}
   <div class="table-responsive">
-    <table class="table mb-0 sv-accounts-table" id="svCoursesTable">
+    <table class="table mb-0 courses-table" id="svCoursesTable">
       <thead>
         <tr>
           <th><i data-feather="book"></i> Title</th>
@@ -131,7 +131,7 @@
               @if ($canManageCourses)
                 {{-- Edit --}}
                 <button type="button"
-                        class="btn action-btn rounded-circle edit me-2 editCourseBtn"
+                        class="btn courses-action-btn edit-btn rounded-circle me-2 editCourseBtn"
                         data-bs-toggle="modal"
                         data-bs-target="#editCourseModal"
                         data-id="{{ $course->id }}"
@@ -149,7 +149,7 @@
 
                 {{-- Delete (opens a confirm modal like Programs tab) --}}
                 <button type="button"
-                        class="btn action-btn rounded-circle delete deleteCourseBtn"
+                        class="btn courses-action-btn delete-btn rounded-circle deleteCourseBtn"
                         data-bs-toggle="modal"
                         data-bs-target="#deleteCourseModal"
                         data-id="{{ $course->id }}"
@@ -161,11 +161,11 @@
                   <i data-feather="trash"></i>
                 </button>
               @else
-                <button class="btn action-btn rounded-circle disabled me-2"
+                <button class="btn courses-action-btn disabled-btn rounded-circle me-2"
                         title="Edit disabled" aria-label="Edit disabled">
                   <i data-feather="lock"></i>
                 </button>
-                <button class="btn action-btn rounded-circle disabled"
+                <button class="btn courses-action-btn disabled-btn rounded-circle"
                         title="Delete disabled" aria-label="Delete disabled">
                   <i data-feather="lock"></i>
                 </button>
@@ -174,9 +174,9 @@
             {{-- ░░░ END: Actions ░░░ --}}
           </tr>
         @empty
-          <tr class="sv-empty-row">
+          <tr class="courses-empty-row">
             <td colspan="6">
-              <div class="sv-empty">
+              <div class="courses-empty">
                 <h6>No courses found</h6>
                 @if ($canManageCourses)
                   <p>Click the <i data-feather="plus"></i> button to add one.</p>

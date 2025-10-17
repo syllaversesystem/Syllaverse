@@ -8,9 +8,9 @@
 -------------------------------------------------------------------------------
 --}}
 {{-- ░░░ START: Delete Course Modal ░░░ --}}
-<div class="modal fade sv-appt-modal" id="deleteCourseModal" tabindex="-1" aria-labelledby="deleteCourseModalLabel" aria-hidden="true">
+<div class="modal fade sv-course-modal" id="deleteCourseModal" tabindex="-1" aria-labelledby="deleteCourseModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
+    <div class="modal-content course-delete-form">
 
       {{-- ░░░ START: Local styles (scoped to this modal) ░░░ --}}
       <style>

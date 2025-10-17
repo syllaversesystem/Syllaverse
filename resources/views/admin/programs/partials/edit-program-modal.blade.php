@@ -8,9 +8,9 @@
 -------------------------------------------------------------------------------
 --}}
 {{-- ░░░ START: Edit Program Modal ░░░ --}}
-<div class="modal fade sv-appt-modal" id="editProgramModal" tabindex="-1" aria-labelledby="editProgramModalLabel" aria-hidden="true">
+<div class="modal fade sv-program-modal" id="editProgramModal" tabindex="-1" aria-labelledby="editProgramModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-lg">
-    <form id="editProgramForm" action="{{ route('admin.programs.update', 0) }}" method="POST" class="modal-content edit-program-form">
+    <form id="editProgramForm" action="{{ route('admin.programs.update', 0) }}" method="POST" class="modal-content program-form edit-program-form">
       @csrf
       @method('PUT')
 
@@ -140,18 +140,18 @@
         {{-- Inline error box (filled by JS on 422) --}}
         <div id="editProgramErrors" class="alert alert-danger d-none small mb-3" role="alert"></div>
 
-        <div class="mb-3">
+        <div class="program-field-group mb-3">
           <label for="editProgramName" class="form-label small">Program Name</label>
           <input type="text" name="name" id="editProgramName" class="form-control form-control-sm" required>
         </div>
 
-        <div class="mb-3">
+        <div class="program-field-group mb-3">
           <label for="editProgramCode" class="form-label small">Program Code</label>
           <input type="text" name="code" id="editProgramCode" class="form-control form-control-sm" required>
         </div>
 
         @if($showEditDepartmentDropdown)
-        <div class="mb-3">
+        <div class="program-field-group mb-3">
           <label for="editProgramDepartment" class="form-label small">Department</label>
           <select class="form-select form-select-sm" id="editProgramDepartment" name="department_id" required>
             <option value="">Select Department</option>
@@ -170,7 +170,7 @@
         <input type="hidden" id="editProgramDepartment" name="department_id" value="{{ $userDepartment }}">
         @endif
 
-        <div class="mb-3">
+        <div class="program-field-group mb-3">
           <label for="editProgramDescription" class="form-label small">Description</label>
           <textarea name="description" id="editProgramDescription" class="form-control" rows="5"></textarea>
         </div>

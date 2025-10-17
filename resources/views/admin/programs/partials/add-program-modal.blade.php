@@ -8,9 +8,9 @@
 -------------------------------------------------------------------------------
 --}}
 {{-- ░░░ START: Add Program Modal ░░░ --}}
-<div class="modal fade sv-appt-modal" id="addProgramModal" tabindex="-1" aria-labelledby="addProgramModalLabel" aria-hidden="true">
+<div class="modal fade sv-program-modal" id="addProgramModal" tabindex="-1" aria-labelledby="addProgramModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-lg">
-    <form id="addProgramForm" action="{{ route('admin.programs.store') }}" method="POST" class="modal-content">
+    <form id="addProgramForm" action="{{ route('admin.programs.store') }}" method="POST" class="modal-content program-form">
       @csrf
 
       {{-- ░░░ START: Local styles (scoped to this modal) ░░░ --}}
@@ -137,20 +137,20 @@
         {{-- Inline error box (filled by JS on 422) --}}
         <div id="addProgramErrors" class="alert alert-danger d-none small mb-3" role="alert"></div>
 
-        <div class="mb-3 position-relative">
+        <div class="program-field-group mb-3 position-relative">
           <label for="programName" class="form-label small fw-medium text-muted">Program Name</label>
           <input type="text" class="form-control form-control-sm" id="programName" name="name" placeholder="e.g., Bachelor of Science in Computer Science" required autocomplete="off">
           <div id="programNameSuggestions" class="suggestions-dropdown" style="display: none;"></div>
         </div>
 
-        <div class="mb-3 position-relative">
+        <div class="program-field-group mb-3 position-relative">
           <label for="programCode" class="form-label small fw-medium text-muted">Program Code</label>
           <input type="text" class="form-control form-control-sm" id="programCode" name="code" placeholder="e.g., BSCS, BSIT, BSEE" required autocomplete="off">
           <div id="programCodeSuggestions" class="suggestions-dropdown" style="display: none;"></div>
         </div>
 
         @if($showAddDepartmentDropdown)
-        <div class="mb-3">
+        <div class="program-field-group mb-3">
           <label for="programDepartment" class="form-label small fw-medium text-muted">Department</label>
           <select class="form-select form-select-sm" id="programDepartment" name="department_id" required>
             <option value="">Select Department</option>
@@ -169,7 +169,7 @@
         <input type="hidden" name="department_id" value="{{ $userDepartment }}">
         @endif
 
-        <div class="mb-3">
+        <div class="program-field-group mb-3">
           <label for="programDescription" class="form-label small fw-medium text-muted">Description (optional)</label>
           <textarea class="form-control" id="programDescription" name="description" rows="5" placeholder="Enter a brief description of the program, its objectives, and key features..."></textarea>
           <div class="form-text text-muted mt-1">

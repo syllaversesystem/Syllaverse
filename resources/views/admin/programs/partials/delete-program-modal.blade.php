@@ -8,9 +8,9 @@
 -------------------------------------------------------------------------------
 --}}
 {{-- ░░░ START: Delete Program Modal ░░░ --}}
-<div class="modal fade sv-appt-modal" id="deleteProgramModal" tabindex="-1" aria-labelledby="deleteProgramModalLabel" aria-hidden="true">
+<div class="modal fade sv-program-modal" id="deleteProgramModal" tabindex="-1" aria-labelledby="deleteProgramModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
+    <div class="modal-content program-delete-form">
 
       {{-- ░░░ START: Local styles (scoped to this modal) ░░░ --}}
       <style>

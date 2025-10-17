@@ -12,9 +12,9 @@
 --}}
 
 {{-- ░░░ START: Add Course Modal ░░░ --}}
-<div class="modal fade" id="addCourseModal" tabindex="-1" aria-labelledby="addCourseModalLabel" aria-hidden="true">
+<div class="modal fade sv-course-modal" id="addCourseModal" tabindex="-1" aria-labelledby="addCourseModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-xl">
-    <form id="addCourseForm" action="{{ route('admin.courses.store') }}" method="POST" class="modal-content">
+    <form id="addCourseForm" action="{{ route('admin.courses.store') }}" method="POST" class="modal-content course-form">
       @csrf
 
       {{-- ░░░ START: Local styles (scoped to this modal) ░░░ --}}
@@ -281,13 +281,13 @@
               <span class="sv-section-title fw-semibold">Course Details</span>
             </div>
 
-            <div class="mb-3 position-relative">
+            <div class="course-field-group mb-3 position-relative">
               <label for="addCourseCode" class="form-label small fw-medium text-muted">Course Code</label>
               <input type="text" class="form-control form-control-sm" id="addCourseCode" name="code" placeholder="e.g., IT 221" required autocomplete="off">
               <div id="courseCodeSuggestions" class="suggestions-dropdown" style="display: none;"></div>
             </div>
 
-            <div class="mb-3 position-relative">
+            <div class="course-field-group mb-3 position-relative">
               <label for="addCourseTitle" class="form-label small fw-medium text-muted">Course Title</label>
               <input type="text" class="form-control form-control-sm" id="addCourseTitle" name="title" placeholder="e.g., Fundamentals of Enterprise Data Management" required autocomplete="off">
               <div id="courseTitleSuggestions" class="suggestions-dropdown" style="display: none;"></div>
@@ -295,7 +295,7 @@
 
             @if($showDepartmentDropdownInModal ?? false)
             <!-- Show department dropdown - pre-select from filter or user department -->
-            <div class="mb-3">
+            <div class="course-field-group mb-3">
               <label for="addCourseDepartment" class="form-label small fw-medium text-muted">Department</label>
               <select class="form-select form-select-sm" id="addCourseDepartment" name="department_id" required>
                 <option value="">Select Department</option>
@@ -321,7 +321,7 @@
             <input type="hidden" name="department_id" value="{{ $userDepartment ?? '' }}">
             @endif
 
-            <div class="mb-3">
+            <div class="course-field-group mb-3">
               <label for="addCourseCategory" class="form-label small fw-medium text-muted">Course Category</label>
               <input type="text" class="form-control form-control-sm" id="addCourseCategory" name="course_category" placeholder="e.g., Core, Elective, General Education" required>
             </div>
@@ -345,7 +345,7 @@
 
             <div class="sv-divider"></div>
 
-            <div class="mb-3">
+            <div class="course-field-group mb-3">
               <div class="d-flex align-items-center justify-content-between">
                 <label class="form-label small fw-medium text-muted mb-0">Include IGA (Intended Graduate Attributes)</label>
                 <div class="form-check form-switch">

@@ -5,10 +5,10 @@
 -------------------------------------------------------------------------------
 --}}
 
-<div class="table-wrapper position-relative">
+<div class="programs-table-wrapper position-relative">
 
   {{-- ░░░ START: Toolbar Section ░░░ --}}
-  <div class="superadmin-manage-department-toolbar">
+  <div class="programs-toolbar">
     <div class="input-group">
       <span class="input-group-text"><i data-feather="search"></i></span>
       <input type="search" class="form-control" placeholder="Search programs..." aria-label="Search programs" id="programsSearch">
@@ -30,7 +30,7 @@
     <span class="flex-spacer"></span>
 
     <button type="button"
-            class="btn-brand-sm d-none d-md-inline-flex"
+            class="btn programs-add-btn d-none d-md-inline-flex"
             data-bs-toggle="modal"
             data-bs-target="#addProgramModal"
             aria-label="Add Program"
@@ -46,7 +46,7 @@
 
   {{-- ░░░ START: Table ░░░ --}}
   <div class="table-responsive">
-    <table class="table mb-0 sv-accounts-table" id="svProgramsTable">
+    <table class="table mb-0 programs-table" id="svProgramsTable">
       <thead>
         <tr>
           <th><i data-feather="type"></i> Program Name</th>
@@ -68,7 +68,7 @@
             <td class="text-end">
               {{-- Edit --}}
               <button type="button"
-                      class="btn action-btn rounded-circle edit me-2 editProgramBtn"
+                      class="btn programs-action-btn edit-btn rounded-circle me-2 editProgramBtn"
                       data-bs-toggle="modal"
                       data-bs-target="#editProgramModal"
                       data-id="{{ $program->id }}"
@@ -83,7 +83,7 @@
 
               {{-- Delete --}}
               <button type="button"
-                      class="btn action-btn rounded-circle delete deleteProgramBtn"
+                      class="btn programs-action-btn delete-btn rounded-circle deleteProgramBtn"
                       data-bs-toggle="modal"
                       data-bs-target="#deleteProgramModal"
                       data-id="{{ $program->id }}"
@@ -96,9 +96,9 @@
             </td>
           </tr>
         @empty
-          <tr class="sv-empty-row">
+          <tr class="programs-empty-row">
             <td colspan="{{ ($departmentFilter ?? 'all') == 'all' ? '4' : '3' }}">
-              <div class="sv-empty">
+              <div class="programs-empty">
                 <h6>No programs found</h6>
                 <p>Click the <i data-feather="plus"></i> button to add one.</p>
               </div>
