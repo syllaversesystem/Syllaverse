@@ -111,3 +111,10 @@
   {{-- ░░░ END: Table ░░░ --}}
 
 </div>
+
+<script>
+// Pass department filter state to JavaScript
+window.programsConfig = {
+  departmentFilter: @json($departmentFilter ?? null)
+};
+</script>

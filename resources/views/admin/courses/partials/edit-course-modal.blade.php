@@ -16,6 +16,9 @@
     <form id="editCourseForm" method="POST" class="modal-content">
       @csrf
       @method('PUT')
+      
+      {{-- Hidden field for the update URL base (used by JavaScript) --}}
+      <input type="hidden" id="editCourseUpdateUrlBase" value="{{ route('admin.courses.update', ':id') }}">
 
       {{-- ░░░ START: Local styles (scoped to this modal) ░░░ --}}
       <style>
@@ -313,6 +316,9 @@
                   @endforeach
                 @endif
               </select>
+              @if(isset($departmentFilter) && $departmentFilter)
+                <small class="text-muted">Note: Department filter is active, but you can select any department here.</small>
+              @endif
             </div>
 
             <div class="mb-3">

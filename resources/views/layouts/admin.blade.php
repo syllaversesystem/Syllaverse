@@ -80,8 +80,7 @@
   @vite('resources/js/superadmin/alert-timer.js')      {{-- Shared alert auto-hide --}}
   @vite('resources/js/admin/master-data/ilo-sortable.js') {{-- Example page-specific --}}
   @vite('resources/js/admin/master-data/so-sortable.js') {{-- Example page-specific --}}
-  @vite('resources/js/admin/master-data/programs.js')
-  @vite('resources/js/admin/master-data/courses.js')
+  {{-- Programs and Courses are now loaded by their respective standalone modules --}}
   @vite('resources/js/admin/master-data/so.js')
 
 

@@ -7,7 +7,7 @@
 📜 Log:
 [2025-10-04] Created admin version from superadmin master-data.js
 -------------------------------------------------------------------------------
-*/-----------------------------------------------------------------------
+-----------------------------------------------------------------------
 * File: resources/js/superadmin/master-data.js
 * Description: Master Data (SDG/IGA/CDIO) – drag locally (renumber codes + enable “Save order”),
 *              persist on Save via POST /superadmin/master-data/{type}/reorder.

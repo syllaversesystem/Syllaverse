@@ -17,6 +17,23 @@ function closeModal(modalId) {
   if (m) m.hide();
 }
 
+// Department filter function
+function filterByDepartment(departmentId) {
+  console.log('Filtering by department:', departmentId);
+  
+  // Reload the page with the department filter
+  const url = new URL(window.location);
+  if (departmentId === 'all') {
+    url.searchParams.delete('department');
+  } else {
+    url.searchParams.set('department', departmentId);
+  }
+  window.location.href = url.toString();
+}
+
+// Make function globally available
+window.filterByDepartment = filterByDepartment;
+
 function showEmptyState() {
   const tbody = document.querySelector('#svProgramsTable tbody');
   if (!tbody) return;
@@ -723,6 +740,19 @@ function setupDeletedProgramSearch() {
             const form = document.getElementById('addProgramForm');
             if (form) {
                 form.reset();
+            }
+            
+            // Auto-select department if there's a department filter active
+            console.log('Programs config:', window.programsConfig);
+            if (window.programsConfig?.departmentFilter) {
+                const departmentSelect = document.getElementById('addProgramDepartment');
+                console.log('Department filter found:', window.programsConfig.departmentFilter);
+                console.log('Department select element:', departmentSelect);
+                if (departmentSelect) {
+                    console.log('Setting department value to:', window.programsConfig.departmentFilter);
+                    departmentSelect.value = window.programsConfig.departmentFilter;
+                    console.log('Department select value after setting:', departmentSelect.value);
+                }
             }
             
             // Hide any open suggestions

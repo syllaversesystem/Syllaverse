@@ -26,7 +26,7 @@ class ProgramController extends Controller
         $user = auth()->user();
         
         // Get filter parameter for department
-        $departmentFilter = $request->get('department_filter');
+        $departmentFilter = $request->get('department');
         
         // Build programs query with optional department filter
         $programsQuery = Program::with(['department'])->notDeleted();
@@ -76,11 +76,10 @@ class ProgramController extends Controller
         $showAddDepartmentDropdown = $showDepartmentDropdown;
         $showEditDepartmentDropdown = $showDepartmentDropdown;
         
-        // Filter-based dropdown logic: if a specific department is filtered, hide dropdown in ADD modal only
+        // Filter-based dropdown logic: if a specific department is filtered, pre-select it but keep dropdown pickable
         if ($departmentFilter && $departmentFilter !== 'all') {
             $userDepartment = $departmentFilter;
-            $showAddDepartmentDropdown = false;
-            // Keep $showEditDepartmentDropdown = true for edit modal to allow department changes
+            // Keep both add and edit dropdowns visible and pickable, but pre-select the filtered department
         }
         
         return view('admin.programs.index', compact(

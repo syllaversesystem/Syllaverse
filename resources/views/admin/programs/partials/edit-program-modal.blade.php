@@ -157,7 +157,10 @@
             <option value="">Select Department</option>
             @if(isset($departments))
               @foreach($departments as $department)
-                <option value="{{ $department->id }}">{{ $department->name }}</option>
+                <option value="{{ $department->id }}" 
+                  {{ (isset($departmentFilter) && $departmentFilter == $department->id) || (isset($userDepartment) && $userDepartment == $department->id) ? 'selected' : '' }}>
+                  {{ $department->name }}
+                </option>
               @endforeach
             @endif
           </select>

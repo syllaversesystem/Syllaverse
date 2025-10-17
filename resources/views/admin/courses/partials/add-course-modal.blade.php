@@ -294,18 +294,27 @@
             </div>
 
             @if($showDepartmentDropdownInModal ?? false)
+            <!-- Show department dropdown - pre-select from filter or user department -->
             <div class="mb-3">
               <label for="addCourseDepartment" class="form-label small fw-medium text-muted">Department</label>
               <select class="form-select form-select-sm" id="addCourseDepartment" name="department_id" required>
                 <option value="">Select Department</option>
                 @if(isset($departments))
                   @foreach($departments as $department)
-                    <option value="{{ $department->id }}" {{ ($userDepartment ?? null) == $department->id ? 'selected' : '' }}>
+                    <option value="{{ $department->id }}" 
+                            @if($departmentFilter && $departmentFilter == $department->id) 
+                              selected 
+                            @elseif(!$departmentFilter && ($userDepartment ?? null) == $department->id) 
+                              selected 
+                            @endif>
                       {{ $department->name }}
                     </option>
                   @endforeach
                 @endif
               </select>
+              @if(isset($departmentFilter) && $departmentFilter)
+                <small class="text-muted">Pre-selected based on current department filter, but you can change it.</small>
+              @endif
             </div>
             @else
             <!-- Hidden field for department when user has specific role -->

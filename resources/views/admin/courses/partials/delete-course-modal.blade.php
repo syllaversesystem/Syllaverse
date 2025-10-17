@@ -217,6 +217,8 @@
         <form id="deleteCourseForm" action="{{ route('admin.courses.destroy', 0) }}" method="POST" class="d-inline delete-course-form">
           @csrf
           @method('DELETE')
+          {{-- Hidden field for the delete URL base (used by JavaScript) --}}
+          <input type="hidden" id="deleteCourseUrlBase" value="/admin/courses">
           <input type="hidden" id="deleteCourseId" name="id" value="">
           <input type="hidden" id="actionType" name="action_type" value="remove">
           <button type="submit" id="confirmActionBtn" class="btn btn-warning">

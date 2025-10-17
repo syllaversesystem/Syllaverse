@@ -57,6 +57,13 @@ if (!window.__svCoursesInit) {
     const m = action.match(/^(.*)\/\d+$/);
     return m ? m[1] : '/admin/courses';
   }
+  function getDeleteBase() {
+    const hidden = $('#deleteCourseUrlBase')?.value;
+    if (hidden) return hidden;
+    const action = $('#deleteCourseForm')?.getAttribute('action') || '';
+    const m = action.match(/^(.*)\/\d+$/);
+    return m ? m[1] : '/admin/courses';
+  }
   function getTbody() {
     return $('#svCoursesTbody') || $('#svCoursesTable tbody');
   }
@@ -433,6 +440,24 @@ if (!window.__svCoursesInit) {
     $('#editContactHoursLab').value    = lab;
     const d = $('#editCourseDescription'); if (d) d.value = desc;
     
+    // Set contact hours checkboxes and enable/disable fields accordingly
+    const lecCheckbox = $('#editLecCheckbox');
+    const labCheckbox = $('#editLabCheckbox');
+    const lecField = $('#editContactHoursLec');
+    const labField = $('#editContactHoursLab');
+    
+    if (lecCheckbox && lecField) {
+      lecCheckbox.checked = Number(lec) > 0;
+      lecField.disabled = !lecCheckbox.checked;
+      if (!lecCheckbox.checked) lecField.value = '0';
+    }
+    
+    if (labCheckbox && labField) {
+      labCheckbox.checked = Number(lab) > 0;
+      labField.disabled = !labCheckbox.checked;
+      if (!labCheckbox.checked) labField.value = '0';
+    }
+    
     // Set the department dropdown
     const deptSelect = $('#editCourseDepartment');
     if (deptSelect && departmentId) {
@@ -447,13 +472,14 @@ if (!window.__svCoursesInit) {
     const id    = $('#editCourseForm')?.dataset.id;
     const code  = $('#editCourseCode').value.trim();
     const title = $('#editCourseTitle').value.trim();
-  const course_category = $('#editCourseCategory')?.value?.trim() || '';
+    const course_category = $('#editCourseCategory')?.value?.trim() || '';
+    const department_id = $('#editCourseDepartment')?.value || '';
     const lec   = Number($('#editContactHoursLec').value || 0);
     const lab   = Number($('#editContactHoursLab').value || 0);
     const description = $('#editCourseDescription')?.value || '';
     const prereqIds = Array.from($('#editPrereqList')?.querySelectorAll('input[type="checkbox"]:checked') || [])
       .map(i => Number(i.value));
-  return { id, code, title, lec, lab, description, prereqIds, course_category };
+    return { id, code, title, lec, lab, description, prereqIds, course_category, department_id };
   }
   // ░░░ END: EDIT modal ░░░
 
@@ -504,7 +530,10 @@ if (!window.__svCoursesInit) {
           
           // Get department information from form or response
           const deptSelect = $('#addCourseDepartment');
-          const department_id = data.department_id || deptSelect?.value || '';
+          const deptHidden = $('input[name="department_id"]');
+          const department_id = data.department_id || 
+                              deptSelect?.value || 
+                              deptHidden?.value || '';
           const department_code = data.department_code || 
                                 (deptSelect?.options[deptSelect.selectedIndex]?.textContent?.trim()) || '';
           const department_name = data.department_name || department_code;
@@ -665,6 +694,10 @@ if (!window.__svCoursesInit) {
       const code = tr.dataset.code || 'Unknown Course';
       const title = tr.dataset.title || 'Unknown Course';
 
+      // Debug logging
+      console.log('Delete button clicked for:', { id, code, title });
+      console.log('Modal elements found:', { titleSpan: !!titleSpan, codeSpan: !!codeSpan, idInput: !!idInput });
+
       // Update modal content
       if (titleSpan) titleSpan.textContent = title;
       if (codeSpan) codeSpan.textContent = code;
@@ -672,7 +705,7 @@ if (!window.__svCoursesInit) {
       
       // Update form action
       if (form) {
-        const base = getUpdateBase();
+        const base = getDeleteBase();
         form.setAttribute('action', `${base}/${id}`);
         form.dataset.courseId = id;
       }
@@ -1010,7 +1043,7 @@ if (!window.__svCoursesInit) {
       
       // Debounce search requests
       timeoutRef = setTimeout(() => {
-        searchDeletedCourses(query, containerElement, searchType);
+        searchDeletedCoursesWithUI(query, containerElement, searchType);
       }, 300);
     });
     
@@ -1024,7 +1057,7 @@ if (!window.__svCoursesInit) {
     });
   }
   
-  function searchDeletedCourses(query, containerElement, searchType) {
+  function searchDeletedCoursesWithUI(query, containerElement, searchType) {
     console.log(`Searching deleted courses by ${searchType}:`, query);
     
     fetch(`/admin/courses/search-deleted?q=${encodeURIComponent(query)}`, {
