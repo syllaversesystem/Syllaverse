@@ -16,6 +16,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Models\Course;
+use App\Models\Department;
 use App\Models\IntendedLearningOutcome;
 use App\Models\Program;
 use App\Models\StudentOutcome;
@@ -61,6 +62,7 @@ class MasterDataController extends Controller
                 'intendedLearningOutcomes' => $iloList,
                 'programs'                 => $programs,
                 'courses'                  => $courses,
+                'departments'              => Department::orderBy('code')->get(),
                 'sdgs'                     => Sdg::ordered()->get(),
                 'igas'                     => Iga::ordered()->get(),
                 'cdios'                    => Cdio::ordered()->get(),
@@ -94,6 +96,7 @@ class MasterDataController extends Controller
                 'intendedLearningOutcomes' => collect(),
                 'programs'                 => collect(),
                 'courses'                  => collect(),
+                'departments'              => collect(),
             ]);
         }
 
@@ -121,6 +124,7 @@ class MasterDataController extends Controller
             'intendedLearningOutcomes' => $iloList,
             'programs'                 => $programs,
             'courses'                  => $courses,
+            'departments'              => Department::whereIn('id', $deptIds)->orderBy('code')->get(),
         ]);
     }
 

@@ -345,6 +345,94 @@ function bindDeleteOpener() {
 }
 
 /* ──────────────────────────────────────────────────────────────────────────────
+   START: SEARCH AND FILTER FUNCTIONALITY
+   ────────────────────────────────────────────────────────────────────────────── */
+
+/* Plain-English: filter SO table rows based on search input and department filter */
+function setupSearchAndFilter() {
+  const searchInput = document.getElementById('soSearch');
+  const departmentFilter = document.getElementById('soDepartmentFilter');
+  const soTable = document.getElementById('svTable-so');
+  
+  if (!soTable) return;
+
+  function filterTable() {
+    const searchTerm = searchInput?.value.toLowerCase() || '';
+    const selectedDept = departmentFilter?.value || 'all';
+    const tbody = soTable.querySelector('tbody');
+    const rows = tbody?.querySelectorAll('tr[data-id]') || [];
+    
+    let visibleCount = 0;
+    
+    rows.forEach(row => {
+      const code = row.querySelector('.sv-code')?.textContent?.toLowerCase() || '';
+      const description = row.querySelectorAll('td')[2]?.textContent?.toLowerCase() || '';
+      
+      // Check search match
+      const searchMatch = !searchTerm || 
+        code.includes(searchTerm) || 
+        description.includes(searchTerm);
+      
+      // For SOs, department filter shows all (SOs are typically program-level)
+      const deptMatch = true; // Always show SOs regardless of department filter
+      
+      // Show/hide row
+      if (searchMatch && deptMatch) {
+        row.style.display = '';
+        visibleCount++;
+      } else {
+        row.style.display = 'none';
+      }
+    });
+    
+    // Handle empty state
+    const emptyRow = tbody?.querySelector('.so-empty-row');
+    if (visibleCount === 0 && rows.length > 0) {
+      // Show "no results" message
+      if (!emptyRow) {
+        tbody.insertAdjacentHTML('beforeend', `
+          <tr class="so-empty-row so-no-results">
+            <td colspan="4">
+              <div class="so-empty">
+                <h6>No Results Found</h6>
+                <p>Try adjusting your search criteria.</p>
+              </div>
+            </td>
+          </tr>`);
+      }
+      emptyRow?.style.display = '';
+    } else if (emptyRow && emptyRow.classList.contains('so-no-results')) {
+      emptyRow.remove(); // Remove search "no results" message
+    }
+  }
+
+  // Bind search input
+  if (searchInput) {
+    searchInput.addEventListener('input', filterTable);
+    searchInput.addEventListener('keyup', filterTable);
+  }
+
+  // Bind department filter
+  if (departmentFilter) {
+    departmentFilter.addEventListener('change', filterTable);
+  }
+}
+
+/* Plain-English: global function for department filter change (called from onchange) */
+window.filterSOByDepartment = function(departmentId) {
+  const departmentFilter = document.getElementById('soDepartmentFilter');
+  if (departmentFilter && departmentFilter.value !== departmentId) {
+    departmentFilter.value = departmentId;
+    departmentFilter.dispatchEvent(new Event('change'));
+  }
+};
+
+/* ──────────────────────────────────────────────────────────────────────────────
+   END: SEARCH AND FILTER FUNCTIONALITY
+   ────────────────────────────────────────────────────────────────────────────── */
+
+
+/* ──────────────────────────────────────────────────────────────────────────────
    START: Boot
    ────────────────────────────────────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
@@ -354,6 +442,7 @@ document.addEventListener('DOMContentLoaded', () => {
   bindEditSubmit();
   bindDelete();
   bindDeleteOpener();
+  setupSearchAndFilter();
 
   // Ensure icons render at first load
   if (window.feather) window.feather.replace();

@@ -11,36 +11,49 @@
 
 <div class="tab-pane fade show active" id="so" role="tabpanel" aria-labelledby="so-tab">
 
-  {{-- Toolbar --}}
-  <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-3">
-    <h6 class="mb-0 fw-semibold" style="font-size:.95rem;">Student Outcomes</h6>
-
-    <div class="d-flex align-items-center gap-2">
-      {{-- Save Order --}}
-      <button type="button"
-              class="btn btn-light btn-sm border rounded-pill sv-save-order-btn"
-              data-sv-type="so"
-              disabled
-              title="Save current order">
-        <i data-feather="save"></i><span class="d-none d-md-inline ms-1">Save Order</span>
-      </button>
-
-      {{-- Add --}}
-      <button type="button"
-              class="btn-brand-sm"
-              data-bs-toggle="modal"
-              data-bs-target="#addSoModal"
-              aria-label="Add SO"
-              title="Add SO">
-        <i data-feather="plus"></i>
-      </button>
+  {{-- ░░░ START: Student Outcomes Toolbar ░░░ --}}
+  <div class="so-toolbar">
+    <div class="input-group">
+      <span class="input-group-text"><i data-feather="search"></i></span>
+      <input type="search" class="form-control" placeholder="Search student outcomes..." aria-label="Search student outcomes" id="soSearch">
     </div>
-  </div>
 
-  {{-- Table --}}
-  <div class="table-wrapper position-relative">
+    <div class="department-filter-wrapper">
+      <select class="form-select form-select-sm" id="soDepartmentFilter" onchange="filterSOByDepartment(this.value)">
+        <option value="all">All Departments</option>
+        @foreach($departments ?? [] as $department)
+          <option value="{{ $department->id }}">{{ $department->code }}</option>
+        @endforeach
+      </select>
+    </div>
+
+    <span class="flex-spacer"></span>
+
+    {{-- Save Order Button --}}
+    <button type="button"
+            class="btn btn-light btn-sm border rounded-pill sv-save-order-btn"
+            data-sv-type="so"
+            disabled
+            title="Save current order">
+      <i data-feather="save"></i><span class="d-none d-md-inline ms-1">Save Order</span>
+    </button>
+
+    {{-- Add SO Button --}}
+    <button type="button"
+            class="btn so-add-btn"
+            data-bs-toggle="modal"
+            data-bs-target="#addSoModal"
+            aria-label="Add SO"
+            title="Add Student Outcome">
+      <i data-feather="plus"></i>
+    </button>
+  </div>
+  {{-- ░░░ END: Student Outcomes Toolbar ░░░ --}}
+
+  {{-- ░░░ START: Student Outcomes Table ░░░ --}}
+  <div class="so-table-wrapper position-relative">
     <div class="table-responsive">
-      <table class="table mb-0" id="svTable-so" data-sv-type="so">
+      <table class="table mb-0 so-table" id="svTable-so" data-sv-type="so">
         <thead>
           <tr>
             <th></th>
@@ -83,9 +96,9 @@
               </td>
             </tr>
           @empty
-            <tr class="sv-empty-row">
+            <tr class="so-empty-row">
               <td colspan="4">
-                <div class="sv-empty">
+                <div class="so-empty">
                   <h6>No Student Outcomes</h6>
                   <p>Click <i data-feather="plus"></i> to add one.</p>
                 </div>
@@ -96,4 +109,5 @@
       </table>
     </div>
   </div>
+  {{-- ░░░ END: Student Outcomes Table ░░░ --}}
 </div>
