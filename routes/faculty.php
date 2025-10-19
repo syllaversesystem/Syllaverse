@@ -19,6 +19,7 @@ use App\Http\Controllers\Faculty\SyllabusTLAController;
 use App\Http\Controllers\Faculty\SyllabusIloController;
 use App\Http\Controllers\Faculty\SyllabusSoController;
 use App\Http\Controllers\Faculty\SyllabusSdgController;
+use App\Http\Controllers\Faculty\ManageFacultyAccountController;
 use App\Http\Middleware\FacultyAuth;
 
 // ---------- Faculty Login Form View ----------
@@ -32,13 +33,18 @@ Route::get('/faculty/google/callback', [FacultyAuthController::class, 'handleGoo
 
 // ---------- Faculty Profile Completion (use faculty guard so faculty redirects target faculty login) ----------
 Route::middleware(['auth:faculty'])->group(function () {
-    Route::get('/faculty/complete-profile', [ProfileController::class, 'showCompleteForm'])->name('faculty.complete-profile');
-    Route::post('/faculty/complete-profile', [ProfileController::class, 'submitProfile'])->name('faculty.complete-profile.submit');
+    Route::get('/faculty/complete-profile', [ProfileController::class, 'showCompleteProfile'])->name('faculty.complete-profile');
+    Route::post('/faculty/complete-profile', [ProfileController::class, 'submitProfile'])->name('faculty.submit-profile');
 });
 
 // ---------- Faculty-Only Protected Routes ----------
 Route::middleware([FacultyAuth::class])->group(function () {
     Route::view('/faculty/dashboard', 'faculty.dashboard')->name('faculty.dashboard');
+
+    // ---------- Manage Faculty Accounts ----------
+    Route::get('/faculty/manage-accounts', [ManageFacultyAccountController::class, 'index'])->name('faculty.manage-accounts.index');
+    Route::post('/faculty/manage-accounts/{id}/approve', [ManageFacultyAccountController::class, 'approve'])->name('faculty.manage-accounts.approve');
+    Route::post('/faculty/manage-accounts/{id}/reject', [ManageFacultyAccountController::class, 'reject'])->name('faculty.manage-accounts.reject');
 
     // ---------- Syllabus Routes ----------
     Route::get('/faculty/syllabi', [SyllabusController::class, 'index'])->name('faculty.syllabi.index');
@@ -115,6 +121,11 @@ Route::middleware([FacultyAuth::class])->group(function () {
     Route::post('/faculty/syllabi/{syllabus}/ilo-iga', [SyllabusController::class, 'saveIloIga'])->name('faculty.syllabi.ilo_iga.save');
     // Persist ILO -> CDIO -> SDG mapping payload for a syllabus
     Route::post('/faculty/syllabi/{syllabus}/ilo-cdio-sdg', [SyllabusController::class, 'saveIloCdioSdg'])->name('faculty.syllabi.ilo_cdio_sdg.save');
+
+    // ---------- Faculty Manage Accounts ----------
+    Route::get('/faculty/manage-accounts', [ManageFacultyAccountController::class, 'index'])->name('faculty.manage-accounts.index');
+    Route::post('/faculty/manage-accounts/{id}/approve', [ManageFacultyAccountController::class, 'approve'])->name('faculty.manage-accounts.approve');
+    Route::post('/faculty/manage-accounts/{id}/reject', [ManageFacultyAccountController::class, 'reject'])->name('faculty.manage-accounts.reject');
 
 });
 

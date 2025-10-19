@@ -1,0 +1,34 @@
+/* 
+-------------------------------------------------------------------------------
+* File: resources/css/faculty/manage-accounts/partials/card.css
+* Description: Card styling for Faculty Manage Accounts - matches superadmin design
+-------------------------------------------------------------------------------
+📜 Log:
+[2025-10-18] Copied from superadmin and adapted for faculty manage accounts
+-------------------------------------------------------------------------------
+*/
+
+.manage-account,
+.faculty-manage-account-card {
+  position: relative;
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 0.75rem;
+  padding: clamp(1.25rem, 3vw, 2rem);
+  border: 1px solid rgba(200, 200, 200, 0.35);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+  font-family: 'Poppins', sans-serif;
+  animation: fadeInCard 0.5s ease-in-out both;
+}
+
+@keyframes fadeInCard {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

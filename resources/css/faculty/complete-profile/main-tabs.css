@@ -1,0 +1,190 @@
+/* ░░░ Faculty Complete Profile Main Tabs ░░░ */
+
+:root {
+  /* Tab dimensions and spacing */
+  --sv-tab-h: 48px;
+  --sv-tab-fs: 0.925rem;
+  --sv-underline: 3px;
+  --sv-underline-w: 85%;
+  
+  /* Colors */
+  --sv-tab-accent: #CB3737;
+  --sv-text-muted: #666;
+  --sv-border: #E0E0E0;
+}
+
+/* ░░░ Faculty Profile Setup Container ░░░ */
+.faculty-profile-setup {
+  margin-bottom: 2rem;
+}
+
+/* ░░░ Main Tabs – Superadmin Style ░░░ */
+.faculty-profile-main-tabs {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0;
+  border-bottom: 1px solid var(--sv-border);
+  margin-bottom: 0.5rem;
+}
+
+.faculty-profile-main-tabs .nav-item { 
+  flex: 1 1 0; 
+  text-align: center; 
+}
+
+.faculty-profile-main-tab {
+  position: relative; 
+  display: inline-flex; 
+  align-items: center; 
+  justify-content: center;
+  height: var(--sv-tab-h); 
+  width: 100%; 
+  padding: 0;
+  font-family: 'Poppins', sans-serif; 
+  font-weight: 600; 
+  font-size: var(--sv-tab-fs);
+  letter-spacing: 0.01em; 
+  color: var(--sv-text-muted); 
+  background: transparent; 
+  border: 0;
+  white-space: nowrap; 
+  transition: color .16s ease;
+}
+
+.faculty-profile-main-tab:hover { 
+  color: var(--sv-tab-accent); 
+}
+
+.faculty-profile-main-tab:focus-visible { 
+  outline: none; 
+  box-shadow: 0 0 0 2px rgba(203,55,55,.18); 
+}
+
+.faculty-profile-main-tab::after {
+  content:""; 
+  position:absolute; 
+  left:50%; 
+  transform:translateX(-50%); 
+  bottom:calc(var(--sv-underline)*-1);
+  width: var(--sv-underline-w); 
+  height: var(--sv-underline); 
+  background: transparent; 
+  border-radius: 2px;
+  transition: background-color .16s ease, width .16s ease;
+}
+
+.faculty-profile-main-tab.active { 
+  color: var(--sv-tab-accent); 
+}
+
+.faculty-profile-main-tab.active::after { 
+  background: var(--sv-tab-accent); 
+}
+
+.faculty-profile-main-tab.disabled,
+.faculty-profile-main-tab:disabled {
+  color: #ccc;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.faculty-profile-main-tab.disabled::after,
+.faculty-profile-main-tab:disabled::after {
+  background: transparent;
+}
+
+/* ░░░ Tab Content Cards ░░░ */
+.faculty-profile-setup .tab-content .card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.faculty-profile-setup .tab-content .card-body {
+  padding: 2rem;
+}
+
+/* ░░░ Form Styling ░░░ */
+.faculty-profile-setup .form-label {
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+
+.faculty-profile-setup .form-control {
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 0.75rem;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.faculty-profile-setup .form-control:focus {
+  border-color: var(--sv-tab-accent);
+  box-shadow: 0 0 0 0.2rem rgba(203, 55, 55, 0.15);
+}
+
+/* ░░░ Button Styling ░░░ */
+.faculty-profile-setup .btn-danger {
+  background: var(--sv-tab-accent);
+  border-color: var(--sv-tab-accent);
+  font-weight: 500;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  transition: all 0.15s ease-in-out;
+}
+
+.faculty-profile-setup .btn-danger:hover {
+  background: #b32e2e;
+  border-color: #b32e2e;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(203, 55, 55, 0.3);
+}
+
+.faculty-profile-setup .btn-outline-secondary {
+  color: #666;
+  border-color: #ddd;
+  font-weight: 500;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  transition: all 0.15s ease-in-out;
+}
+
+.faculty-profile-setup .btn-outline-secondary:hover {
+  background: #f8f9fa;
+  border-color: #adb5bd;
+  color: #495057;
+}
+
+/* ░░░ Leadership Cards Styling ░░░ */
+.faculty-profile-setup .card.bg-light {
+  background: rgba(248, 249, 250, 0.8) !important;
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.faculty-profile-setup .form-check-input:checked {
+  background-color: var(--sv-tab-accent);
+  border-color: var(--sv-tab-accent);
+}
+
+.faculty-profile-setup .form-check-input:focus {
+  border-color: var(--sv-tab-accent);
+  box-shadow: 0 0 0 0.25rem rgba(203, 55, 55, 0.15);
+}
+
+/* ░░░ Responsive Design ░░░ */
+@media (max-width: 768px) {
+  .faculty-profile-setup .tab-content .card-body {
+    padding: 1.5rem;
+  }
+  
+  .faculty-profile-main-tab {
+    font-size: 0.85rem;
+  }
+  
+  .faculty-profile-main-tabs {
+    gap: 0;
+  }
+}

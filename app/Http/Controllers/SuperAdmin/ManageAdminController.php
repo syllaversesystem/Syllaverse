@@ -37,21 +37,21 @@ class ManageAdminController extends Controller
         $approvedAdmins = User::where('role','admin')->where('status','active')->get();
         $rejectedAdmins = User::where('role','admin')->where('status','rejected')->get();
 
-        $faculty  = User::where('role','faculty')->get();
         $students = User::where('role','student')->get();
 
         $departments = Department::orderBy('name')->get();
         $programs    = Program::orderBy('name')->get(); // ✅ add this
 
+        // Exclude faculty role requests from superadmin view - they should only be handled by department administrators
         $pendingChairRequests = ChairRequest::with(['user','department','program'])
             ->where('status','pending')
+            ->where('requested_role', '!=', ChairRequest::ROLE_FACULTY)
             ->get();
 
         return view('superadmin.manage-accounts.index', compact(
             'pendingAdmins',
             'approvedAdmins',
             'rejectedAdmins',
-            'faculty',
             'students',
             'departments',
             'programs',              // ✅ pass it
@@ -125,5 +125,134 @@ public function reject($id)
     return redirect()->back()->with('success', 'Admin revoked successfully. All appointments removed.');
 }
 
-    // ░░░ END: Reject/Revoke ░░░
+/**
+ * Suspend an admin account
+ */
+public function suspend($id)
+{
+    $user = User::findOrFail($id);
+
+    if ($user->role === 'admin') {
+        $user->status = 'suspended';
+        $user->save();
+        
+        // Optionally end all appointments
+        $user->appointments()->where('status', 'active')->update([
+            'status' => 'ended',
+            'end_at' => now()
+        ]);
+    }
+
+    if (request()->ajax()) {
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Admin suspended successfully.'
+        ]);
+    }
+
+    return redirect()->back()->with('success', 'Admin suspended successfully.');
+}
+
+    // ░░░ END: Admin Management ░░░
+
+    // ░░░ START: Faculty Management ░░░
+
+/**
+ * Approve a faculty account
+ */
+public function approveFaculty($id)
+{
+    $user = User::findOrFail($id);
+
+    if ($user->role === 'faculty') {
+        $user->status = 'active';
+        $user->save();
+    }
+
+    if (request()->ajax()) {
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Faculty approved successfully.'
+        ]);
+    }
+
+    return redirect()->back()->with('success', 'Faculty approved successfully.');
+}
+
+/**
+ * Reject a faculty account
+ */
+public function rejectFaculty($id)
+{
+    $user = User::findOrFail($id);
+
+    if ($user->role === 'faculty') {
+        $user->status = 'rejected';
+        $user->save();
+        
+        // Remove any active appointments
+        $user->appointments()->where('status', 'active')->delete();
+    }
+
+    if (request()->ajax()) {
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Faculty rejected successfully.'
+        ]);
+    }
+
+    return redirect()->back()->with('success', 'Faculty rejected successfully.');
+}
+
+/**
+ * Suspend a faculty account
+ */
+public function suspendFaculty($id)
+{
+    $user = User::findOrFail($id);
+
+    if ($user->role === 'faculty') {
+        $user->status = 'suspended';
+        $user->save();
+        
+        // End all active appointments
+        $user->appointments()->where('status', 'active')->update([
+            'status' => 'ended',
+            'end_at' => now()
+        ]);
+    }
+
+    if (request()->ajax()) {
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Faculty suspended successfully.'
+        ]);
+    }
+
+    return redirect()->back()->with('success', 'Faculty suspended successfully.');
+}
+
+/**
+ * Reactivate a faculty account
+ */
+public function reactivateFaculty($id)
+{
+    $user = User::findOrFail($id);
+
+    if ($user->role === 'faculty') {
+        $user->status = 'active';
+        $user->save();
+    }
+
+    if (request()->ajax()) {
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Faculty reactivated successfully.'
+        ]);
+    }
+
+    return redirect()->back()->with('success', 'Faculty reactivated successfully.');
+}
+
+    // ░░░ END: Faculty Management ░░░
 }

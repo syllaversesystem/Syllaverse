@@ -46,8 +46,15 @@ Route::middleware([SuperAdminAuth::class])->prefix('superadmin')->group(function
     Route::view('/notifications', 'superadmin.notifications')->name('superadmin.notifications');
 
     // ---------- Manage Admin Accounts ----------
-    Route::post('/manage-accounts/admins/{id}/approve', [ManageAdminController::class, 'approve'])->name('superadmin.approve.admin');
-    Route::post('/manage-accounts/admins/{id}/reject',  [ManageAdminController::class, 'reject'])->name('superadmin.reject.admin');
+    Route::post('/manage-accounts/admin/{id}/approve', [ManageAdminController::class, 'approve'])->name('superadmin.approve.admin');
+    Route::post('/manage-accounts/admin/{id}/reject',  [ManageAdminController::class, 'reject'])->name('superadmin.reject.admin');
+    Route::post('/manage-accounts/admin/{id}/suspend', [ManageAdminController::class, 'suspend'])->name('superadmin.suspend.admin');
+
+    // ---------- Manage Faculty Accounts ----------
+    Route::post('/manage-accounts/faculty/{id}/approve', [ManageAdminController::class, 'approveFaculty'])->name('superadmin.approve.faculty');
+    Route::post('/manage-accounts/faculty/{id}/reject', [ManageAdminController::class, 'rejectFaculty'])->name('superadmin.reject.faculty');
+    Route::post('/manage-accounts/faculty/{id}/suspend', [ManageAdminController::class, 'suspendFaculty'])->name('superadmin.suspend.faculty');
+    Route::post('/manage-accounts/faculty/{id}/reactivate', [ManageAdminController::class, 'reactivateFaculty'])->name('superadmin.reactivate.faculty');
 
     // ---------- Chair Requests (Approve/Reject) ----------
     Route::post('/chair-requests/{id}/approve', [ChairRequestController::class, 'approve'])->name('superadmin.chair-requests.approve');

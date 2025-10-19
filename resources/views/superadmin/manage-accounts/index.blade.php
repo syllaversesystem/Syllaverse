@@ -17,34 +17,60 @@
 @section('content')
   <div class="manage-account"><!-- Updated from department-card to manage-account -->
 
-    {{-- ░░░ START: Top Tabs (Admins / Faculty) ░░░ --}}
-    <ul class="nav superadmin-manage-account-main-tabs" id="accountTabs" role="tablist" aria-label="Account type tabs">
+    {{-- ░░░ START: Main Tabs (Approvals, Approved, Rejected) ░░░ --}}
+    <ul class="nav superadmin-manage-account-main-tabs" id="accountTabs" role="tablist" aria-label="Account management tabs">
       <li class="nav-item" role="presentation">
-        <button class="nav-link superadmin-manage-account-main-tab active" id="admins-tab" data-bs-toggle="tab" data-bs-target="#admins" type="button" role="tab" aria-controls="admins" aria-selected="true">
-          Admins
+        <button class="nav-link superadmin-manage-account-main-tab active"
+                id="approvals-tab"
+                data-bs-toggle="pill"
+                data-bs-target="#approvals"
+                type="button"
+                role="tab">
+          Approvals
         </button>
       </li>
       <li class="nav-item" role="presentation">
-        <button class="nav-link superadmin-manage-account-main-tab" id="faculty-tab" data-bs-toggle="tab" data-bs-target="#faculty" type="button" role="tab" aria-controls="faculty" aria-selected="false">
-          Faculty
+        <button class="nav-link superadmin-manage-account-main-tab"
+                id="approved-tab"
+                data-bs-toggle="pill"
+                data-bs-target="#approved"
+                type="button"
+                role="tab">
+          Approved
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link superadmin-manage-account-main-tab"
+                id="rejected-tab"
+                data-bs-toggle="pill"
+                data-bs-target="#rejected"
+                type="button"
+                role="tab">
+          Rejected
         </button>
       </li>
     </ul>
-    {{-- ░░░ END: Top Tabs ░░░ --}}
+    {{-- ░░░ END: Main Tabs ░░░ --}}
 
     {{-- ░░░ START: Tab Content ░░░ --}}
     <div class="tab-content">
-      {{-- ░░░ START: Admins Tab ░░░ --}}
-      <div class="tab-pane fade show active" id="admins" role="tabpanel" aria-labelledby="admins-tab">
-        @include('superadmin.manage-accounts.tabs.admins')
+      {{-- ░░░ START: Approvals Tab ░░░ --}}
+      <div class="tab-pane fade show active" id="approvals" role="tabpanel" aria-labelledby="approvals-tab">
+        @include('superadmin.manage-accounts.tabs.admins-approvals')
       </div>
-      {{-- ░░░ END: Admins Tab ░░░ --}}
+      {{-- ░░░ END: Approvals Tab ░░░ --}}
 
-      {{-- ░░░ START: Faculty Tab ░░░ --}}
-      <div class="tab-pane fade" id="faculty" role="tabpanel" aria-labelledby="faculty-tab">
-        @include('superadmin.manage-accounts.tabs.faculty')
+      {{-- ░░░ START: Approved Tab ░░░ --}}
+      <div class="tab-pane fade" id="approved" role="tabpanel" aria-labelledby="approved-tab">
+        @include('superadmin.manage-accounts.tabs.admins-approved')
       </div>
-      {{-- ░░░ END: Faculty Tab ░░░ --}}
+      {{-- ░░░ END: Approved Tab ░░░ --}}
+
+      {{-- ░░░ START: Rejected Tab ░░░ --}}
+      <div class="tab-pane fade" id="rejected" role="tabpanel" aria-labelledby="rejected-tab">
+        @include('superadmin.manage-accounts.tabs.admins-rejected')
+      </div>
+      {{-- ░░░ END: Rejected Tab ░░░ --}}
     </div>
     {{-- ░░░ END: Tab Content ░░░ --}}
 

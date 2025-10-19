@@ -128,12 +128,12 @@ Route::post('/master-data/reorder/ilo', [\App\Http\Controllers\Admin\IntendedLea
     // ───────────────────────────────────────────────────────────────────────────
     // Approvals (Syllabus Review & Approval)
     // ───────────────────────────────────────────────────────────────────────────
-    Route::get('/approvals', [\App\Http\Controllers\Admin\ApprovalsController::class, 'index'])->name('admin.approvals.index');
-    Route::post('/approvals/{id}/approve', [\App\Http\Controllers\Admin\ApprovalsController::class, 'approve'])->name('admin.approvals.approve');
-    Route::post('/approvals/{id}/reject', [\App\Http\Controllers\Admin\ApprovalsController::class, 'reject'])->name('admin.approvals.reject');
-    Route::get('/approvals/{id}/review', [\App\Http\Controllers\Admin\ApprovalsController::class, 'review'])->name('admin.approvals.review');
-    Route::post('/approvals/bulk-approve', [\App\Http\Controllers\Admin\ApprovalsController::class, 'bulkApprove'])->name('admin.approvals.bulk-approve');
-    Route::post('/approvals/bulk-reject', [\App\Http\Controllers\Admin\ApprovalsController::class, 'bulkReject'])->name('admin.approvals.bulk-reject');
+    Route::get('/approvals', [ApprovalsController::class, 'index'])->name('admin.approvals.index');
+    Route::post('/approvals/{id}/approve', [ApprovalsController::class, 'approve'])->name('admin.approvals.approve');
+    Route::post('/approvals/{id}/reject', [ApprovalsController::class, 'reject'])->name('admin.approvals.reject');
+    Route::get('/approvals/{id}/review', [ApprovalsController::class, 'review'])->name('admin.approvals.review');
+    Route::post('/approvals/bulk-approve', [ApprovalsController::class, 'bulkApprove'])->name('admin.approvals.bulk-approve');
+    Route::post('/approvals/bulk-reject', [ApprovalsController::class, 'bulkReject'])->name('admin.approvals.bulk-reject');
 
     // ───────────────────────────────────────────────────────────────────────────
     // Manage Faculty Accounts

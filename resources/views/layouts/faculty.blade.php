@@ -64,8 +64,8 @@
       @include('includes.faculty-navbar')
       <div id="sidebar-backdrop" class="sidebar-backdrop d-none"></div>
 
-      {{-- ✅ Match Super Admin spacing (px-4 py-4) --}}
-      <main class="container-fluid px-4 py-4">
+      {{-- ✅ Reduced container padding to 16px --}}
+      <main class="container-fluid" style="padding: 16px;">
         @yield('content')
       </main>
     </div>

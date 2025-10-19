@@ -33,7 +33,13 @@
   }
 
   // Merge pending chair requests (even if signup already approved)
+  // Exclude faculty role requests from superadmin view
   foreach ($pendingChairRequests as $r) {
+    // Skip faculty role requests - they should only be visible to department administrators
+    if ($r->requested_role === ChairRequest::ROLE_FACULTY) {
+      continue;
+    }
+    
     $uid   = $r->user_id;
     $label = match ($r->requested_role) {
       ChairRequest::ROLE_DEPT => 'Dept Chair',
@@ -41,6 +47,7 @@
       ChairRequest::ROLE_VCAA => 'VCAA',
       ChairRequest::ROLE_ASSOC_VCAA => 'Associate VCAA',
       ChairRequest::ROLE_DEAN => 'Dean',
+      ChairRequest::ROLE_ASSOC_DEAN => 'Associate Dean',
       default => $r->requested_role,
     };
     $dept  = optional($r->department)->name;
@@ -76,10 +83,7 @@
   $groups = $groups->sortByDesc('latest_at');
 @endphp
 
-{{-- ✅ Must match sub-tab button data-bs-target="#admins-approvals" --}}
-<div class="tab-pane fade show active" id="admins-approvals" role="tabpanel" aria-labelledby="admins-approvals-tab">
-
-  {{-- ░░░ START: Table Section ░░░ --}}
+{{-- ░░░ START: Table Section ░░░ --}}
   <div class="table-wrapper position-relative">
     <div class="table-responsive">
       <table class="table superadmin-manage-account-table mb-0" id="svMergedApprovalsTable">
@@ -241,19 +245,104 @@
             @endif
 
           @empty
+            {{-- No admin groups --}}
+          @endforelse
+
+          {{-- ░░░ START: Empty State ░░░ --}}
+          @if($groups->isEmpty())
             <tr class="superadmin-manage-account-empty-row">
-              <td colspan="7">
+              <td colspan="5">
                 <div class="sv-empty">
                   <h6>No approvals pending</h6>
-                  <p>New admin signups and chair role requests will appear here.</p>
+                  <p>New admin signups and administrative role requests will appear here.</p>
                 </div>
               </td>
             </tr>
-          @endforelse
+          @endif
+          {{-- ░░░ END: Empty State ░░░ --}}
         </tbody>
       </table>
     </div>
   </div>
   {{-- ░░░ END: Table Section ░░░ --}}
 
-</div>
+  {{-- ░░░ START: JavaScript for Faculty Actions ░░░ --}}
+  <script>
+  // Faculty management functions
+  function approveFaculty(id) {
+      if (confirm('Approve this faculty account?')) {
+          fetch(`/superadmin/manage-accounts/faculty/${id}/approve`, {
+              method: 'POST',
+              headers: {
+                  'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                  'Accept': 'application/json'
+              }
+          }).then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    location.reload();
+                } else {
+                    alert('Failed to approve faculty');
+                }
+            });
+      }
+  }
+
+  function rejectFaculty(id) {
+      if (confirm('Reject this faculty account?')) {
+          fetch(`/superadmin/manage-accounts/faculty/${id}/reject`, {
+              method: 'POST',
+              headers: {
+                  'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                  'Accept': 'application/json'
+              }
+          }).then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    location.reload();
+                } else {
+                    alert('Failed to reject faculty');
+                }
+            });
+      }
+  }
+
+  function suspendFaculty(id) {
+      if (confirm('Suspend this faculty account?')) {
+          fetch(`/superadmin/manage-accounts/faculty/${id}/suspend`, {
+              method: 'POST',
+              headers: {
+                  'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                  'Accept': 'application/json'
+              }
+          }).then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    location.reload();
+                } else {
+                    alert('Failed to suspend faculty');
+                }
+            });
+      }
+  }
+
+  function reactivateFaculty(id) {
+      if (confirm('Reactivate this faculty account?')) {
+          fetch(`/superadmin/manage-accounts/faculty/${id}/reactivate`, {
+              method: 'POST',
+              headers: {
+                  'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                  'Accept': 'application/json'
+              }
+          }).then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    location.reload();
+                } else {
+                    alert('Failed to reactivate faculty');
+                }
+            });
+      }
+  }
+  </script>
+  {{-- ░░░ END: JavaScript for Faculty Actions ░░░ --}}

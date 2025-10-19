@@ -1,0 +1,83 @@
+/* 
+-------------------------------------------------------------------------------
+* File: resources/css/faculty/manage-accounts/partials/pills.css
+* Description: Compact status/type pills for tables (neutral + brand accent)
+-------------------------------------------------------------------------------
+📜 Log:
+[2025-10-18] Copied from superadmin and adapted for faculty manage accounts
+-------------------------------------------------------------------------------
+*/
+
+/* ░░░ START: Base pill ░░░ */
+.sv-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;                 /* tightened since dot is gone */
+  height: 1.6rem;               /* ~26px */
+  padding: 0 0.6rem;
+  border-radius: 999px;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  font-size: 0.72rem;
+  line-height: 1;
+  background: #fff;
+  border: 1px solid var(--sv-border);
+  color: var(--sv-text-muted);
+  white-space: nowrap;
+}
+
+/* Size variants */
+.sv-pill--sm { height: 1.4rem; font-size: 0.70rem; padding: 0 0.5rem; }
+.sv-pill--md { height: 1.6rem; } /* default */
+.sv-pill--lg { height: 1.8rem; font-size: 0.76rem; padding: 0 0.7rem; }
+
+/* Dot removed */
+.sv-pill__dot { display: none; }
+
+/* Icons (optional) */
+.sv-pill i,
+.sv-pill svg {
+  width: 0.95rem;
+  height: 0.95rem;
+  stroke-width: 2px;
+  stroke: currentColor;
+}
+/* ░░░ END: Base pill ░░░ */
+
+
+/* ░░░ START: Color variants (palette-safe) ░░░ */
+
+/* Neutral/muted (e.g., "Signup") */
+.sv-pill.is-muted {
+  background: #fff;
+  border-color: var(--sv-border);
+  color: var(--sv-text-muted);
+}
+
+/* Brand accent (e.g., "Chair Request") */
+.sv-pill.is-accent {
+  background: rgba(238, 111, 87, 0.10);         /* var(--sv-primary) tint */
+  border-color: rgba(238, 111, 87, 0.25);
+  color: var(--sv-primary-dark);
+}
+
+/* Quiet outline (optional) */
+.sv-pill.is-outline {
+  background: transparent;
+  border-color: var(--sv-primary);
+  color: var(--sv-primary-dark);
+}
+
+/* Ghost (text-only, optional) */
+.sv-pill.is-ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--sv-text-muted);
+}
+/* ░░░ END: Color variants ░░░ */
+
+
+/* ░░░ START: Table niceties ░░░ */
+.sv-pill + .sv-pill { margin-left: 0.35rem; }    /* spacing when multiple pills */
+td .sv-pill { transform: translateY(-1px); }     /* optical center in table rows */
+/* ░░░ END: Table niceties ░░░ */

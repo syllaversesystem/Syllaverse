@@ -36,6 +36,7 @@ class Appointment extends Model
     public const ROLE_VCAA       = 'VCAA';
     public const ROLE_ASSOC_VCAA = 'ASSOC_VCAA';
     public const ROLE_DEAN       = 'DEAN';
+    public const ROLE_ASSOC_DEAN = 'ASSOC_DEAN';
 
     /** Scope type constants (polymorphic-ish discriminator). */
     public const SCOPE_DEPT    = 'Department';
@@ -134,6 +135,7 @@ class Appointment extends Model
                     self::ROLE_VCAA,
                     self::ROLE_ASSOC_VCAA,
                     self::ROLE_DEAN         => self::SCOPE_INSTITUTION,
+                    self::ROLE_ASSOC_DEAN   => self::SCOPE_DEPT,
                     default                 => self::SCOPE_DEPT,
                 };
                 // For institution-level roles we allow scope_id to remain null.
@@ -148,6 +150,7 @@ class Appointment extends Model
                     self::ROLE_VCAA,
                     self::ROLE_ASSOC_VCAA,
                     self::ROLE_DEAN         => self::SCOPE_INSTITUTION,
+                    self::ROLE_ASSOC_DEAN   => self::SCOPE_DEPT,
                     default                 => self::SCOPE_DEPT,
                 };
             }

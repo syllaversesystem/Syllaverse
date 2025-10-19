@@ -55,8 +55,8 @@ class ChairRequestController extends Controller
             }
         }
 
-        // Department-scoped roles require a department. Dean is department-scoped; institution-level VCAA/ASSOC_VCAA are not.
-        if ($role === ChairRequest::ROLE_DEPT || $role === ChairRequest::ROLE_DEAN) {
+        // Department-scoped roles require a department. Dean and Associate Dean are department-scoped; institution-level VCAA/ASSOC_VCAA are not.
+        if ($role === ChairRequest::ROLE_DEPT || $role === ChairRequest::ROLE_DEAN || $role === ChairRequest::ROLE_ASSOC_DEAN) {
             if (empty($deptId)) {
                 return back()->withErrors(['department_id' => 'Department is required when approving this request.']);
             }
@@ -78,6 +78,11 @@ class ChairRequestController extends Controller
             } elseif ($role === ChairRequest::ROLE_DEAN) {
                 // Dean is department-scoped (one dean per department)
                 $apptRole  = Appointment::ROLE_DEAN;
+                $scopeType = Appointment::SCOPE_DEPT;
+                $scopeId   = $deptId;
+            } elseif ($role === ChairRequest::ROLE_ASSOC_DEAN) {
+                // Associate Dean is department-scoped (assists dean within department)
+                $apptRole  = Appointment::ROLE_ASSOC_DEAN;
                 $scopeType = Appointment::SCOPE_DEPT;
                 $scopeId   = $deptId;
             } elseif ($role === ChairRequest::ROLE_PROG) {
@@ -182,6 +187,10 @@ class ChairRequestController extends Controller
                     $scopeId = $deptId;
                 } elseif ($role === ChairRequest::ROLE_DEAN) {
                     $apptRole = Appointment::ROLE_DEAN;
+                    $scopeType = Appointment::SCOPE_DEPT;
+                    $scopeId = $deptId;
+                } elseif ($role === ChairRequest::ROLE_ASSOC_DEAN) {
+                    $apptRole = Appointment::ROLE_ASSOC_DEAN;
                     $scopeType = Appointment::SCOPE_DEPT;
                     $scopeId = $deptId;
                 } elseif ($role === ChairRequest::ROLE_PROG) {

@@ -9,8 +9,7 @@
 -------------------------------------------------------------------------------
 --}}
 
-<div class="tab-pane fade" id="admins-rejected" role="tabpanel" aria-labelledby="admins-rejected-tab">
-  {{-- ░░░ START: Table Section (Approvals-style wrapper) ░░░ --}}
+{{-- ░░░ START: Table Section (Approvals-style wrapper) ░░░ --}}
   <div class="table-wrapper position-relative">
     <div class="table-responsive">
       <table class="table superadmin-manage-account-table mb-0" id="svRejectedAdminsTable">
@@ -47,18 +46,23 @@
               </td>
             </tr>
           @empty
+            {{-- No rejected admins --}}
+          @endforelse
+
+          {{-- ░░░ START: Empty State ░░░ --}}
+          @if(($rejectedAdmins ?? collect())->isEmpty())
             <tr class="superadmin-manage-account-empty-row">
               <td colspan="3">
                 <div class="sv-empty">
-                  <h6>No rejected admins</h6>
-                  <p>When an admin is rejected, they will appear here. You can re-approve them anytime.</p>
+                  <h6>No rejected accounts</h6>
+                  <p>When admins are rejected, they will appear here. You can re-approve them anytime.</p>
                 </div>
               </td>
             </tr>
-          @endforelse
+          @endif
+          {{-- ░░░ END: Empty State ░░░ --}}
         </tbody>
       </table>
     </div>
   </div>
   {{-- ░░░ END: Table Section ░░░ --}}
-</div>

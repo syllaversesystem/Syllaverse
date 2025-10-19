@@ -20,9 +20,7 @@
   $progById = collect($programs ?? [])->keyBy('id');
 @endphp
 
-<div class="tab-pane fade" id="admins-approved" role="tabpanel" aria-labelledby="admins-approved-tab">
-
-  {{-- ░░░ START: Table Section (Approvals-style wrapper) ░░░ --}}
+{{-- ░░░ START: Table Section (Approvals-style wrapper) ░░░ --}}
   <div class="table-wrapper position-relative">
     <div class="table-responsive">
       <table class="table superadmin-manage-account-table mb-0" id="svApprovedAdminsTable">
@@ -100,19 +98,23 @@
             @endpush
 
           @empty
+            {{-- No approved admins --}}
+          @endforelse
+
+          {{-- ░░░ START: Empty State ░░░ --}}
+          @if(($approvedAdmins ?? collect())->isEmpty())
             <tr class="superadmin-manage-account-empty-row">
               <td colspan="4">
                 <div class="sv-empty">
-                  <h6>No approved admins</h6>
+                  <h6>No approved accounts</h6>
                   <p>Approved admins will appear here once accounts are verified.</p>
                 </div>
               </td>
             </tr>
-          @endforelse
+          @endif
+          {{-- ░░░ END: Empty State ░░░ --}}
         </tbody>
       </table>
     </div>
   </div>
   {{-- ░░░ END: Table Section ░░░ --}}
-
-</div>

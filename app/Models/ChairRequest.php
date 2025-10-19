@@ -25,6 +25,9 @@ class ChairRequest extends Model
     public const ROLE_VCAA       = 'VCAA';
     public const ROLE_ASSOC_VCAA = 'ASSOC_VCAA';
     public const ROLE_DEAN       = 'DEAN';
+    public const ROLE_ASSOC_DEAN = 'ASSOC_DEAN';
+    // Standard faculty role (department-specific, no administrative responsibilities)
+    public const ROLE_FACULTY    = 'FACULTY';
 
     public const STATUS_PENDING  = 'pending';
     public const STATUS_APPROVED = 'approved';
@@ -125,5 +128,40 @@ class ChairRequest extends Model
             'end_at'      => null,
             'assigned_by' => $assignedByUserId,
         ];
+    }
+
+    /**
+     * Get the appropriate approvers for this request based on role and department.
+     * For faculty requests, returns users with Dean or Department Chair roles in the same department.
+     * For other requests, returns superadmin/admin users.
+     */
+    public function getApprovers()
+    {
+        // For faculty role requests, find faculty members with administrative roles in the same department
+        if ($this->requested_role === self::ROLE_FACULTY && $this->department_id) {
+            return User::whereHas('appointments', function ($query) {
+                $query->active()
+                      ->where('scope_type', \App\Models\Appointment::SCOPE_DEPT)
+                      ->where('scope_id', $this->department_id)
+                      ->whereIn('role', [
+                          \App\Models\Appointment::ROLE_DEAN,
+                          \App\Models\Appointment::ROLE_ASSOC_DEAN,
+                          \App\Models\Appointment::ROLE_DEPT,
+                      ]);
+            })->get();
+        }
+
+        // For leadership roles (Dean, Department Chair, VCAA, etc.), return admin/superadmin users
+        return User::whereIn('role', ['admin', 'superadmin'])->get();
+    }
+
+    /**
+     * Check if this faculty request has approvers in the same department.
+     */
+    public function hasDepartmentApprovers(): bool
+    {
+        return $this->requested_role === self::ROLE_FACULTY 
+               && $this->department_id 
+               && $this->getApprovers()->isNotEmpty();
     }
 }
