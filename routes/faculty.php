@@ -20,6 +20,7 @@ use App\Http\Controllers\Faculty\SyllabusIloController;
 use App\Http\Controllers\Faculty\SyllabusSoController;
 use App\Http\Controllers\Faculty\SyllabusSdgController;
 use App\Http\Controllers\Faculty\ManageFacultyAccountController;
+use App\Http\Controllers\Faculty\DepartmentsController;
 use App\Http\Middleware\FacultyAuth;
 
 // ---------- Faculty Login Form View ----------
@@ -45,6 +46,13 @@ Route::middleware([FacultyAuth::class])->group(function () {
     Route::get('/faculty/manage-accounts', [ManageFacultyAccountController::class, 'index'])->name('faculty.manage-accounts.index');
     Route::post('/faculty/manage-accounts/{id}/approve', [ManageFacultyAccountController::class, 'approve'])->name('faculty.manage-accounts.approve');
     Route::post('/faculty/manage-accounts/{id}/reject', [ManageFacultyAccountController::class, 'reject'])->name('faculty.manage-accounts.reject');
+
+    // ---------- Departments Management ----------
+    Route::get('/faculty/departments', [DepartmentsController::class, 'index'])->name('faculty.departments.index');
+    Route::post('/faculty/departments', [DepartmentsController::class, 'store'])->name('faculty.departments.store');
+    Route::put('/faculty/departments/{department}', [DepartmentsController::class, 'update'])->name('faculty.departments.update');
+    Route::delete('/faculty/departments/{department}', [DepartmentsController::class, 'destroy'])->name('faculty.departments.destroy');
+    Route::get('/faculty/departments/table-content', [DepartmentsController::class, 'tableContent'])->name('faculty.departments.table-content');
 
     // ---------- Syllabus Routes ----------
     Route::get('/faculty/syllabi', [SyllabusController::class, 'index'])->name('faculty.syllabi.index');

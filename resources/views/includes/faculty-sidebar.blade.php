@@ -72,6 +72,17 @@
         </a>
       </li>
 
+      {{-- Departments --}}
+      @php $isActive = request()->routeIs('faculty.departments*'); @endphp
+      <li class="nav-item">
+        <a class="nav-link d-flex align-items-center {{ $isActive ? 'active' : '' }}"
+           href="{{ route('faculty.departments.index') }}"
+           aria-current="{{ $isActive ? 'page' : '' }}">
+          <i class="bi bi-building"></i>
+          <span class="label">Departments</span>
+        </a>
+      </li>
+
     </ul>
   </div>
   {{-- ░░░ END: Navigation Links ░░░ --}}
