@@ -10,7 +10,9 @@ export default defineConfig({
                 'resources/css/syllaverse-colors.css',
                 'resources/css/admin/admin-sidebar.css',
                 'resources/css/faculty/manage-accounts/manage-accounts.css',
-                'resources/js/app.js'
+                'resources/js/app.js',
+                'resources/js/admin/courses/courses.js',
+                'resources/js/faculty/courses/courses.js'
             ],
             refresh: true,
         }),

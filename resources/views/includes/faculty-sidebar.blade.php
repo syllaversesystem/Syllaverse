@@ -61,6 +61,27 @@
         </a>
       </li>
 
+      {{-- Separator --}}
+      <li class="nav-item">
+        <div class="sidebar-separator"></div>
+      </li>
+
+      {{-- Manage Accounts --}}
+      @php $isActive = request()->routeIs('faculty.manage-accounts*'); @endphp
+      <li class="nav-item">
+        <a class="nav-link d-flex align-items-center {{ $isActive ? 'active' : '' }}"
+           href="{{ route('faculty.manage-accounts.index') }}"
+           aria-current="{{ $isActive ? 'page' : '' }}">
+          <i class="bi bi-people"></i>
+          <span class="label">Manage Accounts</span>
+        </a>
+      </li>
+
+      {{-- Separator --}}
+      <li class="nav-item">
+        <div class="sidebar-separator"></div>
+      </li>
+
       {{-- Departments --}}
       @php $isActive = request()->routeIs('faculty.departments*'); @endphp
       <li class="nav-item">
@@ -83,14 +104,14 @@
         </a>
       </li>
 
-      {{-- Manage Accounts --}}
-      @php $isActive = request()->routeIs('faculty.manage-accounts*'); @endphp
+      {{-- Courses --}}
+      @php $isActive = request()->routeIs('faculty.courses*'); @endphp
       <li class="nav-item">
         <a class="nav-link d-flex align-items-center {{ $isActive ? 'active' : '' }}"
-           href="{{ route('faculty.manage-accounts.index') }}"
+           href="{{ route('faculty.courses.index') }}"
            aria-current="{{ $isActive ? 'page' : '' }}">
-          <i class="bi bi-people"></i>
-          <span class="label">Manage Accounts</span>
+          <i class="bi bi-book"></i>
+          <span class="label">Courses</span>
         </a>
       </li>
 
