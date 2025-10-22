@@ -24,7 +24,7 @@
   {{-- ░░░ START: CDN & Fonts ░░░ --}}
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet" />
-  <script src="https://unpkg.com/feather-icons" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js" defer></script>
   {{-- ░░░ END: CDN & Fonts ░░░ --}}
@@ -49,6 +49,7 @@
 
   {{-- Faculty-specific modules --}}
   @vite('resources/css/faculty/syllabus.css')
+  @vite('resources/css/superadmin/departments/departments.css')
   {{-- ░░░ END: Custom Vite CSS ░░░ --}}
 
   @stack('styles')

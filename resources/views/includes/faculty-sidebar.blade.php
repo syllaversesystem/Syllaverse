@@ -61,17 +61,6 @@
         </a>
       </li>
 
-      {{-- Manage Accounts --}}
-      @php $isActive = request()->routeIs('faculty.manage-accounts*'); @endphp
-      <li class="nav-item">
-        <a class="nav-link d-flex align-items-center {{ $isActive ? 'active' : '' }}"
-           href="{{ route('faculty.manage-accounts.index') }}"
-           aria-current="{{ $isActive ? 'page' : '' }}">
-          <i class="bi bi-people"></i>
-          <span class="label">Manage Accounts</span>
-        </a>
-      </li>
-
       {{-- Departments --}}
       @php $isActive = request()->routeIs('faculty.departments*'); @endphp
       <li class="nav-item">
@@ -80,6 +69,28 @@
            aria-current="{{ $isActive ? 'page' : '' }}">
           <i class="bi bi-building"></i>
           <span class="label">Departments</span>
+        </a>
+      </li>
+
+      {{-- Programs --}}
+      @php $isActive = request()->routeIs('faculty.programs*'); @endphp
+      <li class="nav-item">
+        <a class="nav-link d-flex align-items-center {{ $isActive ? 'active' : '' }}"
+           href="{{ route('faculty.programs.index') }}"
+           aria-current="{{ $isActive ? 'page' : '' }}">
+          <i class="bi bi-mortarboard"></i>
+          <span class="label">Programs</span>
+        </a>
+      </li>
+
+      {{-- Manage Accounts --}}
+      @php $isActive = request()->routeIs('faculty.manage-accounts*'); @endphp
+      <li class="nav-item">
+        <a class="nav-link d-flex align-items-center {{ $isActive ? 'active' : '' }}"
+           href="{{ route('faculty.manage-accounts.index') }}"
+           aria-current="{{ $isActive ? 'page' : '' }}">
+          <i class="bi bi-people"></i>
+          <span class="label">Manage Accounts</span>
         </a>
       </li>
 

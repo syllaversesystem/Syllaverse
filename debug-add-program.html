@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Add Program Form</title>
+    <meta name="csrf-token" content="test-token">
+</head>
+<body>
+    <h1>Debug Faculty Program Add Form</h1>
+    
+    <form id="addProgramForm" action="/faculty/programs" method="POST">
+        <input type="hidden" name="_token" value="test-token">
+        
+        <div>
+            <label for="programName">Program Name:</label>
+            <input type="text" id="programName" name="name" value="Test Program Name" required>
+        </div>
+        
+        <div>
+            <label for="programCode">Program Code:</label>
+            <input type="text" id="programCode" name="code" value="TEST123" required>
+        </div>
+        
+        <div>
+            <label for="programDescription">Description:</label>
+            <textarea id="programDescription" name="description">Test program description</textarea>
+        </div>
+        
+        <div>
+            <label for="programDepartment">Department:</label>
+            <select id="programDepartment" name="department_id">
+                <option value="">Select Department</option>
+                <option value="80" selected>Computer Science Department</option>
+            </select>
+        </div>
+        
+        <button type="submit" id="addProgramSubmit">Create Program</button>
+    </form>
+
+    <div id="debug-log" style="margin-top: 20px; padding: 10px; background: #f5f5f5; border: 1px solid #ccc;">
+        <h3>Debug Log:</h3>
+        <pre id="log-content"></pre>
+    </div>
+
+    <script>
+        function log(message) {
+            const logContent = document.getElementById('log-content');
+            const timestamp = new Date().toLocaleTimeString();
+            logContent.textContent += `[${timestamp}] ${message}\n`;
+        }
+
+        function getCsrfToken() {
+            return document.querySelector("meta[name=csrf-token]")?.getAttribute("content") || "";
+        }
+
+        async function parseJsonSafe(response) {
+            try { return await response.json(); } catch { return null; }
+        }
+
+        document.addEventListener('submit', async function (e) {
+            if (e.target?.id !== 'addProgramForm') return;
+            e.preventDefault();
+            
+            log('Form submission started');
+            
+            const form = e.target;
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const originalBtnContent = submitBtn?.innerHTML;
+
+            try {
+                log('Creating FormData object...');
+                const formData = new FormData(form);
+                
+                log('Form data contents:');
+                for (let [key, value] of formData.entries()) {
+                    log(`  ${key}: ${value}`);
+                }
+                
+                log('Making fetch request...');
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    headers: { 
+                        'X-CSRF-TOKEN': getCsrfToken(),
+                        'Accept': 'application/json'
+                    },
+                    body: formData,
+                });
+
+                log(`Response status: ${response.status}`);
+                log(`Response ok: ${response.ok}`);
+
+                const data = await parseJsonSafe(response);
+                log(`Response data: ${JSON.stringify(data, null, 2)}`);
+
+                if (!data) {
+                    throw new Error('Invalid server response');
+                }
+
+                if (response.status === 422 && data.errors) {
+                    log('Validation errors detected:');
+                    for (const field in data.errors) {
+                        log(`  ${field}: ${data.errors[field].join(', ')}`);
+                    }
+                    throw new Error('Validation failed');
+                }
+
+                if (response.ok) {
+                    log('Success! Program created.');
+                } else {
+                    throw new Error(data.message || `Server error: ${response.status}`);
+                }
+            } catch (err) {
+                log(`Error: ${err.message}`);
+                console.error('Add program failed:', err);
+            }
+        });
+
+        log('Debug script loaded successfully');
+    </script>
+</body>
+</html>

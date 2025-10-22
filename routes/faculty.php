@@ -21,6 +21,7 @@ use App\Http\Controllers\Faculty\SyllabusSoController;
 use App\Http\Controllers\Faculty\SyllabusSdgController;
 use App\Http\Controllers\Faculty\ManageFacultyAccountController;
 use App\Http\Controllers\Faculty\DepartmentsController;
+use App\Http\Controllers\Faculty\ProgramController;
 use App\Http\Middleware\FacultyAuth;
 
 // ---------- Faculty Login Form View ----------
@@ -53,6 +54,13 @@ Route::middleware([FacultyAuth::class])->group(function () {
     Route::put('/faculty/departments/{department}', [DepartmentsController::class, 'update'])->name('faculty.departments.update');
     Route::delete('/faculty/departments/{department}', [DepartmentsController::class, 'destroy'])->name('faculty.departments.destroy');
     Route::get('/faculty/departments/table-content', [DepartmentsController::class, 'tableContent'])->name('faculty.departments.table-content');
+
+    // ---------- Programs Management ----------
+    Route::get('/faculty/programs', [ProgramController::class, 'index'])->name('faculty.programs.index');
+    Route::post('/faculty/programs', [ProgramController::class, 'store'])->name('faculty.programs.store');
+    Route::put('/faculty/programs/{program}', [ProgramController::class, 'update'])->name('faculty.programs.update');
+    Route::delete('/faculty/programs/{program}', [ProgramController::class, 'destroy'])->name('faculty.programs.destroy');
+    Route::get('/faculty/programs/search-deleted', [ProgramController::class, 'searchDeleted'])->name('faculty.programs.search-deleted');
 
     // ---------- Syllabus Routes ----------
     Route::get('/faculty/syllabi', [SyllabusController::class, 'index'])->name('faculty.syllabi.index');
