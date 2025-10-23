@@ -49,8 +49,16 @@
         }
         #editDepartmentModal .form-control:focus,
         #editDepartmentModal .form-select:focus {
-          border-color: var(--sv-acct);
-          box-shadow: 0 0 0 .2rem rgb(238 111 87 / 15%);
+          border-color: var(--sv-bdr);
+          box-shadow: none;
+          outline: none;
+        }
+        /* Remove browser default yellow/orange focus effects */
+        #editDepartmentModal textarea.form-control:focus {
+          border-color: var(--sv-bdr);
+          box-shadow: none;
+          outline: none;
+          background-color: #fff;
         }
         #editDepartmentModal .btn-danger {
           background: var(--sv-card-bg, #fff);
@@ -124,12 +132,12 @@
         {{-- Inline error box (filled by JS on 422) --}}
         <div id="editDepartmentErrors" class="alert alert-danger d-none small mb-3" role="alert"></div>
 
-        <div class="mb-3">
+        <div class="department-field-group mb-3">
           <label for="editDepartmentName" class="form-label small fw-medium text-muted">Department Name</label>
           <input type="text" class="form-control form-control-sm" id="editDepartmentName" name="name" placeholder="e.g., College of Information and Computing Sciences" required>
         </div>
 
-        <div class="mb-3">
+        <div class="department-field-group mb-3">
           <label for="editDepartmentCode" class="form-label small fw-medium text-muted">Department Code</label>
           <input type="text" class="form-control form-control-sm" id="editDepartmentCode" name="code" placeholder="e.g., CICS" required>
         </div>

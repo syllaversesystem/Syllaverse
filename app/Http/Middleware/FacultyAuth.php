@@ -16,21 +16,25 @@ class FacultyAuth
         // Ensure the faculty guard is used for this request
         Auth::shouldUse('faculty');
 
-        // Must be logged in and faculty role
-        if (!Auth::guard('faculty')->check() || Auth::guard('faculty')->user()?->role !== 'faculty') {
+        // Must be logged in and faculty role (or admin)
+        $user = Auth::guard('faculty')->user();
+        if (!Auth::guard('faculty')->check() || !in_array($user?->role, ['faculty', 'admin'])) {
             return redirect()->route('faculty.login.form')
                 ->with('error', 'Access denied. Please log in as faculty.');
         }
 
-        $user = Auth::guard('faculty')->user();
+        // Admin users can skip all profile and appointment checks
+        if ($user->role === 'admin') {
+            return $next($request);
+        }
 
-        // 1️⃣ Check if designation and employee_code are filled
+        // 1️⃣ Check if designation and employee_code are filled (faculty only)
         if (empty($user->designation) || empty($user->employee_code)) {
             return redirect()->route('faculty.complete-profile')
                 ->with('error', 'Please complete your profile before accessing the dashboard.');
         }
 
-        // 2️⃣ Check if user has an active faculty appointment
+        // 2️⃣ Check if user has an active faculty appointment (faculty only)
         $hasActiveAppointment = Appointment::where('user_id', $user->id)
             ->where('status', 'active')
             ->where(function ($q) {
@@ -45,7 +49,7 @@ class FacultyAuth
                 ->with('error', 'You are not yet linked to any department/program. Please contact your Program Chair.');
         }
 
-        // 3️⃣ Check if faculty is approved
+        // 3️⃣ Check if faculty is approved (faculty only)
         if ($user->status !== 'active') {
             Auth::guard('faculty')->logout();
             return redirect()->route('faculty.login.form')

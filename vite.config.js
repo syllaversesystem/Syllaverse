@@ -10,9 +10,13 @@ export default defineConfig({
                 'resources/css/syllaverse-colors.css',
                 'resources/css/admin/admin-sidebar.css',
                 'resources/css/faculty/manage-accounts/manage-accounts.css',
+                'resources/css/superadmin/manage-accounts/manage-accounts.css',
                 'resources/js/app.js',
                 'resources/js/admin/courses/courses.js',
-                'resources/js/faculty/courses/courses.js'
+                'resources/js/faculty/courses/courses.js',
+                'resources/js/faculty/master-data/ilo-simple.js',
+                'resources/js/faculty/master-data/ilo-sortable.js',
+                'resources/js/faculty/master-data/shared-crud.js'
             ],
             refresh: true,
         }),

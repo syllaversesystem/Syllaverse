@@ -46,8 +46,16 @@
         }
         #addProgramModal .form-control:focus,
         #addProgramModal .form-select:focus {
-          border-color: var(--sv-acct);
-          box-shadow: 0 0 0 .2rem rgb(238 111 87 / 15%);
+          border-color: var(--sv-bdr);
+          box-shadow: none;
+          outline: none;
+        }
+        /* Remove browser default yellow/orange focus effects */
+        #addProgramModal textarea.form-control:focus {
+          border-color: var(--sv-bdr);
+          box-shadow: none;
+          outline: none;
+          background-color: #fff;
         }
         #addProgramModal .btn-danger {
           background: var(--sv-card-bg, #fff);

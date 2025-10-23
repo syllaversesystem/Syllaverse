@@ -355,8 +355,17 @@
 
 .sv-program-modal .form-control:focus,
 .sv-program-modal .form-select:focus {
-  border-color: var(--sv-acct);
-  box-shadow: 0 0 0 .2rem rgb(238 111 87 / 15%);
+  border-color: var(--sv-bdr);
+  box-shadow: none;
+  outline: none;
+}
+
+/* Remove browser default yellow/orange focus effects from textareas */
+.sv-program-modal textarea.form-control:focus {
+  border-color: var(--sv-bdr);
+  box-shadow: none;
+  outline: none;
+  background-color: #fff;
 }
 
 /* ============================================================================
@@ -384,9 +393,17 @@
 
 .program-field-group .form-control:focus,
 .program-field-group .form-select:focus {
-  border-color: var(--sv-acct, #EE6F57);
-  box-shadow: 0 0 0 0.2rem rgba(238, 111, 87, 0.15);
-  outline: 0;
+  border-color: var(--sv-bdr, #E3E3E3);
+  box-shadow: none;
+  outline: none;
+}
+
+/* Remove browser default yellow/orange focus effects from textareas */
+.program-field-group textarea.form-control:focus {
+  border-color: var(--sv-bdr, #E3E3E3);
+  box-shadow: none;
+  outline: none;
+  background-color: #fff;
 }
 
 .program-field-group .suggestions-dropdown {

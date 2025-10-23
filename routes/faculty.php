@@ -23,6 +23,9 @@ use App\Http\Controllers\Faculty\ManageFacultyAccountController;
 use App\Http\Controllers\Faculty\DepartmentsController;
 use App\Http\Controllers\Faculty\ProgramController;
 use App\Http\Controllers\Faculty\CourseController;
+use App\Http\Controllers\Faculty\MasterDataController;
+use App\Http\Controllers\Faculty\StudentOutcomeController;
+use App\Http\Controllers\Faculty\IntendedLearningOutcomeController;
 use App\Http\Middleware\FacultyAuth;
 
 // ---------- Faculty Login Form View ----------
@@ -69,6 +72,38 @@ Route::middleware([FacultyAuth::class])->group(function () {
     Route::put('/faculty/courses/{course}', [CourseController::class, 'update'])->name('faculty.courses.update');
     Route::delete('/faculty/courses/{course}', [CourseController::class, 'destroy'])->name('faculty.courses.destroy');
     Route::get('/faculty/courses/search-deleted', [CourseController::class, 'searchDeleted'])->name('faculty.courses.search-deleted');
+
+    // ---------- Master Data Management ----------
+    // Master Data main page (SO/ILO/SDG/IGA/CDIO)
+    Route::get('/faculty/master-data', [MasterDataController::class, 'index'])
+        ->name('faculty.master-data.index');
+
+    // Fetch ILOs for a specific course (AJAX)
+    Route::get('/faculty/master-data/ilos', [MasterDataController::class, 'fetchIlos'])
+        ->name('faculty.master-data.ilos.index');
+
+    // ILO reorder route (used by ILO JavaScript)
+    Route::post('/faculty/master-data/reorder/ilo', [IntendedLearningOutcomeController::class, 'reorder'])
+        ->name('faculty.ilo.reorder');
+
+    // ❑ Student Outcome (SO) CRUD
+    Route::post('/faculty/master-data/so',        [StudentOutcomeController::class, 'store'])->name('faculty.so.store');
+    Route::put('/faculty/master-data/so/{id}',    [StudentOutcomeController::class, 'update'])->name('faculty.so.update');
+    Route::delete('/faculty/master-data/so/{id}', [StudentOutcomeController::class, 'destroy'])->name('faculty.so.destroy');
+
+    // ❑ Intended Learning Outcome (ILO) CRUD
+    Route::post('/faculty/master-data/ilo',        [IntendedLearningOutcomeController::class, 'store'])->name('faculty.ilo.store');
+    Route::put('/faculty/master-data/ilo/{id}',    [IntendedLearningOutcomeController::class, 'update'])->name('faculty.ilo.update');
+    Route::delete('/faculty/master-data/ilo/{id}', [IntendedLearningOutcomeController::class, 'destroy'])->name('faculty.ilo.destroy');
+
+    // ❑ SDG/IGA/CDIO CRUD (handled by MasterDataController)
+    Route::post('/faculty/master-data/{type}',        [MasterDataController::class, 'store'])->name('faculty.master-data.store');
+    Route::put('/faculty/master-data/{type}/{id}',    [MasterDataController::class, 'update'])->name('faculty.master-data.update');
+    Route::delete('/faculty/master-data/{type}/{id}', [MasterDataController::class, 'destroy'])->name('faculty.master-data.destroy');
+    Route::post('/faculty/master-data/{type}/reorder', [MasterDataController::class, 'reorder'])->name('faculty.master-data.reorder');
+
+    // Update general information sections
+    Route::put('/faculty/master-data/info/{section}', [MasterDataController::class, 'updateGeneralInfo'])->name('faculty.master-data.info.update');
 
     // ---------- Syllabus Routes ----------
     Route::get('/faculty/syllabi', [SyllabusController::class, 'index'])->name('faculty.syllabi.index');

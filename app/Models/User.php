@@ -98,6 +98,47 @@ public function isProgChair(): bool
         ->exists();
 }
 
+/**
+ * Get the user's primary department ID from their appointments.
+ * For faculty role users, this will be used as the default department.
+ */
+public function getPrimaryDepartmentId(): ?int
+{
+    // First try to get department from FACULTY appointment
+    $facultyDept = $this->appointments()
+        ->active()
+        ->where('role', \App\Models\Appointment::ROLE_FACULTY)
+        ->first();
+    
+    if ($facultyDept) {
+        return $facultyDept->scope_id;
+    }
+    
+    // If no faculty appointment, try DEPT chair appointment
+    $deptChair = $this->appointments()
+        ->active()
+        ->where('role', \App\Models\Appointment::ROLE_DEPT)
+        ->first();
+    
+    if ($deptChair) {
+        return $deptChair->scope_id;
+    }
+    
+    // If no dept appointment, try to get department from PROG chair appointment
+    $progChair = $this->appointments()
+        ->active()
+        ->where('role', \App\Models\Appointment::ROLE_PROG)
+        ->first();
+    
+    if ($progChair) {
+        // Get department from program
+        $program = \App\Models\Program::find($progChair->scope_id);
+        return $program ? $program->department_id : null;
+    }
+    
+    return null;
+}
+
 
 }
 

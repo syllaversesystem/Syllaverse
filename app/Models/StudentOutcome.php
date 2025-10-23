@@ -12,5 +12,13 @@ class StudentOutcome extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['code', 'description', 'position'];
+    protected $fillable = ['department_id', 'title', 'description'];
+
+    /**
+     * Get the department that owns the student outcome.
+     */
+    public function department()
+    {
+        return $this->belongsTo(Department::class);
+    }
 }

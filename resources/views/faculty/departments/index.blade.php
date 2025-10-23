@@ -74,6 +74,78 @@
 @include('faculty.departments.modals.addDepartmentModal')
 @include('faculty.departments.modals.editDepartmentModal')
 @include('faculty.departments.modals.deleteDepartmentModal')
+
+{{-- ░░░ START: Enhanced Department Field Group Styling ░░░ --}}
+<style>
+/* ============================================================================
+   FORM FIELD STYLES - Department field group styling matching program modals
+   ============================================================================ */
+.department-field-group {
+  margin-bottom: 1rem;
+}
+
+.department-field-group .form-label {
+  font-weight: 500;
+  color: var(--sv-text-muted);
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.department-field-group .form-control,
+.department-field-group .form-select {
+  border: 1px solid var(--sv-bdr, #E3E3E3);
+  border-radius: 0.375rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.department-field-group .form-control:focus,
+.department-field-group .form-select:focus {
+  border-color: var(--sv-bdr, #E3E3E3);
+  box-shadow: none;
+  outline: none;
+}
+
+/* Remove browser default yellow/orange focus effects from textareas */
+.department-field-group textarea.form-control:focus {
+  border-color: var(--sv-bdr, #E3E3E3);
+  box-shadow: none;
+  outline: none;
+  background-color: #fff;
+}
+</style>
+{{-- ░░░ END: Enhanced Department Field Group Styling ░░░ --}}
+
+{{-- ░░░ START: Enhanced Modal Backdrop CSS ░░░ --}}
+<style>
+  /* Ensure modals appear properly and clean up correctly */
+  .modal {
+    z-index: 1055 !important;
+  }
+  .modal-backdrop {
+    z-index: 1050 !important;
+    transition: opacity 0.15s linear;
+  }
+  .modal.show .modal-dialog {
+    z-index: 1056 !important;
+  }
+  
+  /* Ensure body cleanup when modal is closed */
+  body:not(.modal-open) {
+    overflow: visible !important;
+    padding-right: 0 !important;
+  }
+  
+  /* Allow Bootstrap to handle backdrop visibility naturally */
+  .modal-backdrop.show {
+    opacity: 0.5;
+  }
+  .modal-backdrop:not(.show) {
+    opacity: 0;
+  }
+</style>
+{{-- ░░░ END: Enhanced Modal Backdrop CSS ░░░ --}}
 {{-- ░░░ END: Modals Section ░░░ --}}
 @endsection
 

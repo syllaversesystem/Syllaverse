@@ -50,6 +50,7 @@
   {{-- Faculty-specific modules --}}
   @vite('resources/css/faculty/syllabus.css')
   @vite('resources/css/superadmin/departments/departments.css')
+  @vite('resources/css/superadmin/manage-accounts/manage-accounts.css')
   {{-- ░░░ END: Custom Vite CSS ░░░ --}}
 
   @stack('styles')
@@ -77,6 +78,8 @@
   {{-- ░░░ START: Vite JS ░░░ --}}
   @vite('resources/js/faculty/layout.js')              {{-- Sidebar/drawer logic --}}
   @vite('resources/js/superadmin/alert-timer.js')      {{-- Shared alert auto-hide --}}
+  @vite('resources/js/faculty/master-data/ilo-sortable.js') {{-- Faculty Master Data ILO sortable --}}
+  @vite('resources/js/faculty/master-data/so-sortable.js') {{-- Faculty Master Data SO sortable --}}
   @vite('resources/js/faculty/syllabus.js')
   @vite('resources/js/faculty/syllabus-sdg.js')
   @vite('resources/js/faculty/syllabus-textbook.js')

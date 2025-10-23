@@ -162,5 +162,35 @@
 @include('superadmin.departments.modals.editDepartmentModal')
 @include('superadmin.departments.modals.deleteDepartmentModal')
 
+{{-- ░░░ START: Enhanced Modal Backdrop CSS ░░░ --}}
+<style>
+  /* Ensure modals appear properly and clean up correctly */
+  .modal {
+    z-index: 1055 !important;
+  }
+  .modal-backdrop {
+    z-index: 1050 !important;
+    transition: opacity 0.15s linear;
+  }
+  .modal.show .modal-dialog {
+    z-index: 1056 !important;
+  }
+  
+  /* Ensure body cleanup when modal is closed */
+  body:not(.modal-open) {
+    overflow: visible !important;
+    padding-right: 0 !important;
+  }
+  
+  /* Allow Bootstrap to handle backdrop visibility naturally */
+  .modal-backdrop.show {
+    opacity: 0.5;
+  }
+  .modal-backdrop:not(.show) {
+    opacity: 0;
+  }
+</style>
+{{-- ░░░ END: Enhanced Modal Backdrop CSS ░░░ --}}
+
 {{-- ░░░ END: Modals Section ░░░ --}}
 @endsection
