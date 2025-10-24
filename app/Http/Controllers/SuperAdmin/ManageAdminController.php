@@ -37,21 +37,32 @@ class ManageAdminController extends Controller
         $approvedAdmins = User::where('role','admin')->where('status','active')->get();
         $rejectedAdmins = User::where('role','admin')->where('status','rejected')->get();
 
+        // Faculty users for centralized management
+        $pendingFaculty = User::where('role','faculty')
+                             ->where('status','pending')
+                             ->whereNotNull('designation')
+                             ->whereNotNull('employee_code')
+                             ->get();
+        $approvedFaculty = User::where('role','faculty')->where('status','active')->get();
+        $rejectedFaculty = User::where('role','faculty')->where('status','rejected')->get();
+
         $students = User::where('role','student')->get();
 
         $departments = Department::orderBy('name')->get();
         $programs    = Program::orderBy('name')->get(); // ✅ add this
 
-        // Exclude faculty role requests from superadmin view - they should only be handled by department administrators
+        // Include all role requests (including faculty) for superadmin management
         $pendingChairRequests = ChairRequest::with(['user','department','program'])
             ->where('status','pending')
-            ->where('requested_role', '!=', ChairRequest::ROLE_FACULTY)
             ->get();
 
         return view('superadmin.manage-accounts.index', compact(
             'pendingAdmins',
             'approvedAdmins',
             'rejectedAdmins',
+            'pendingFaculty',
+            'approvedFaculty',
+            'rejectedFaculty',
             'students',
             'departments',
             'programs',              // ✅ pass it

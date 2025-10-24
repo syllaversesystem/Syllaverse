@@ -132,36 +132,20 @@ class ChairRequest extends Model
 
     /**
      * Get the appropriate approvers for this request based on role and department.
-     * For faculty requests, returns users with Dean or Department Chair roles in the same department.
-     * For other requests, returns superadmin/admin users.
+     * All requests (including faculty) are now managed centrally by superadmin.
      */
     public function getApprovers()
     {
-        // For faculty role requests, find faculty members with administrative roles in the same department
-        if ($this->requested_role === self::ROLE_FACULTY && $this->department_id) {
-            return User::whereHas('appointments', function ($query) {
-                $query->active()
-                      ->where('scope_type', \App\Models\Appointment::SCOPE_DEPT)
-                      ->where('scope_id', $this->department_id)
-                      ->whereIn('role', [
-                          \App\Models\Appointment::ROLE_DEAN,
-                          \App\Models\Appointment::ROLE_ASSOC_DEAN,
-                          \App\Models\Appointment::ROLE_DEPT,
-                      ]);
-            })->get();
-        }
-
-        // For leadership roles (Dean, Department Chair, VCAA, etc.), return admin/superadmin users
-        return User::whereIn('role', ['admin', 'superadmin'])->get();
+        // All role requests are now handled by superadmin for centralized management
+        return User::where('role', 'superadmin')->get();
     }
 
     /**
-     * Check if this faculty request has approvers in the same department.
+     * Check if this request has superadmin approvers available.
      */
     public function hasDepartmentApprovers(): bool
     {
-        return $this->requested_role === self::ROLE_FACULTY 
-               && $this->department_id 
-               && $this->getApprovers()->isNotEmpty();
+        // All requests are now handled by superadmin
+        return $this->getApprovers()->isNotEmpty();
     }
 }

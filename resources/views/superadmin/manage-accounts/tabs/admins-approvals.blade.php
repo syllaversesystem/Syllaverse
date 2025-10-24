@@ -19,6 +19,7 @@
 
   // Guard + build groups
   $pendingAdmins        = ($pendingAdmins ?? collect());
+  $pendingFaculty       = ($pendingFaculty ?? collect());
   $pendingChairRequests = ($pendingChairRequests ?? collect());
   $groups               = collect();
 
@@ -32,14 +33,19 @@
     ];
   }
 
+  // Seed with pending faculty signups
+  foreach ($pendingFaculty as $u) {
+    $groups[$u->id] = [
+      'user'          => $u,
+      'signupPending' => true,
+      'requests'      => collect(),
+      'latest_at'     => $u->created_at,
+    ];
+  }
+
   // Merge pending chair requests (even if signup already approved)
-  // Exclude faculty role requests from superadmin view
+  // Include all role requests including faculty for centralized superadmin management
   foreach ($pendingChairRequests as $r) {
-    // Skip faculty role requests - they should only be visible to department administrators
-    if ($r->requested_role === ChairRequest::ROLE_FACULTY) {
-      continue;
-    }
-    
     $uid   = $r->user_id;
     $label = match ($r->requested_role) {
       ChairRequest::ROLE_DEPT => 'Dept Chair',
@@ -48,6 +54,7 @@
       ChairRequest::ROLE_ASSOC_VCAA => 'Associate VCAA',
       ChairRequest::ROLE_DEAN => 'Dean',
       ChairRequest::ROLE_ASSOC_DEAN => 'Associate Dean',
+      ChairRequest::ROLE_FACULTY => 'Faculty',
       default => $r->requested_role,
     };
     $dept  = optional($r->department)->name;
@@ -141,16 +148,29 @@
               <td class="text-end">
                 @if ($reqCount === 0)
                   @if ($g['signupPending'])
-                    <form method="POST" action="{{ route('superadmin.approve.admin', $user->id) }}" class="d-inline">@csrf
-                      <button type="submit" class="action-btn approve" aria-label="Approve signup" title="Approve">
-                        <i data-feather="check"></i>
-                      </button>
-                    </form>
-                    <form method="POST" action="{{ route('superadmin.reject.admin', $user->id) }}" class="d-inline">@csrf
-                      <button type="submit" class="action-btn reject" aria-label="Reject signup" title="Reject">
-                        <i data-feather="x"></i>
-                      </button>
-                    </form>
+                    @if ($user->role === 'admin')
+                      <form method="POST" action="{{ route('superadmin.approve.admin', $user->id) }}" class="d-inline">@csrf
+                        <button type="submit" class="action-btn approve" aria-label="Approve signup" title="Approve">
+                          <i data-feather="check"></i>
+                        </button>
+                      </form>
+                      <form method="POST" action="{{ route('superadmin.reject.admin', $user->id) }}" class="d-inline">@csrf
+                        <button type="submit" class="action-btn reject" aria-label="Reject signup" title="Reject">
+                          <i data-feather="x"></i>
+                        </button>
+                      </form>
+                    @else
+                      <form method="POST" action="{{ route('superadmin.approve.faculty', $user->id) }}" class="d-inline">@csrf
+                        <button type="submit" class="action-btn approve" aria-label="Approve faculty signup" title="Approve">
+                          <i data-feather="check"></i>
+                        </button>
+                      </form>
+                      <form method="POST" action="{{ route('superadmin.reject.faculty', $user->id) }}" class="d-inline">@csrf
+                        <button type="submit" class="action-btn reject" aria-label="Reject faculty signup" title="Reject">
+                          <i data-feather="x"></i>
+                        </button>
+                      </form>
+                    @endif
                   @endif
                 @elseif ($reqCount === 1)
                   <form method="POST" action="{{ route('superadmin.chair-requests.approve', $req['id']) }}" class="d-inline">@csrf

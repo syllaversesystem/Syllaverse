@@ -1,10 +1,10 @@
 {{-- 
 -------------------------------------------------------------------------------
 * File: resources/views/faculty/complete-profile.blade.php
-* Description: Standalone professional Complete Profile (no dashboard layout) – Syllaverse
+* Description: Standalone professional Complete Profile with role requests (no dashboard layout) – Syllaverse
 -------------------------------------------------------------------------------
 📜 Log:
-[2025-10-18] Copied from admin complete profile and adapted for faculty users
+[2025-10-24] Updated to include role selection functionality like admin complete profile
 -------------------------------------------------------------------------------
 --}}
 
@@ -67,7 +67,7 @@
     @if ($user->chairRequests->count() > 0)
     <div class="card shadow-sm mb-4">
       <div class="card-header bg-light d-flex justify-content-between">
-        <strong>Your Chair Requests</strong>
+        <strong>Your Role Requests</strong>
         <span class="badge {{ $hasPendingRequests ? 'bg-primary' : 'bg-secondary' }}">
           {{ $user->chairRequests->count() }} total
         </span>
@@ -93,7 +93,7 @@
                             \App\Models\ChairRequest::ROLE_ASSOC_VCAA => 'Associate VCAA',
                             \App\Models\ChairRequest::ROLE_DEAN => 'Dean',
                             \App\Models\ChairRequest::ROLE_ASSOC_DEAN => 'Associate Dean',
-                            \App\Models\ChairRequest::ROLE_FACULTY => 'Faculty Member',
+                            \App\Models\ChairRequest::ROLE_FACULTY => 'Faculty',
                             default => $r->requested_role,
                           };
                         @endphp
@@ -107,15 +107,18 @@
                     @endif
                   </td>
                   <td>
-                    @switch($r->status)
-                      @case('pending')  <span class="badge bg-primary">Pending</span> @break
-                      @case('approved') <span class="badge bg-success">Approved</span> @break
-                      @case('rejected') <span class="badge bg-danger">Rejected</span> @break
-                      @default <span class="badge bg-secondary">{{ ucfirst($r->status) }}</span>
-                    @endswitch
+                    @if ($r->status === 'pending')
+                      <span class="badge bg-warning text-dark">Pending</span>
+                    @elseif ($r->status === 'approved')
+                      <span class="badge bg-success">Approved</span>
+                    @else
+                      <span class="badge bg-danger">{{ ucfirst($r->status) }}</span>
+                    @endif
                   </td>
-                  <td>{{ optional($r->created_at)->format('Y-m-d H:i') ?? '—' }}</td>
-                  <td>{{ optional($r->decided_at)->format('Y-m-d H:i') ?? '—' }}</td>
+                  <td class="text-muted">{{ $r->created_at->format('M j, Y') }}</td>
+                  <td class="text-muted">
+                    {{ $r->decided_at ? $r->decided_at->format('M j, Y') : '—' }}
+                  </td>
                 </tr>
               @endforeach
             </tbody>
@@ -126,59 +129,75 @@
     @endif
     {{-- ░░░ END: Your Requests Panel ░░░ --}}
 
-    {{-- ░░░ START: Wizard Card ░░░ --}}
-    <div class="card shadow-sm">
-      <div class="card-header bg-white">
-        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-          <div class="d-flex align-items-center gap-3">
-            <div class="sv-step sv-step-active" data-step-label="1">1</div>
-            <div class="small fw-semibold">Profile &amp; Employment</div>
-          </div>
-          <div class="flex-grow-1 mx-3 d-none d-md-block">
-            <div class="progress" style="height:6px;"><div class="progress-bar bg-danger" id="svStepProgress" style="width:50%;"></div></div>
-          </div>
-          <div class="d-flex align-items-center gap-3">
-            <div class="sv-step {{ $hasPendingRequests ? 'sv-step-disabled' : '' }}" data-step-label="2">2</div>
-            <div class="small fw-semibold">Chair Role Request</div>
-          </div>
-        </div>
-      </div>
 
-      <div class="card-body">
-        <form action="{{ route('faculty.submit-profile') }}" method="POST" id="svCompleteProfileForm" novalidate>
-          @csrf
+
+    {{-- ░░░ START: Main Form (2-Step Wizard) ░░░ --}}
+    <form method="POST" action="{{ route('faculty.submit-profile') }}" id="svCompleteProfileForm" class="needs-validation" novalidate>
+        @csrf
+
+        <div class="card shadow-sm">
+          <div class="card-body">
+            {{-- ░░░ START: Progress Steps ░░░ --}}
+            <div class="d-flex align-items-center mb-4">
+              <div class="d-flex align-items-center">
+                <span class="sv-step sv-step-active" id="svStepBadge1">1</span>
+                <span class="ms-2 fw-semibold text-dark">Profile & Employment</span>
+              </div>
+              
+              {{-- Progress Line --}}
+              <div class="flex-grow-1 mx-3">
+                <div class="progress" style="height: 2px; background-color: #E3E3E3;">
+                  <div class="progress-bar" role="progressbar" style="width: 50%; background-color: #CB3737;" id="svStepProgress"></div>
+                </div>
+              </div>
+              
+              <div class="d-flex align-items-center">
+                <span class="sv-step sv-step-disabled" id="svStepBadge2">2</span>
+                <span class="ms-2 text-muted" id="svStep2Label">Role Requests</span>
+              </div>
+            </div>
+            {{-- ░░░ END: Progress Steps ░░░ --}}
 
           {{-- ░░░ START: Step 1 – Profile & Employment ░░░ --}}
           <section id="svStep1" class="sv-step-pane">
-            <div class="row g-3">
-              <div class="col-md-6">
-                <label class="form-label">Full Name</label>
-                <input type="text" name="name" id="name" class="form-control" value="{{ old('name', $user->name) }}">
-              </div>
-              <div class="col-md-6">
-                <label class="form-label">Email</label>
-                <input type="email" name="email" id="email" class="form-control" value="{{ old('email', $user->email) }}">
-              </div>
+            <h6 class="text-muted mb-3">Basic Information</h6>
+                <div class="row g-3">
+                    {{-- Name --}}
+                    <div class="col-md-6">
+                        <label for="svName" class="form-label">Full Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control @error('name') is-invalid @enderror" id="svName" name="name" value="{{ old('name', $user->name) }}" required>
+                        @error('name')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
 
-              <div class="col-md-6">
-                <label for="designation" class="form-label">Designation <span class="text-danger">*</span></label>
-                
-                <input type="text" name="designation" id="designation"
-                       class="form-control @error('designation') is-invalid @enderror"
-                       value="{{ old('designation', $user->designation) }}"
-                       placeholder="e.g., Professor IV" required>
-                @error('designation') <div class="invalid-feedback">{{ $message }}</div> @enderror
-              </div>
+                    {{-- Email --}}
+                    <div class="col-md-6">
+                        <label for="svEmail" class="form-label">Email <span class="text-danger">*</span></label>
+                        <input type="email" class="form-control @error('email') is-invalid @enderror" id="svEmail" name="email" value="{{ old('email', $user->email) }}" required>
+                        @error('email')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
 
-              <div class="col-md-6">
-                <label for="employee_code" class="form-label">Employee Code <span class="text-danger">*</span></label>
-                <input type="text" name="employee_code" id="employee_code"
-                       class="form-control @error('employee_code') is-invalid @enderror"
-                       value="{{ old('employee_code', $user->employee_code) }}"
-                       placeholder="e.g., 2025-XXXX" required>
-                @error('employee_code') <div class="invalid-feedback">{{ $message }}</div> @enderror
-              </div>
-            </div>
+                    {{-- Designation --}}
+                    <div class="col-md-6">
+                        <label for="svDesignation" class="form-label">Designation <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control @error('designation') is-invalid @enderror" id="svDesignation" name="designation" value="{{ old('designation', $user->designation) }}" required>
+                        @error('designation')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    {{-- Employee Code --}}
+                    <div class="col-md-6">
+                        <label for="svEmployeeCode" class="form-label">Employee Code <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control @error('employee_code') is-invalid @enderror" id="svEmployeeCode" name="employee_code" value="{{ old('employee_code', $user->employee_code) }}" required>
+                        @error('employee_code')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                </div>
 
             <div class="d-flex justify-content-end mt-4">
               <button type="button" class="btn btn-danger" id="svNextToStep2" {{ $hasPendingRequests ? 'disabled' : '' }}>Next</button>
@@ -186,13 +205,12 @@
           </section>
           {{-- ░░░ END: Step 1 – Profile & Employment ░░░ --}}
 
-          {{-- ░░░ START: Step 2 – Chair Role Request ░░░ --}}
-          {{-- ░░░ START: Step 2 – Chair Role Request ░░░ --}}
+          {{-- ░░░ START: Step 2 – Role Requests ░░░ --}}
 <section id="svStep2" class="sv-step-pane" hidden>
   @if ($hasPendingRequests)
     <div class="alert alert-info">
-      You currently have a <strong>pending chair request</strong>. You can update your profile fields above,
-      but you'll need to wait for Admin to decide before submitting another request.
+      You currently have a <strong>pending role request</strong>. You can update your profile fields above,
+      but you'll need to wait for Superadmin to decide before submitting another request.
     </div>
   @endif
 
@@ -209,7 +227,7 @@
         <p class="text-muted small mb-3">These roles manage and oversee a specific department</p>
         
         <div class="row g-3 mb-3">
-          <div class="col-md-4">
+          <div class="col-md-6">
             <div class="form-check">
               <input class="form-check-input" 
                      type="checkbox" 
@@ -225,7 +243,7 @@
             </div>
           </div>
           
-          <div class="col-md-4">
+          <div class="col-md-6">
             <div class="form-check">
               <input class="form-check-input" 
                      type="checkbox" 
@@ -237,43 +255,44 @@
               <label class="form-check-label fw-semibold" for="request_dean">
                 Dean
               </label>
-              <div class="form-text small text-muted">Leads department administration and strategy</div>
-            </div>
-          </div>
-          
-          <div class="col-md-4">
-            <div class="form-check">
-              <input class="form-check-input" 
-                     type="checkbox" 
-                     id="request_assoc_dean" 
-                     name="request_assoc_dean" 
-                     value="1" 
-                     {{ old('request_assoc_dean') ? 'checked' : '' }}
-                     {{ $hasPendingRequests ? 'disabled' : '' }}>
-              <label class="form-check-label fw-semibold" for="request_assoc_dean">
-                Associate Dean
-              </label>
-              <div class="form-text small text-muted">Assists Dean with department leadership</div>
+              <div class="form-text small text-muted">Leads and oversees the department</div>
             </div>
           </div>
         </div>
 
-        <div class="mb-2">
-          <label for="department_id" class="form-label small text-muted">Select Department</label>
-          <select id="department_id"
+        <div class="col-md-6">
+          <div class="form-check">
+            <input class="form-check-input" 
+                   type="checkbox" 
+                   id="request_assoc_dean" 
+                   name="request_assoc_dean" 
+                   value="1" 
+                   {{ old('request_assoc_dean') ? 'checked' : '' }}
+                   {{ $hasPendingRequests ? 'disabled' : '' }}>
+            <label class="form-check-label fw-semibold" for="request_assoc_dean">
+              Associate Dean
+            </label>
+            <div class="form-text small text-muted">Assists the Dean in departmental operations</div>
+          </div>
+        </div>
+
+        {{-- Department Selection (conditional) --}}
+        <div class="mt-3" id="svDepartmentSelector" style="display: none;">
+          <label for="svDepartmentId" class="form-label">Select Department <span class="text-danger">*</span></label>
+          <select class="form-select @error('department_id') is-invalid @enderror" 
+                  id="svDepartmentId" 
                   name="department_id"
-                  class="form-select @error('department_id') is-invalid @enderror"
                   {{ $hasPendingRequests ? 'disabled' : '' }}>
-            <option value="">— Select Department —</option>
-            @foreach (($departments ?? []) as $dept)
-              <option value="{{ $dept->id }}"
-                {{ (string) old('department_id') === (string) $dept->id ? 'selected' : '' }}>
+            <option value="">Choose a department...</option>
+            @foreach ($departments as $dept)
+              <option value="{{ $dept->id }}" {{ old('department_id') == $dept->id ? 'selected' : '' }}>
                 {{ $dept->name }}
               </option>
             @endforeach
           </select>
-          @error('department_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
-          <div class="form-text small text-muted">Required when requesting Department Chair, Dean, or Associate Dean roles.</div>
+          @error('department_id')
+            <div class="invalid-feedback">{{ $message }}</div>
+          @enderror
         </div>
       </div>
     </div>
@@ -282,9 +301,9 @@
     <div class="card border-0 bg-light mb-4">
       <div class="card-body p-3">
         <h6 class="card-title text-dark mb-2">
-          <i class="bi bi-mortarboard me-2"></i>Institution-Wide Leadership
+          <i class="bi bi-globe me-2"></i>Institution-Wide Leadership
         </h6>
-        <p class="text-muted small mb-3">These roles oversee all departments across the entire institution</p>
+        <p class="text-muted small mb-3">These roles have authority across the entire institution</p>
         
         <div class="row g-3">
           <div class="col-md-6">
@@ -299,7 +318,7 @@
               <label class="form-check-label fw-semibold" for="request_vcaa">
                 Vice Chancellor for Academic Affairs (VCAA)
               </label>
-              <div class="form-text small text-muted">Oversees all academic programs and departments</div>
+              <div class="form-text small text-muted">Oversees all academic programs and policies</div>
             </div>
           </div>
           
@@ -315,71 +334,73 @@
               <label class="form-check-label fw-semibold" for="request_assoc_vcaa">
                 Associate VCAA
               </label>
-              <div class="form-text small text-muted">Assists VCAA with institution-wide academic oversight</div>
+              <div class="form-text small text-muted">Assists VCAA with academic oversight</div>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    {{-- Faculty Position --}}
-    <div class="card border-0 bg-light">
+    {{-- Faculty Role --}}
+    <div class="card border-0 bg-light mb-4">
       <div class="card-body p-3">
         <h6 class="card-title text-dark mb-2">
-          <i class="bi bi-person-workspace me-2"></i>Faculty Position
+          <i class="bi bi-person-badge me-2"></i>Faculty Position
         </h6>
-        <p class="text-muted small mb-3">Standard faculty member without administrative responsibilities</p>
+        <p class="text-muted small mb-3">Standard teaching and research position</p>
         
-        <div class="row g-3 mb-3">
-          <div class="col-md-12">
-            <div class="form-check">
-              <input class="form-check-input" 
-                     type="checkbox" 
-                     id="request_faculty" 
-                     name="request_faculty" 
-                     value="1" 
-                     {{ old('request_faculty') ? 'checked' : '' }}
-                     {{ $hasPendingRequests ? 'disabled' : '' }}>
-              <label class="form-check-label fw-semibold" for="request_faculty">
-                Faculty Member
-              </label>
-              <div class="form-text small text-muted">Teaching and research responsibilities within a specific department</div>
-            </div>
-          </div>
+        <div class="alert alert-info py-2 px-3 mb-3" style="font-size: 0.875rem;">
+          <i class="bi bi-info-circle me-1"></i>
+          <strong>Note:</strong> If you select any leadership role above, faculty privileges are automatically included - no need to select this separately.
+        </div>
+        
+        <div class="form-check mb-3">
+          <input class="form-check-input" 
+                 type="checkbox" 
+                 id="request_faculty" 
+                 name="request_faculty" 
+                 value="1" 
+                 {{ old('request_faculty') ? 'checked' : '' }}
+                 {{ $hasPendingRequests ? 'disabled' : '' }}>
+          <label class="form-check-label fw-semibold" for="request_faculty">
+            Faculty Member
+          </label>
+          <div class="form-text small text-muted">Regular faculty position for teaching and research</div>
         </div>
 
-        <div class="mb-2">
-          <label for="faculty_department_id" class="form-label small text-muted">Select Your Department</label>
-          <select id="faculty_department_id"
+        {{-- Faculty Department Selection (conditional) --}}
+        <div class="mt-3" id="svFacultyDepartmentSelector" style="display: none;">
+          <label for="svFacultyDepartmentId" class="form-label">Select Your Department <span class="text-danger">*</span></label>
+          <select class="form-select @error('faculty_department_id') is-invalid @enderror" 
+                  id="svFacultyDepartmentId" 
                   name="faculty_department_id"
-                  class="form-select @error('faculty_department_id') is-invalid @enderror"
                   {{ $hasPendingRequests ? 'disabled' : '' }}>
-            <option value="">— Select Department —</option>
-            @foreach (($departments ?? []) as $dept)
-              <option value="{{ $dept->id }}"
-                {{ (string) old('faculty_department_id') === (string) $dept->id ? 'selected' : '' }}>
+            <option value="">Choose your department...</option>
+            @foreach ($departments as $dept)
+              <option value="{{ $dept->id }}" {{ old('faculty_department_id') == $dept->id ? 'selected' : '' }}>
                 {{ $dept->name }}
               </option>
             @endforeach
           </select>
-          @error('faculty_department_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
-          <div class="form-text small text-muted">Required when requesting Faculty Member position.</div>
+          @error('faculty_department_id')
+            <div class="invalid-feedback">{{ $message }}</div>
+          @enderror
         </div>
       </div>
     </div>
   </div>
 
   <div class="d-flex justify-content-between mt-4">
-    <button type="button" class="btn btn-outline-secondary" id="svBackToStep1">Back</button>
-    <button type="submit" class="btn btn-danger" {{ $hasPendingRequests ? 'disabled' : '' }}>Submit</button>
+    <button type="button" class="btn btn-secondary" id="svBackToStep1">Back</button>
+    <button type="submit" class="btn btn-danger" {{ $hasPendingRequests ? 'disabled' : '' }}>Complete Profile</button>
   </div>
 </section>
-{{-- ░░░ END: Step 2 – Chair Role Request ░░░ --}}
+{{-- ░░░ END: Step 2 – Role Requests ░░░ --}}
 
-        </form>
-      </div>
-    </div>
-    {{-- ░░░ END: Wizard Card ░░░ --}}
+          </div>
+        </div>
+    </form>
+    {{-- ░░░ END: Main Form ░░░ --}}
   </main>
 
   {{-- Page JS (stepper + filtering) --}}

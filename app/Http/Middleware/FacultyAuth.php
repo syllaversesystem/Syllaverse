@@ -53,7 +53,7 @@ class FacultyAuth
         if ($user->status !== 'active') {
             Auth::guard('faculty')->logout();
             return redirect()->route('faculty.login.form')
-                ->with('error', 'Your account is pending approval by your Program Chair.');
+                ->with('error', 'Your account is pending approval by the Superadmin.');
         }
 
         return $next($request);

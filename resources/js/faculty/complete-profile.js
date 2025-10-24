@@ -1,38 +1,42 @@
 // -------------------------------------------------------------------------------
 // * File: resources/js/faculty/complete-profile.js
-// * Description: Stepper + chair-role UI logic for Faculty Complete Profile (professional, non-modal) – Syllaverse
+// * Description: Stepper + role-request UI logic for Faculty Complete Profile – Syllaverse
 // -------------------------------------------------------------------------------
 // 📜 Log:
-// [2025-10-18] Copied from admin complete profile and adapted for faculty users
+// [2025-10-24] Updated to include 2-step wizard with role selection functionality
 // -------------------------------------------------------------------------------
 
-/* Plain-English: bootstrap the page, wire the stepper, and keep program options filtered by department. */
+/* Plain-English: bootstrap the page, wire the stepper, and manage role selection. */
 document.addEventListener('DOMContentLoaded', () => {
   // Elements for the stepper
   const step1 = document.getElementById('svStep1');
   const step2 = document.getElementById('svStep2');
   const nextBtn = document.getElementById('svNextToStep2');
   const backBtn = document.getElementById('svBackToStep1');
+  const stepBadge1 = document.getElementById('svStepBadge1');
+  const stepBadge2 = document.getElementById('svStepBadge2');
   const progressBar = document.getElementById('svStepProgress');
-  const stepBadges = document.querySelectorAll('.sv-step'); // [0]=Step1, [1]=Step2
+  const step2Label = document.getElementById('svStep2Label');
 
   // Core inputs
-  const name = document.getElementById('name');
-  const email = document.getElementById('email');
-  const designation = document.getElementById('designation');
-  const employeeCode = document.getElementById('employee_code');
+  const name = document.getElementById('svName');
+  const email = document.getElementById('svEmail');
+  const designation = document.getElementById('svDesignation');
+  const employeeCode = document.getElementById('svEmployeeCode');
 
   // Role-request controls
   const cbDept = document.querySelector('#request_dept_chair');
-  const cbProg = null; // Program Chair removed
   const cbVcaa = document.querySelector('#request_vcaa');
   const cbAssocVcaa = document.querySelector('#request_assoc_vcaa');
   const cbDean = document.querySelector('#request_dean');
   const cbAssocDean = document.querySelector('#request_assoc_dean');
   const cbFaculty = document.querySelector('#request_faculty');
-  const selDept = document.querySelector('#department_id');
-  const selFacultyDept = document.querySelector('#faculty_department_id');
-  const selProg = null; // Program select removed
+  
+  // Department selectors
+  const selDept = document.querySelector('#svDepartmentId');
+  const deptSelector = document.querySelector('#svDepartmentSelector');
+  const selFacultyDept = document.querySelector('#svFacultyDepartmentId');
+  const facultyDeptSelector = document.querySelector('#svFacultyDepartmentSelector');
 
   // If essential elements are missing, bail out gracefully.
   if (!step1 || !step2) return;
@@ -43,9 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- Initial UI state
   showStep(1);
-  if (selDept || selFacultyDept) {
-    applyToggleState(cbDept, cbProg, selDept, selProg, cbVcaa, cbAssocVcaa, cbDean, cbAssocDean, cbFaculty, selFacultyDept);
-  }
+  applyToggleState();
 
   // --- Stepper wiring
   if (nextBtn) {
@@ -66,8 +68,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       showStep(2);
-      // When entering Step 2, keep options filtered.
-      if (selDept && selProg) filterProgramsByDepartment(selDept, selProg);
     });
   }
 
@@ -75,60 +75,46 @@ document.addEventListener('DOMContentLoaded', () => {
     backBtn.addEventListener('click', () => showStep(1));
   }
 
-  // --- Role toggles + filtering
-  if (selDept || selFacultyDept) {
-    // Wire change handlers for role checkboxes so department enabling is consistent
-    const roleChangeHandler = () => {
-      applyToggleState(cbDept, cbProg, selDept, selProg, cbVcaa, cbAssocVcaa, cbDean, cbAssocDean, cbFaculty, selFacultyDept);
-    };
+  // --- Role toggles + department showing/hiding
+  const roleChangeHandler = () => {
+    applyToggleState();
+  };
 
-    if (cbDept) cbDept.addEventListener('change', roleChangeHandler);
-    if (cbVcaa) cbVcaa.addEventListener('change', roleChangeHandler);
-    if (cbAssocVcaa) cbAssocVcaa.addEventListener('change', roleChangeHandler);
-    if (cbDean) cbDean.addEventListener('change', roleChangeHandler);
-    if (cbAssocDean) cbAssocDean.addEventListener('change', roleChangeHandler);
-    if (cbFaculty) cbFaculty.addEventListener('change', roleChangeHandler);
-
-    if (selDept) {
-      selDept.addEventListener('change', () => {
-        // Keep department enabled state consistent
-        applyToggleState(cbDept, cbProg, selDept, selProg, cbVcaa, cbAssocVcaa, cbDean, cbAssocDean, cbFaculty, selFacultyDept);
-      });
-    }
-
-    if (selFacultyDept) {
-      selFacultyDept.addEventListener('change', () => {
-        // Keep faculty department enabled state consistent
-        applyToggleState(cbDept, cbProg, selDept, selProg, cbVcaa, cbAssocVcaa, cbDean, cbAssocDean, cbFaculty, selFacultyDept);
-      });
-    }
-  }
+  if (cbDept) cbDept.addEventListener('change', roleChangeHandler);
+  if (cbVcaa) cbVcaa.addEventListener('change', roleChangeHandler);
+  if (cbAssocVcaa) cbAssocVcaa.addEventListener('change', roleChangeHandler);
+  if (cbDean) cbDean.addEventListener('change', roleChangeHandler);
+  if (cbAssocDean) cbAssocDean.addEventListener('change', roleChangeHandler);
+  if (cbFaculty) cbFaculty.addEventListener('change', roleChangeHandler);
 
   // --- Final submit guard (polite checks; server still validates)
   const form = document.getElementById('svCompleteProfileForm');
   if (form) {
     form.addEventListener('submit', (e) => {
-      // If requests are locked (pending), we let it submit HR fields only (button is disabled in Blade anyway).
+      // If requests are locked (pending), we let it submit HR fields only.
       if (requestsLocked) return;
 
-      // If no role requested, allow submit (profile-only).
+      // Check if department-specific roles need department selection
       const wantsDept = cbDept && cbDept.checked;
-      const wantsDeanOnly = cbDean && cbDean.checked;
-      const wantsAssocDeanOnly = cbAssocDean && cbAssocDean.checked;
+      const wantsDean = cbDean && cbDean.checked;
+      const wantsAssocDean = cbAssocDean && cbAssocDean.checked;
       const wantsFaculty = cbFaculty && cbFaculty.checked;
 
-      // Require department only when requesting Department Chair, Dean, or Associate Dean.
-      if ((wantsDept || wantsDeanOnly || wantsAssocDeanOnly) && selDept && !selDept.value) {
+      // Check if any leadership role is selected
+      const hasLeadershipRole = wantsDept || wantsDean || wantsAssocDean;
+
+      // Require department for department-specific roles
+      if (hasLeadershipRole && selDept && !selDept.value) {
         e.preventDefault();
-        markInvalid(selDept, 'Please select a department for the selected chair role.');
+        markInvalid(selDept, 'Please select a department for the selected leadership role.');
         showStep(2);
         return;
       }
 
-      // Require faculty department when requesting Faculty Member role.
-      if (wantsFaculty && selFacultyDept && !selFacultyDept.value) {
+      // Require faculty department for faculty role (only when no leadership role is selected)
+      if (wantsFaculty && !hasLeadershipRole && selFacultyDept && !selFacultyDept.value) {
         e.preventDefault();
-        markInvalid(selFacultyDept, 'Please select your department for the Faculty Member role.');
+        markInvalid(selFacultyDept, 'Please select your department for the Faculty role.');
         showStep(2);
         return;
       }
@@ -137,94 +123,100 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ===== Helpers =====
 
-  /* This switches between Step 1 and Step 2 and animates the progress bar / step badges. */
+  /* This switches between Step 1 and Step 2 and animates the step badges and progress bar. */
   function showStep(n) {
     const goStep1 = n === 1;
     step1.hidden = !goStep1;
     step2.hidden = goStep1;
 
-    // Progress: 50% on step 1, 100% on step 2 (subtle, not literal)
+    // Badge visuals
+    if (stepBadge1 && stepBadge2) {
+      stepBadge1.classList.toggle('sv-step-active', goStep1);
+      stepBadge1.classList.toggle('sv-step-disabled', !goStep1);
+      stepBadge2.classList.toggle('sv-step-active', !goStep1);
+      stepBadge2.classList.toggle('sv-step-disabled', goStep1);
+    }
+
+    // Progress bar animation: 50% on step 1, 100% on step 2
     if (progressBar) {
       progressBar.style.width = goStep1 ? '50%' : '100%';
     }
 
-    // Badge visuals
-    if (stepBadges && stepBadges.length >= 2) {
-      stepBadges.forEach(b => b.classList.remove('sv-step-active'));
-      stepBadges[goStep1 ? 0 : 1].classList.add('sv-step-active');
+    // Step 2 label styling
+    if (step2Label) {
+      if (goStep1) {
+        step2Label.classList.remove('fw-semibold', 'text-dark');
+        step2Label.classList.add('text-muted');
+      } else {
+        step2Label.classList.remove('text-muted');
+        step2Label.classList.add('fw-semibold', 'text-dark');
+      }
     }
 
-    // Focus first input of the current step (for keyboard/accessibility)
+    // Focus first input of the current step (for accessibility)
     if (goStep1 && designation) designation.focus();
     if (!goStep1 && !requestsLocked) {
       if (cbDept) cbDept.focus();
     }
   }
 
-  /* This turns Department/Program selects on/off depending on chosen chair roles. */
-  function applyToggleState(cbDept, cbProg, selDept, selProg, cbVcaa, cbAssocVcaa, cbDean, cbAssocDean, cbFaculty, selFacultyDept) {
+  /* This shows/hides department selectors based on role selections and manages faculty role logic. */
+  function applyToggleState() {
     const wantsDept = !!(cbDept && cbDept.checked);
-    const wantsProg = !!(cbProg && cbProg.checked);
     const wantsDean = !!(cbDean && cbDean.checked);
     const wantsAssocDean = !!(cbAssocDean && cbAssocDean.checked);
     const wantsFaculty = !!(cbFaculty && cbFaculty.checked);
-    const wantsInstitution = wantsDean || wantsAssocDean; // Dean or Associate Dean counts for department enabling
 
-    const anyChair = wantsDept || wantsProg || wantsInstitution;
+    // Check if any department-specific leadership role is selected
+    const needsDepartment = wantsDept || wantsDean || wantsAssocDean;
+    const hasLeadershipRole = needsDepartment;
 
-    // Department select is enabled when any chair role (including institution-level) is requested
-    if (selDept) {
-      selDept.disabled = !anyChair || requestsLocked;
-      if (!anyChair) {
-        clearSelect(selDept);
+    // Show department selector when any department-specific role is selected
+    if (deptSelector) {
+      deptSelector.style.display = needsDepartment ? 'block' : 'none';
+      if (!needsDepartment && selDept) {
+        selDept.value = '';
+        clearInvalid(selDept);
       }
     }
 
-    // Faculty department select is enabled when Faculty Member role is requested
-    if (selFacultyDept) {
-      selFacultyDept.disabled = !wantsFaculty || requestsLocked;
-      if (!wantsFaculty) {
-        clearSelect(selFacultyDept);
-      }
-    }
-
-    // Program select is only enabled for Program Chair (selProg may be null)
-    if (selProg) {
-      selProg.disabled = !wantsProg || requestsLocked;
-      if (!wantsProg) clearSelect(selProg);
-    }
-
-    // Clear previous invalid state when toggling
-    if (selDept) clearInvalid(selDept);
-    if (selFacultyDept) clearInvalid(selFacultyDept);
-    if (selProg) clearInvalid(selProg);
-  }
-
-  /* This keeps the Program list relevant by showing only options under the selected Department. */
-  function filterProgramsByDepartment(selDept, selProg) {
-    const deptId = selDept.value || '';
-    const options = Array.from(selProg.options);
-    const placeholder = options.shift(); // keep always visible
-
-    let selectedStillValid = false;
-
-    options.forEach(opt => {
-      const belongsTo = opt.getAttribute('data-dept') || '';
-      const matches = deptId && belongsTo === deptId;
-
-      if (matches) {
-        opt.hidden = false;
-        opt.disabled = false;
-        if (opt.selected) selectedStillValid = true;
+    // Faculty role logic: disable/hide when leadership role is selected
+    if (cbFaculty) {
+      if (hasLeadershipRole) {
+        // Disable and uncheck faculty role if leadership role is selected
+        cbFaculty.disabled = true;
+        cbFaculty.checked = false;
+        // Add visual indication that it's not needed
+        const facultyCard = cbFaculty.closest('.card');
+        if (facultyCard) {
+          facultyCard.style.opacity = '0.5';
+          const helpText = facultyCard.querySelector('.text-muted.small');
+          if (helpText) {
+            helpText.textContent = 'Not needed - leadership roles include faculty privileges';
+          }
+        }
       } else {
-        opt.hidden = true;
-        opt.disabled = true;
-        if (opt.selected) selectedStillValid = false;
+        // Re-enable faculty role if no leadership role is selected
+        cbFaculty.disabled = requestsLocked; // Only disable if requests are locked
+        const facultyCard = cbFaculty.closest('.card');
+        if (facultyCard) {
+          facultyCard.style.opacity = '1';
+          const helpText = facultyCard.querySelector('.text-muted.small');
+          if (helpText) {
+            helpText.textContent = 'Regular faculty position for teaching and research';
+          }
+        }
       }
-    });
+    }
 
-    if (!deptId || !selectedStillValid) {
-      selProg.value = '';
+    // Show faculty department selector only when faculty role is selected and no leadership role
+    const showFacultyDept = wantsFaculty && !hasLeadershipRole;
+    if (facultyDeptSelector) {
+      facultyDeptSelector.style.display = showFacultyDept ? 'block' : 'none';
+      if (!showFacultyDept && selFacultyDept) {
+        selFacultyDept.value = '';
+        clearInvalid(selFacultyDept);
+      }
     }
   }
 
@@ -271,11 +263,5 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!ok) markInvalid(el, 'Please enter a valid email address.');
     else clearInvalid(el);
     return ok;
-  }
-
-  /* Resets a <select> to its placeholder option. */
-  function clearSelect(selectEl) {
-    if (!selectEl) return;
-    selectEl.value = '';
   }
 });

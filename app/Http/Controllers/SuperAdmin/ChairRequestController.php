@@ -55,8 +55,8 @@ class ChairRequestController extends Controller
             }
         }
 
-        // Department-scoped roles require a department. Dean and Associate Dean are department-scoped; institution-level VCAA/ASSOC_VCAA are not.
-        if ($role === ChairRequest::ROLE_DEPT || $role === ChairRequest::ROLE_DEAN || $role === ChairRequest::ROLE_ASSOC_DEAN) {
+        // Department-scoped roles require a department. Faculty, Dept Chair, Dean and Associate Dean are department-scoped; institution-level VCAA/ASSOC_VCAA are not.
+        if ($role === ChairRequest::ROLE_DEPT || $role === ChairRequest::ROLE_DEAN || $role === ChairRequest::ROLE_ASSOC_DEAN || $role === ChairRequest::ROLE_FACULTY) {
             if (empty($deptId)) {
                 return back()->withErrors(['department_id' => 'Department is required when approving this request.']);
             }
@@ -90,6 +90,11 @@ class ChairRequestController extends Controller
                 $apptRole  = Appointment::ROLE_PROG;
                 $scopeType = Appointment::SCOPE_PROG;
                 $scopeId   = $progId;
+            } elseif ($role === ChairRequest::ROLE_FACULTY) {
+                // Faculty role uses SCOPE_FACULTY but scope_id references the department
+                $apptRole  = Appointment::ROLE_FACULTY;
+                $scopeType = Appointment::SCOPE_FACULTY;
+                $scopeId   = $deptId;
             } else {
                 // Institution-level roles: use the same role string and institution scope.
                 // Use a sentinel scope_id (0) to indicate "institution" so DB inserts don't fail
@@ -139,10 +144,10 @@ class ChairRequestController extends Controller
         $deciderId = $this->resolveDeciderId($request); // may be null
         $chairRequest->markRejected($deciderId, $request->input('notes'));
 
-        // 🔁 NEW: If this user is an admin whose signup is still pending, and there are no more pending chair-requests,
+        // 🔁 NEW: If this user's signup is still pending, and there are no more pending chair-requests,
         // auto-reject the account (per product rule).
         $user = $chairRequest->user;
-        if ($user && $user->role === 'admin' && $user->status === 'pending') {
+        if ($user && $user->status === 'pending') {
             $remaining = ChairRequest::where('user_id', $user->id)
                 ->where('status', ChairRequest::STATUS_PENDING)
                 ->count();
@@ -197,6 +202,10 @@ class ChairRequestController extends Controller
                     $apptRole = Appointment::ROLE_PROG;
                     $scopeType = Appointment::SCOPE_PROG;
                     $scopeId = $progId;
+                } elseif ($role === ChairRequest::ROLE_FACULTY) {
+                    $apptRole = Appointment::ROLE_FACULTY;
+                    $scopeType = Appointment::SCOPE_FACULTY;
+                    $scopeId = $deptId;
                 } else {
                     // Institution-level roles (VCAA, Associate VCAA)
                     $apptRole = $role;

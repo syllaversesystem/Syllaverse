@@ -12,8 +12,16 @@ use App\Http\Controllers\Faculty\AuthController as FacultyAuthController;
 // Redirect root to Super Admin login
 // ------------------------------------------------
 Route::get('/', function () {
-    return redirect()->route('superadmin.login.form');
+    return redirect()->route('superladmin.login.form');
 });
+
+// ------------------------------------------------
+// Generic login route (for Laravel default authentication redirects)
+// ------------------------------------------------
+Route::get('/login', function () {
+    // Default to faculty login for now, could be made smarter based on context
+    return redirect()->route('faculty.login.form');
+})->name('login');
 
 // ------------------------------------------------
 // Super Admin Routes

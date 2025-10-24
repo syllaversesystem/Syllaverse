@@ -1,27 +1,23 @@
 {{-- 
 -------------------------------------------------------------------------------
-* File: resources/views/superadmin/manage-accounts/modals/manage-admin.blade.php
-* Description: Per-admin “Manage” modal – add/edit/end appointments with in-place AJAX DOM updates
+* File: resources/views/superadmin/manage-accounts/modals/manage-faculty.blade.php
+* Description: Per-faculty "Manage" modal – add/edit/end faculty appointments with department assignment
 -------------------------------------------------------------------------------
 📜 Log:
-[2025-08-09] Initial creation – extracted from admins-approved tab into reusable partial.
-[2025-08-09] Removed start date/time fields; new/updated appointments start immediately (server defaults to now()).
-[2025-08-11] UI/UX refactor – Approvals-style list, pill labels, icon-only actions; inline edit collapse; fixed nested forms.
-[2025-08-11] AJAX – forms marked with data-ajax="true"; added stable DOM IDs for in-place updates (sv-appt-list-<id>).
+[2025-10-23] Initial creation – faculty appointment management modal for superadmin.
 -------------------------------------------------------------------------------
 --}}
 
 @php
   // Build quick id->name maps for nicer labels
   $deptById = collect($departments ?? [])->keyBy('id');
-  $progById = collect($programs ?? [])->keyBy('id');
 
   // Ensure appointments relation is available
-  $admin->loadMissing('appointments');
-  $activeAppointments = $admin->appointments ? $admin->appointments->where('status','active') : collect();
+  $faculty->loadMissing('appointments');
+  $activeAppointments = $faculty->appointments ? $faculty->appointments->where('status','active') : collect();
 @endphp
 
-<div class="modal fade sv-appt-modal" id="manageAdmin-{{ $admin->id }}" tabindex="-1" aria-hidden="true">
+<div class="modal fade sv-appt-modal" id="manageFaculty-{{ $faculty->id }}" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content">
 
@@ -29,7 +25,7 @@
       <div class="modal-header">
         <h5 class="modal-title d-flex align-items-center gap-2">
           <i data-feather="user-check"></i>
-          <span>Manage Admin — {{ $admin->name }}</span>
+          <span>Manage Faculty — {{ $faculty->name }}</span>
         </h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
@@ -47,15 +43,16 @@
           <form method="POST"
                 action="{{ route('superadmin.appointments.store') }}"
                 class="sv-appt-form row g-2 align-items-end"
-                data-sv-scope="add-{{ $admin->id }}"
+                data-sv-scope="add-{{ $faculty->id }}"
                 data-ajax="true">
             @csrf
-            <input type="hidden" name="user_id" value="{{ $admin->id }}">
+            <input type="hidden" name="user_id" value="{{ $faculty->id }}">
 
             <div class="col-md-4">
               <label class="form-label small">Role</label>
               <select name="role" class="form-select form-select-sm sv-role" aria-label="Select role">
                 <option value="">— Select Role —</option>
+                <option value="{{ \App\Models\Appointment::ROLE_FACULTY }}">Faculty</option>
                 <option value="{{ \App\Models\Appointment::ROLE_DEPT }}">Program/Department Chair</option>
                 <option value="{{ \App\Models\Appointment::ROLE_DEAN }}">Dean</option>
                 <option value="{{ \App\Models\Appointment::ROLE_ASSOC_DEAN }}">Associate Dean</option>
@@ -90,13 +87,14 @@
           </h6>
 
           {{-- IMPORTANT: This wrapper ID is used by JS to re-render the list after AJAX --}}
-          <div class="sv-request-list" id="sv-appt-list-{{ $admin->id }}">
+          <div class="sv-request-list" id="sv-appt-list-{{ $faculty->id }}">
             @if ($activeAppointments->count())
               @foreach ($activeAppointments as $appt)
                 @php
-                  $isDept        = $appt->role === \App\Models\Appointment::ROLE_DEPT;
-                  $isProg        = $appt->role === \App\Models\Appointment::ROLE_PROG;
-                  $isDean        = $appt->role === \App\Models\Appointment::ROLE_DEAN;
+                  $isDept = $appt->role === \App\Models\Appointment::ROLE_DEPT;
+                  $isProg = $appt->role === \App\Models\Appointment::ROLE_PROG;
+                  $isDean = $appt->role === \App\Models\Appointment::ROLE_DEAN;
+                  $isFaculty = $appt->role === \App\Models\Appointment::ROLE_FACULTY;
                   
                   // Show specific role labels based on stored role
                   if ($isDept) {
@@ -111,26 +109,25 @@
                     $roleLabel = 'Associate VCAA';
                   } elseif ($appt->role === \App\Models\Appointment::ROLE_ASSOC_DEAN) {
                     $roleLabel = 'Associate Dean';
+                  } elseif ($isFaculty) {
+                    $roleLabel = 'Faculty';
                   } else {
                     $roleLabel = $appt->role ?? 'Appointment';
                   }
                   
-                  // Handle scope label properly - show department for department-scoped roles
+                  // Handle scope label properly
                   if ($appt->scope_id === null || $appt->scope_id == 0) {
                     $scopeLabel = 'Institution-wide';
-                  } elseif ($isDept || $isProg || $isDean) {
-                    // Chair types and Dean use department scope
+                  } elseif ($isFaculty || $isDept || $isProg || $isDean || $appt->role === \App\Models\Appointment::ROLE_ASSOC_DEAN) {
+                    // These roles use department scope
                     $scopeLabel = $deptById[$appt->scope_id]->name ?? 'Unknown Department';
                   } else {
                     // For other appointment types (VCAA, Associate VCAA)
                     $scopeLabel = 'Institution-wide';
                   }
                   
-                  $collapseId    = "sv-appt-edit-{$appt->id}";
-                  $currentDeptId = $isDept
-                    ? (int) $appt->scope_id
-                    : (int) ($progById[$appt->scope_id]->department_id ?? 0);
-                  $currentProgId = $isDept ? 0 : (int) $appt->scope_id;
+                  $collapseId = "sv-appt-edit-{$appt->id}";
+                  $currentDeptId = (int) $appt->scope_id;
                 @endphp
 
                 {{-- Row summary (pills + actions) --}}
@@ -180,6 +177,7 @@
                     <div class="col-md-4">
                       <label class="form-label small">Role</label>
                       <select name="role" class="form-select form-select-sm sv-role">
+                        <option value="{{ \App\Models\Appointment::ROLE_FACULTY }}" {{ $isFaculty ? 'selected' : '' }}>Faculty</option>
                         <option value="{{ \App\Models\Appointment::ROLE_DEPT }}" {{ ($isDept || $isProg) ? 'selected' : '' }}>Program/Department Chair</option>
                         <option value="{{ \App\Models\Appointment::ROLE_DEAN }}" {{ $appt->role === \App\Models\Appointment::ROLE_DEAN ? 'selected' : '' }}>Dean</option>
                         <option value="{{ \App\Models\Appointment::ROLE_ASSOC_DEAN }}" {{ $appt->role === \App\Models\Appointment::ROLE_ASSOC_DEAN ? 'selected' : '' }}>Associate Dean</option>
@@ -212,7 +210,7 @@
                 </div>
               @endforeach
             @else
-              <div class="text-muted">No active appointments for this admin.</div>
+              <div class="text-muted">No active appointments for this faculty member.</div>
             @endif
           </div>
         </div>
@@ -222,14 +220,35 @@
 
       {{-- ░░░ START: Modal Footer ░░░ --}}
       <div class="modal-footer d-flex justify-content-between">
-        {{-- This revokes admin access entirely (AJAX). --}}
-        <form method="POST"
-              action="{{ route('superadmin.reject.admin', $admin->id) }}"
-              class="me-auto"
-              data-ajax="true">
-          @csrf
-          <button class="btn btn-outline-danger btn-sm" type="submit">Revoke Admin</button>
-        </form>
+        {{-- Account management actions --}}
+        <div class="d-flex gap-2">
+          @if($faculty->status === 'active')
+            <form method="POST"
+                  action="{{ route('superadmin.suspend.faculty', $faculty->id) }}"
+                  class="d-inline"
+                  data-ajax="true">
+              @csrf
+              <button class="btn btn-outline-warning btn-sm" type="submit">Suspend Faculty</button>
+            </form>
+            
+            <form method="POST"
+                  action="{{ route('superadmin.reject.faculty', $faculty->id) }}"
+                  class="d-inline"
+                  data-ajax="true">
+              @csrf
+              <button class="btn btn-outline-danger btn-sm" type="submit">Reject Faculty</button>
+            </form>
+          @elseif($faculty->status === 'suspended')
+            <form method="POST"
+                  action="{{ route('superadmin.reactivate.faculty', $faculty->id) }}"
+                  class="d-inline"
+                  data-ajax="true">
+              @csrf
+              <button class="btn btn-outline-success btn-sm" type="submit">Reactivate Faculty</button>
+            </form>
+          @endif
+        </div>
+        
         <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
       </div>
       {{-- ░░░ END: Modal Footer ░░░ --}}
@@ -240,19 +259,19 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  // Handle department dropdown accessibility based on role selection
-  const modal = document.getElementById('manageAdmin-{{ $admin->id }}');
+  // Handle department dropdown accessibility based on role selection for faculty
+  const modal = document.getElementById('manageFaculty-{{ $faculty->id }}');
   if (modal) {
     const roleSelects = modal.querySelectorAll('.sv-role');
     const deptSelects = modal.querySelectorAll('.sv-dept');
     
     // Define roles that require department selection
-    const deptRequiredRoles = ['{{ \App\Models\Appointment::ROLE_DEPT }}', '{{ \App\Models\Appointment::ROLE_DEAN }}', '{{ \App\Models\Appointment::ROLE_ASSOC_DEAN }}'];
-    const chairRole = '{{ \App\Models\Appointment::ROLE_DEPT }}';
-    
-    // Program count data removed - not needed for static dropdown labels
-    
-    // Removed dynamic chair role label function - keeping static "Program/Department Chair" text
+    const deptRequiredRoles = [
+      '{{ \App\Models\Appointment::ROLE_FACULTY }}',
+      '{{ \App\Models\Appointment::ROLE_DEPT }}', 
+      '{{ \App\Models\Appointment::ROLE_DEAN }}',
+      '{{ \App\Models\Appointment::ROLE_ASSOC_DEAN }}'
+    ];
     
     function updateDeptDropdownState(roleSelect, deptSelect) {
       const selectedRole = roleSelect.value;
@@ -279,8 +298,6 @@ document.addEventListener('DOMContentLoaded', function() {
         roleSelect.addEventListener('change', function() {
           updateDeptDropdownState(roleSelect, deptSelect);
         });
-        
-        // Department change listener removed - no dynamic label updates needed
       }
     });
   }

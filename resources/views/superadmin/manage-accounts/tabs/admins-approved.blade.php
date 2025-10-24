@@ -13,9 +13,23 @@
 --}}
 
 @php
+  // Load appointments for both admin and faculty users
   if (isset($approvedAdmins) && method_exists($approvedAdmins, 'load')) {
     $approvedAdmins->loadMissing('appointments');
   }
+  if (isset($approvedFaculty) && method_exists($approvedFaculty, 'load')) {
+    $approvedFaculty->loadMissing('appointments');
+  }
+  
+  // Merge approved admins and faculty for unified display
+  $allApprovedUsers = collect();
+  if (isset($approvedAdmins)) {
+    $allApprovedUsers = $allApprovedUsers->concat($approvedAdmins);
+  }
+  if (isset($approvedFaculty)) {
+    $allApprovedUsers = $allApprovedUsers->concat($approvedFaculty);
+  }
+  
   $deptById = collect($departments ?? [])->keyBy('id');
   $progById = collect($programs ?? [])->keyBy('id');
 @endphp
@@ -27,22 +41,34 @@
         <thead class="superadmin-manage-account-table-header">
           <tr>
             <th><i data-feather="user"></i> Name</th>
+            <th><i data-feather="shield"></i> Role</th>
             <th><i data-feather="mail"></i> Email</th>
             <th><i data-feather="award"></i> Active Appointments</th>
             <th class="text-end"><i data-feather="more-vertical"></i></th>
           </tr>
         </thead>
         <tbody>
-          @forelse ($approvedAdmins ?? [] as $admin)
+          @forelse ($allApprovedUsers as $user)
             @php
-              $activeAppointments = $admin->appointments
-                ? $admin->appointments->where('status', 'active')
+              $activeAppointments = $user->appointments
+                ? $user->appointments->where('status', 'active')
                 : collect();
             @endphp
 
             <tr>
-              <td>{{ $admin->name }}</td>
-              <td class="text-muted">{{ $admin->email }}</td>
+              <td>{{ $user->name }}</td>
+              
+              <td>
+                @if($user->role === 'admin')
+                  <span class="sv-pill is-primary sv-pill--sm">Admin</span>
+                @elseif($user->role === 'faculty')
+                  <span class="sv-pill is-success sv-pill--sm">Faculty</span>
+                @else
+                  <span class="sv-pill is-secondary sv-pill--sm">{{ ucfirst($user->role) }}</span>
+                @endif
+              </td>
+              
+              <td class="text-muted">{{ $user->email }}</td>
 
               <td>
                 @if ($activeAppointments->count())
@@ -52,6 +78,7 @@
                         $isDept = $appt->role === \App\Models\Appointment::ROLE_DEPT;
                         $isProg = $appt->role === \App\Models\Appointment::ROLE_PROG;
                         $isDean = $appt->role === \App\Models\Appointment::ROLE_DEAN;
+                        $isFaculty = $appt->role === \App\Models\Appointment::ROLE_FACULTY;
                         
                         // Show specific chair type based on stored role
                         if ($isDept) {
@@ -64,6 +91,14 @@
                           $roleLabel = 'VCAA';
                         } elseif ($appt->role === \App\Models\Appointment::ROLE_ASSOC_VCAA) {
                           $roleLabel = 'Associate VCAA';
+                        } elseif ($appt->role === \App\Models\Appointment::ROLE_ASSOC_DEAN) {
+                          $roleLabel = 'Associate Dean';
+                        } elseif ($isFaculty) {
+                          $roleLabel = 'Faculty';
+                          // Show department for faculty appointments
+                          if ($appt->scope_id && isset($deptById[$appt->scope_id])) {
+                            $roleLabel .= ' - ' . $deptById[$appt->scope_id]->name;
+                          }
                         } else {
                           $roleLabel = $appt->role ?? 'Appointment';
                         }
@@ -72,42 +107,68 @@
                     @endforeach
                   </div>
                 @else
-                  <span class="text-muted">—</span>
+                  @if($user->role === 'faculty')
+                    <span class="text-muted">No department appointment</span>
+                  @else
+                    <span class="text-muted">—</span>
+                  @endif
                 @endif
               </td>
 
               <td class="text-end">
-                <button
-                  class="action-btn edit"
-                  type="button"
-                  data-bs-toggle="modal"
-                  data-bs-target="#manageAdmin-{{ $admin->id }}"
-                  title="Manage appointments for {{ $admin->name }}"
-                  aria-label="Manage appointments for {{ $admin->name }}">
-                  <i data-feather="settings"></i>
-                </button>
+                @if($user->role === 'admin')
+                  <button
+                    class="action-btn edit"
+                    type="button"
+                    data-bs-toggle="modal"
+                    data-bs-target="#manageAdmin-{{ $user->id }}"
+                    title="Manage appointments for {{ $user->name }}"
+                    aria-label="Manage appointments for {{ $user->name }}">
+                    <i data-feather="settings"></i>
+                  </button>
+                @elseif($user->role === 'faculty')
+                  <button
+                    class="action-btn edit"
+                    type="button"
+                    data-bs-toggle="modal"
+                    data-bs-target="#manageFaculty-{{ $user->id }}"
+                    title="Manage faculty for {{ $user->name }}"
+                    aria-label="Manage faculty for {{ $user->name }}">
+                    <i data-feather="settings"></i>
+                  </button>
+                @endif
               </td>
             </tr>
 
-            @push('modals')
-              @include('superadmin.manage-accounts.modals.manage-admin', [
-                'admin' => $admin,
-                'departments' => $departments ?? [],
-                'programs' => $programs ?? []
-              ])
-            @endpush
+            @if($user->role === 'admin')
+              @push('modals')
+                @include('superadmin.manage-accounts.modals.manage-admin', [
+                  'admin' => $user,
+                  'departments' => $departments ?? [],
+                  'programs' => $programs ?? []
+                ])
+              @endpush
+            @elseif($user->role === 'faculty')
+              @push('modals')
+                @include('superadmin.manage-accounts.modals.manage-faculty', [
+                  'faculty' => $user,
+                  'departments' => $departments ?? [],
+                  'programs' => $programs ?? []
+                ])
+              @endpush
+            @endif
 
           @empty
-            {{-- No approved admins --}}
+            {{-- No approved users --}}
           @endforelse
 
           {{-- ░░░ START: Empty State ░░░ --}}
-          @if(($approvedAdmins ?? collect())->isEmpty())
-            <tr class="superadmin-manage-account-empty-row">
-              <td colspan="4">
+          @if($allApprovedUsers->isEmpty())
+            <tr class="superladmin-manage-account-empty-row">
+              <td colspan="5">
                 <div class="sv-empty">
                   <h6>No approved accounts</h6>
-                  <p>Approved admins will appear here once accounts are verified.</p>
+                  <p>Approved admins and faculty will appear here once accounts are verified.</p>
                 </div>
               </td>
             </tr>

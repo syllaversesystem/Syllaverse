@@ -1,13 +1,25 @@
 {{-- 
 -------------------------------------------------------------------------------
 * File: resources/views/superadmin/manage-accounts/tabs/admins-rejected.blade.php
-* Description: Rejected Admins tab – Approvals-style table, icon-only re-approve (AJAX), stable DOM IDs
+* Description: Rejected Accounts tab – Approvals-style table, icon-only re-approve (AJAX), stable DOM IDs
 -------------------------------------------------------------------------------
 📜 Log:
 [2025-08-11] UI/UX refresh – Approvals-style wrapper, header icons, icon-only actions,
              added #svRejectedAdminsTable and per-row IDs for JS refresh; empty state added.
+[2025-10-23] Updated to include both rejected admins and faculty accounts for unified management.
 -------------------------------------------------------------------------------
 --}}
+
+@php
+  // Merge rejected admins and faculty for unified display
+  $allRejectedUsers = collect();
+  if (isset($rejectedAdmins)) {
+    $allRejectedUsers = $allRejectedUsers->concat($rejectedAdmins);
+  }
+  if (isset($rejectedFaculty)) {
+    $allRejectedUsers = $allRejectedUsers->concat($rejectedFaculty);
+  }
+@endphp
 
 {{-- ░░░ START: Table Section (Approvals-style wrapper) ░░░ --}}
   <div class="table-wrapper position-relative">
@@ -16,46 +28,77 @@
         <thead class="superadmin-manage-account-table-header">
           <tr>
             <th><i data-feather="user-x"></i> Name</th>
+            <th><i data-feather="shield"></i> Role</th>
             <th><i data-feather="mail"></i> Email</th>
             <th class="text-end"><i data-feather="more-vertical"></i></th>
           </tr>
         </thead>
         <tbody>
-          @forelse (($rejectedAdmins ?? []) as $admin)
-            <tr id="sv-rejected-row-{{ $admin->id }}">
-              <td>{{ $admin->name }}</td>
-              <td class="text-muted">{{ $admin->email }}</td>
+          @forelse ($allRejectedUsers as $user)
+            <tr id="sv-rejected-row-{{ $user->id }}">
+              <td>{{ $user->name }}</td>
+              
+              <td>
+                @if($user->role === 'admin')
+                  <span class="sv-pill is-primary sv-pill--sm">Admin</span>
+                @elseif($user->role === 'faculty')
+                  <span class="sv-pill is-success sv-pill--sm">Faculty</span>
+                @else
+                  <span class="sv-pill is-secondary sv-pill--sm">{{ ucfirst($user->role) }}</span>
+                @endif
+              </td>
+              
+              <td class="text-muted">{{ $user->email }}</td>
               <td class="text-end">
-                {{-- Re-approve (AJAX) – moves admin back to Approved --}}
-                <form method="POST"
-                      action="{{ route('superadmin.approve.admin', $admin->id) }}"
-                      class="d-inline"
-                      data-ajax="true"
-                      data-sv-reapprove="true"  {{-- optional flag if you want to branch in JS --}}
-                      aria-label="Re-approve {{ $admin->name }}">
-                  @csrf
-                  <button
-                    class="action-btn approve"
-                    type="submit"
-                    title="Re-approve {{ $admin->name }}"
-                    data-bs-toggle="tooltip"
-                    data-bs-placement="top">
-                    <i data-feather="check-circle"></i>
-                  </button>
-                </form>
+                {{-- Re-approve (AJAX) – moves user back to Approved --}}
+                @if($user->role === 'admin')
+                  <form method="POST"
+                        action="{{ route('superadmin.approve.admin', $user->id) }}"
+                        class="d-inline"
+                        data-ajax="true"
+                        data-sv-reapprove="true"
+                        aria-label="Re-approve {{ $user->name }}">
+                    @csrf
+                    <button
+                      class="action-btn approve"
+                      type="submit"
+                      title="Re-approve {{ $user->name }}"
+                      data-bs-toggle="tooltip"
+                      data-bs-placement="top">
+                      <i data-feather="check-circle"></i>
+                    </button>
+                  </form>
+                @elseif($user->role === 'faculty')
+                  <form method="POST"
+                        action="{{ route('superadmin.approve.faculty', $user->id) }}"
+                        class="d-inline"
+                        data-ajax="true"
+                        data-sv-reapprove="true"
+                        aria-label="Re-approve {{ $user->name }}">
+                    @csrf
+                    <button
+                      class="action-btn approve"
+                      type="submit"
+                      title="Re-approve {{ $user->name }}"
+                      data-bs-toggle="tooltip"
+                      data-bs-placement="top">
+                      <i data-feather="check-circle"></i>
+                    </button>
+                  </form>
+                @endif
               </td>
             </tr>
           @empty
-            {{-- No rejected admins --}}
+            {{-- No rejected users --}}
           @endforelse
 
           {{-- ░░░ START: Empty State ░░░ --}}
-          @if(($rejectedAdmins ?? collect())->isEmpty())
+          @if($allRejectedUsers->isEmpty())
             <tr class="superadmin-manage-account-empty-row">
-              <td colspan="3">
+              <td colspan="4">
                 <div class="sv-empty">
                   <h6>No rejected accounts</h6>
-                  <p>When admins are rejected, they will appear here. You can re-approve them anytime.</p>
+                  <p>When accounts are rejected, they will appear here. You can re-approve them anytime.</p>
                 </div>
               </td>
             </tr>

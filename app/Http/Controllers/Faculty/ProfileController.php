@@ -2,10 +2,10 @@
 
 // -------------------------------------------------------------------------------
 // * File: app/Http/Controllers/Faculty/ProfileController.php
-// * Description: Handles Faculty profile completion and chair-role self-requests (pending Admin approval) – Syllaverse
+// * Description: Handles Faculty profile completion (pending Superadmin approval) – Syllaverse
 // -------------------------------------------------------------------------------
 // 📜 Log:
-// [2025-10-18] Updated to match admin complete profile functionality with chair requests
+// [2025-10-24] Updated to require superadmin approval for faculty users, similar to admin users
 // -------------------------------------------------------------------------------
 
 namespace App\Http\Controllers\Faculty;
@@ -14,18 +14,14 @@ use App\Http\Controllers\Controller;
 use App\Models\ChairRequest;
 use App\Models\Department;
 use App\Models\Program;
-use App\Notifications\FacultyRoleRequestNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Notification;
 
 class ProfileController extends Controller
 {
-    protected $facultyRequestToNotify;
-
-    // This shows the "Complete Profile" screen and loads Departments & Programs for role requests.
-    // Faculty can submit designation/employee_code and optionally request Dept/Program Chair.
+    // This shows the "Complete Profile" screen and loads Departments for role requests.
+    // Faculty can submit designation/employee_code and optionally request leadership roles.
     public function showCompleteProfile(Request $request)
     {
         // ░░░ START: Load Data for Form ░░░
@@ -36,15 +32,15 @@ class ProfileController extends Controller
             abort(403, 'Unauthorized');
         }
 
-    // Preload options for simple cascading selects (no extra API needed).
-    $departments = Department::orderBy('name')->get(['id', 'name']);
+        // Preload options for simple cascading selects (no extra API needed).
+        $departments = Department::orderBy('name')->get(['id', 'name']);
         // ░░░ END: Load Data for Form ░░░
 
-    return view('faculty.complete-profile', compact('user', 'departments'));
+        return view('faculty.complete-profile', compact('user', 'departments'));
     }
 
-    // This saves designation/employee_code and creates one or two ChairRequest rows (Dept and/or Program Chair).
-    // It prevents mismatched dept/program and duplicate pending requests.
+    // This saves designation/employee_code and creates ChairRequest rows for requested roles.
+    // Faculty is logged out and must wait for superadmin approval before accessing the system.
     public function submitProfile(Request $request)
     {
         // ░░░ START: Identify User ░░░
@@ -70,9 +66,8 @@ class ProfileController extends Controller
             'request_faculty'    => ['nullable', 'boolean'],
 
             // Scope inputs (conditionally required in logic below)
-            'department_id'         => ['nullable', 'integer', 'exists:departments,id'],
+            'department_id'        => ['nullable', 'integer', 'exists:departments,id'],
             'faculty_department_id' => ['nullable', 'integer', 'exists:departments,id'],
-            'program_id'           => ['nullable', 'integer', 'exists:programs,id'],
         ]);
         // ░░░ END: Validate Core Fields (HR) ░░░
 
@@ -92,38 +87,30 @@ class ProfileController extends Controller
                 ->withInput();
         }
 
-        // Require department only when requesting Dean (only Dean is department-scoped)
-        if ($wantsDean && !$request->filled('department_id')) {
+        // Require department when requesting Dean or Associate Dean (department-scoped roles)
+        if (($wantsDean || $wantsAssocDean) && !$request->filled('department_id')) {
             return back()
-                ->withErrors(['department_id' => 'Please select your department for the Dean role request.'])
+                ->withErrors(['department_id' => 'Please select your department for the Dean/Associate Dean role request.'])
                 ->withInput();
         }
 
-        // Require department when requesting Associate Dean (department-scoped)
-        if ($wantsAssocDean && !$request->filled('department_id')) {
-            return back()
-                ->withErrors(['department_id' => 'Please select your department for the Associate Dean role request.'])
-                ->withInput();
-        }
-
-        // Require faculty department when requesting Faculty Member role
+        // Require department when requesting Faculty role
         if ($wantsFaculty && !$request->filled('faculty_department_id')) {
             return back()
-                ->withErrors(['faculty_department_id' => 'Please select your department for the Faculty Member role.'])
+                ->withErrors(['faculty_department_id' => 'Please select your department for the Faculty role.'])
                 ->withInput();
         }
-
-        // Program Chair removed — no program-level requests processed server-side.
         // ░░░ END: Conditional Validation for Scope ░░░
 
         // ░░░ START: Save & Create Requests (Transaction) ░░░
-    DB::transaction(function () use ($user, $request, $wantsDept, $wantsVcaa, $wantsAssocVcaa, $wantsDean, $wantsAssocDean, $wantsFaculty) {
+        DB::transaction(function () use ($user, $request, $wantsDept, $wantsVcaa, $wantsAssocVcaa, $wantsDean, $wantsAssocDean, $wantsFaculty) {
             // -- Save profile and HR fields on the user
             $userPayload = [
                 'name'          => $request->input('name'),
                 'email'         => $request->input('email'),
                 'designation'   => $request->input('designation'),
                 'employee_code' => $request->input('employee_code'),
+                'status'        => 'pending', // Set status to pending for superadmin approval
             ];
 
             // If the user requested Dean or Associate Dean and selected a department, persist that department on the user record.
@@ -163,15 +150,13 @@ class ProfileController extends Controller
                             'program_id'     => null,
                             'status'         => ChairRequest::STATUS_PENDING,
                         ],
-                        [] // no extra defaults
+                        []
                     );
                 }
             }
 
-            // Program Chair removed — no program-level requests created.
-
             // -- Create institution-level requests.
-            // Dean is department-scoped; VCAA and Associate VCAA are institution-wide (no specific department).
+            // Dean and Associate Dean are department-scoped; VCAA and Associate VCAA are institution-wide.
             $deptId = $request->input('department_id');
 
             // VCAA and Associate VCAA have institution-wide authority (department_id = null)
@@ -230,10 +215,9 @@ class ProfileController extends Controller
             }
 
             // Faculty Member role (standard faculty without administrative responsibilities)
-            $facultyRequest = null;
             if ($wantsFaculty) {
                 $facultyDeptId = $request->input('faculty_department_id');
-                $facultyRequest = ChairRequest::firstOrCreate(
+                ChairRequest::firstOrCreate(
                     [
                         'user_id'        => $user->id,
                         'requested_role' => ChairRequest::ROLE_FACULTY, // Standard faculty role
@@ -244,40 +228,17 @@ class ProfileController extends Controller
                     []
                 );
             }
-
-            // Store faculty request for notification outside transaction
-            if ($facultyRequest && $facultyRequest->wasRecentlyCreated) {
-                $this->facultyRequestToNotify = $facultyRequest;
-            }
         });
         // ░░░ END: Save & Create Requests (Transaction) ░░░
 
-        // ░░░ START: Send Notifications for Faculty Requests ░░░
-        if (isset($this->facultyRequestToNotify)) {
-            $facultyRequest = $this->facultyRequestToNotify;
-            $approvers = $facultyRequest->getApprovers();
-            
-            if ($approvers->isNotEmpty()) {
-                // Send notifications to department-based approvers (Dean/Department Chair)
-                Notification::send($approvers, new FacultyRoleRequestNotification($facultyRequest));
-            } else {
-                // Fallback: send to admin/superadmin if no department approvers found
-                $adminUsers = \App\Models\User::whereIn('role', ['admin', 'superadmin'])->get();
-                if ($adminUsers->isNotEmpty()) {
-                    Notification::send($adminUsers, new FacultyRoleRequestNotification($facultyRequest));
-                }
-            }
-        }
-        // ░░░ END: Send Notifications ░░░
+        // ░░░ START: Response ░░░
+        Auth::logout(); // Logout user until superadmin approval
 
-// ░░░ START: Response ░░░
-Auth::logout(); // Kick them back to login until Admin approves
-
-return redirect()
-    ->route('faculty.login.form')
-    ->withErrors([
-        'approval' => 'Your profile was submitted. Your account is pending approval by the Admin.',
-    ]);
-// ░░░ END: Response ░░░
+        return redirect()
+            ->route('faculty.login.form')
+            ->withErrors([
+                'approval' => 'Your profile was submitted. Your account is pending approval by the Superadmin.',
+            ]);
+        // ░░░ END: Response ░░░
     }
 }
