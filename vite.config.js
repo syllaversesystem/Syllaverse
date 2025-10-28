@@ -16,7 +16,8 @@ export default defineConfig({
                 'resources/js/faculty/courses/courses.js',
                 'resources/js/faculty/master-data/ilo-simple.js',
                 'resources/js/faculty/master-data/ilo-sortable.js',
-                'resources/js/faculty/master-data/shared-crud.js'
+                'resources/js/faculty/master-data/shared-crud.js',
+                'resources/js/superadmin/manage-accounts/manage-accounts.js'
             ],
             refresh: true,
         }),

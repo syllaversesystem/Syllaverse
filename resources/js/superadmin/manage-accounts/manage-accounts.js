@@ -178,8 +178,10 @@
           <div class="col-md-4">
             <label class="form-label small">Role</label>
             <select name="role" class="form-select form-select-sm sv-role">
+              <option value="FACULTY"${appt && appt.role === 'FACULTY' ? ' selected' : ''}>Faculty</option>
               <option value="DEPT_CHAIR"${(appt && (appt.is_dept || appt.is_prog)) ? ' selected' : ''}>Program/Department Chair</option>
               <option value="DEAN"${appt && appt.role === 'DEAN' ? ' selected' : ''}>Dean</option>
+              <option value="ASSOC_DEAN"${appt && appt.role === 'ASSOC_DEAN' ? ' selected' : ''}>Associate Dean</option>
               <option value="VCAA"${appt && appt.role === 'VCAA' ? ' selected' : ''}>VCAA</option>
               <option value="ASSOC_VCAA"${appt && appt.role === 'ASSOC_VCAA' ? ' selected' : ''}>Associate VCAA</option>
             </select>
@@ -469,6 +471,71 @@
     });
   }
 
+  // ── Department dropdown management (admin and faculty modals) ────
+  function initDepartmentDropdowns() {
+    // Define which roles require department selection
+    const ADMIN_DEPT_REQUIRED_ROLES = ['DEPT_CHAIR', 'DEAN', 'ASSOC_DEAN'];
+    const FACULTY_DEPT_REQUIRED_ROLES = ['FACULTY', 'DEPT_CHAIR', 'DEAN', 'ASSOC_DEAN'];
+    
+    function updateDeptDropdownState(roleSelect, deptSelect, isAdminModal = true) {
+      const selectedRole = roleSelect.value;
+      const requiredRoles = isAdminModal ? ADMIN_DEPT_REQUIRED_ROLES : FACULTY_DEPT_REQUIRED_ROLES;
+      const requiresDept = requiredRoles.includes(selectedRole);
+      
+      if (requiresDept) {
+        deptSelect.disabled = false;
+        deptSelect.required = true;
+        const placeholder = deptSelect.querySelector('option[value=""]');
+        if (placeholder) {
+          placeholder.textContent = '— Select Department —';
+        }
+      } else {
+        deptSelect.disabled = true;
+        deptSelect.required = false;
+        deptSelect.value = '';
+        const placeholder = deptSelect.querySelector('option[value=""]');
+        if (placeholder) {
+          placeholder.textContent = '— Not Required —';
+        }
+      }
+    }
+    
+    function setupModalDepartmentDropdowns(modal) {
+      const isAdminModal = modal.id.startsWith('manageAdmin-');
+      const isFacultyModal = modal.id.startsWith('manageFaculty-');
+      
+      // Only handle admin and faculty modals
+      if (!isAdminModal && !isFacultyModal) return;
+      
+      const roleSelects = modal.querySelectorAll('.form-select[name="role"]');
+      const deptSelects = modal.querySelectorAll('.form-select[name="department_id"]');
+      
+      roleSelects.forEach((roleSelect, index) => {
+        const deptSelect = deptSelects[index];
+        if (deptSelect) {
+          // Initialize immediately
+          updateDeptDropdownState(roleSelect, deptSelect, isAdminModal);
+          
+          // Add change listener
+          roleSelect.addEventListener('change', function() {
+            updateDeptDropdownState(roleSelect, deptSelect, isAdminModal);
+          });
+        }
+      });
+    }
+    
+    // Handle all currently existing admin and faculty modals
+    document.querySelectorAll('.modal[id^="manageAdmin-"], .modal[id^="manageFaculty-"]').forEach(setupModalDepartmentDropdowns);
+    
+    // Setup department dropdowns when modals are shown
+    document.addEventListener('shown.bs.modal', function(e) {
+      const modal = e.target;
+      if (modal && (modal.id.startsWith('manageAdmin-') || modal.id.startsWith('manageFaculty-'))) {
+        setupModalDepartmentDropdowns(modal);
+      }
+    });
+  }
+
   // ── Init ───────────────────────────────────────────────────────────────────
   function init(){
     refreshIcons();
@@ -477,7 +544,14 @@
     initTooltips();
     restoreActiveTabs();
     initAjaxForms();
+    initDepartmentDropdowns();
   }
+
+  // Expose initAllForms globally for dynamic form initialization
+  window.initAllForms = function() {
+    initDepartmentDropdowns();
+    refreshIcons();
+  };
 
   document.readyState === 'loading'
     ? document.addEventListener('DOMContentLoaded', init)

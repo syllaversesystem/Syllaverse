@@ -34,27 +34,15 @@ class FacultyAuth
                 ->with('error', 'Please complete your profile before accessing the dashboard.');
         }
 
-        // 2️⃣ Check if user has an active faculty appointment (faculty only)
-        $hasActiveAppointment = Appointment::where('user_id', $user->id)
-            ->where('status', 'active')
-            ->where(function ($q) {
-                $q->where('role', Appointment::ROLE_FACULTY)
-                  ->orWhere('role', Appointment::ROLE_PROG)
-                  ->orWhere('role', Appointment::ROLE_DEPT);
-            })
-            ->exists();
-
-        if (!$hasActiveAppointment) {
-            return redirect()->route('faculty.complete-profile')
-                ->with('error', 'You are not yet linked to any department/program. Please contact your Program Chair.');
-        }
-
-        // 3️⃣ Check if faculty is approved (faculty only)
+        // 2️⃣ Check if faculty is approved by superadmin (faculty only)
         if ($user->status !== 'active') {
             Auth::guard('faculty')->logout();
             return redirect()->route('faculty.login.form')
                 ->with('error', 'Your account is pending approval by the Superadmin.');
         }
+
+        // Note: Appointments are now managed through superadmin interface
+        // Active faculty users can access the dashboard even without appointments initially
 
         return $next($request);
     }

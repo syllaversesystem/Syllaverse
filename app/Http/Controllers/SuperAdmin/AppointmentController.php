@@ -35,23 +35,28 @@ class AppointmentController extends Controller
         $r = strtoupper(trim((string) $role));
         
         // Direct matches
+        if ($r === Appointment::ROLE_FACULTY) return $r;
         if ($r === Appointment::ROLE_DEPT) return $r;
         if ($r === Appointment::ROLE_PROG) return $r;
         if ($r === Appointment::ROLE_DEAN) return $r;
+        if ($r === Appointment::ROLE_ASSOC_DEAN) return $r;
         if ($r === Appointment::ROLE_VCAA) return $r;
         if ($r === Appointment::ROLE_ASSOC_VCAA) return $r;
         
         // Alternative input formats
+        if (in_array($r, ['FACULTY'], true)) return Appointment::ROLE_FACULTY;
         if (in_array($r, ['DEPT','DEPARTMENT','DEPARTMENT_CHAIR','0'], true)) return Appointment::ROLE_DEPT;
         if (in_array($r, ['PROG','PROGRAM','PROGRAM_CHAIR'], true)) return Appointment::ROLE_PROG;
         if (in_array($r, ['DEAN'], true)) return Appointment::ROLE_DEAN;
+        if (in_array($r, ['ASSOCIATE_DEAN','ASSOC_DEAN'], true)) return Appointment::ROLE_ASSOC_DEAN;
         if (in_array($r, ['VCAA'], true)) return Appointment::ROLE_VCAA;
         if (in_array($r, ['ASSOCIATE_VCAA','ASSOC_VCAA'], true)) return Appointment::ROLE_ASSOC_VCAA;
         
         // Pattern matching
+        if (str_contains($r, 'FACULTY')) return Appointment::ROLE_FACULTY;
         if (str_contains($r, 'DEPT')) return Appointment::ROLE_DEPT;
         if (str_contains($r, 'PROG')) return Appointment::ROLE_PROG;
-        if (str_contains($r, 'DEAN')) return Appointment::ROLE_DEAN;
+        if (str_contains($r, 'DEAN')) return str_contains($r, 'ASSOC') ? Appointment::ROLE_ASSOC_DEAN : Appointment::ROLE_DEAN;
         if (str_contains($r, 'VCAA')) return str_contains($r, 'ASSOC') ? Appointment::ROLE_ASSOC_VCAA : Appointment::ROLE_VCAA;
         
         return null;
@@ -162,8 +167,8 @@ class AppointmentController extends Controller
             }
         }
 
-        // Chair and Dean roles require department; VCAA and Associate VCAA are institution-wide.
-        if (in_array($role, [Appointment::ROLE_DEPT, Appointment::ROLE_PROG, Appointment::ROLE_DEAN]) && !$scopeId) {
+        // Only VCAA and Associate VCAA are institution-wide. All other roles require a department.
+        if (!in_array($role, [Appointment::ROLE_VCAA, Appointment::ROLE_ASSOC_VCAA]) && !$scopeId) {
             return $this->respond($request, false, 'Department is required for this role.', 422, ['department_id' => ['Department is required for this role.']]);
         }
 
@@ -204,8 +209,8 @@ class AppointmentController extends Controller
         ]);
         
         // Set scope based on role type
-        if (in_array($role, [Appointment::ROLE_DEPT, Appointment::ROLE_PROG, Appointment::ROLE_DEAN])) {
-            // Chair types and Dean use department scope
+        if (in_array($role, [Appointment::ROLE_FACULTY, Appointment::ROLE_DEPT, Appointment::ROLE_PROG, Appointment::ROLE_DEAN, Appointment::ROLE_ASSOC_DEAN])) {
+            // Faculty, Chair types, Dean, and Associate Dean use department scope
             $appt->role = $role;
             $appt->scope_type = Appointment::SCOPE_DEPT;
             $appt->scope_id = (int) ($data['department_id'] ?? 0);
@@ -266,16 +271,14 @@ class AppointmentController extends Controller
         }
 
         // Validate department requirement based on final determined role
-        if (in_array($role, [Appointment::ROLE_DEPT, Appointment::ROLE_PROG, Appointment::ROLE_DEAN])) {
-            if (!$scopeId) {
-                $roleName = $role === Appointment::ROLE_DEAN ? 'Dean' : 'Chair';
-                return $this->respond($request, false, "Department is required for {$roleName} role.", 422, [
-                    'department_id' => ["Department is required for {$roleName} role."]
-                ]);
-            }
-        } elseif (in_array($role, [Appointment::ROLE_VCAA, Appointment::ROLE_ASSOC_VCAA])) {
+        if (in_array($role, [Appointment::ROLE_VCAA, Appointment::ROLE_ASSOC_VCAA])) {
             // Institution-wide roles should not have department_id - clear it if provided
             $scopeId = null; // Force null for institution-wide roles
+        } elseif (!$scopeId) {
+            // All other roles require a department
+            return $this->respond($request, false, 'Department is required for this role.', 422, [
+                'department_id' => ['Department is required for this role.']
+            ]);
         }
 
         // Conflict detection rules:
@@ -318,8 +321,8 @@ class AppointmentController extends Controller
         $originalScopeId = $appointment->scope_id;
 
         // Update appointment with new role and scope information
-        if (in_array($role, [Appointment::ROLE_DEPT, Appointment::ROLE_PROG, Appointment::ROLE_DEAN])) {
-            // Chair types and Dean use department scope
+        if (in_array($role, [Appointment::ROLE_FACULTY, Appointment::ROLE_DEPT, Appointment::ROLE_PROG, Appointment::ROLE_DEAN, Appointment::ROLE_ASSOC_DEAN])) {
+            // Faculty, Chair types, Dean, and Associate Dean use department scope
             $appointment->role = $role;
             $appointment->scope_type = Appointment::SCOPE_DEPT;
             $appointment->scope_id = (int) $scopeId;
