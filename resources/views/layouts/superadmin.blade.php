@@ -76,10 +76,7 @@
   @vite('resources/js/superadmin/appointments.js')
   @vite('resources/js/superadmin/manage-accounts/manage-accounts.js')
   @vite('resources/js/superadmin/master-data/sortable.js')
-  @vite('resources/js/superadmin/master-data/index.js')
   {{-- Assessment Tasks JS removed because AssessmentTaskGroup table may be absent in this deployment --}}
-  {{-- ✅ NEW: Master Data (tables + sortable split: index.js imports sortable.js) --}}
-  @vite('resources/js/superadmin/master-data/index.js')
   {{-- ░░░ END: Page bundles ░░░ --}}
 
   {{-- Let pages push extra scripts after page bundles --}}

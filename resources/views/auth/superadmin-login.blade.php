@@ -26,7 +26,7 @@
   {{-- END: Meta and Head Resources --}}
 
   {{-- START: Vite Assets --}}
-  @vite(['resources/css/superadmin/login.css', 'resources/js/superadmin-login.js'])
+  @vite(['resources/css/superadmin/login.css', 'resources/js/superadmin/superadmin-login.js'])
   {{-- END: Vite Assets --}}
 </head>
 
