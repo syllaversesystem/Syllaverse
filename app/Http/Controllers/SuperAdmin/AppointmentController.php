@@ -96,6 +96,16 @@ class AppointmentController extends Controller
             } elseif ($a->role === Appointment::ROLE_ASSOC_VCAA) {
                 $roleLabel = 'Associate VCAA';
                 $scopeLabel = 'Institution-wide';
+            } elseif ($a->role === Appointment::ROLE_FACULTY) {
+                $roleLabel = 'Faculty';
+                $scopeLabel = (string) ($deptNames[$a->scope_id] ?? 'Unknown Department');
+            } elseif ($a->role === Appointment::ROLE_ASSOC_DEAN) {
+                $roleLabel = 'Associate Dean';
+                $scopeLabel = (string) ($deptNames[$a->scope_id] ?? 'Unknown Department');
+            } elseif ($a->scope_id && $a->scope_type === 'department') {
+                $scopeLabel = (string) ($deptNames[$a->scope_id] ?? 'Unknown Department');
+            } elseif ($a->scope_id && $a->scope_type === 'program') {
+                $scopeLabel = (string) ($progNames[$a->scope_id] ?? 'Unknown Program');
             } elseif ($a->scope_type) {
                 $scopeLabel = ($a->scope_type . ' #' . $a->scope_id);
             }

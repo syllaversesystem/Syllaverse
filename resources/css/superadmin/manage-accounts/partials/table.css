@@ -137,9 +137,9 @@
 /* ░░░ END: Column Width Hints (Approvals) ░░░ */
 
 /* ░░░ START: Column Width Hints (Approved) ░░░ */
-#svApprovedAdminsTable thead th:nth-child(1) { width: 26%; } /* Name */
-#svApprovedAdminsTable thead th:nth-child(2) { width: 28%; } /* Email */
-/* Active Appointments column will flex (auto) */
+#svApprovedAdminsTable thead th:nth-child(1) { width: 35%; } /* Name */
+#svApprovedAdminsTable thead th:nth-child(2) { width: 20%; } /* Role */
+#svApprovedAdminsTable thead th:nth-child(3) { width: 30%; } /* Department */
 #svApprovedAdminsTable thead th:nth-child(4) { width: 140px; } /* Actions */
 /* ░░░ END: Column Width Hints (Approved) ░░░ */
 
@@ -245,6 +245,51 @@
 /* ░░░ END: Mobile tweaks ░░░ */
 
 
+/* ░░░ START: Detail Row Styles (for collapsible role details) ░░░ */
+.sv-detail-row {
+  background-color: #f8f9fa !important;
+}
+
+.sv-details-cell {
+  border-top: 1px solid var(--sv-border) !important;
+  border-bottom: 1px solid var(--sv-border) !important;
+}
+
+.sv-details {
+  background: #fff;
+  border: 1px solid var(--sv-border);
+  border-radius: 8px;
+  margin: 0.5rem;
+}
+
+.sv-request-list {
+  font-size: 0.85rem;
+}
+
+.sv-request-item {
+  border-color: var(--sv-border) !important;
+}
+
+.sv-request-item:last-child {
+  border-bottom: none !important;
+  margin-bottom: 0 !important;
+}
+
+/* Chevron animation for toggle button */
+.sv-row-toggle[aria-expanded="true"] i[data-feather="chevron-down"],
+.sv-row-toggle[aria-expanded="true"] svg[data-feather="chevron-down"] {
+  transform: rotate(180deg);
+  transition: transform 0.2s ease;
+}
+
+.sv-row-toggle[aria-expanded="false"] i[data-feather="chevron-down"],
+.sv-row-toggle[aria-expanded="false"] svg[data-feather="chevron-down"] {
+  transform: rotate(0deg);
+  transition: transform 0.2s ease;
+}
+/* ░░░ END: Detail Row Styles ░░░ */
+
+
 /* ░░░ START: Faculty Search Container ░░░ */
 .superadmin-manage-account-faculty-search-container {
   background: rgba(255, 255, 255, 0.65);
@@ -297,7 +342,83 @@
 .superadmin-manage-account-faculty-toolbar .input-group-text i,
 .superadmin-manage-account-faculty-toolbar .input-group-text svg {
   stroke: var(--sv-text-muted);
-  width: 0.95rem;
-  height: 0.95rem;
+  width: 0.95rem;  height: 0.95rem;
 }
 /* ░░░ END: Faculty Search Container ░░░ */
+
+
+/* ░░░ START: Additional Roles Count ░░░ */
+.superadmin-manage-account-table .text-muted.small {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--sv-text-muted);
+  background-color: #f8f9fa;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  border: 1px solid #e9ecef;
+}
+
+.superadmin-manage-account-table .d-flex.align-items-center.gap-2 {
+  flex-wrap: nowrap;
+}
+/* ░░░ END: Additional Roles Count ░░░ */
+
+/* ░░░ START: Multi-Role Dropdown ░░░ */
+.superadmin-manage-account-table .dropdown-menu {
+  min-width: 240px;
+  border-radius: 8px;
+  border: 1px solid var(--sv-border);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 0.5rem 0;
+  font-size: 0.85rem;
+  z-index: 1050;
+}
+
+.superadmin-manage-account-table .dropdown-header {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--sv-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 0.25rem 1rem 0.5rem 1rem;
+  margin-bottom: 0.25rem;
+}
+
+.superadmin-manage-account-table .dropdown-item-text {
+  padding: 0.5rem 1rem;
+  color: var(--sv-text);
+  font-size: 0.85rem;
+}
+
+.superadmin-manage-account-table .dropdown-item-text .fw-medium {
+  font-weight: 500;
+  color: var(--sv-text);
+  font-size: 0.85rem;
+}
+
+.superadmin-manage-account-table .dropdown-item-text small {
+  font-size: 0.75rem;
+  color: var(--sv-text-muted);
+}
+
+.superladmin-manage-account-table .dropdown-divider {
+  margin: 0.25rem 0;
+  border-color: var(--sv-border);
+}
+
+.superadmin-manage-account-table .action-btn.info {
+  background-color: #e3f2fd;
+  color: #1976d2;
+  border: 1px solid #bbdefb;
+}
+
+.superadmin-manage-account-table .action-btn.info:hover {
+  background-color: #bbdefb;
+  color: #0d47a1;
+  border-color: #90caf9;
+}
+
+.superadmin-manage-account-table .action-btn.dropdown-toggle::after {
+  display: none; /* Hide Bootstrap's default caret */
+}
+/* ░░░ END: Multi-Role Dropdown ░░░ */

@@ -130,7 +130,21 @@
   }
 
   // ── Appointments render helpers (no Blade fragments) ───────────────────────
-  const roleLabel = (appt) => appt && appt.is_prog ? 'Program Chair' : (appt && appt.is_dept ? 'Dept Chair' : (appt && appt.role ? appt.role : 'Appointment'));
+  const roleLabel = (appt) => {
+    if (!appt) return 'Appointment';
+    
+    // Handle role-based labels to match Blade template logic
+    if (appt.role === 'FACULTY') return 'Faculty';
+    if (appt.role === 'DEPT_CHAIR' || appt.is_dept) return 'Department Chair';
+    if (appt.role === 'PROG_CHAIR' || appt.is_prog) return 'Program Chair';
+    if (appt.role === 'DEAN' || appt.is_dean) return 'Dean';
+    if (appt.role === 'ASSOC_DEAN') return 'Associate Dean';
+    if (appt.role === 'VCAA') return 'VCAA';
+    if (appt.role === 'ASSOC_VCAA') return 'Associate VCAA';
+    
+    // Fallback to role_label from backend if available, otherwise use role
+    return appt.role_label || appt.role || 'Appointment';
+  };
 
   const getAddForm = (modal) => modal?.querySelector('form[data-sv-scope^="add-"]');
   const getDeptOptionsHTML = (modal, selectedId) => {
@@ -234,8 +248,19 @@
       return;
     }
     const html = [
-      `<div class="d-flex flex-wrap gap-2">`,
-      ...appointments.map(a => `<span class="badge bg-secondary">${roleLabel(a)} — ${a.scope_label}</span>`),
+      `<div class="d-flex flex-column gap-1 align-items-start">`,
+      ...appointments.map(a => {
+        // Use role_label from backend if available, otherwise fallback to roleLabel function
+        const role = a.role_label || roleLabel(a);
+        // For faculty, show "Faculty - Department Name", otherwise show "Role - Scope"
+        if (a.role === 'FACULTY' && a.scope_label && a.scope_label !== 'Institution-wide') {
+          return `<span class="sv-pill is-accent sv-pill--sm">${role} - ${a.scope_label}</span>`;
+        } else if (a.scope_label && a.scope_label !== 'Institution-wide') {
+          return `<span class="sv-pill is-accent sv-pill--sm">${role} - ${a.scope_label}</span>`;
+        } else {
+          return `<span class="sv-pill is-accent sv-pill--sm">${role}</span>`;
+        }
+      }),
       `</div>`
     ].join('');
     cell.innerHTML = html;

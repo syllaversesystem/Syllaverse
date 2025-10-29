@@ -94,3 +94,10 @@ Route::get('/test-criteria', function () {
 Route::get('/faculty/syllabus/tla', function () {
     return view('faculty.syllabus.tla');
 })->name('faculty.syllabus.tla');
+
+// ------------------------------------------------
+// Fun Motivational Page for Meg 💕
+// ------------------------------------------------
+Route::get('/pwede-pa-meg', function () {
+    return view('fun.pwede-pa-meg');
+})->name('fun.pwede-pa-meg');

@@ -265,5 +265,30 @@ public function reactivateFaculty($id)
     return redirect()->back()->with('success', 'Faculty reactivated successfully.');
 }
 
+/**
+ * Revoke access for a user (admin or faculty) - removes all appointments and sets status to rejected
+ */
+public function revoke($id)
+{
+    $user = User::findOrFail($id);
+
+    // Remove all active appointments
+    $user->appointments()->where('status', 'active')->delete();
+
+    // Set user status to rejected
+    $user->status = 'rejected';
+    $user->save();
+
+    if (request()->ajax()) {
+        return response()->json([
+            'status' => 'success',
+            'message' => "Access revoked for {$user->name}. All appointments have been removed and account status set to rejected.",
+            'removed_user_id' => $user->id
+        ]);
+    }
+
+    return redirect()->back()->with('success', "Access revoked for {$user->name}. All appointments have been removed.");
+}
+
     // ░░░ END: Faculty Management ░░░
 }

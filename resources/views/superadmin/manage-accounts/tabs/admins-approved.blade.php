@@ -41,9 +41,8 @@
         <thead class="superadmin-manage-account-table-header">
           <tr>
             <th><i data-feather="user"></i> Name</th>
-            <th><i data-feather="shield"></i> Role</th>
-            <th><i data-feather="mail"></i> Email</th>
-            <th><i data-feather="award"></i> Active Appointments</th>
+            <th><i data-feather="briefcase"></i> Role</th>
+            <th><i data-feather="building"></i> Department</th>
             <th class="text-end"><i data-feather="more-vertical"></i></th>
           </tr>
         </thead>
@@ -59,86 +58,173 @@
               <td>{{ $user->name }}</td>
               
               <td>
-                @if($user->role === 'admin')
-                  <span class="sv-pill is-primary sv-pill--sm">Admin</span>
-                @elseif($user->role === 'faculty')
-                  <span class="sv-pill is-success sv-pill--sm">Faculty</span>
-                @else
-                  <span class="sv-pill is-secondary sv-pill--sm">{{ ucfirst($user->role) }}</span>
-                @endif
+                @php
+                  // Get the primary role for this user
+                  $primaryRole = 'User';
+                  if ($activeAppointments->count()) {
+                    $primaryAppt = $activeAppointments->first();
+                    $isDept = $primaryAppt->role === \App\Models\Appointment::ROLE_DEPT;
+                    $isProg = $primaryAppt->role === \App\Models\Appointment::ROLE_PROG;
+                    $isDean = $primaryAppt->role === \App\Models\Appointment::ROLE_DEAN;
+                    $isFaculty = $primaryAppt->role === \App\Models\Appointment::ROLE_FACULTY;
+                    
+                    if ($isDept) {
+                      $primaryRole = 'Department Chair';
+                    } elseif ($isProg) {
+                      $primaryRole = 'Program Chair';
+                    } elseif ($isDean) {
+                      $primaryRole = 'Dean';
+                    } elseif ($primaryAppt->role === \App\Models\Appointment::ROLE_VCAA) {
+                      $primaryRole = 'VCAA';
+                    } elseif ($primaryAppt->role === \App\Models\Appointment::ROLE_ASSOC_VCAA) {
+                      $primaryRole = 'Associate VCAA';
+                    } elseif ($primaryAppt->role === \App\Models\Appointment::ROLE_ASSOC_DEAN) {
+                      $primaryRole = 'Associate Dean';
+                    } elseif ($isFaculty) {
+                      $primaryRole = 'Faculty';
+                    }
+                  } elseif ($user->role === 'faculty') {
+                    $primaryRole = 'Faculty';
+                  } elseif ($user->role === 'admin') {
+                    $primaryRole = 'Admin';
+                  }
+                  
+                  // Count additional roles
+                  $additionalRolesCount = $activeAppointments->count() - 1;
+                @endphp
+                <div class="d-flex align-items-center gap-2">
+                  <span class="sv-pill is-primary sv-pill--sm">{{ $primaryRole }}</span>
+                  @if($additionalRolesCount > 0)
+                    <span class="text-muted small">+{{ $additionalRolesCount }}</span>
+                  @endif
+                </div>
               </td>
-              
-              <td class="text-muted">{{ $user->email }}</td>
 
               <td>
-                @if ($activeAppointments->count())
-                  <div class="d-flex flex-wrap gap-2">
-                    @foreach ($activeAppointments as $appt)
-                      @php
-                        $isDept = $appt->role === \App\Models\Appointment::ROLE_DEPT;
-                        $isProg = $appt->role === \App\Models\Appointment::ROLE_PROG;
-                        $isDean = $appt->role === \App\Models\Appointment::ROLE_DEAN;
-                        $isFaculty = $appt->role === \App\Models\Appointment::ROLE_FACULTY;
-                        
-                        // Show specific chair type based on stored role
-                        if ($isDept) {
-                          $roleLabel = 'Department Chair';
-                        } elseif ($isProg) {
-                          $roleLabel = 'Program Chair';
-                        } elseif ($isDean) {
-                          $roleLabel = 'Dean';
-                        } elseif ($appt->role === \App\Models\Appointment::ROLE_VCAA) {
-                          $roleLabel = 'VCAA';
-                        } elseif ($appt->role === \App\Models\Appointment::ROLE_ASSOC_VCAA) {
-                          $roleLabel = 'Associate VCAA';
-                        } elseif ($appt->role === \App\Models\Appointment::ROLE_ASSOC_DEAN) {
-                          $roleLabel = 'Associate Dean';
-                        } elseif ($isFaculty) {
-                          $roleLabel = 'Faculty';
-                          // Show department for faculty appointments
-                          if ($appt->scope_id && isset($deptById[$appt->scope_id])) {
-                            $roleLabel .= ' - ' . $deptById[$appt->scope_id]->name;
-                          }
-                        } else {
-                          $roleLabel = $appt->role ?? 'Appointment';
-                        }
-                      @endphp
-                      <span class="sv-pill is-accent sv-pill--sm">{{ $roleLabel }}</span>
-                    @endforeach
-                  </div>
-                @else
-                  @if($user->role === 'faculty')
-                    <span class="text-muted">No department appointment</span>
-                  @else
-                    <span class="text-muted">—</span>
-                  @endif
-                @endif
+                @php
+                  $departmentName = '—';
+                  if ($activeAppointments->count()) {
+                    $primaryAppt = $activeAppointments->first();
+                    if ($primaryAppt->scope_id && isset($deptById[$primaryAppt->scope_id])) {
+                      $departmentName = $deptById[$primaryAppt->scope_id]->name;
+                    } elseif ($primaryAppt->role === \App\Models\Appointment::ROLE_VCAA || 
+                             $primaryAppt->role === \App\Models\Appointment::ROLE_ASSOC_VCAA) {
+                      $departmentName = 'Institution-wide';
+                    }
+                  }
+                @endphp
+                <span class="text-muted">{{ $departmentName }}</span>
               </td>
 
               <td class="text-end">
-                @if($user->role === 'admin')
-                  <button
-                    class="action-btn edit"
-                    type="button"
-                    data-bs-toggle="modal"
-                    data-bs-target="#manageAdmin-{{ $user->id }}"
-                    title="Manage appointments for {{ $user->name }}"
-                    aria-label="Manage appointments for {{ $user->name }}">
-                    <i data-feather="settings"></i>
-                  </button>
-                @elseif($user->role === 'faculty')
-                  <button
-                    class="action-btn edit"
-                    type="button"
-                    data-bs-toggle="modal"
-                    data-bs-target="#manageFaculty-{{ $user->id }}"
-                    title="Manage faculty for {{ $user->name }}"
-                    aria-label="Manage faculty for {{ $user->name }}">
-                    <i data-feather="settings"></i>
-                  </button>
-                @endif
+                <div class="d-flex justify-content-end align-items-center gap-2">
+                  @if($activeAppointments->count() > 1)
+                    {{-- Toggle button for multiple roles --}}
+                    @php $collapseId = "sv-roles-{$user->id}"; @endphp
+                    <button
+                      class="action-btn edit sv-row-toggle"
+                      type="button"
+                      data-bs-toggle="collapse"
+                      data-bs-target="#{{ $collapseId }}"
+                      aria-expanded="false"
+                      aria-controls="{{ $collapseId }}"
+                      title="Show all roles for {{ $user->name }}"
+                      aria-label="Show all roles for {{ $user->name }}">
+                      <i data-feather="chevron-down"></i>
+                    </button>
+                  @endif
+
+                  {{-- Manage button --}}
+                  @if($user->role === 'admin')
+                    <button
+                      class="action-btn edit"
+                      type="button"
+                      data-bs-toggle="modal"
+                      data-bs-target="#manageAdmin-{{ $user->id }}"
+                      title="Manage appointments for {{ $user->name }}"
+                      aria-label="Manage appointments for {{ $user->name }}">
+                      <i data-feather="settings"></i>
+                    </button>
+                  @elseif($user->role === 'faculty')
+                    <button
+                      class="action-btn edit"
+                      type="button"
+                      data-bs-toggle="modal"
+                      data-bs-target="#manageFaculty-{{ $user->id }}"
+                      title="Manage faculty for {{ $user->name }}"
+                      aria-label="Manage faculty for {{ $user->name }}">
+                      <i data-feather="settings"></i>
+                    </button>
+                  @endif
+                </div>
               </td>
             </tr>
+
+            {{-- Detail Row (only when multiple appointments) --}}
+            @if($activeAppointments->count() > 1)
+              <tr class="sv-detail-row">
+                <td class="sv-details-cell p-0" colspan="4">
+                  <div id="{{ $collapseId }}" class="collapse sv-details mt-2">
+                    <div class="sv-request-list p-3">
+                      <div class="mb-2 text-start">
+                        <h6 class="text-muted mb-3 text-start" style="font-size: 0.85rem; font-weight: 600;">All Active Roles</h6>
+                      </div>
+                      @foreach ($activeAppointments as $appt)
+                        @php
+                          $isDept = $appt->role === \App\Models\Appointment::ROLE_DEPT;
+                          $isProg = $appt->role === \App\Models\Appointment::ROLE_PROG;
+                          $isDean = $appt->role === \App\Models\Appointment::ROLE_DEAN;
+                          $isFaculty = $appt->role === \App\Models\Appointment::ROLE_FACULTY;
+                          
+                          if ($isDept) {
+                            $roleLabel = 'Department Chair';
+                          } elseif ($isProg) {
+                            $roleLabel = 'Program Chair';
+                          } elseif ($isDean) {
+                            $roleLabel = 'Dean';
+                          } elseif ($appt->role === \App\Models\Appointment::ROLE_VCAA) {
+                            $roleLabel = 'VCAA';
+                          } elseif ($appt->role === \App\Models\Appointment::ROLE_ASSOC_VCAA) {
+                            $roleLabel = 'Associate VCAA';
+                          } elseif ($appt->role === \App\Models\Appointment::ROLE_ASSOC_DEAN) {
+                            $roleLabel = 'Associate Dean';
+                          } elseif ($isFaculty) {
+                            $roleLabel = 'Faculty';
+                          } else {
+                            $roleLabel = $appt->role ?? 'Appointment';
+                          }
+                          
+                          $deptName = '—';
+                          if ($appt->scope_id && isset($deptById[$appt->scope_id])) {
+                            $deptName = $deptById[$appt->scope_id]->name;
+                          } elseif ($appt->role === \App\Models\Appointment::ROLE_VCAA || 
+                                   $appt->role === \App\Models\Appointment::ROLE_ASSOC_VCAA) {
+                            $deptName = 'Institution-wide';
+                          }
+                        @endphp
+                        <div class="sv-request-item py-2 {{ !$loop->last ? 'border-bottom' : '' }} mb-2">
+                          <div class="row align-items-center gx-3">
+                            <div class="col-auto" style="min-width: 200px;">
+                              <div class="d-flex align-items-center gap-2">
+                                <span class="sv-pill is-primary sv-pill--sm">{{ $roleLabel }}</span>
+                              </div>
+                            </div>
+                            <div class="col">
+                              <span class="text-muted">{{ $deptName }}</span>
+                            </div>
+                            <div class="col-auto">
+                              <small class="text-muted">
+                                Active since {{ $appt->created_at ? $appt->created_at->format('M j, Y') : '—' }}
+                              </small>
+                            </div>
+                          </div>
+                        </div>
+                      @endforeach
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            @endif
 
             @if($user->role === 'admin')
               @push('modals')
@@ -165,7 +251,7 @@
           {{-- ░░░ START: Empty State ░░░ --}}
           @if($allApprovedUsers->isEmpty())
             <tr class="superladmin-manage-account-empty-row">
-              <td colspan="5">
+              <td colspan="4">
                 <div class="sv-empty">
                   <h6>No approved accounts</h6>
                   <p>Approved admins and faculty will appear here once accounts are verified.</p>

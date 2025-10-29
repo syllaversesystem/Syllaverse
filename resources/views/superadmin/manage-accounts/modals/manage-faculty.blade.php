@@ -129,8 +129,27 @@
       </div>
 
       {{-- ░░░ START: Modal Footer ░░░ --}}
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      <div class="modal-footer d-flex justify-content-between">
+        <div>
+          {{-- Revoke Faculty Access Button --}}
+          <form method="POST" 
+                action="{{ route('superadmin.accounts.revoke', $faculty->id) }}"
+                class="d-inline"
+                data-ajax="true"
+                onsubmit="return confirm('Are you sure you want to revoke access for {{ $faculty->name }}? This will remove all appointments and set their status to rejected.')">
+            @csrf
+            @method('PATCH')
+            <button type="submit" 
+                    class="btn btn-outline-danger btn-sm"
+                    title="Revoke faculty access">
+              <i data-feather="user-x" class="me-1"></i>
+              Revoke Access
+            </button>
+          </form>
+        </div>
+        <div>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
       </div>
       {{-- ░░░ END: Modal Footer ░░░ --}}
 

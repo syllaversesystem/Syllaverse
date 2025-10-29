@@ -117,22 +117,26 @@
               <td class="text-muted">{{ $user->email ?? '—' }}</td>
 
               <td>
-                @if ($g['signupPending'] && $reqCount === 0)
-                  <span class="sv-pill is-muted sv-pill--sm">Signup</span>
-                @endif
+                <div class="d-flex align-items-center gap-2">
+                  @if ($g['signupPending'] && $reqCount === 0)
+                    <span class="sv-pill is-muted sv-pill--sm">Signup</span>
+                  @endif
 
-                @if ($reqCount === 1)
-                  @php $req = $g['requests']->first(); @endphp
-                  <span class="sv-pill is-accent sv-pill--sm">{{ $req['label'] }}</span>
-                  @if ($g['signupPending'])
-                    <span class="sv-pill is-muted sv-pill--sm">Signup</span>
+                  @if ($reqCount === 1)
+                    @php $req = $g['requests']->first(); @endphp
+                    <span class="sv-pill is-primary sv-pill--sm">{{ $req['label'] }}</span>
+                    @if ($g['signupPending'])
+                      <span class="sv-pill is-muted sv-pill--sm">Signup</span>
+                    @endif
+                  @elseif ($reqCount > 1)
+                    @php $primaryReq = $g['requests']->first(); @endphp
+                    <span class="sv-pill is-primary sv-pill--sm">{{ $primaryReq['label'] }}</span>
+                    <span class="text-muted small">+{{ $reqCount - 1 }}</span>
+                    @if ($g['signupPending'])
+                      <span class="sv-pill is-muted sv-pill--sm">Signup</span>
+                    @endif
                   @endif
-                @elseif ($reqCount > 1)
-                  <span class="sv-pill is-accent sv-pill--sm">Chair Requests ×{{ $reqCount }}</span>
-                  @if ($g['signupPending'])
-                    <span class="sv-pill is-muted sv-pill--sm">Signup</span>
-                  @endif
-                @endif
+                </div>
               </td>
 
               @if ($reqCount === 1)
@@ -210,7 +214,7 @@
                           <div class="row align-items-center gx-3">
                             <div class="col-auto" style="min-width: 240px;">
                               <div class="d-flex align-items-center gap-2">
-                                <span class="sv-pill is-accent sv-pill--sm">{{ $r['label'] }}</span>
+                                <span class="sv-pill is-primary sv-pill--sm">{{ $r['label'] }}</span>
                                 @if($r['dept']) <small class="text-muted">{{ $r['dept'] }}</small> @endif
                                 @if($r['prog']) <small class="text-muted">{{ $r['prog'] }}</small> @endif
                               </div>

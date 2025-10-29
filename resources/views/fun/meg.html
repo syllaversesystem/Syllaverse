@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Temporal Console — Pwede Pa, Meg</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+        <style>
+            :root{
+                --bg1:#03071e; --bg2:#001219; --accent:#7b2ff7; --neon:#00ffd5;
+                --glass: rgba(255,255,255,0.04);
+            }
+            html,body{height:100%;}
+            body{
+                margin:0; font-family:Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, 'Helvetica Neue', Arial;
+                background: radial-gradient(1200px 600px at 10% 10%, rgba(123,47,247,0.12), transparent), linear-gradient(135deg,var(--bg1),var(--bg2));
+                color:#e6f0ff; display:flex; align-items:center; justify-content:center; overflow:hidden;
+            }
+            .console {
+                width:920px; max-width:95vw; border-radius:18px; padding:28px; background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
+                box-shadow: 0 10px 30px rgba(2,6,23,0.7), inset 0 1px 0 rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.04);
+                position:relative; overflow:hidden;
+            }
+            .console::after{content:''; position:absolute; inset:0; background:linear-gradient(90deg, transparent, rgba(0,255,213,0.02), transparent); pointer-events:none;}
+            .header{display:flex; align-items:center; justify-content:space-between; gap:16px}
+            .brand{font-weight:700; letter-spacing:0.6px; color:var(--neon)}
+            .datetime{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, 'Roboto Mono', 'Courier New', monospace; color:#cfeffd}
+
+            .panel{display:flex; gap:24px; margin-top:22px}
+            .left{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;}
+            .right{width:320px; min-width:220px}
+
+      .time-circle{width:280px;height:280px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));border:2px solid rgba(123,47,247,0.2);position:relative}
+      .time-circle::before{content:'';position:absolute;inset:8px;border-radius:50%;border:1px solid rgba(255,255,255,0.08)}
+      .watch-display {font-family:ui-monospace, monospace; text-align:center; position:relative}
+      .percentage-main{font-size:48px; font-weight:900; color:#ff4757; line-height:1; margin-bottom:4px; text-shadow:0 0 20px rgba(255,71,87,0.3)}
+      .percentage-label{font-size:11px; opacity:0.6; text-transform:uppercase; letter-spacing:1px; margin-bottom:12px; color:#8fa4b3}
+      .date-time{font-size:14px; font-weight:600; color:#fff; line-height:1.2; margin-bottom:2px}
+      .timezone{font-size:10px; opacity:0.5; color:#8fa4b3; text-transform:uppercase; letter-spacing:0.5px}
+      
+      .btn-pulse{display:inline-grid; place-items:center; width:180px; height:60px; border-radius:999px; cursor:pointer; border:none; font-weight:700; font-size:16px; transition:all .18s ease}
+      .btn-pulse:hover{transform:translateY(-4px) scale(1.02)}
+      
+      /* Button state colors */
+      .btn-initial{background:linear-gradient(90deg,var(--accent),#00e6ff); color:#041023; box-shadow:0 8px 30px rgba(123,47,247,0.18)}
+      .btn-force{background:linear-gradient(90deg,#ff6b35,#f7931e); color:#1a0e08; box-shadow:0 8px 30px rgba(255,107,53,0.25)}
+      .btn-success{background:linear-gradient(90deg,#00d2ff,#3a7bd5); color:#0a1f2e; box-shadow:0 8px 30px rgba(0,210,255,0.25)}
+      .btn-complete{background:linear-gradient(90deg,#11998e,#38ef7d); color:#0d2818; box-shadow:0 8px 30px rgba(56,239,125,0.25)}
+      
+      /* High-tech Statistics Bars */
+      .stat-bar{height:8px; background:rgba(255,255,255,0.06); border-radius:4px; overflow:hidden}
+      .stat-fill{height:100%; background:linear-gradient(90deg,var(--neon),var(--accent)); border-radius:4px; transition:width 2s ease; animation:pulse 2s ease-in-out infinite alternate}
+      .stat-fill.resonance{background:linear-gradient(90deg,#00e6cc,#00a8ff); animation:flicker 1.5s ease-in-out infinite alternate}
+      @keyframes pulse{0%{box-shadow:0 0 5px rgba(0,255,213,0.3)}100%{box-shadow:0 0 15px rgba(0,255,213,0.6)}}
+      @keyframes flicker{0%{opacity:0.8}100%{opacity:1}}
+
+            .progress-wrap{width:100%; margin-top:18px}
+            .progress-bar-neo{height:18px; border-radius:999px; background:linear-gradient(90deg,#0f1724 0%, rgba(255,255,255,0.02) 100%); padding:3px}
+            .progress-fill{height:100%; width:0%; border-radius:999px; background:linear-gradient(90deg,var(--neon), var(--accent)); box-shadow:0 6px 18px rgba(0,255,213,0.12); transition:width .25s linear}
+      .progress-fill.critical{animation:criticalPulse 0.8s ease-in-out infinite alternate; box-shadow:0 8px 25px rgba(255,123,123,0.25)}
+      @keyframes criticalPulse{0%{box-shadow:0 6px 18px rgba(0,255,213,0.12)}100%{box-shadow:0 8px 30px rgba(255,123,123,0.4), 0 0 20px rgba(255,255,255,0.1)}}
+
+            .result{margin-top:14px; font-weight:700; text-align:center}
+            .result.success{color:#7cf2a6}
+            .result.fail{color:#ff7b7b}
+
+            .meta{background:var(--glass); padding:12px; border-radius:10px; border:1px solid rgba(255,255,255,0.02); font-size:14px}
+            .meta-row{display:flex; justify-content:space-between; gap:12px; margin-bottom:8px}
+            .muted{opacity:0.75; font-size:13px}
+
+            .glow {text-shadow:0 0 18px rgba(0,255,213,0.08)}
+
+      /* Neon Wave Animations */
+      .wave-bg{position:absolute; inset:0; overflow:hidden; pointer-events:none; opacity:0.4; z-index:1}
+      .wave{position:absolute; width:200%; height:200%; background:linear-gradient(45deg, transparent, rgba(0,255,213,0.1), transparent, rgba(123,47,247,0.1), transparent); animation:wave-normal 8s ease-in-out infinite; left:-50%; top:-50%}
+      .wave:nth-child(2){animation-delay:-2s; background:linear-gradient(-45deg, transparent, rgba(255,71,87,0.08), transparent, rgba(0,255,213,0.08), transparent)}
+      .wave:nth-child(3){animation-delay:-4s; background:linear-gradient(90deg, transparent, rgba(123,47,247,0.06), transparent)}
+      
+      .wave-bg.intense{opacity:0.8}
+      .wave-bg.intense .wave{animation:wave-intense 0.3s ease-in-out infinite}
+      .wave-bg.intense .wave:nth-child(2){animation:wave-intense2 0.2s ease-in-out infinite}
+      .wave-bg.intense .wave:nth-child(3){animation:wave-intense3 0.4s ease-in-out infinite}
+      
+      @keyframes wave-normal{
+        0%{transform:translateX(0%) translateY(0%) rotate(0deg)}
+        50%{transform:translateX(5%) translateY(5%) rotate(180deg)}
+        100%{transform:translateX(0%) translateY(0%) rotate(360deg)}
+      }
+      
+      @keyframes wave-intense{
+        0%{transform:translateX(0%) translateY(0%) rotate(0deg) scale(1)}
+        25%{transform:translateX(10%) translateY(-10%) rotate(90deg) scale(1.2)}
+        50%{transform:translateX(-10%) translateY(10%) rotate(180deg) scale(0.8)}
+        75%{transform:translateX(5%) translateY(-5%) rotate(270deg) scale(1.1)}
+        100%{transform:translateX(0%) translateY(0%) rotate(360deg) scale(1)}
+      }
+      
+      @keyframes wave-intense2{
+        0%{transform:translateX(0%) translateY(0%) rotate(0deg) scale(1.1)}
+        50%{transform:translateX(20%) translateY(-20%) rotate(180deg) scale(0.9)}
+        100%{transform:translateX(0%) translateY(0%) rotate(360deg) scale(1.1)}
+      }
+      
+      @keyframes wave-intense3{
+        0%{transform:translateX(0%) translateY(0%) rotate(0deg) scale(0.9)}
+        33%{transform:translateX(-20%) translateY(20%) rotate(120deg) scale(1.3)}
+        66%{transform:translateX(20%) translateY(-20%) rotate(240deg) scale(0.7)}
+        100%{transform:translateX(0%) translateY(0%) rotate(360deg) scale(0.9)}
+      }
+
+      /* subtle animated background lines */
+      .scanline{position:absolute; left:-40%; top:-20%; width:200%; height:200%; background:radial-gradient(circle at 10% 10%, rgba(255,255,255,0.015), transparent 10%); transform:rotate(15deg); pointer-events:none; animation:scan 6s linear infinite; z-index:2}
+      @keyframes scan{0%{transform:translateY(-6%) rotate(15deg)}50%{transform:translateY(6%) rotate(15deg)}100%{transform:translateY(-6%) rotate(15deg)}}            footer.small-note{margin-top:12px; text-align:center; color:#98bcd9}
+        </style>
+    </head>
+    <body>
+        <div class="console">
+            <div class="scanline"></div>
+      <div class="header">
+        <div class="brand">TEMPORAL CONSOLE — MEG</div>
+        <div class="datetime" id="headerNow">--</div>
+      </div>            <div class="panel">
+                <div class="left">
+          <div class="time-circle">
+            <div class="watch-display">
+              <div class="percentage-main" id="successProbCircle">23%</div>
+              <div class="percentage-label">Success Rate</div>
+              <div class="date-time" id="displayNow">Loading...</div>
+              <div class="timezone" id="displayTz">UTC</div>
+            </div>
+          </div>                    <div style="height:18px"></div>
+
+                    <button id="pastBtn" class="btn-pulse btn-initial mt-3">TIME TRAVEL</button>
+
+                    <div class="progress-wrap" aria-hidden="false">
+                        <div class="progress-bar-neo mt-3">
+                            <div class="progress-fill" id="progressFill"></div>
+                        </div>
+                        <div class="result" id="resultText"></div>
+                    </div>
+                </div>
+
+                <div class="right">
+                    <div class="meta" style="padding:16px; min-height:280px;">
+                        <div class="meta-row"><div class="muted">Real Time</div><div id="realNowShort">--</div></div>
+                        <div class="meta-row"><div class="muted">Temporal State</div><div id="temporalState">Stable</div></div>
+                        <div class="meta-row"><div class="muted">Return ETA</div><div id="returnETA">—</div></div>
+                        <div style="height:12px; border-top:1px solid rgba(255,255,255,0.06); margin:12px 0;"></div>
+                        
+                        <!-- High-tech Statistics -->
+                        <div class="meta-row"><div class="muted">Quantum Flux</div><div id="quantumFlux">847.3 THz</div></div>
+                        <div class="meta-row"><div class="muted">Temporal Drift</div><div id="temporalDrift">±0.003ms</div></div>
+                        <div class="meta-row"><div class="muted">Paradox Index</div><div id="paradoxIndex">Low</div></div>
+                        <div class="meta-row"><div class="muted">Energy Core</div><div id="energyCore">94%</div></div>
+                        
+                        <!-- Animated Progress Bars -->
+                        <div style="margin-top:16px;">
+                            <div class="muted" style="font-size:11px; margin-bottom:6px;">SYSTEM HEALTH</div>
+                            <div class="stat-bar">
+                                <div class="stat-fill" id="healthBar" style="width:87%"></div>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-top:12px;">
+                            <div class="muted" style="font-size:11px; margin-bottom:6px;">RESONANCE STABILITY</div>
+                            <div class="stat-bar">
+                                <div class="stat-fill resonance" id="resonanceBar" style="width:73%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="height:12px"></div>
+                    <div class="text-muted" style="font-size:13px">Controls</div>
+                    <div style="height:8px"></div>
+                    <div class="d-flex gap-2">
+                        <button id="resetBtn" class="btn btn-outline-light" style="width:100%; padding:12px; font-weight:600;">RESET SYSTEM</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+      // State
+      let realNow = new Date();
+      let temporalNow = null; // if time-traveled, holds Date
+      let ticking = true;
+      let inTransit = false;
+      let attemptCount = 0; // Track attempts: 1st and 2nd fail, 3rd succeeds            const headerNow = document.getElementById('headerNow');
+            const displayNow = document.getElementById('displayNow');
+            const displayTz = document.getElementById('displayTz');
+            const realNowShort = document.getElementById('realNowShort');
+            const temporalState = document.getElementById('temporalState');
+            const returnETA = document.getElementById('returnETA');
+            const successProbEl = document.getElementById('successProbCircle');
+            const progressFill = document.getElementById('progressFill');
+            const resultText = document.getElementById('resultText');
+
+            function pad(n){return String(n).padStart(2,'0');}
+      function formatFull(d){
+        return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+      }
+      
+      function formatWatch(d){
+        return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}\n${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+      }            function updateRealNow(){ realNow = new Date(); realNowShort.textContent = formatFull(realNow); headerNow.textContent = realNow.toLocaleString(); }
+
+            // ticking loop: when not time-traveled, show real time; when time-traveled, show temporalNow (frozen or ticking slightly)
+            setInterval(()=>{
+                if (!inTransit){
+                    if (temporalNow){
+                        // show temporal time; advance slowly for realism
+                        temporalNow = new Date(temporalNow.getTime() + 1000);
+                        const timeStr = `${pad(temporalNow.getHours())}:${pad(temporalNow.getMinutes())}:${pad(temporalNow.getSeconds())}`;
+                        const dateStr = `${temporalNow.getFullYear()}-${pad(temporalNow.getMonth()+1)}-${pad(temporalNow.getDate())}`;
+                        displayNow.innerHTML = `${timeStr}<br><span style="font-size:11px;opacity:0.7">${dateStr}</span>`;
+                        displayTz.textContent = 'Temporal';
+                        temporalState.textContent = 'Temporal — In Past';
+                    } else {
+                        updateRealNow();
+                        const timeStr = `${pad(realNow.getHours())}:${pad(realNow.getMinutes())}:${pad(realNow.getSeconds())}`;
+                        const dateStr = `${realNow.getFullYear()}-${pad(realNow.getMonth()+1)}-${pad(realNow.getDate())}`;
+                        displayNow.innerHTML = `${timeStr}<br><span style="font-size:11px;opacity:0.7">${dateStr}</span>`;
+                        displayTz.textContent = new Date().toLocaleTimeString(undefined,{timeZoneName:'short'}).split(' ')[1] || 'Local';
+                        temporalState.textContent = 'Stable';
+                        returnETA.textContent = '—';
+                    }
+                }
+            }, 1000);
+
+            // Utility: random integer
+            function randInt(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+
+            // Simulate the thrilling percentage progress with dramatic tension
+            async function runTimeAttempt(force=false){
+                if (inTransit) return;
+                inTransit = true; resultText.textContent=''; progressFill.style.width='0%';
+                // Use the displayed success rate, or boost it for force attempts
+                const displayedRate = parseInt(successProbEl.textContent.replace('%', ''));
+                const baseProb = force ? Math.min(displayedRate + 20, 65) : displayedRate;
+                temporalState.textContent = 'Initializing temporal field...';
+
+                // Phase 1: Slow start (0-20%) - Building anticipation
+                let pct = 0;
+                while(pct < 20){
+                    await new Promise(r => setTimeout(r, randInt(150,300)));
+                    pct += randInt(1,3);
+                    if (pct>20) pct=20;
+                    progressFill.style.width = pct + '%';
+                    if(pct > 5) temporalState.textContent = 'Scanning temporal frequencies...';
+                    if(pct > 15) temporalState.textContent = 'Calibrating quantum resonance...';
+                }
+
+                // Dramatic pause after initial setup
+                await new Promise(r => setTimeout(r, 800));
+                temporalState.textContent = 'Engaging temporal drive...';
+
+                // Phase 2: Medium speed (20-60%) - Building momentum
+                while(pct < 60){
+                    await new Promise(r => setTimeout(r, randInt(80,180)));
+                    pct += randInt(2,5);
+                    if (pct>60) pct=60;
+                    progressFill.style.width = pct + '%';
+                    if(pct > 30) temporalState.textContent = 'Warping spacetime fabric...';
+                    if(pct > 45) temporalState.textContent = 'Establishing temporal anchor...';
+                }
+
+                // Critical tension pause
+                await new Promise(r => setTimeout(r, 1200));
+                temporalState.textContent = 'Critical phase detected...';
+                progressFill.classList.add('critical'); // Add pulsing effect
+
+                // Phase 3: Slow and tense (60-85%) - Maximum suspense
+                while(pct < 85){
+                    await new Promise(r => setTimeout(r, randInt(200,400)));
+                    pct += randInt(1,2);
+                    if (pct>85) pct=85;
+                    progressFill.style.width = pct + '%';
+                    if(pct > 70) temporalState.textContent = 'Stabilizing temporal vortex...';
+                    if(pct > 80) temporalState.textContent = 'WARNING: Paradox risk detected...';
+                }
+
+                // Super dramatic pause before final phase
+                await new Promise(r => setTimeout(r, 1500));
+                temporalState.textContent = 'Final sequence initiated...';
+
+                // Phase 4: Final push (85-100%) - Heart-pounding finish
+                while(pct < 100){
+                    await new Promise(r => setTimeout(r, randInt(100,250)));
+                    pct += randInt(1,3);
+                    if (pct>100) pct=100;
+                    progressFill.style.width = pct + '%';
+                    if(pct > 92) temporalState.textContent = 'Temporal breach imminent...';
+                    if(pct > 97) temporalState.textContent = 'CALCULATING OUTCOME...';
+                }
+
+                // Final dramatic pause before result with glitch effect
+                progressFill.classList.remove('critical');
+                temporalState.textContent = 'ANALYZING TEMPORAL OUTCOME...';
+                
+                // Add some glitch effect during final calculation
+                for(let i = 0; i < 5; i++){
+                    await new Promise(r => setTimeout(r, 200));
+                    temporalState.textContent = i % 2 === 0 ? 'ANALYZING...' : 'CALCULATING...';
+                }
+                
+                await new Promise(r => setTimeout(r, 800));
+
+                // Predetermined outcome: 1st and 2nd attempts fail, 3rd succeeds
+                attemptCount++;
+                const succeeded = (attemptCount >= 3);
+                
+                // Humorous Tagalog results
+                const successMessages = [
+                    'YEHEY MEG! Nakabalik sa nakaraan! Pwede na ulit makipag-text! 📱✨',
+                    'SUCCESSFUL! Nakuha mo na ang second chance mo, Meg! 💅',
+                    'AMAZING MEG! Time travel complete - oras na para makipag-usap ulit! 💕',
+                    'WOW MEG! Bumalik ka na sa past - ready na ang comeback story mo! 👑'
+                ];
+                
+                const failureMessages = [
+                    'AWIT! Hindi pa pwede, Meg. Subukan mo ulit, malapit na! 😅',
+                    'NOPE! Temporal machine pa-loading pa. Antay lang! ⏳',
+                    'HINDI PA! Kulang pa sa lakas ng loob, try again! 💪',
+                    'FAIL! Wag mawalan ng pag-asa, third time\'s the charm! 🍀'
+                ];
+
+                if (succeeded){
+                    // pick a random past datetime between 1 and 365 days ago
+                    const daysBack = randInt(1,365);
+                    const msBack = daysBack * 24*60*60*1000 + randInt(0,23*3600000);
+                    const pastDate = new Date(Date.now() - msBack);
+                    temporalNow = new Date(pastDate);
+                    // pick return ETA: future days between 7 and 120 days from realNow
+                    const returnDays = randInt(7,120);
+                    const eta = new Date(realNow.getTime() + returnDays*24*60*60*1000);
+                    returnETA.textContent = formatFull(eta);
+                    resultText.textContent = successMessages[randInt(0, successMessages.length-1)]; 
+                    resultText.className='result success';
+                    progressFill.style.width = '100%';
+                    temporalState.textContent = `In Past (−${daysBack} days)`;
+                    
+                    // Update button to success state
+                    const btn = document.getElementById('pastBtn');
+                    btn.textContent = 'SUCCESS';
+                    btn.className = 'btn-pulse btn-complete mt-3';
+                } else {
+                    // failure
+                    resultText.textContent = failureMessages[randInt(0, failureMessages.length-1)];
+                    resultText.className='result fail';
+                    temporalState.textContent = 'Stable — No change';
+                    temporalNow = null;
+                    returnETA.textContent = '—';
+                    // animate reverse jitter
+                    progressFill.style.width = '0%';
+                    
+                    // Update button to force state after failure
+                    const btn = document.getElementById('pastBtn');
+                    btn.textContent = 'FORCE';
+                    btn.className = 'btn-pulse btn-force mt-3';
+                }
+
+                inTransit = false;
+            }
+
+            document.getElementById('pastBtn').addEventListener('click', ()=>runTimeAttempt(false));
+      document.getElementById('resetBtn').addEventListener('click', ()=>{
+        temporalNow = null; progressFill.style.width='0%'; progressFill.classList.remove('critical'); resultText.textContent=''; temporalState.textContent='Stable'; returnETA.textContent='—'; inTransit = false;
+        // Reset attempt counter and button state
+        attemptCount = 0;
+        const btn = document.getElementById('pastBtn');
+        btn.textContent = 'TIME TRAVEL';
+        btn.className = 'btn-pulse btn-initial mt-3';
+        // Set new random success rate on reset
+        const newRate = randInt(15,35);
+        successProbEl.textContent = newRate + '%';
+      });
+
+      // initial update
+      updateRealNow(); 
+      const timeStr = `${pad(realNow.getHours())}:${pad(realNow.getMinutes())}:${pad(realNow.getSeconds())}`;
+      const dateStr = `${realNow.getFullYear()}-${pad(realNow.getMonth()+1)}-${pad(realNow.getDate())}`;
+      displayNow.innerHTML = `${timeStr}<br><span style="font-size:11px;opacity:0.7">${dateStr}</span>`;
+      displayTz.textContent = new Date().toLocaleTimeString(undefined,{timeZoneName:'short'}).split(' ')[1] || 'Local';
+      
+      // Set initial success rate display
+      const initialRate = randInt(15,35);
+      successProbEl.textContent = initialRate + '%';
+      
+      // Animate high-tech statistics
+      setInterval(()=>{
+        if(!inTransit){
+          document.getElementById('quantumFlux').textContent = (800 + Math.random() * 100).toFixed(1) + ' THz';
+          document.getElementById('temporalDrift').textContent = '±'+(Math.random() * 0.01).toFixed(3) + 'ms';
+          document.getElementById('energyCore').textContent = (92 + Math.random() * 6).toFixed(0) + '%';
+          
+          const paradoxStates = ['Low', 'Nominal', 'Stable', 'Minimal'];
+          document.getElementById('paradoxIndex').textContent = paradoxStates[Math.floor(Math.random() * paradoxStates.length)];
+          
+          // Animate progress bars
+          document.getElementById('healthBar').style.width = (85 + Math.random() * 10).toFixed(0) + '%';
+          document.getElementById('resonanceBar').style.width = (70 + Math.random() * 15).toFixed(0) + '%';
+        }
+      }, 2000);
+        </script>
+    </body>
+</html>

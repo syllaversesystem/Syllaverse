@@ -55,6 +55,7 @@ Route::middleware([SuperAdminAuth::class])->prefix('superadmin')->group(function
     Route::post('/manage-accounts/faculty/{id}/reject', [ManageAdminController::class, 'rejectFaculty'])->name('superadmin.reject.faculty');
     Route::post('/manage-accounts/faculty/{id}/suspend', [ManageAdminController::class, 'suspendFaculty'])->name('superadmin.suspend.faculty');
     Route::post('/manage-accounts/faculty/{id}/reactivate', [ManageAdminController::class, 'reactivateFaculty'])->name('superadmin.reactivate.faculty');
+    Route::patch('/manage-accounts/{id}/revoke', [ManageAdminController::class, 'revoke'])->name('superadmin.accounts.revoke');
 
     // ---------- Chair Requests (Approve/Reject) ----------
     Route::post('/chair-requests/{id}/approve', [ChairRequestController::class, 'approve'])->name('superadmin.chair-requests.approve');

@@ -28,7 +28,6 @@
         <thead class="superadmin-manage-account-table-header">
           <tr>
             <th><i data-feather="user-x"></i> Name</th>
-            <th><i data-feather="shield"></i> Role</th>
             <th><i data-feather="mail"></i> Email</th>
             <th class="text-end"><i data-feather="more-vertical"></i></th>
           </tr>
@@ -37,16 +36,6 @@
           @forelse ($allRejectedUsers as $user)
             <tr id="sv-rejected-row-{{ $user->id }}">
               <td>{{ $user->name }}</td>
-              
-              <td>
-                @if($user->role === 'admin')
-                  <span class="sv-pill is-primary sv-pill--sm">Admin</span>
-                @elseif($user->role === 'faculty')
-                  <span class="sv-pill is-success sv-pill--sm">Faculty</span>
-                @else
-                  <span class="sv-pill is-secondary sv-pill--sm">{{ ucfirst($user->role) }}</span>
-                @endif
-              </td>
               
               <td class="text-muted">{{ $user->email }}</td>
               <td class="text-end">
