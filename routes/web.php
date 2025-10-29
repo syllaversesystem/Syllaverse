@@ -29,13 +29,6 @@ Route::get('/login', function () {
 require __DIR__.'/superadmin.php';
 
 // ------------------------------------------------
-// Admin Routes (Modularized)
-// ------------------------------------------------
-Route::prefix('admin')->group(function () {
-    require __DIR__.'/admin.php';
-});
-
-// ------------------------------------------------
 // Faculty Login View (with Google Login Button)
 // ------------------------------------------------
 Route::get('/faculty/login', function () {
