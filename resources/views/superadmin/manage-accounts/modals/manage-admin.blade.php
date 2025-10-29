@@ -223,13 +223,14 @@
       {{-- ░░░ START: Modal Footer ░░░ --}}
       <div class="modal-footer d-flex justify-content-between">
         {{-- This revokes admin access entirely (AJAX). --}}
-        <form method="POST"
-              action="{{ route('superadmin.reject.admin', $admin->id) }}"
-              class="me-auto"
-              data-ajax="true">
-          @csrf
-          <button class="btn btn-outline-danger btn-sm" type="submit">Revoke Admin</button>
-        </form>
+        <button type="button" 
+                class="btn btn-outline-danger btn-sm"
+                data-bs-toggle="modal"
+                data-bs-target="#revokeAdminModal-{{ $admin->id }}"
+                title="Revoke admin access">
+          <i data-feather="user-x" class="me-1"></i>
+          Revoke Admin
+        </button>
         <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
       </div>
       {{-- ░░░ END: Modal Footer ░░░ --}}
@@ -237,5 +238,64 @@
     </div>
   </div>
 </div>
+
+{{-- ░░░ START: Revoke Admin Confirmation Modal ░░░ --}}
+<div class="modal fade" id="revokeAdminModal-{{ $admin->id }}" tabindex="-1" aria-labelledby="revokeAdminModalLabel-{{ $admin->id }}" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-0 pb-2">
+        <h5 class="modal-title d-flex align-items-center gap-2 text-danger" id="revokeAdminModalLabel-{{ $admin->id }}">
+          <i data-feather="alert-triangle"></i>
+          Revoke Admin Access
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      
+      <div class="modal-body pt-0">
+        <div class="alert alert-warning d-flex align-items-start gap-2 mb-4">
+          <i data-feather="info" class="text-warning mt-1 flex-shrink-0"></i>
+          <div>
+            <strong>Warning:</strong> This action cannot be undone.
+          </div>
+        </div>
+        
+        <p class="mb-3">
+          Are you sure you want to revoke admin access for <strong>{{ $admin->name }}</strong>?
+        </p>
+        
+        <div class="bg-light rounded p-3 mb-3">
+          <h6 class="mb-2 text-muted">This will:</h6>
+          <ul class="mb-0 text-sm">
+            <li>Remove all administrative appointments</li>
+            <li>Set their account status to rejected</li>
+            <li>Prevent them from accessing admin functions</li>
+          </ul>
+        </div>
+        
+        <p class="text-muted small mb-0">
+          The admin will need to submit a new request to regain access.
+        </p>
+      </div>
+      
+      <div class="modal-footer border-0 pt-2">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          Cancel
+        </button>
+        <form method="POST" 
+              action="{{ route('superadmin.reject.admin', $admin->id) }}"
+              class="d-inline"
+              data-ajax="true"
+              data-sv-revoke="true">
+          @csrf
+          <button type="submit" class="btn btn-danger">
+            <i data-feather="user-x" class="me-1"></i>
+            Revoke Admin
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{{-- ░░░ END: Revoke Admin Confirmation Modal ░░░ --}}
 
 

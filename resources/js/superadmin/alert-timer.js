@@ -62,12 +62,12 @@ window.showAlertOverlay = function(type, message) {
   // Replace feather icons
   feather.replace();
 
-  // Auto-hide after 1.5s (CSS animation length)
+  // Auto-hide after 3s (CSS animation length)
   setTimeout(() => {
     alertEl.classList.remove('show');
     alertEl.classList.add('fade');
     setTimeout(() => alertEl.remove(), 200); // wait for fade
-  }, 1500);
+  }, 3000);
 };
 
 document.addEventListener('DOMContentLoaded', () => {

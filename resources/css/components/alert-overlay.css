@@ -92,7 +92,7 @@
   bottom: 0;
   left: 0;
   height: 4px;
-  animation: shrink-bar 1.5s linear forwards;
+  animation: shrink-bar 3s linear forwards;
 }
 
 .loading-bar.green { background-color: #218739; }

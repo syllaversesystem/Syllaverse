@@ -281,6 +281,11 @@
     if (newTbody && oldTbody) {
       oldTbody.replaceWith(newTbody);
       refreshIcons();
+      // Reinitialize tooltips and department dropdowns for new modal content
+      setTimeout(() => {
+        initTooltips();
+        initDepartmentDropdowns();
+      }, 50);
       return true;
     }
     return false;
@@ -298,6 +303,11 @@
       if (newRow && curRow) {
         curRow.replaceWith(newRow);
         refreshIcons();
+        // Reinitialize for the new row content
+        setTimeout(() => {
+          initTooltips();
+          initDepartmentDropdowns();
+        }, 50);
         return;
       }
       await refreshApprovedTableBodyFromDoc(doc);
@@ -466,6 +476,12 @@
         // ✅ Re-approve: refresh Approved + Rejected tables (stay on current tab)
         if (isReapproveRequest(form)) {
           await Promise.all([refreshApprovedTable(), refreshRejectedTable()]);
+          // Reinitialize modals and event handlers after table refresh
+          setTimeout(() => {
+            initDepartmentDropdowns();
+            initTooltips();
+            refreshIcons();
+          }, 100);
           notify(payload?.message || 'Admin re-approved.');
           return;
         }

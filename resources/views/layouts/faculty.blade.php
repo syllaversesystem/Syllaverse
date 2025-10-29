@@ -50,7 +50,6 @@
   {{-- Faculty-specific modules --}}
   @vite('resources/css/faculty/syllabus.css')
   @vite('resources/css/superadmin/departments/departments.css')
-  @vite('resources/css/superadmin/manage-accounts/manage-accounts.css')
   {{-- ░░░ END: Custom Vite CSS ░░░ --}}
 
   @stack('styles')

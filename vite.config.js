@@ -14,7 +14,6 @@ export default defineConfig({
                 'resources/css/components/alert-overlay.css',
                 
                 // Faculty CSS
-                'resources/css/faculty/manage-accounts/manage-accounts.css',
                 
                 // Super Admin CSS
                 'resources/css/superadmin/login.css',
@@ -28,7 +27,14 @@ export default defineConfig({
                 'resources/js/app.js',
                 
                 // Faculty JS
+                'resources/js/faculty/layout.js',
+                'resources/js/faculty/departments.js',
+                'resources/js/faculty/programs/programs.js',
                 'resources/js/faculty/courses/courses.js',
+                'resources/js/faculty/complete-profile.js',
+                'resources/js/faculty/syllabus-ilo-sortable.js',
+                'resources/js/faculty/syllabus-iga-sortable.js',
+                'resources/js/faculty/master-data/ilo.js',
                 'resources/js/faculty/master-data/ilo-simple.js',
                 'resources/js/faculty/master-data/ilo-sortable.js',
                 'resources/js/faculty/master-data/shared-crud.js',

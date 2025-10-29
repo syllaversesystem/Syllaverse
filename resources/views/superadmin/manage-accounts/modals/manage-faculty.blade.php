@@ -21,7 +21,6 @@
           <i data-feather="user-check"></i>
           <span>Manage Faculty — {{ $faculty->name }}</span>
         </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       {{-- ░░░ END: Modal Header ░░░ --}}
 
@@ -129,26 +128,95 @@
       </div>
 
       {{-- ░░░ START: Modal Footer ░░░ --}}
+      <style>
+        /* Faculty modal button styling */
+        #manageFaculty-{{ $faculty->id }} .btn-danger {
+          background: var(--sv-card-bg, #fff);
+          border: none;
+          color: #000;
+          transition: all 0.2s ease-in-out;
+          box-shadow: none;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.5rem 1rem;
+          border-radius: 0.375rem;
+        }
+        #manageFaculty-{{ $faculty->id }} .btn-danger:hover,
+        #manageFaculty-{{ $faculty->id }} .btn-danger:focus {
+          background: linear-gradient(135deg, rgba(255, 240, 235, 0.88), rgba(255, 255, 255, 0.46));
+          backdrop-filter: blur(7px);
+          -webkit-backdrop-filter: blur(7px);
+          box-shadow: 0 4px 10px rgba(204, 55, 55, 0.12);
+          color: #CB3737;
+        }
+        #manageFaculty-{{ $faculty->id }} .btn-danger:hover i,
+        #manageFaculty-{{ $faculty->id }} .btn-danger:hover svg,
+        #manageFaculty-{{ $faculty->id }} .btn-danger:focus i,
+        #manageFaculty-{{ $faculty->id }} .btn-danger:focus svg {
+          stroke: #CB3737;
+        }
+        #manageFaculty-{{ $faculty->id }} .btn-danger:active {
+          background: linear-gradient(135deg, rgba(255, 230, 225, 0.98), rgba(255, 255, 255, 0.62));
+          box-shadow: 0 1px 8px rgba(204, 55, 55, 0.16);
+        }
+        #manageFaculty-{{ $faculty->id }} .btn-danger:active i,
+        #manageFaculty-{{ $faculty->id }} .btn-danger:active svg {
+          stroke: #CB3737;
+        }
+        /* Close button styling */
+        #manageFaculty-{{ $faculty->id }} .btn-light {
+          background: var(--sv-card-bg, #fff);
+          border: none;
+          color: #6c757d;
+          transition: all 0.2s ease-in-out;
+          box-shadow: none;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.5rem 1rem;
+          border-radius: 0.375rem;
+        }
+        #manageFaculty-{{ $faculty->id }} .btn-light:hover,
+        #manageFaculty-{{ $faculty->id }} .btn-light:focus {
+          background: linear-gradient(135deg, rgba(220, 220, 220, 0.88), rgba(240, 240, 240, 0.46));
+          backdrop-filter: blur(7px);
+          -webkit-backdrop-filter: blur(7px);
+          box-shadow: 0 4px 10px rgba(108, 117, 125, 0.12);
+          color: #495057;
+        }
+        #manageFaculty-{{ $faculty->id }} .btn-light:hover i,
+        #manageFaculty-{{ $faculty->id }} .btn-light:hover svg,
+        #manageFaculty-{{ $faculty->id }} .btn-light:focus i,
+        #manageFaculty-{{ $faculty->id }} .btn-light:focus svg {
+          stroke: #495057;
+        }
+        #manageFaculty-{{ $faculty->id }} .btn-light:active {
+          background: linear-gradient(135deg, rgba(240, 242, 245, 0.98), rgba(255, 255, 255, 0.62));
+          box-shadow: 0 1px 8px rgba(108, 117, 125, 0.16);
+        }
+        #manageFaculty-{{ $faculty->id }} .btn-light:active i,
+        #manageFaculty-{{ $faculty->id }} .btn-light:active svg {
+          stroke: #495057;
+        }
+      </style>
       <div class="modal-footer d-flex justify-content-between">
         <div>
           {{-- Revoke Faculty Access Button --}}
-          <form method="POST" 
-                action="{{ route('superadmin.accounts.revoke', $faculty->id) }}"
-                class="d-inline"
-                data-ajax="true"
-                onsubmit="return confirm('Are you sure you want to revoke access for {{ $faculty->name }}? This will remove all appointments and set their status to rejected.')">
-            @csrf
-            @method('PATCH')
-            <button type="submit" 
-                    class="btn btn-outline-danger btn-sm"
-                    title="Revoke faculty access">
-              <i data-feather="user-x" class="me-1"></i>
-              Revoke Access
-            </button>
-          </form>
+          <button type="button" 
+                  class="btn btn-danger btn-sm"
+                  data-bs-toggle="modal"
+                  data-bs-target="#revokeFacultyModal-{{ $faculty->id }}"
+                  title="Revoke faculty access">
+            <i data-feather="user-x" class="me-1"></i>
+            Revoke Access
+          </button>
         </div>
         <div>
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">
+            <i data-feather="x" class="me-1"></i>
+            Close
+          </button>
         </div>
       </div>
       {{-- ░░░ END: Modal Footer ░░░ --}}
@@ -156,5 +224,139 @@
     </div>
   </div>
 </div>
+
+{{-- ░░░ START: Revoke Faculty Confirmation Modal ░░░ --}}
+<div class="modal fade" id="revokeFacultyModal-{{ $faculty->id }}" tabindex="-1" aria-labelledby="revokeFacultyModalLabel-{{ $faculty->id }}" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <style>
+        /* Revoke modal styling to match main modal */
+        #revokeFacultyModal-{{ $faculty->id }} .modal-content {
+          border-radius: 0.75rem;
+        }
+      </style>
+      <div class="modal-header border-0 pb-2">
+        <h5 class="modal-title d-flex align-items-center gap-2 text-danger" id="revokeFacultyModalLabel-{{ $faculty->id }}">
+          <i data-feather="alert-triangle"></i>
+          Revoke Faculty Access
+        </h5>
+      </div>
+      
+      <div class="modal-body pt-0">
+        <div class="alert alert-warning d-flex align-items-start gap-2 mb-4">
+          <i data-feather="info" class="text-warning mt-1 flex-shrink-0"></i>
+          <div>
+            <strong>Warning:</strong> This action cannot be undone.
+          </div>
+        </div>
+        
+        <p class="mb-3">
+          Are you sure you want to revoke access for <strong>{{ $faculty->name }}</strong>?
+        </p>
+        
+        <div class="bg-light rounded p-3 mb-3">
+          <h6 class="mb-2 text-muted">This will:</h6>
+          <ul class="mb-0 text-sm">
+            <li>Remove all active appointments</li>
+            <li>Set their account status to rejected</li>
+            <li>Prevent them from accessing the system</li>
+          </ul>
+        </div>
+      </div>
+      
+      <style>
+        /* Revoke confirmation modal button styling */
+        #revokeFacultyModal-{{ $faculty->id }} .btn-danger {
+          background: var(--sv-card-bg, #fff);
+          border: none;
+          color: #000;
+          transition: all 0.2s ease-in-out;
+          box-shadow: none;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.5rem 1rem;
+          border-radius: 0.375rem;
+        }
+        #revokeFacultyModal-{{ $faculty->id }} .btn-danger:hover,
+        #revokeFacultyModal-{{ $faculty->id }} .btn-danger:focus {
+          background: linear-gradient(135deg, rgba(255, 240, 235, 0.88), rgba(255, 255, 255, 0.46));
+          backdrop-filter: blur(7px);
+          -webkit-backdrop-filter: blur(7px);
+          box-shadow: 0 4px 10px rgba(204, 55, 55, 0.12);
+          color: #CB3737;
+        }
+        #revokeFacultyModal-{{ $faculty->id }} .btn-danger:hover i,
+        #revokeFacultyModal-{{ $faculty->id }} .btn-danger:hover svg,
+        #revokeFacultyModal-{{ $faculty->id }} .btn-danger:focus i,
+        #revokeFacultyModal-{{ $faculty->id }} .btn-danger:focus svg {
+          stroke: #CB3737;
+        }
+        #revokeFacultyModal-{{ $faculty->id }} .btn-danger:active {
+          background: linear-gradient(135deg, rgba(255, 230, 225, 0.98), rgba(255, 255, 255, 0.62));
+          box-shadow: 0 1px 8px rgba(204, 55, 55, 0.16);
+        }
+        #revokeFacultyModal-{{ $faculty->id }} .btn-danger:active i,
+        #revokeFacultyModal-{{ $faculty->id }} .btn-danger:active svg {
+          stroke: #CB3737;
+        }
+        /* Cancel button styling */
+        #revokeFacultyModal-{{ $faculty->id }} .btn-light {
+          background: var(--sv-card-bg, #fff);
+          border: none;
+          color: #6c757d;
+          transition: all 0.2s ease-in-out;
+          box-shadow: none;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.5rem 1rem;
+          border-radius: 0.375rem;
+        }
+        #revokeFacultyModal-{{ $faculty->id }} .btn-light:hover,
+        #revokeFacultyModal-{{ $faculty->id }} .btn-light:focus {
+          background: linear-gradient(135deg, rgba(220, 220, 220, 0.88), rgba(240, 240, 240, 0.46));
+          backdrop-filter: blur(7px);
+          -webkit-backdrop-filter: blur(7px);
+          box-shadow: 0 4px 10px rgba(108, 117, 125, 0.12);
+          color: #495057;
+        }
+        #revokeFacultyModal-{{ $faculty->id }} .btn-light:hover i,
+        #revokeFacultyModal-{{ $faculty->id }} .btn-light:hover svg,
+        #revokeFacultyModal-{{ $faculty->id }} .btn-light:focus i,
+        #revokeFacultyModal-{{ $faculty->id }} .btn-light:focus svg {
+          stroke: #495057;
+        }
+        #revokeFacultyModal-{{ $faculty->id }} .btn-light:active {
+          background: linear-gradient(135deg, rgba(240, 242, 245, 0.98), rgba(255, 255, 255, 0.62));
+          box-shadow: 0 1px 8px rgba(108, 117, 125, 0.16);
+        }
+        #revokeFacultyModal-{{ $faculty->id }} .btn-light:active i,
+        #revokeFacultyModal-{{ $faculty->id }} .btn-light:active svg {
+          stroke: #495057;
+        }
+      </style>
+      <div class="modal-footer border-0 pt-2">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">
+          <i data-feather="x" class="me-1"></i>
+          Cancel
+        </button>
+        <form method="POST" 
+              action="{{ route('superadmin.accounts.revoke', $faculty->id) }}"
+              class="d-inline"
+              data-ajax="true"
+              data-sv-revoke="true">
+          @csrf
+          @method('PATCH')
+          <button type="submit" class="btn btn-danger">
+            <i data-feather="user-x" class="me-1"></i>
+            Revoke Access
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{{-- ░░░ END: Revoke Faculty Confirmation Modal ░░░ --}}
 
 

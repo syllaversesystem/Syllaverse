@@ -202,7 +202,7 @@
                             $deptName = 'Institution-wide';
                           }
                         @endphp
-                        <div class="sv-request-item py-2 {{ !$loop->last ? 'border-bottom' : '' }} mb-2">
+                        <div class="sv-request-item py-2 mb-2">
                           <div class="row align-items-center gx-3">
                             <div class="col-auto" style="min-width: 200px;">
                               <div class="d-flex align-items-center gap-2">
@@ -250,7 +250,7 @@
 
           {{-- ░░░ START: Empty State ░░░ --}}
           @if($allApprovedUsers->isEmpty())
-            <tr class="superladmin-manage-account-empty-row">
+            <tr class="superadmin-manage-account-empty-row">
               <td colspan="4">
                 <div class="sv-empty">
                   <h6>No approved accounts</h6>

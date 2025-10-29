@@ -19,7 +19,6 @@ use App\Http\Controllers\Faculty\SyllabusTLAController;
 use App\Http\Controllers\Faculty\SyllabusIloController;
 use App\Http\Controllers\Faculty\SyllabusSoController;
 use App\Http\Controllers\Faculty\SyllabusSdgController;
-use App\Http\Controllers\Faculty\ManageFacultyAccountController;
 use App\Http\Controllers\Faculty\DepartmentsController;
 use App\Http\Controllers\Faculty\ProgramController;
 use App\Http\Controllers\Faculty\CourseController;
@@ -47,10 +46,7 @@ Route::middleware(['auth:faculty'])->group(function () {
 Route::middleware([FacultyAuth::class])->group(function () {
     Route::view('/faculty/dashboard', 'faculty.dashboard')->name('faculty.dashboard');
 
-    // ---------- Manage Faculty Accounts ----------
-    Route::get('/faculty/manage-accounts', [ManageFacultyAccountController::class, 'index'])->name('faculty.manage-accounts.index');
-    Route::post('/faculty/manage-accounts/{id}/approve', [ManageFacultyAccountController::class, 'approve'])->name('faculty.manage-accounts.approve');
-    Route::post('/faculty/manage-accounts/{id}/reject', [ManageFacultyAccountController::class, 'reject'])->name('faculty.manage-accounts.reject');
+
 
     // ---------- Departments Management ----------
     Route::get('/faculty/departments', [DepartmentsController::class, 'index'])->name('faculty.departments.index');
@@ -181,10 +177,7 @@ Route::middleware([FacultyAuth::class])->group(function () {
     // Persist ILO -> CDIO -> SDG mapping payload for a syllabus
     Route::post('/faculty/syllabi/{syllabus}/ilo-cdio-sdg', [SyllabusController::class, 'saveIloCdioSdg'])->name('faculty.syllabi.ilo_cdio_sdg.save');
 
-    // ---------- Faculty Manage Accounts ----------
-    Route::get('/faculty/manage-accounts', [ManageFacultyAccountController::class, 'index'])->name('faculty.manage-accounts.index');
-    Route::post('/faculty/manage-accounts/{id}/approve', [ManageFacultyAccountController::class, 'approve'])->name('faculty.manage-accounts.approve');
-    Route::post('/faculty/manage-accounts/{id}/reject', [ManageFacultyAccountController::class, 'reject'])->name('faculty.manage-accounts.reject');
+
 
 });
 
