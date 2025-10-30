@@ -14,6 +14,11 @@ export default defineConfig({
                 'resources/css/components/alert-overlay.css',
                 
                 // Faculty CSS
+                'resources/css/faculty/faculty-sidebar.css',
+                'resources/css/faculty/faculty-navbar.css',
+                'resources/css/faculty/faculty-layout.css',
+                'resources/css/faculty/syllabus.css',
+                'resources/css/faculty/syllabus-index.css',
                 
                 // Super Admin CSS
                 'resources/css/superadmin/login.css',
@@ -32,11 +37,17 @@ export default defineConfig({
                 'resources/js/faculty/programs/programs.js',
                 'resources/js/faculty/courses/courses.js',
                 'resources/js/faculty/complete-profile.js',
+                'resources/js/faculty/syllabus.js',
+                'resources/js/faculty/syllabus-sdg.js',
+                'resources/js/faculty/syllabus-textbook.js',
+                'resources/js/faculty/syllabus-tla.js',
+                'resources/js/faculty/syllabus-tla-ai.js',
                 'resources/js/faculty/syllabus-ilo-sortable.js',
                 'resources/js/faculty/syllabus-iga-sortable.js',
                 'resources/js/faculty/master-data/ilo.js',
                 'resources/js/faculty/master-data/ilo-simple.js',
                 'resources/js/faculty/master-data/ilo-sortable.js',
+                'resources/js/faculty/master-data/so-sortable.js',
                 'resources/js/faculty/master-data/shared-crud.js',
                 
                 // Super Admin JS
