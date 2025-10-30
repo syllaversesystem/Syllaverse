@@ -66,13 +66,6 @@
         <div class="sidebar-separator"></div>
       </li>
 
-
-
-      {{-- Separator --}}
-      <li class="nav-item">
-        <div class="sidebar-separator"></div>
-      </li>
-
       {{-- Departments --}}
       @php $isActive = request()->routeIs('faculty.departments*'); @endphp
       <li class="nav-item">
