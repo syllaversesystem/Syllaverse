@@ -15,11 +15,132 @@
       @endif
     </div>
 
-    {{-- Profile Dropdown --}}
+    {{-- Scope Pills - Centered (only for department-level roles) --}}
+    @php
+      // Get user scopes for navbar pills
+      $user = Auth::user();
+      $navbarScopes = [];
+      $showDepartmentScope = false;
+      
+      if ($user && $user->appointments) {
+        $activeAppointments = $user->appointments->where('status', 'active');
+        $departments = collect();
+        
+        // Check if user has VCAA or Associate VCAA roles
+        $hasInstitutionWideRole = $activeAppointments->whereIn('role', [
+          \App\Models\Appointment::ROLE_VCAA, 
+          \App\Models\Appointment::ROLE_ASSOC_VCAA
+        ])->count() > 0;
+        
+        // Only show department scope if user doesn't have institution-wide roles
+        if (!$hasInstitutionWideRole && $activeAppointments->count()) {
+          $departmentIds = $activeAppointments->pluck('scope_id')->filter()->unique();
+          if ($departmentIds->count()) {
+            $departments = \App\Models\Department::whereIn('id', $departmentIds)->get();
+          }
+          
+          foreach ($activeAppointments as $appt) {
+            // Only include department-level roles
+            if (!in_array($appt->role, [\App\Models\Appointment::ROLE_VCAA, \App\Models\Appointment::ROLE_ASSOC_VCAA])) {
+              if ($appt->scope_id) {
+                $department = $departments->firstWhere('id', $appt->scope_id);
+                if ($department) {
+                  $navbarScopes[] = $department->name;
+                  $showDepartmentScope = true;
+                }
+              }
+            }
+          }
+          $navbarScopes = array_unique($navbarScopes);
+        }
+      }
+    @endphp
+    
+    @if($showDepartmentScope && count($navbarScopes) > 0)
+      <div class="d-flex align-items-center">
+        <div class="d-flex flex-wrap gap-2">
+          @foreach($navbarScopes as $scope)
+            <span class="badge rounded-pill d-flex align-items-center gap-1" style="background-color: rgba(108, 117, 125, 0.1); color: #6c757d; font-size: 0.75rem; padding: 0.3rem 0.7rem; border: 1px solid rgba(108, 117, 125, 0.2);">
+              <i class="bi bi-building" style="font-size: 12px;"></i>
+              {{ $scope }}
+            </span>
+          @endforeach
+        </div>
+        
+        {{-- Separation line --}}
+        <div style="width: 2px; height: 24px; background-color: #dee2e6; margin: 0 1rem;"></div>
+      </div>
+    @endif
+
+    {{-- Profile Dropdown - Simplified --}}
     <div class="dropdown d-flex align-items-center">
       <a class="d-flex align-items-center text-decoration-none dropdown-toggle faculty-dropdown"
          href="#" id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-        <span class="fw-semibold text-dark d-none d-lg-inline">{{ Auth::user()->name ?? 'Faculty' }}</span>
+        <div class="text-end d-none d-lg-block">
+          @php
+            // Get user roles for dropdown (simplified)
+            $user = Auth::user();
+            $roleData = [];
+            
+            if ($user && $user->appointments) {
+              $activeAppointments = $user->appointments->where('status', 'active');
+              
+              if ($activeAppointments->count()) {
+                foreach ($activeAppointments as $appt) {
+                  $roleLabel = '';
+                  
+                  // Determine role label
+                  if ($appt->role === \App\Models\Appointment::ROLE_VCAA) {
+                    $roleLabel = 'VCAA';
+                  } elseif ($appt->role === \App\Models\Appointment::ROLE_ASSOC_VCAA) {
+                    $roleLabel = 'Assoc VCAA';
+                  } elseif ($appt->role === \App\Models\Appointment::ROLE_DEAN) {
+                    $roleLabel = 'Dean';
+                  } elseif ($appt->role === \App\Models\Appointment::ROLE_ASSOC_DEAN) {
+                    $roleLabel = 'Assoc Dean';
+                  } elseif ($appt->role === \App\Models\Appointment::ROLE_DEPT) {
+                    $roleLabel = 'Dept Chair';
+                  } elseif ($appt->role === \App\Models\Appointment::ROLE_PROG) {
+                    $roleLabel = 'Prog Chair';
+                  } elseif ($appt->role === \App\Models\Appointment::ROLE_FACULTY) {
+                    $roleLabel = 'Faculty';
+                  }
+                  
+                  if ($roleLabel) {
+                    $roleData[] = [
+                      'role' => $roleLabel,
+                      'order' => array_search($roleLabel, ['VCAA', 'Assoc VCAA', 'Dean', 'Assoc Dean', 'Dept Chair', 'Prog Chair', 'Faculty'])
+                    ];
+                  }
+                }
+                
+                // Sort roles by importance
+                usort($roleData, function($a, $b) {
+                  return $a['order'] - $b['order'];
+                });
+              } else {
+                $roleData[] = ['role' => 'Faculty', 'order' => 6];
+              }
+            } else {
+              $roleData[] = ['role' => 'Faculty', 'order' => 6];
+            }
+          @endphp
+          
+          <div class="d-flex align-items-center gap-2 mb-1">
+            {{-- User name with icon --}}
+            <i data-feather="user" style="width: 16px; height: 16px; color: #495057;"></i>
+            <span class="fw-semibold text-dark" style="font-size: 1rem;">{{ Auth::user()->name ?? 'Faculty' }}</span>
+          </div>
+          
+          {{-- Roles --}}
+          <div class="d-flex flex-wrap gap-2 justify-content-end">
+            @foreach($roleData as $data)
+              <span class="badge rounded-pill" style="background-color: #EE6F57; color: white; font-size: 0.75rem; padding: 0.3rem 0.7rem; box-shadow: 0 1px 3px rgba(238, 111, 87, 0.2);">
+                {{ $data['role'] }}
+              </span>
+            @endforeach
+          </div>
+        </div>
       </a>
       <ul class="dropdown-menu dropdown-menu-end shadow-sm animate__animated animate__fadeIn" aria-labelledby="profileDropdown" style="min-width: 180px;">
         <li>

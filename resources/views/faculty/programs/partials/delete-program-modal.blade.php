@@ -11,7 +11,7 @@
 {{-- ░░░ START: Delete Program Modal ░░░ --}}
 <div class="modal fade sv-program-modal" id="deleteProgramModal" tabindex="-1" aria-labelledby="deleteProgramModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content program-delete-form">
+    <div class="modal-content program-delete-form" style="border-radius: 16px;">
 
       {{-- ░░░ START: Local styles (scoped to this modal) ░░░ --}}
       <style>
@@ -36,19 +36,7 @@
           letter-spacing: .02em;
           color: #6c757d;
         }
-        #deleteProgramModal .input-group-text {
-          background: var(--sv-bg);
-          border-color: var(--sv-bdr);
-        }
-        #deleteProgramModal .form-control,
-        #deleteProgramModal .form-select {
-          border-color: var(--sv-bdr);
-        }
-        #deleteProgramModal .form-control:focus,
-        #deleteProgramModal .form-select:focus {
-          border-color: var(--sv-acct);
-          box-shadow: 0 0 0 .2rem rgb(238 111 87 / 15%);
-        }
+
         #deleteProgramModal .btn-danger {
           background: var(--sv-card-bg, #fff);
           border: none;

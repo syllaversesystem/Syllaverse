@@ -182,6 +182,41 @@ class AppointmentController extends Controller
             return $this->respond($request, false, 'Department is required for this role.', 422, ['department_id' => ['Department is required for this role.']]);
         }
 
+        // Check for mutually exclusive roles for the same user
+        $userId = (int) $data['user_id'];
+        
+        // VCAA and Associate VCAA are mutually exclusive
+        if ($role === Appointment::ROLE_VCAA || $role === Appointment::ROLE_ASSOC_VCAA) {
+            $conflictingRole = $role === Appointment::ROLE_VCAA ? Appointment::ROLE_ASSOC_VCAA : Appointment::ROLE_VCAA;
+            $hasConflictingRole = Appointment::active()
+                ->where('user_id', $userId)
+                ->where('role', $conflictingRole)
+                ->exists();
+                
+            if ($hasConflictingRole) {
+                $conflictRoleName = $conflictingRole === Appointment::ROLE_VCAA ? 'VCAA' : 'Associate VCAA';
+                return $this->respond($request, false, "User already has {$conflictRoleName} role. VCAA and Associate VCAA roles are mutually exclusive.", 422, [
+                    'role' => ["Cannot assign this role. User already has {$conflictRoleName} role."]
+                ]);
+            }
+        }
+        
+        // Dean and Associate Dean are mutually exclusive
+        if ($role === Appointment::ROLE_DEAN || $role === Appointment::ROLE_ASSOC_DEAN) {
+            $conflictingRole = $role === Appointment::ROLE_DEAN ? Appointment::ROLE_ASSOC_DEAN : Appointment::ROLE_DEAN;
+            $hasConflictingRole = Appointment::active()
+                ->where('user_id', $userId)
+                ->where('role', $conflictingRole)
+                ->exists();
+                
+            if ($hasConflictingRole) {
+                $conflictRoleName = $conflictingRole === Appointment::ROLE_DEAN ? 'Dean' : 'Associate Dean';
+                return $this->respond($request, false, "User already has {$conflictRoleName} role. Dean and Associate Dean roles are mutually exclusive.", 422, [
+                    'role' => ["Cannot assign this role. User already has {$conflictRoleName} role."]
+                ]);
+            }
+        }
+
         // Conflict detection rules:
         // - Only one chair (dept or prog) per department
         // - Multiple deans can exist in same department  

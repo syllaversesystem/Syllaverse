@@ -61,6 +61,8 @@ Route::middleware([FacultyAuth::class])->group(function () {
     Route::put('/faculty/programs/{program}', [ProgramController::class, 'update'])->name('faculty.programs.update');
     Route::delete('/faculty/programs/{program}', [ProgramController::class, 'destroy'])->name('faculty.programs.destroy');
     Route::get('/faculty/programs/search-deleted', [ProgramController::class, 'searchDeleted'])->name('faculty.programs.search-deleted');
+    Route::get('/faculty/programs/search-removed', [ProgramController::class, 'searchRemoved'])->name('faculty.programs.search-removed');
+    Route::get('/faculty/programs/filter', [ProgramController::class, 'filterByDepartment'])->name('faculty.programs.filter');
 
     // ---------- Courses Management ----------
     Route::get('/faculty/courses', [CourseController::class, 'index'])->name('faculty.courses.index');

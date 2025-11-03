@@ -170,10 +170,22 @@ class ProgramController extends Controller
         // Determine the department ID to use
         $departmentId = $userDepartmentId ?? $request->input('department_id');
 
-        // Check if a deleted program with the same code exists first (before validation)
-        $deletedProgram = Program::where('code', $request->input('code'))
-                                ->where('status', Program::STATUS_DELETED)
-                                ->first();
+        // Check for program restoration
+        $restoreProgramId = $request->input('restore_program_id');
+        $programToRestore = null;
+        
+        if ($restoreProgramId) {
+            $programToRestore = Program::where('id', $restoreProgramId)
+                                      ->where('status', Program::STATUS_DELETED)
+                                      ->first();
+        }
+
+        // If no restore ID provided, check if a deleted program with the same code exists
+        if (!$programToRestore) {
+            $programToRestore = Program::where('code', $request->input('code'))
+                                      ->where('status', Program::STATUS_DELETED)
+                                      ->first();
+        }
 
         // Build validation rules dynamically
         $validationRules = [
@@ -182,7 +194,7 @@ class ProgramController extends Controller
         ];
 
         // Add code validation (different rules for new vs restore)
-        if ($deletedProgram) {
+        if ($programToRestore) {
             // For restore, just validate code format (no uniqueness check)
             $validationRules['code'] = 'required|string|max:25';
         } else {
@@ -209,9 +221,9 @@ class ProgramController extends Controller
 
         $validated = $request->validate($validationRules);
 
-        if ($deletedProgram) {
-            // Restore the deleted program
-            $deletedProgram->update([
+        if ($programToRestore) {
+            // Restore the deleted or removed program
+            $programToRestore->update([
                 'name'          => $validated['name'],
                 'description'   => $validated['description'] ?? null,
                 'department_id' => $departmentId,
@@ -222,7 +234,7 @@ class ProgramController extends Controller
             if ($request->expectsJson()) {
                 return response()->json([
                     'message' => 'Program restored successfully!',
-                    'program' => $deletedProgram->fresh()->load('department'),
+                    'program' => $programToRestore->fresh()->load('department'),
                 ]);
             }
 
@@ -392,5 +404,89 @@ class ProgramController extends Controller
                 'display_text' => "{$program->name} ({$program->code}) - {$program->department->name}",
             ];
         }));
+    }
+
+    /**
+     * Search for removed programs based on name or code for restoration.
+     */
+    public function searchRemoved(Request $request)
+    {
+        $query = $request->get('query', '');
+        $field = $request->get('field', 'name');
+        
+        if (strlen($query) < 2) {
+            return response()->json([]);
+        }
+
+        // Search for programs with status 'deleted' (removed programs)
+        $removedPrograms = Program::where('status', Program::STATUS_DELETED)
+            ->where(function($q) use ($query, $field) {
+                if ($field === 'code') {
+                    $q->where('code', 'LIKE', "%{$query}%");
+                } else {
+                    $q->where('name', 'LIKE', "%{$query}%");
+                }
+            })
+            ->with('department')
+            ->limit(10)
+            ->get();
+
+        return response()->json($removedPrograms->map(function($program) {
+            return [
+                'id' => $program->id,
+                'name' => $program->name,
+                'code' => $program->code,
+                'description' => $program->description,
+                'department_id' => $program->department_id,
+                'department_name' => $program->department->name ?? 'Unknown Department',
+            ];
+        }));
+    }
+
+    /**
+     * Filter programs by department via AJAX.
+     */
+    public function filterByDepartment(Request $request)
+    {
+        $user = auth()->user();
+        $departmentFilter = $request->get('department');
+        
+        // Build programs query with optional department filter
+        $programsQuery = Program::with(['department'])->notDeleted();
+        if ($departmentFilter && $departmentFilter !== 'all') {
+            $programsQuery->where('department_id', $departmentFilter);
+        }
+        $programs = $programsQuery->get();
+        
+        // Get all departments for context
+        $departments = \App\Models\Department::all();
+        
+        // Get user permissions (same logic as index method)
+        $userAppointments = $user->appointments()->active()->get();
+        
+        // Check if user has any administrative roles (to show department column)
+        $hasAdministrativeRole = $userAppointments->contains(function($appointment) {
+            return in_array($appointment->role, ['VCAA', 'ASSOC_VCAA', 'DEAN', 'DEPT_CHAIR', 'PROG_CHAIR']);
+        });
+        
+        $showDepartmentColumn = $hasAdministrativeRole;
+        
+        // Return JSON response with table data
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'html' => view('faculty.programs.partials.programs-table-content', compact(
+                    'programs',
+                    'departments', 
+                    'showDepartmentColumn',
+                    'departmentFilter'
+                ))->render(),
+                'count' => $programs->count(),
+                'department_filter' => $departmentFilter
+            ]);
+        }
+        
+        // Fallback to redirect for non-AJAX requests
+        return redirect()->route('faculty.programs.index', ['department' => $departmentFilter]);
     }
 }

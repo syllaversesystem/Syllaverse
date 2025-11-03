@@ -24,8 +24,29 @@
           --sv-danger:#CB3737;  /* primary action (danger style) */
         }
         #addDepartmentModal .modal-header {
+          padding: .85rem 1rem;
           border-bottom: 1px solid var(--sv-bdr);
-          background: var(--sv-bg);
+          background: #fff;
+        }
+        #addDepartmentModal .modal-title {
+          font-weight: 600;
+          font-size: 1rem;
+          display: inline-flex;
+          align-items: center;
+          gap: .5rem;
+        }
+        #addDepartmentModal .modal-title i,
+        #addDepartmentModal .modal-title svg {
+          width: 1.05rem;
+          height: 1.05rem;
+          stroke: var(--sv-text-muted, #777777);
+        }
+        #addDepartmentModal .modal-content {
+          border-radius: 16px;
+          border: 1px solid var(--sv-bdr);
+          background: #fff;
+          box-shadow: 0 10px 30px rgba(0,0,0,.08), 0 2px 12px rgba(0,0,0,.06);
+          overflow: hidden;
         }
         #addDepartmentModal .sv-card {
           border: 1px solid var(--sv-bdr);
@@ -43,12 +64,14 @@
         }
         #addDepartmentModal .form-control,
         #addDepartmentModal .form-select {
-          border-color: var(--sv-bdr);
+          border-radius: 12px;
+          border: 1px solid var(--sv-bdr);
+          background: #fff;
         }
         #addDepartmentModal .form-control:focus,
         #addDepartmentModal .form-select:focus {
-          border-color: var(--sv-bdr);
-          box-shadow: none;
+          border-color: var(--sv-acct);
+          box-shadow: 0 0 0 3px rgba(238,111,87,.16);
           outline: none;
         }
         /* Remove browser default yellow/orange focus effects */
@@ -137,7 +160,10 @@
 
       {{-- ░░░ START: Header ░░░ --}}
       <div class="modal-header">
-        <h5 class="modal-title fw-semibold" id="addDepartmentModalLabel">Add New Department</h5>
+        <h5 class="modal-title d-flex align-items-center gap-2" id="addDepartmentModalLabel">
+          <i data-feather="plus-circle"></i>
+          <span>Add New Department</span>
+        </h5>
       </div>
       {{-- ░░░ END: Header ░░░ --}}
 

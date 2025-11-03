@@ -1,6 +1,30 @@
 // Faculty Programs module - adapted from admin version
 console.log("Faculty Programs module loading...");
 
+// Add CSS for loading spinner animation
+const spinnerCSS = `
+  .spinner {
+    animation: spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  
+  .programs-loading-row td {
+    background-color: rgba(248, 249, 250, 0.8);
+  }
+`;
+
+// Inject CSS if not already present
+if (!document.querySelector('#programs-spinner-css')) {
+  const style = document.createElement('style');
+  style.id = 'programs-spinner-css';
+  style.textContent = spinnerCSS;
+  document.head.appendChild(style);
+}
+
 let programsTable;
 
 function getCsrfToken() {
@@ -17,18 +41,170 @@ function closeModal(modalId) {
   if (m) m.hide();
 }
 
-// Department filter function
-function filterByDepartment(departmentId) {
+// Department filter function with AJAX
+async function filterByDepartment(departmentId) {
   console.log('Faculty Programs - Filtering by department:', departmentId);
   
-  // Reload the page with the department filter
-  const url = new URL(window.location);
-  if (departmentId === 'all') {
-    url.searchParams.delete('department');
-  } else {
-    url.searchParams.set('department', departmentId);
+  const tableBody = document.querySelector('#svProgramsTable tbody');
+  const departmentFilter = document.getElementById('departmentFilter');
+  
+  if (!tableBody) {
+    console.error('Table body not found');
+    return;
   }
-  window.location.href = url.toString();
+  
+  try {
+    // Clear search input when filtering
+    clearSearchOnFilter();
+    
+    // Show loading state
+    showTableLoading();
+    
+    // Disable the filter dropdown during request
+    if (departmentFilter) {
+      departmentFilter.disabled = true;
+    }
+    
+    // Make AJAX request to filter endpoint
+    const response = await fetch(`/faculty/programs/filter?department=${encodeURIComponent(departmentId)}`, {
+      method: 'GET',
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': getCsrfToken()
+      }
+    });
+    
+    const data = await parseJsonSafe(response);
+    
+    if (!data || !response.ok) {
+      throw new Error(data?.message || `Server error: ${response.status}`);
+    }
+    
+    if (data.success && data.html) {
+      // Update table content
+      tableBody.innerHTML = data.html;
+      
+      // Update URL without page reload
+      const url = new URL(window.location);
+      if (departmentId === 'all') {
+        url.searchParams.delete('department');
+      } else {
+        url.searchParams.set('department', departmentId);
+      }
+      window.history.replaceState({}, '', url.toString());
+      
+      // Update programs config for other JavaScript functions
+      window.programsConfig = window.programsConfig || {};
+      window.programsConfig.departmentFilter = departmentId === 'all' ? null : departmentId;
+      
+      // Re-initialize Feather icons for new content
+      if (typeof feather !== 'undefined') {
+        feather.replace();
+        setTimeout(() => feather.replace(), 10);
+      }
+      
+      // Update table header if needed (show/hide department column)
+      updateTableHeader(departmentId, data.department_filter);
+      
+      console.log(`Filter applied: ${data.count} programs found for department ${departmentId}`);
+      
+    } else {
+      throw new Error('Invalid response format');
+    }
+    
+  } catch (error) {
+    console.error('Filter request failed:', error);
+    
+    // Show error message
+    if (window.showAlertOverlay) {
+      window.showAlertOverlay('error', `Failed to filter programs: ${error.message}`);
+    } else {
+      alert(`Failed to filter programs: ${error.message}`);
+    }
+    
+    // Fallback to page reload on error
+    const url = new URL(window.location);
+    if (departmentId === 'all') {
+      url.searchParams.delete('department');
+    } else {
+      url.searchParams.set('department', departmentId);
+    }
+    window.location.href = url.toString();
+    
+  } finally {
+    // Re-enable the filter dropdown
+    if (departmentFilter) {
+      departmentFilter.disabled = false;
+    }
+    hideTableLoading();
+  }
+}
+
+// Show loading state in table
+function showTableLoading() {
+  const tableBody = document.querySelector('#svProgramsTable tbody');
+  if (!tableBody) return;
+  
+  const colspan = document.querySelectorAll('#svProgramsTable thead th').length;
+  const loadingRow = `
+    <tr class="programs-loading-row">
+      <td colspan="${colspan}" class="text-center py-4">
+        <div class="d-flex flex-column align-items-center">
+          <i data-feather="loader" class="spinner mb-2" style="width: 32px; height: 32px;"></i>
+          <p class="mb-0 text-muted">Loading programs...</p>
+        </div>
+      </td>
+    </tr>
+  `;
+  
+  tableBody.innerHTML = loadingRow;
+  if (typeof feather !== 'undefined') {
+    feather.replace();
+  }
+}
+
+// Hide loading state
+function hideTableLoading() {
+  const loadingRow = document.querySelector('.programs-loading-row');
+  if (loadingRow) {
+    loadingRow.remove();
+  }
+}
+
+// Update table header based on filter
+function updateTableHeader(departmentId, departmentFilter) {
+  const table = document.getElementById('svProgramsTable');
+  if (!table) return;
+  
+  const thead = table.querySelector('thead');
+  if (!thead) return;
+  
+  const showDepartmentColumn = window.programsConfig?.showDepartmentColumn && departmentId === 'all';
+  
+  // Rebuild header row
+  const headerRow = thead.querySelector('tr');
+  if (headerRow) {
+    const departmentHeader = '<th><i data-feather="layers"></i> Department</th>';
+    const baseHeaders = [
+      '<th><i data-feather="type"></i> Program Name</th>',
+      '<th><i data-feather="code"></i> Code</th>'
+    ];
+    const actionsHeader = '<th class="text-end"><i data-feather="more-vertical"></i></th>';
+    
+    let headers = [...baseHeaders];
+    if (showDepartmentColumn) {
+      headers.push(departmentHeader);
+    }
+    headers.push(actionsHeader);
+    
+    headerRow.innerHTML = headers.join('');
+    
+    // Re-initialize feather icons in header
+    if (typeof feather !== 'undefined') {
+      feather.replace();
+    }
+  }
 }
 
 // Make function globally available
@@ -609,12 +785,12 @@ document.addEventListener('submit', async function (e) {
   }
 });
 
-// Search functionality
+// Enhanced search functionality that works with AJAX filtering
 document.addEventListener('input', function(e) {
   if (e.target.id !== 'programsSearch') return;
   
   const searchTerm = e.target.value.toLowerCase().trim();
-  const rows = document.querySelectorAll('#svProgramsTable tbody tr:not(.programs-empty-row)');
+  const rows = document.querySelectorAll('#svProgramsTable tbody tr:not(.programs-empty-row):not(.programs-loading-row)');
   let visibleCount = 0;
   
   rows.forEach(row => {
@@ -644,9 +820,10 @@ document.addEventListener('input', function(e) {
   if (visibleCount === 0 && searchTerm !== '') {
     const existingEmptyRow = tbody.querySelector('.programs-empty-row');
     if (!existingEmptyRow) {
+      const colspan = document.querySelectorAll('#svProgramsTable thead th').length;
       const emptyRow = `
         <tr class="programs-empty-row">
-          <td colspan="100%" class="text-center text-muted py-4">
+          <td colspan="${colspan}" class="text-center text-muted py-4">
             <div class="d-flex flex-column align-items-center">
               <i data-feather="search" class="mb-2" style="width: 48px; height: 48px;"></i>
               <p class="mb-2">No results found for "${searchTerm}".</p>
@@ -665,6 +842,15 @@ document.addEventListener('input', function(e) {
     }
   }
 });
+
+// Clear search when department filter changes
+function clearSearchOnFilter() {
+  const searchInput = document.getElementById('programsSearch');
+  if (searchInput && searchInput.value.trim()) {
+    searchInput.value = '';
+    console.log('Search cleared due to department filter change');
+  }
+}
 
 // Delete modal radio button handlers
 function setupDeleteModalHandlers() {
@@ -726,6 +912,29 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Make it globally available for debugging
     window.refreshFeatherIcons = initializeFeatherIcons;
+    
+    // Add keyboard shortcut for department filter (Alt + D)
+    document.addEventListener('keydown', function(e) {
+        if (e.altKey && e.key.toLowerCase() === 'd') {
+            e.preventDefault();
+            const departmentFilter = document.getElementById('departmentFilter');
+            if (departmentFilter && !departmentFilter.disabled) {
+                departmentFilter.focus();
+            }
+        }
+    });
+    
+    // Add visual feedback for department filter changes
+    const departmentFilter = document.getElementById('departmentFilter');
+    if (departmentFilter) {
+        departmentFilter.addEventListener('change', function(e) {
+            // Add a subtle animation to indicate the filter is being applied
+            e.target.style.transform = 'scale(0.98)';
+            setTimeout(() => {
+                e.target.style.transform = '';
+            }, 150);
+        });
+    }
     
     const programsTableElement = document.getElementById("programsTable");
     if (programsTableElement) {

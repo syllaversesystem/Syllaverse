@@ -11,7 +11,7 @@
 {{-- ░░░ START: Add Program Modal ░░░ --}}
 <div class="modal fade sv-program-modal" id="addProgramModal" tabindex="-1" aria-labelledby="addProgramModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-lg">
-    <form id="addProgramForm" action="{{ route('faculty.programs.store') }}" method="POST" class="modal-content program-form">
+    <form id="addProgramForm" action="{{ route('faculty.programs.store') }}" method="POST" class="modal-content program-form" style="border-radius: 16px;"
       @csrf
 
       {{-- ░░░ START: Local styles (scoped to this modal) ░░░ --}}
@@ -44,11 +44,12 @@
         #addProgramModal .form-control,
         #addProgramModal .form-select {
           border-color: var(--sv-bdr);
+          border-radius: 12px;
         }
         #addProgramModal .form-control:focus,
         #addProgramModal .form-select:focus {
-          border-color: var(--sv-bdr);
-          box-shadow: none;
+          border-color: var(--sv-acct);
+          box-shadow: 0 0 0 .2rem rgb(238 111 87 / 15%);
           outline: none;
         }
         /* Remove browser default yellow/orange focus effects */
@@ -137,7 +138,10 @@
 
       {{-- ░░░ START: Header ░░░ --}}
       <div class="modal-header">
-        <h5 class="modal-title fw-semibold" id="addProgramModalLabel">Add New Program</h5>
+        <h5 class="modal-title fw-semibold d-flex align-items-center gap-2" id="addProgramModalLabel" style="font-size: 1rem;">
+          <i data-feather="plus-circle"></i>
+          Add New Program
+        </h5>
       </div>
       {{-- ░░░ END: Header ░░░ --}}
 
@@ -257,3 +261,170 @@
   margin-left: 0.5rem;
 }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const programNameInput = document.getElementById('programName');
+  const programCodeInput = document.getElementById('programCode');
+  const programNameSuggestions = document.getElementById('programNameSuggestions');
+  const programCodeSuggestions = document.getElementById('programCodeSuggestions');
+  const programDepartmentSelect = document.getElementById('programDepartment');
+  const programDescriptionTextarea = document.getElementById('programDescription');
+  const addProgramForm = document.getElementById('addProgramForm');
+
+  let debounceTimer;
+
+  // Search for removed programs
+  function searchRemovedPrograms(query, field, suggestionsContainer) {
+    if (query.length < 2) {
+      suggestionsContainer.style.display = 'none';
+      return;
+    }
+
+    // Clear previous debounce timer
+    clearTimeout(debounceTimer);
+
+    // Debounce the search
+    debounceTimer = setTimeout(() => {
+      fetch(`{{ route('faculty.programs.search-removed') }}?query=${encodeURIComponent(query)}&field=${field}`)
+        .then(response => response.json())
+        .then(data => {
+          displaySuggestions(data, suggestionsContainer, field);
+        })
+        .catch(error => {
+          console.error('Error searching removed programs:', error);
+          suggestionsContainer.style.display = 'none';
+        });
+    }, 300);
+  }
+
+  // Display suggestions
+  function displaySuggestions(programs, container, field) {
+    container.innerHTML = '';
+    
+    if (programs.length === 0) {
+      container.style.display = 'none';
+      return;
+    }
+
+    programs.forEach(program => {
+      const suggestionItem = document.createElement('div');
+      suggestionItem.className = 'suggestion-item';
+      
+      suggestionItem.innerHTML = `
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <div class="suggestion-main">${program.name}</div>
+            <div class="suggestion-meta">Code: ${program.code} | Dept: ${program.department_name || 'Unknown'}</div>
+          </div>
+          <span class="suggestion-restore-badge">Restore</span>
+        </div>
+      `;
+
+      suggestionItem.addEventListener('click', () => {
+        restoreProgram(program);
+        container.style.display = 'none';
+      });
+
+      container.appendChild(suggestionItem);
+    });
+
+    container.style.display = 'block';
+  }
+
+  // Restore program by populating fields
+  function restoreProgram(program) {
+    // Populate form fields
+    programNameInput.value = program.name;
+    programCodeInput.value = program.code;
+    
+    // Set department if available
+    if (program.department_id && programDepartmentSelect) {
+      programDepartmentSelect.value = program.department_id;
+    }
+    
+    // Set description if available
+    if (program.description && programDescriptionTextarea) {
+      programDescriptionTextarea.value = program.description;
+    }
+
+    // Add hidden field to indicate restoration
+    let restoreIdInput = document.getElementById('restore_program_id');
+    if (!restoreIdInput) {
+      restoreIdInput = document.createElement('input');
+      restoreIdInput.type = 'hidden';
+      restoreIdInput.id = 'restore_program_id';
+      restoreIdInput.name = 'restore_program_id';
+      addProgramForm.appendChild(restoreIdInput);
+    }
+    restoreIdInput.value = program.id;
+
+    // Update submit button text
+    const submitBtn = document.getElementById('addProgramSubmit');
+    submitBtn.innerHTML = '<i data-feather="refresh-cw"></i> Restore Program';
+    
+    // Reinitialize feather icons
+    if (typeof feather !== 'undefined') {
+      feather.replace();
+    }
+  }
+
+  // Event listeners for input fields
+  if (programNameInput) {
+    programNameInput.addEventListener('input', function() {
+      searchRemovedPrograms(this.value, 'name', programNameSuggestions);
+    });
+
+    programNameInput.addEventListener('focus', function() {
+      if (this.value.length >= 2) {
+        searchRemovedPrograms(this.value, 'name', programNameSuggestions);
+      }
+    });
+  }
+
+  if (programCodeInput) {
+    programCodeInput.addEventListener('input', function() {
+      searchRemovedPrograms(this.value, 'code', programCodeSuggestions);
+    });
+
+    programCodeInput.addEventListener('focus', function() {
+      if (this.value.length >= 2) {
+        searchRemovedPrograms(this.value, 'code', programCodeSuggestions);
+      }
+    });
+  }
+
+  // Hide suggestions when clicking outside
+  document.addEventListener('click', function(event) {
+    if (!event.target.closest('.program-field-group')) {
+      programNameSuggestions.style.display = 'none';
+      programCodeSuggestions.style.display = 'none';
+    }
+  });
+
+  // Reset form when modal is closed
+  document.getElementById('addProgramModal').addEventListener('hidden.bs.modal', function() {
+    // Reset form fields
+    addProgramForm.reset();
+    
+    // Remove restore ID input
+    const restoreIdInput = document.getElementById('restore_program_id');
+    if (restoreIdInput) {
+      restoreIdInput.remove();
+    }
+    
+    // Reset submit button
+    const submitBtn = document.getElementById('addProgramSubmit');
+    submitBtn.innerHTML = '<i data-feather="plus"></i> Create';
+    
+    // Hide suggestions
+    programNameSuggestions.style.display = 'none';
+    programCodeSuggestions.style.display = 'none';
+    
+    // Reinitialize feather icons
+    if (typeof feather !== 'undefined') {
+      feather.replace();
+    }
+  });
+});
+</script>

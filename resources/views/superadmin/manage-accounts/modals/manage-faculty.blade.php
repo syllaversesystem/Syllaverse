@@ -225,6 +225,128 @@
   </div>
 </div>
 
+{{-- Mutual exclusivity JavaScript --}}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const modal = document.getElementById('manageFaculty-{{ $faculty->id }}');
+  if (!modal) return;
+  
+  const roleSelect = modal.querySelector('select[name="role"]');
+  const appointmentsList = modal.querySelector('#sv-appt-list-{{ $faculty->id }}');
+  if (!roleSelect || !appointmentsList) return;
+  
+  // Store original options
+  let originalOptions = [];
+  if (originalOptions.length === 0) {
+    roleSelect.querySelectorAll('option').forEach(option => {
+      originalOptions.push({
+        value: option.value,
+        text: option.textContent,
+        element: option.cloneNode(true)
+      });
+    });
+  }
+  
+  // Define mutually exclusive role pairs
+  const mutuallyExclusive = {
+    '{{ \App\Models\Appointment::ROLE_VCAA }}': '{{ \App\Models\Appointment::ROLE_ASSOC_VCAA }}',
+    '{{ \App\Models\Appointment::ROLE_ASSOC_VCAA }}': '{{ \App\Models\Appointment::ROLE_VCAA }}',
+    '{{ \App\Models\Appointment::ROLE_DEAN }}': '{{ \App\Models\Appointment::ROLE_ASSOC_DEAN }}',
+    '{{ \App\Models\Appointment::ROLE_ASSOC_DEAN }}': '{{ \App\Models\Appointment::ROLE_DEAN }}'
+  };
+  
+  // Get current roles from the DOM (dynamically updated)
+  function getCurrentRoles() {
+    const roleElements = appointmentsList.querySelectorAll('.sv-pill.is-accent');
+    const roles = [];
+    
+    roleElements.forEach(pill => {
+      const roleText = pill.textContent.trim();
+      // Map display text back to role constants
+      const roleMapping = {
+        'Faculty': '{{ \App\Models\Appointment::ROLE_FACULTY }}',
+        'Department Chair': '{{ \App\Models\Appointment::ROLE_DEPT }}',
+        'Dean': '{{ \App\Models\Appointment::ROLE_DEAN }}',
+        'Associate Dean': '{{ \App\Models\Appointment::ROLE_ASSOC_DEAN }}',
+        'VCAA': '{{ \App\Models\Appointment::ROLE_VCAA }}',
+        'Associate VCAA': '{{ \App\Models\Appointment::ROLE_ASSOC_VCAA }}'
+      };
+      
+      if (roleMapping[roleText]) {
+        roles.push(roleMapping[roleText]);
+      }
+    });
+    
+    return roles;
+  }
+  
+  function updateRoleOptions() {
+    // Get current roles dynamically
+    const currentRoles = getCurrentRoles();
+    
+    // Clear current options
+    roleSelect.innerHTML = '';
+    
+    // Re-add only non-conflicting options
+    originalOptions.forEach(optionData => {
+      const roleValue = optionData.value;
+      
+      // Always include empty option
+      if (!roleValue) {
+        roleSelect.appendChild(optionData.element.cloneNode(true));
+        return;
+      }
+      
+      // Check if this role conflicts with any current roles
+      const hasConflict = currentRoles.some(currentRole => {
+        return mutuallyExclusive[roleValue] === currentRole;
+      });
+      
+      // Only add option if there's no conflict
+      if (!hasConflict) {
+        roleSelect.appendChild(optionData.element.cloneNode(true));
+      }
+    });
+  }
+  
+  // Update options when modal is shown
+  modal.addEventListener('shown.bs.modal', updateRoleOptions);
+  
+  // Listen for changes in the appointments list (when appointments are added/removed)
+  const observer = new MutationObserver(function(mutations) {
+    mutations.forEach(function(mutation) {
+      if (mutation.type === 'childList') {
+        updateRoleOptions();
+      }
+    });
+  });
+  
+  // Start observing the appointments list
+  observer.observe(appointmentsList, {
+    childList: true,
+    subtree: true
+  });
+  
+  // Also listen for successful AJAX form submissions
+  const addForm = modal.querySelector('.sv-appt-form');
+  if (addForm) {
+    addForm.addEventListener('ajaxSuccess', function() {
+      // Small delay to ensure DOM is updated
+      setTimeout(updateRoleOptions, 100);
+    });
+  }
+  
+  // Listen for successful appointment deletions
+  appointmentsList.addEventListener('ajaxSuccess', function() {
+    // Small delay to ensure DOM is updated
+    setTimeout(updateRoleOptions, 100);
+  });
+  
+  // Update options initially
+  updateRoleOptions();
+});
+</script>
+
 {{-- ░░░ START: Revoke Faculty Confirmation Modal ░░░ --}}
 <div class="modal fade" id="revokeFacultyModal-{{ $faculty->id }}" tabindex="-1" aria-labelledby="revokeFacultyModalLabel-{{ $faculty->id }}" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">

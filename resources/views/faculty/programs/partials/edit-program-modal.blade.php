@@ -11,7 +11,7 @@
 {{-- ░░░ START: Edit Program Modal ░░░ --}}
 <div class="modal fade sv-program-modal" id="editProgramModal" tabindex="-1" aria-labelledby="editProgramModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-lg">
-    <form id="editProgramForm" action="{{ route('faculty.programs.update', 0) }}" method="POST" class="modal-content program-form edit-program-form">
+    <form id="editProgramForm" action="{{ route('faculty.programs.update', 0) }}" method="POST" class="modal-content program-form edit-program-form" style="border-radius: 16px;"
       @csrf
       @method('PUT')
 
@@ -45,11 +45,12 @@
         #editProgramModal .form-control,
         #editProgramModal .form-select {
           border-color: var(--sv-bdr);
+          border-radius: 12px;
         }
         #editProgramModal .form-control:focus,
         #editProgramModal .form-select:focus {
-          border-color: var(--sv-bdr);
-          box-shadow: none;
+          border-color: var(--sv-acct);
+          box-shadow: 0 0 0 .2rem rgb(238 111 87 / 15%);
           outline: none;
         }
         /* Remove browser default yellow/orange focus effects */
@@ -138,7 +139,8 @@
 
       {{-- ░░░ START: Header ░░░ --}}
       <div class="modal-header">
-        <h5 class="modal-title fw-semibold" id="editProgramModalLabel">
+        <h5 class="modal-title fw-semibold d-flex align-items-center gap-2" id="editProgramModalLabel" style="font-size: 1rem;">
+          <i data-feather="edit-3"></i>
           Edit <span id="programEditLabel">Program</span>
         </h5>
       </div>

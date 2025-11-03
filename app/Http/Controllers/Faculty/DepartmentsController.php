@@ -4,18 +4,36 @@ namespace App\Http\Controllers\Faculty;
 
 use App\Http\Controllers\Controller;
 use App\Models\Department;
+use App\Models\Appointment;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 
 class DepartmentsController extends Controller
 {
+    /**
+     * Check if the current user has institution-wide role (VCAA or Associate VCAA).
+     */
+    private function hasInstitutionWideRole(): bool
+    {
+        return Auth::guard('faculty')->user()->appointments()
+            ->active()
+            ->whereIn('role', [Appointment::ROLE_VCAA, Appointment::ROLE_ASSOC_VCAA])
+            ->exists();
+    }
+
     /**
      * Display a listing of departments.
      */
     public function index(): View
     {
+        // Check if user has institution-wide role
+        if (!$this->hasInstitutionWideRole()) {
+            abort(403, 'Access denied. Only users with institution-wide roles can manage departments.');
+        }
+
         try {
             $departments = Department::orderBy('name')->get();
             
@@ -31,6 +49,14 @@ class DepartmentsController extends Controller
      */
     public function tableContent(): JsonResponse
     {
+        // Check if user has institution-wide role
+        if (!$this->hasInstitutionWideRole()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Access denied. Only users with institution-wide roles can manage departments.'
+            ], 403);
+        }
+
         try {
             $departments = Department::orderBy('name')->get();
             
@@ -54,6 +80,14 @@ class DepartmentsController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
+        // Check if user has institution-wide role
+        if (!$this->hasInstitutionWideRole()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Access denied. Only users with institution-wide roles can manage departments.'
+            ], 403);
+        }
+
         try {
             $validated = $request->validate([
                 'name' => 'required|string|max:255|unique:departments,name',
@@ -87,6 +121,14 @@ class DepartmentsController extends Controller
      */
     public function update(Request $request, Department $department): JsonResponse
     {
+        // Check if user has institution-wide role
+        if (!$this->hasInstitutionWideRole()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Access denied. Only users with institution-wide roles can manage departments.'
+            ], 403);
+        }
+
         try {
             $validated = $request->validate([
                 'name' => 'required|string|max:255|unique:departments,name,' . $department->id,
@@ -120,6 +162,14 @@ class DepartmentsController extends Controller
      */
     public function destroy(Department $department): JsonResponse
     {
+        // Check if user has institution-wide role
+        if (!$this->hasInstitutionWideRole()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Access denied. Only users with institution-wide roles can manage departments.'
+            ], 403);
+        }
+
         try {
             // Check if department has associated programs or courses
             $hasPrograms = $department->programs()->exists();

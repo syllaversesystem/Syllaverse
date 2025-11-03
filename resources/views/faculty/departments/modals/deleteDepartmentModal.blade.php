@@ -21,6 +21,13 @@
           --sv-acct: #EE6F57;   /* accent/focus */
           --sv-danger:#CB3737;  /* danger red */
         }
+        #deleteDepartmentModal .modal-content {
+          border-radius: 16px;
+          border: 1px solid var(--sv-bdr);
+          background: #fff;
+          box-shadow: 0 10px 30px rgba(0,0,0,.08), 0 2px 12px rgba(0,0,0,.06);
+          overflow: hidden;
+        }
         #deleteDepartmentModal .modal-header {
           border-bottom: 1px solid var(--sv-bdr);
           background: var(--sv-bg);
