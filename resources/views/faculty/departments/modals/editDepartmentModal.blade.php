@@ -9,7 +9,7 @@
 --}}
 
 {{-- ░░░ START: Edit Department Modal ░░░ --}}
-<div class="modal fade sv-appt-modal" id="editDepartmentModal" tabindex="-1" aria-labelledby="editDepartmentModalLabel" aria-hidden="true">
+<div class="modal fade sv-faculty-dept-modal" id="editDepartmentModal" tabindex="-1" aria-labelledby="editDepartmentModalLabel" aria-hidden="true" data-bs-backdrop="static">
   <div class="modal-dialog modal-dialog-centered modal-lg">
     <form id="editDepartmentForm" method="POST" class="modal-content">
       @csrf

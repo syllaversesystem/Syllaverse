@@ -54,9 +54,9 @@
       <thead>
         <tr>
           <th><i data-feather="type"></i> Program Name</th>
-          <th><i data-feather="code"></i> Code</th>
+          <th><i data-feather="hash"></i> Code</th>
           @if(($showDepartmentColumn ?? true) && ($departmentFilter ?? 'all') == 'all')
-            <th><i data-feather="layers"></i> Department</th>
+            <th><i class="bi bi-building"></i> Department</th>
           @endif
           <th class="text-end"><i data-feather="more-vertical"></i></th>
         </tr>

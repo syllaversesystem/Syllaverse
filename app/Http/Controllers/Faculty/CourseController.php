@@ -185,8 +185,8 @@ class CourseController extends Controller
             return in_array($appointment->role, ['VCAA', 'ASSOC_VCAA', 'DEAN', 'DEPT_CHAIR', 'PROG_CHAIR']);
         });
         
-        // Hide department column for basic faculty users (no administrative roles)
-        $showDepartmentColumn = $hasAdministrativeRole;
+        // Hide department column for users without institution-wide scope (only VCAA/ASSOC_VCAA can see department column)
+        $showDepartmentColumn = $hasInstitutionWideRole;
         
         // Check for department-specific roles
         $departmentSpecificAppointments = $userAppointments->filter(function($appointment) {
@@ -203,10 +203,13 @@ class CourseController extends Controller
             $showDepartmentDropdown = false;
         }
         
-        // For modals: hide department dropdown if user has no administrative roles
-        // Faculty with only basic faculty role should not see department selection
-        $showAddDepartmentDropdown = $hasAdministrativeRole;
-        $showEditDepartmentDropdown = $hasAdministrativeRole;
+        // For modals: hide department dropdown if user doesn't have VCAA/Associate VCAA role
+        // Only VCAA and Associate VCAA users can see department selection in course modals
+        $hasVcaaRole = $userAppointments->contains(function($appointment) {
+            return in_array($appointment->role, ['VCAA', 'ASSOC_VCAA']);
+        });
+        $showAddDepartmentDropdown = $hasVcaaRole;
+        $showEditDepartmentDropdown = $hasVcaaRole;
         
         // If user has no administrative role, get their department from scope
         if (!$hasAdministrativeRole) {
@@ -261,7 +264,7 @@ class CourseController extends Controller
             'course_category'    => 'required|string|max:255',
             'contact_hours_lec'  => 'required|integer|min:0',
             'contact_hours_lab'  => 'nullable|integer|min:0',
-            'description'        => 'required|string',
+            'description'        => 'nullable|string',
             'prerequisite_ids'   => 'nullable|array',
             'prerequisite_ids.*' => 'exists:courses,id',
         ];
@@ -397,7 +400,7 @@ class CourseController extends Controller
             'course_category'    => 'required|string|max:255',
             'contact_hours_lec'  => 'required|integer|min:0',
             'contact_hours_lab'  => 'nullable|integer|min:0',
-            'description'        => 'required|string',
+            'description'        => 'nullable|string',
             'prerequisite_ids'   => 'nullable|array',
             'prerequisite_ids.*' => 'exists:courses,id',
         ];
@@ -535,5 +538,61 @@ class CourseController extends Controller
                 'display_text' => "{$course->title} ({$course->code}) - {$course->department->name}",
             ];
         }));
+    }
+
+    /**
+     * Filter courses by department via AJAX.
+     */
+    public function filterByDepartment(Request $request)
+    {
+        $user = auth()->user();
+        $departmentFilter = $request->get('department');
+        
+        // Build courses query with optional department filter (exclude deleted courses)
+        $coursesQuery = Course::with(['department', 'prerequisites'])->notDeleted();
+        if ($departmentFilter && $departmentFilter !== 'all') {
+            $coursesQuery->where('department_id', $departmentFilter);
+        }
+        $courses = $coursesQuery->get();
+        
+        // Get all departments for context
+        $departments = \App\Models\Department::all();
+        
+        // Get user permissions (same logic as index method)
+        $userAppointments = $user->appointments()->active()->get();
+        
+        // Check for institution-wide roles (roles with Institution scope)
+        $hasInstitutionWideRole = $userAppointments->contains(function($appointment) {
+            return in_array($appointment->role, ['VCAA', 'ASSOC_VCAA']) || 
+                   ($appointment->scope_type === 'Institution') ||
+                   ($appointment->role === 'DEAN' && $appointment->scope_type === 'Institution');
+        });
+        
+        // Hide department column for users without institution-wide scope (only VCAA/ASSOC_VCAA can see department column)
+        $showDepartmentColumn = $hasInstitutionWideRole;
+        
+        // Check if user can manage courses
+        $canManageCourses = $user->role === 'faculty' 
+            || (method_exists($user, 'isDeptChair') && $user->isDeptChair())
+            || (method_exists($user, 'isProgChair') && $user->isProgChair());
+        
+        // Return JSON response with table data
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'html' => view('faculty.courses.partials.courses-table-content', compact(
+                    'courses',
+                    'departments', 
+                    'canManageCourses',
+                    'showDepartmentColumn',
+                    'departmentFilter'
+                ))->render(),
+                'count' => $courses->count(),
+                'department_filter' => $departmentFilter
+            ]);
+        }
+        
+        // Fallback to redirect for non-AJAX requests
+        return redirect()->route('faculty.courses.index', ['department' => $departmentFilter]);
     }
 }

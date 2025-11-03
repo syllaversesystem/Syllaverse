@@ -14,6 +14,30 @@
    Do NOT `import 'bootstrap'` here. The layout already loads Bootstrap 5 bundle via CDN.
 */
 
+// Add CSS for loading spinner animation
+const spinnerCSS = `
+  .spinner {
+    animation: spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  
+  .courses-loading-row td {
+    background-color: rgba(248, 249, 250, 0.8);
+  }
+`;
+
+// Inject CSS if not already present
+if (!document.querySelector('#courses-spinner-css')) {
+  const style = document.createElement('style');
+  style.id = 'courses-spinner-css';
+  style.textContent = spinnerCSS;
+  document.head.appendChild(style);
+}
+
 // Department cells should remain untouched by prerequisite logic
 
 if (!window.__svFacultyCoursesInit) {
@@ -111,9 +135,14 @@ if (!window.__svFacultyCoursesInit) {
   function rowHtml({ id, code, title, lec, lab, prereqIds = [], description = '', course_category = '', department_code = '', department_id = '', department_name = '' }) {
     const total = (Number(lec) || 0) + (Number(lab) || 0);
     
-    // Check if department column should be hidden
-    const isDepartmentFiltered = window.coursesConfig?.departmentFilter;
-    const departmentColumnStyle = isDepartmentFiltered ? 'display: none;' : '';
+    // Check if department column should be visible based on user permissions and filter state
+    const showDepartmentColumn = window.coursesConfig?.showDepartmentColumn;
+    const departmentFilter = window.coursesConfig?.departmentFilter;
+    const shouldShowDeptColumn = showDepartmentColumn && (!departmentFilter || departmentFilter === 'all');
+    
+    // Build department column HTML if it should be visible
+    const departmentColumnHtml = shouldShowDeptColumn ? 
+      `<td class="course-department-cell department-column" data-dept-code="${department_code || 'N/A'}">${department_code || 'N/A'}</td>` : '';
     
     return `
       <tr id="course-row-${id}"
@@ -129,7 +158,7 @@ if (!window.__svFacultyCoursesInit) {
           data-prereq='${JSON.stringify(prereqIds)}'>
         <td class="course-title-cell">${title}</td>
         <td class="course-code-cell">${code}</td>
-        <td class="course-department-cell department-column" style="${departmentColumnStyle}" data-dept-code="${department_code || 'N/A'}">${department_code || 'N/A'}</td>
+        ${departmentColumnHtml}
         <td class="course-prerequisites-cell text-muted prereq-cell"><span class="js-prereq-preview">—</span></td>
         <td class="course-contact-hours-cell text-muted">
           ${lec} Lec${lab ? ' + ' + lab + ' Lab' : ''}
@@ -249,12 +278,20 @@ if (!window.__svFacultyCoursesInit) {
     if (!tbody) return;
     const hasRows = !!tbody.querySelector('tr[id^="course-row-"]');
     if (!hasRows) {
+      const canManage = window.coursesConfig?.canManageCourses;
+      const showDeptColumn = window.coursesConfig?.showDepartmentColumn;
+      const departmentFilter = window.coursesConfig?.departmentFilter;
+      const addMessage = canManage ? '<p>Click the <i data-feather="plus"></i> button to add one.</p>' : '';
+      
+      // Calculate colspan: base 5 columns + 1 for department if visible
+      const colspan = (showDeptColumn && (!departmentFilter || departmentFilter === 'all')) ? '6' : '5';
+      
       tbody.insertAdjacentHTML('beforeend', `
-        <tr class="sv-empty-row">
-          <td colspan="6">
-            <div class="sv-empty">
+        <tr class="courses-empty-row">
+          <td colspan="${colspan}">
+            <div class="courses-empty">
               <h6>No courses found</h6>
-              <p>Click the <i data-feather="plus"></i> button to add one.</p>
+              ${addMessage}
             </div>
           </td>
         </tr>
@@ -532,7 +569,7 @@ if (!window.__svFacultyCoursesInit) {
           const department_name = data.department_name || department_code;
           
           if (tbody) {
-            tbody.querySelector('.sv-empty-row')?.remove();
+            tbody.querySelector('.courses-empty-row')?.remove();
             tbody.insertAdjacentHTML('afterbegin', rowHtml({
               id: data.id, code, title, lec, lab, description, prereqIds: chosenPrereqIds, course_category, 
               department_code, department_id, department_name
@@ -956,14 +993,187 @@ if (!window.__svFacultyCoursesInit) {
   // ░░░ END: Deleted Course Suggestions Functionality ░░░
 
   // ░░░ START: Department Filter Function ░░░
-  function filterByDepartment(departmentId) {
-    const url = new URL(window.location);
-    if (departmentId === 'all') {
-      url.searchParams.delete('department_filter');
-    } else {
-      url.searchParams.set('department_filter', departmentId);
+  
+  // Helper functions for AJAX functionality
+  function getCsrfToken() {
+    return document.querySelector("meta[name=csrf-token]")?.getAttribute("content") || "";
+  }
+
+  async function parseJsonSafe(response) {
+    try { return await response.json(); } catch { return null; }
+  }
+
+  function clearSearchOnFilter() {
+    const searchInput = document.getElementById('coursesSearch');
+    if (searchInput && searchInput.value.trim()) {
+      searchInput.value = '';
+      console.log('Search cleared due to department filter change');
     }
-    window.location.href = url.toString();
+  }
+
+  function showTableLoading() {
+    const tableBody = getTbody();
+    if (!tableBody) return;
+    
+    // Calculate colspan based on current table header
+    const colspan = document.querySelectorAll('#svCoursesTable thead th').length;
+    const loadingRow = `
+      <tr class="courses-loading-row">
+        <td colspan="${colspan}" class="text-center py-4">
+          <div class="d-flex flex-column align-items-center">
+            <i data-feather="loader" class="spinner mb-2" style="width: 32px; height: 32px;"></i>
+            <p class="mb-0 text-muted">Loading courses...</p>
+          </div>
+        </td>
+      </tr>
+    `;
+    
+    tableBody.innerHTML = loadingRow;
+    if (typeof feather !== 'undefined') {
+      feather.replace();
+    }
+  }
+  
+  function hideTableLoading() {
+    const loadingRow = document.querySelector('.courses-loading-row');
+    if (loadingRow) {
+      loadingRow.remove();
+    }
+  }
+  
+  function updateTableHeader(departmentId, departmentFilter) {
+    const table = document.getElementById('svCoursesTable');
+    if (!table) return;
+    
+    const thead = table.querySelector('thead');
+    if (!thead) return;
+    
+    // Check if user has permission to see department column AND filter is set to 'all'
+    const showDepartmentColumn = window.coursesConfig?.showDepartmentColumn && departmentId === 'all';
+    
+    // Rebuild header row
+    const headerRow = thead.querySelector('tr');
+    if (headerRow) {
+      const departmentHeader = '<th class="department-column"><i data-feather="layers"></i> Department</th>';
+      const baseHeaders = [
+        '<th><i data-feather="book"></i> Title</th>',
+        '<th><i data-feather="hash"></i> Code</th>'
+      ];
+      const otherHeaders = [
+        '<th><i data-feather="git-branch"></i> Prerequisites</th>',
+        '<th><i data-feather="clock"></i> Contact Hours</th>'
+      ];
+      const actionsHeader = '<th class="text-end"><i data-feather="more-vertical"></i></th>';
+      
+      let headers = [...baseHeaders];
+      if (showDepartmentColumn) {
+        headers.push(departmentHeader);
+      }
+      headers.push(...otherHeaders);
+      headers.push(actionsHeader);
+      
+      headerRow.innerHTML = headers.join('');
+      
+      // Re-initialize feather icons in header
+      if (typeof feather !== 'undefined') {
+        feather.replace();
+      }
+    }
+  }
+
+  async function filterByDepartment(departmentId) {
+    console.log('Faculty Courses - Filtering by department:', departmentId);
+    
+    const tableBody = getTbody();
+    const departmentFilter = document.getElementById('departmentFilter');
+    
+    if (!tableBody) {
+      console.error('Table body not found');
+      return;
+    }
+    
+    try {
+      // Clear search input when filtering
+      clearSearchOnFilter();
+      
+      // Show loading state
+      showTableLoading();
+      
+      // Disable the filter dropdown during request
+      if (departmentFilter) {
+        departmentFilter.disabled = true;
+      }
+      
+      // Make AJAX request to filter endpoint
+      const response = await fetch(`/faculty/courses/filter?department=${encodeURIComponent(departmentId)}`, {
+        method: 'GET',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'Accept': 'application/json',
+          'X-CSRF-TOKEN': getCsrfToken()
+        }
+      });
+      
+      const data = await parseJsonSafe(response);
+      
+      if (!data || !response.ok) {
+        throw new Error(data?.message || `Server error: ${response.status}`);
+      }
+      
+      if (data.success && data.html) {
+        // Update table content
+        tableBody.innerHTML = data.html;
+        
+        // Update URL without page reload
+        const url = new URL(window.location);
+        if (departmentId === 'all') {
+          url.searchParams.delete('department');
+        } else {
+          url.searchParams.set('department', departmentId);
+        }
+        window.history.replaceState({}, '', url.toString());
+        
+        // Update courses config for other JavaScript functions
+        window.coursesConfig = window.coursesConfig || {};
+        window.coursesConfig.departmentFilter = departmentId === 'all' ? null : departmentId;
+        
+        // Re-initialize Feather icons for new content
+        if (typeof feather !== 'undefined') {
+          feather.replace();
+          setTimeout(() => feather.replace(), 10);
+        }
+        
+        // Update table header if needed (show/hide department column)
+        updateTableHeader(departmentId, data.department_filter);
+        
+        // Re-hydrate new rows for JavaScript functionality
+        hydrateRows();
+        refreshPrereqColumnForAllRows();
+        
+        console.log(`Filter applied: ${data.count} courses found for department ${departmentId}`);
+        
+      } else {
+        throw new Error('Invalid response format');
+      }
+      
+    } catch (error) {
+      console.error('Filter request failed:', error);
+      
+      // Show error message
+      if (window.showAlertOverlay) {
+        window.showAlertOverlay('error', `Failed to filter courses: ${error.message}`);
+      } else {
+        toastError(`Failed to filter courses: ${error.message}`);
+      }
+      
+    } finally {
+      // Re-enable the filter dropdown
+      if (departmentFilter) {
+        departmentFilter.disabled = false;
+      }
+      
+      hideTableLoading();
+    }
   }
 
   // Helper function to toggle department column visibility
@@ -1130,7 +1340,7 @@ if (!window.__svFacultyCoursesInit) {
     // Change submit button text to indicate restoration
     const submitButton = $('#addCourseSubmit');
     if (submitButton) {
-      submitButton.innerHTML = '<i data-feather="refresh-cw"></i> Restore Course';
+      submitButton.innerHTML = '<i data-feather="refresh-cw"></i> Restore';
       // Re-initialize feather icons if available
       if (typeof feather !== 'undefined') {
         setTimeout(() => feather.replace(), 10);
@@ -1142,7 +1352,7 @@ if (!window.__svFacultyCoursesInit) {
     // Reset button text when modal opens fresh
     const submitButton = $('#addCourseSubmit');
     if (submitButton) {
-      submitButton.innerHTML = '<i data-feather="plus"></i> Create Course';
+      submitButton.innerHTML = '<i data-feather="plus"></i> Create';
       // Re-initialize feather icons if available
       if (typeof feather !== 'undefined') {
         setTimeout(() => feather.replace(), 10);

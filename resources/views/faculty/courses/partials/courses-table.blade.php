@@ -68,9 +68,11 @@
     <table class="table mb-0 courses-table" id="svCoursesTable">
       <thead>
         <tr>
-          <th><i data-feather="book"></i> Title</th>
+          <th><i data-feather="type"></i> Name</th>
           <th><i data-feather="hash"></i> Code</th>
-          <th class="department-column" style="{{ $departmentFilter ? 'display: none;' : '' }}"><i data-feather="layers"></i> Department</th>
+          @if(($showDepartmentColumn ?? true) && ($departmentFilter ?? 'all') == 'all')
+            <th class="department-column"><i class="bi bi-building" style="vertical-align: baseline;"></i> Department</th>
+          @endif
           <th><i data-feather="git-branch"></i> Prerequisites</th>
           <th><i data-feather="clock"></i> Contact Hours</th>
           <th class="text-end"><i data-feather="more-vertical"></i></th>
@@ -100,7 +102,9 @@
               {{ $course->title }}
             </td>
             <td class="course-code-cell">{{ $course->code }}</td>
-            <td class="course-department-cell department-column" style="{{ $departmentFilter ? 'display: none;' : '' }}" data-dept-code="{{ $course->department->code ?? 'N/A' }}">{{ $course->department->code ?? 'N/A' }}</td>
+            @if(($showDepartmentColumn ?? true) && ($departmentFilter ?? 'all') == 'all')
+              <td class="course-department-cell department-column" data-dept-code="{{ $course->department->code ?? 'N/A' }}">{{ $course->department->code ?? 'N/A' }}</td>
+            @endif
 
             {{-- Prerequisites column --}}
             <td class="course-prerequisites-cell text-muted">
@@ -172,7 +176,7 @@
           </tr>
         @empty
           <tr class="courses-empty-row">
-            <td colspan="6">
+            <td colspan="{{ (($showDepartmentColumn ?? true) && ($departmentFilter ?? 'all') == 'all') ? '6' : '5' }}">
               <div class="courses-empty">
                 <h6>No courses found</h6>
                 @if ($canManageCourses)
@@ -189,8 +193,10 @@
 </div>
 
 <script>
-// Pass department filter state to JavaScript
+// Pass department filter state and permissions to JavaScript
 window.coursesConfig = {
-  departmentFilter: @json($departmentFilter ?? null)
+  departmentFilter: @json($departmentFilter ?? null),
+  canManageCourses: @json($canManageCourses),
+  showDepartmentColumn: @json($showDepartmentColumn ?? true)
 };
 </script>

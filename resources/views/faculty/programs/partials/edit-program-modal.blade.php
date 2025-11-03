@@ -9,7 +9,7 @@
 --}}
 
 {{-- ░░░ START: Edit Program Modal ░░░ --}}
-<div class="modal fade sv-program-modal" id="editProgramModal" tabindex="-1" aria-labelledby="editProgramModalLabel" aria-hidden="true">
+<div class="modal fade sv-faculty-program-modal" id="editProgramModal" tabindex="-1" aria-labelledby="editProgramModalLabel" aria-hidden="true" data-bs-backdrop="static">
   <div class="modal-dialog modal-dialog-centered modal-lg">
     <form id="editProgramForm" action="{{ route('faculty.programs.update', 0) }}" method="POST" class="modal-content program-form edit-program-form" style="border-radius: 16px;"
       @csrf
@@ -27,6 +27,19 @@
         #editProgramModal .modal-header {
           border-bottom: 1px solid var(--sv-bdr);
           background: var(--sv-bg);
+        }
+        #editProgramModal .modal-title {
+          font-weight: 600;
+          font-size: 1rem;
+          display: inline-flex;
+          align-items: center;
+          gap: .5rem;
+        }
+        #editProgramModal .modal-title i,
+        #editProgramModal .modal-title svg {
+          width: 1.05rem;
+          height: 1.05rem;
+          stroke: var(--sv-text-muted, #777777);
         }
         #editProgramModal .sv-card {
           border: 1px solid var(--sv-bdr);
@@ -139,9 +152,9 @@
 
       {{-- ░░░ START: Header ░░░ --}}
       <div class="modal-header">
-        <h5 class="modal-title fw-semibold d-flex align-items-center gap-2" id="editProgramModalLabel" style="font-size: 1rem;">
+        <h5 class="modal-title d-flex align-items-center gap-2" id="editProgramModalLabel">
           <i data-feather="edit-3"></i>
-          Edit <span id="programEditLabel">Program</span>
+          <span>Edit <span id="programEditLabel">Program</span></span>
         </h5>
       </div>
       {{-- ░░░ END: Header ░░░ --}}

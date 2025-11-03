@@ -9,7 +9,7 @@
 --}}
 
 {{-- ░░░ START: Delete Program Modal ░░░ --}}
-<div class="modal fade sv-program-modal" id="deleteProgramModal" tabindex="-1" aria-labelledby="deleteProgramModalLabel" aria-hidden="true">
+<div class="modal fade sv-faculty-program-modal" id="deleteProgramModal" tabindex="-1" aria-labelledby="deleteProgramModalLabel" aria-hidden="true" data-bs-backdrop="static">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content program-delete-form" style="border-radius: 16px;">
 
@@ -35,6 +35,10 @@
           font-size: .8rem;
           letter-spacing: .02em;
           color: #6c757d;
+        }
+        #deleteProgramModal h6.fw-semibold {
+          font-weight: 600;
+          font-size: 1rem;
         }
 
         #deleteProgramModal .btn-danger {
@@ -242,7 +246,7 @@ document.addEventListener('DOMContentLoaded', function() {
   function updateButtonAndWarning() {
     if (deleteRadio && deleteRadio.checked) {
       // Delete option selected
-      confirmBtn.innerHTML = '<i data-feather="trash-2"></i> Delete Permanently';
+      confirmBtn.innerHTML = '<i data-feather="trash-2"></i> Delete';
       confirmBtn.className = 'btn btn-danger';
       actionTypeInput.value = 'delete';
     } else {

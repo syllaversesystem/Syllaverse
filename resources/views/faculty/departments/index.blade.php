@@ -45,9 +45,9 @@
             <table class="table superadmin-manage-department-table mb-0">
                 <thead class="superadmin-manage-department-table-header d-none d-md-table-header-group">
                     <tr>
-                        <th><i data-feather="code"></i> Code</th>
-                        <th><i data-feather="briefcase"></i> Name</th>
-                        <th><i data-feather="layers"></i> Programs</th>
+                        <th><i data-feather="hash"></i> Code</th>
+                        <th><i data-feather="type"></i> Name</th>
+                        <th><i class="bi bi-mortarboard" style="vertical-align: baseline;"></i> Programs</th>
                         <th class="text-end"><i data-feather="more-vertical"></i></th>
                     </tr>
                 </thead>

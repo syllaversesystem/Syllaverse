@@ -9,7 +9,7 @@
 --}}
 
 {{-- ░░░ START: Delete Department Modal ░░░ --}}
-<div class="modal fade sv-appt-modal" id="deleteDepartmentModal" tabindex="-1" aria-labelledby="deleteDepartmentModalLabel" aria-hidden="true">
+<div class="modal fade sv-faculty-dept-modal" id="deleteDepartmentModal" tabindex="-1" aria-labelledby="deleteDepartmentModalLabel" aria-hidden="true" data-bs-backdrop="static">
   <div class="modal-dialog modal-dialog-centered modal-md">
     <div class="modal-content">
       {{-- ░░░ START: Local styles (scoped to this modal) ░░░ --}}

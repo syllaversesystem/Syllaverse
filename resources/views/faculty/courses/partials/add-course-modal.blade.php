@@ -11,7 +11,7 @@
 --}}
 
 {{-- ░░░ START: Add Course Modal ░░░ --}}
-<div class="modal fade sv-course-modal" id="addCourseModal" tabindex="-1" aria-labelledby="addCourseModalLabel" aria-hidden="true">
+<div class="modal fade sv-course-modal" id="addCourseModal" tabindex="-1" aria-labelledby="addCourseModalLabel" aria-hidden="true" data-bs-backdrop="static">
   <div class="modal-dialog modal-dialog-centered modal-xl">
     <form id="addCourseForm" action="{{ route('faculty.courses.store') }}" method="POST" class="modal-content course-form">
       @csrf
@@ -25,17 +25,34 @@
           --sv-acct: #EE6F57;   /* accent/focus */
           --sv-danger:#CB3737;  /* primary action (danger style) */
         }
+        #addCourseModal .modal-content {
+          border-radius: 16px;
+          border: none;
+        }
         #addCourseModal .modal-header {
           border-bottom: 1px solid var(--sv-bdr);
           background: var(--sv-bg);
+          border-radius: 16px 16px 0 0;
         }
         #addCourseModal .modal-body {
           max-height: 70vh;
           overflow-y: auto;
         }
         #addCourseModal .modal-title {
-          font-size: 1rem;
           font-weight: 600;
+          font-size: 1rem;
+          display: inline-flex;
+          align-items: center;
+          gap: .5rem;
+        }
+        #addCourseModal .modal-title i,
+        #addCourseModal .modal-title svg {
+          width: 1.05rem;
+          height: 1.05rem;
+          stroke: var(--sv-text-muted, #777777);
+        }
+        #addCourseModal .modal-footer {
+          border-radius: 0 0 16px 16px;
         }
         #addCourseModal .sv-card {
           border: 1px solid var(--sv-bdr);
@@ -50,13 +67,22 @@
         #addCourseModal .input-group-text {
           background: var(--sv-bg);
           border-color: var(--sv-bdr);
+          border-radius: 12px 0 0 12px;
+        }
+        #addCourseModal .input-group .form-control {
+          border-radius: 0 12px 12px 0;
+        }
+        #addCourseModal .input-group .form-control:only-child {
+          border-radius: 12px;
         }
         #addCourseModal .form-control,
         #addCourseModal .form-select {
           border-color: var(--sv-bdr);
+          border-radius: 12px;
         }
         #addCourseModal .form-control-sm {
           font-size: 0.875rem;
+          border-radius: 12px;
         }
         /* Form Label Typography */
         #addCourseModal .form-label {
@@ -87,7 +113,7 @@
           resize: vertical;
           min-height: 120px;
           padding: 0.75rem;
-          border-radius: 0.375rem;
+          border-radius: 12px;
           border: 1px solid var(--sv-bdr);
           background-color: #fff;
           font-family: 'Poppins', sans-serif;
@@ -276,7 +302,10 @@
 
       {{-- ░░░ START: Header ░░░ --}}
       <div class="modal-header">
-        <h5 class="modal-title fw-semibold" id="addCourseModalLabel">Add New Course</h5>
+        <h5 class="modal-title d-flex align-items-center gap-2" id="addCourseModalLabel">
+          <i data-feather="plus-circle"></i>
+          <span>Add New Course</span>
+        </h5>
       </div>
       {{-- ░░░ END: Header ░░░ --}}
 
@@ -358,9 +387,9 @@
             <div class="sv-divider"></div>
 
             <div class="mt-3">
-              <label for="addCourseDescription" class="form-label small fw-medium text-muted">Course Rationale and Description</label>
+              <label for="addCourseDescription" class="form-label small fw-medium text-muted">Course Rationale and Description <span class="text-muted">(Optional)</span></label>
               <div class="course-field-group">
-                <textarea class="form-control" id="addCourseDescription" name="description" rows="4" style="min-height:120px" placeholder="Explain the course rationale and provide a short description (topics, scope, etc.)" required></textarea>
+                <textarea class="form-control" id="addCourseDescription" name="description" rows="4" style="min-height:120px" placeholder="Explain the course rationale and provide a short description (topics, scope, etc.)"></textarea>
               </div>
             </div>
             {{-- ░░░ END: Course Details Section ░░░ --}}
@@ -414,7 +443,7 @@
           <i data-feather="x"></i> Cancel
         </button>
         <button type="submit" class="btn btn-danger" id="addCourseSubmit">
-          <i data-feather="plus"></i> Create Course
+          <i data-feather="plus"></i> Create
         </button>
       </div>
       {{-- ░░░ END: Footer ░░░ --}}

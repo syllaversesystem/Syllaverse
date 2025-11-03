@@ -10,7 +10,7 @@
 -------------------------------------------------------------------------------
 --}}
 {{-- ░░░ START: Delete Course Modal ░░░ --}}
-<div class="modal fade sv-faculty-course-modal" id="deleteCourseModal" tabindex="-1" aria-labelledby="deleteCourseModalLabel" aria-hidden="true">
+<div class="modal fade sv-faculty-course-modal" id="deleteCourseModal" tabindex="-1" aria-labelledby="deleteCourseModalLabel" aria-hidden="true" data-bs-backdrop="static">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content course-delete-form">
 
@@ -23,9 +23,21 @@
           --sv-acct: #22c55e;   /* faculty accent (green) */
           --sv-danger:#ef4444;  /* danger action (red) */
         }
+        #deleteCourseModal .modal-content {
+          border-radius: 16px;
+          border: none;
+        }
         #deleteCourseModal .modal-header {
           border-bottom: 1px solid var(--sv-bdr);
           background: var(--sv-bg);
+          border-radius: 16px 16px 0 0;
+        }
+        #deleteCourseModal .modal-footer {
+          border-radius: 0 0 16px 16px;
+        }
+        #deleteCourseModal h6.fw-semibold {
+          font-weight: 600;
+          font-size: 1rem;
         }
         #deleteCourseModal .sv-card {
           border: 1px solid var(--sv-bdr);
@@ -40,10 +52,18 @@
         #deleteCourseModal .input-group-text {
           background: var(--sv-bg);
           border-color: var(--sv-bdr);
+          border-radius: 12px 0 0 12px;
+        }
+        #deleteCourseModal .input-group .form-control {
+          border-radius: 0 12px 12px 0;
+        }
+        #deleteCourseModal .input-group .form-control:only-child {
+          border-radius: 12px;
         }
         #deleteCourseModal .form-control,
         #deleteCourseModal .form-select {
           border-color: var(--sv-bdr);
+          border-radius: 12px;
         }
         #deleteCourseModal .form-control:focus,
         #deleteCourseModal .form-select:focus {
@@ -64,10 +84,10 @@
         }
         #deleteCourseModal .btn-danger:hover,
         #deleteCourseModal .btn-danger:focus {
-          background: linear-gradient(135deg, rgba(254, 242, 242, 0.88), rgba(255, 248, 248, 0.46));
+          background: linear-gradient(135deg, rgba(255, 235, 235, 0.88), rgba(255, 245, 245, 0.46));
           backdrop-filter: blur(7px);
           -webkit-backdrop-filter: blur(7px);
-          box-shadow: 0 4px 10px rgba(239, 68, 68, 0.15);
+          box-shadow: 0 4px 10px rgba(203, 55, 55, 0.15);
           color: var(--sv-danger);
         }
         #deleteCourseModal .btn-danger:hover i,
@@ -77,8 +97,8 @@
           stroke: var(--sv-danger);
         }
         #deleteCourseModal .btn-danger:active {
-          background: linear-gradient(135deg, rgba(254, 235, 235, 0.98), rgba(255, 248, 248, 0.62));
-          box-shadow: 0 1px 8px rgba(239, 68, 68, 0.16);
+          background: linear-gradient(135deg, rgba(255, 230, 225, 0.98), rgba(255, 255, 255, 0.62));
+          box-shadow: 0 1px 8px rgba(203, 55, 55, 0.16);
         }
         #deleteCourseModal .btn-danger:active i,
         #deleteCourseModal .btn-danger:active svg {
@@ -88,7 +108,7 @@
         #deleteCourseModal .btn-warning {
           background: var(--sv-card-bg, #fff);
           border: none;
-          color: #f59e0b;
+          color: #856404;
           transition: all 0.2s ease-in-out;
           box-shadow: none;
           display: inline-flex;
@@ -99,25 +119,25 @@
         }
         #deleteCourseModal .btn-warning:hover,
         #deleteCourseModal .btn-warning:focus {
-          background: linear-gradient(135deg, rgba(255, 251, 235, 0.88), rgba(255, 252, 245, 0.46));
+          background: linear-gradient(135deg, rgba(255, 245, 235, 0.88), rgba(255, 248, 225, 0.46));
           backdrop-filter: blur(7px);
           -webkit-backdrop-filter: blur(7px);
-          box-shadow: 0 4px 10px rgba(245, 158, 11, 0.12);
-          color: #f59e0b;
+          box-shadow: 0 4px 10px rgba(255, 193, 7, 0.12);
+          color: #856404;
         }
         #deleteCourseModal .btn-warning:hover i,
         #deleteCourseModal .btn-warning:hover svg,
         #deleteCourseModal .btn-warning:focus i,
         #deleteCourseModal .btn-warning:focus svg {
-          stroke: #f59e0b;
+          stroke: #856404;
         }
         #deleteCourseModal .btn-warning:active {
-          background: linear-gradient(135deg, rgba(255, 248, 220, 0.98), rgba(255, 251, 235, 0.62));
-          box-shadow: 0 1px 8px rgba(245, 158, 11, 0.16);
+          background: linear-gradient(135deg, rgba(255, 240, 220, 0.98), rgba(255, 248, 235, 0.62));
+          box-shadow: 0 1px 8px rgba(255, 193, 7, 0.16);
         }
         #deleteCourseModal .btn-warning:active i,
         #deleteCourseModal .btn-warning:active svg {
-          stroke: #f59e0b;
+          stroke: #856404;
         }
         /* Cancel button styling */
         #deleteCourseModal .btn-light {

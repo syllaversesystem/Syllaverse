@@ -70,6 +70,7 @@ Route::middleware([FacultyAuth::class])->group(function () {
     Route::put('/faculty/courses/{course}', [CourseController::class, 'update'])->name('faculty.courses.update');
     Route::delete('/faculty/courses/{course}', [CourseController::class, 'destroy'])->name('faculty.courses.destroy');
     Route::get('/faculty/courses/search-deleted', [CourseController::class, 'searchDeleted'])->name('faculty.courses.search-deleted');
+    Route::get('/faculty/courses/filter', [CourseController::class, 'filterByDepartment'])->name('faculty.courses.filter');
 
     // ---------- Master Data Management ----------
     // Master Data main page (SO/ILO/SDG/IGA/CDIO)

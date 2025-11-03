@@ -10,7 +10,7 @@
 -------------------------------------------------------------------------------
 --}}
 
-<div class="modal fade sv-course-modal" id="editCourseModal" tabindex="-1" aria-labelledby="editCourseModalLabel" aria-hidden="true">
+<div class="modal fade sv-course-modal" id="editCourseModal" tabindex="-1" aria-labelledby="editCourseModalLabel" aria-hidden="true" data-bs-backdrop="static">
   <div class="modal-dialog modal-dialog-centered modal-xl">
     <form id="editCourseForm" method="POST" class="modal-content course-form edit-course-form">
       @csrf
@@ -28,17 +28,34 @@
           --sv-acct: #EE6F57;   /* accent/focus */
           --sv-danger:#CB3737;  /* primary action (danger style) */
         }
+        #editCourseModal .modal-content {
+          border-radius: 16px;
+          border: none;
+        }
         #editCourseModal .modal-header {
           border-bottom: 1px solid var(--sv-bdr);
           background: var(--sv-bg);
+          border-radius: 16px 16px 0 0;
         }
         #editCourseModal .modal-body {
           max-height: 70vh;
           overflow-y: auto;
         }
         #editCourseModal .modal-title {
-          font-size: 1rem;
           font-weight: 600;
+          font-size: 1rem;
+          display: inline-flex;
+          align-items: center;
+          gap: .5rem;
+        }
+        #editCourseModal .modal-title i,
+        #editCourseModal .modal-title svg {
+          width: 1.05rem;
+          height: 1.05rem;
+          stroke: var(--sv-text-muted, #777777);
+        }
+        #editCourseModal .modal-footer {
+          border-radius: 0 0 16px 16px;
         }
         #editCourseModal .sv-card {
           border: 1px solid var(--sv-bdr);
@@ -53,13 +70,22 @@
         #editCourseModal .input-group-text {
           background: var(--sv-bg);
           border-color: var(--sv-bdr);
+          border-radius: 12px 0 0 12px;
+        }
+        #editCourseModal .input-group .form-control {
+          border-radius: 0 12px 12px 0;
+        }
+        #editCourseModal .input-group .form-control:only-child {
+          border-radius: 12px;
         }
         #editCourseModal .form-control,
         #editCourseModal .form-select {
           border-color: var(--sv-bdr);
+          border-radius: 12px;
         }
         #editCourseModal .form-control-sm {
           font-size: 0.875rem;
+          border-radius: 12px;
         }
         /* Form Label Typography */
         #editCourseModal .form-label {
@@ -90,7 +116,7 @@
           resize: vertical;
           min-height: 160px;
           padding: 0.75rem;
-          border-radius: 0.375rem;
+          border-radius: 12px;
           border: 1px solid var(--sv-bdr);
           background-color: #fff;
           font-family: 'Poppins', sans-serif;
@@ -269,7 +295,10 @@
 
       {{-- ░░░ START: Header ░░░ --}}
       <div class="modal-header">
-        <h5 class="modal-title fw-semibold" id="editCourseModalLabel">Edit Course</h5>
+        <h5 class="modal-title d-flex align-items-center gap-2" id="editCourseModalLabel">
+          <i data-feather="edit-3"></i>
+          <span>Update Course</span>
+        </h5>
       </div>
       {{-- ░░░ END: Header ░░░ --}}
 
@@ -340,8 +369,8 @@
             <div class="sv-divider"></div>
 
             <div class="mt-3">
-              <label for="editCourseDescription" class="form-label small fw-medium text-muted">Course Rationale and Description</label>
-              <textarea class="form-control" id="editCourseDescription" name="description" rows="6" style="min-height:160px" required></textarea>
+              <label for="editCourseDescription" class="form-label small fw-medium text-muted">Course Rationale and Description <span class="text-muted">(Optional)</span></label>
+              <textarea class="form-control" id="editCourseDescription" name="description" rows="6" style="min-height:160px"></textarea>
             </div>
           </div>
           {{-- ░░░ END: Left – Core details ░░░ --}}
@@ -377,7 +406,7 @@
           <i data-feather="x"></i> Cancel
         </button>
         <button type="submit" class="btn btn-danger" id="editCourseSubmit">
-          <i data-feather="save"></i> Save Changes
+          <i data-feather="save"></i> Update
         </button>
       </div>
       {{-- ░░░ END: Footer ░░░ --}}

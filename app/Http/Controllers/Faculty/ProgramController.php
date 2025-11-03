@@ -100,8 +100,8 @@ class ProgramController extends Controller
             return in_array($appointment->role, ['VCAA', 'ASSOC_VCAA', 'DEAN', 'DEPT_CHAIR', 'PROG_CHAIR']);
         });
         
-        // Hide department column for basic faculty users (no administrative roles)
-        $showDepartmentColumn = $hasAdministrativeRole;
+        // Hide department column for users without institution-wide scope (only VCAA/ASSOC_VCAA can see department column)
+        $showDepartmentColumn = $hasInstitutionWideRole;
         
         // Check for department-specific roles
         $departmentSpecificAppointments = $userAppointments->filter(function($appointment) {
@@ -118,10 +118,13 @@ class ProgramController extends Controller
             $showDepartmentDropdown = false;
         }
         
-        // For modals: hide department dropdown if user has no administrative roles
-        // Faculty with only basic faculty role should not see department selection
-        $showAddDepartmentDropdown = $hasAdministrativeRole;
-        $showEditDepartmentDropdown = $hasAdministrativeRole;
+        // For modals: hide department dropdown if user doesn't have VCAA/Associate VCAA role
+        // Only VCAA and Associate VCAA users can see department selection in program modals
+        $hasVcaaRole = $userAppointments->contains(function($appointment) {
+            return in_array($appointment->role, ['VCAA', 'ASSOC_VCAA']);
+        });
+        $showAddDepartmentDropdown = $hasVcaaRole;
+        $showEditDepartmentDropdown = $hasVcaaRole;
         
         // If user has no administrative role, get their department from scope
         if (!$hasAdministrativeRole) {
@@ -464,12 +467,20 @@ class ProgramController extends Controller
         // Get user permissions (same logic as index method)
         $userAppointments = $user->appointments()->active()->get();
         
+        // Check for institution-wide roles (roles with Institution scope)
+        $hasInstitutionWideRole = $userAppointments->contains(function($appointment) {
+            return in_array($appointment->role, ['VCAA', 'ASSOC_VCAA']) || 
+                   ($appointment->scope_type === 'Institution') ||
+                   ($appointment->role === 'DEAN' && $appointment->scope_type === 'Institution');
+        });
+        
         // Check if user has any administrative roles (to show department column)
         $hasAdministrativeRole = $userAppointments->contains(function($appointment) {
             return in_array($appointment->role, ['VCAA', 'ASSOC_VCAA', 'DEAN', 'DEPT_CHAIR', 'PROG_CHAIR']);
         });
         
-        $showDepartmentColumn = $hasAdministrativeRole;
+        // Hide department column for users without institution-wide scope (only VCAA/ASSOC_VCAA can see department column)
+        $showDepartmentColumn = $hasInstitutionWideRole;
         
         // Return JSON response with table data
         if ($request->expectsJson()) {

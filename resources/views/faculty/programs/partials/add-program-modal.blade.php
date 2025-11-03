@@ -9,7 +9,7 @@
 --}}
 
 {{-- ░░░ START: Add Program Modal ░░░ --}}
-<div class="modal fade sv-program-modal" id="addProgramModal" tabindex="-1" aria-labelledby="addProgramModalLabel" aria-hidden="true">
+<div class="modal fade sv-faculty-program-modal" id="addProgramModal" tabindex="-1" aria-labelledby="addProgramModalLabel" aria-hidden="true" data-bs-backdrop="static">
   <div class="modal-dialog modal-dialog-centered modal-lg">
     <form id="addProgramForm" action="{{ route('faculty.programs.store') }}" method="POST" class="modal-content program-form" style="border-radius: 16px;"
       @csrf
@@ -26,6 +26,19 @@
         #addProgramModal .modal-header {
           border-bottom: 1px solid var(--sv-bdr);
           background: var(--sv-bg);
+        }
+        #addProgramModal .modal-title {
+          font-weight: 600;
+          font-size: 1rem;
+          display: inline-flex;
+          align-items: center;
+          gap: .5rem;
+        }
+        #addProgramModal .modal-title i,
+        #addProgramModal .modal-title svg {
+          width: 1.05rem;
+          height: 1.05rem;
+          stroke: var(--sv-text-muted, #777777);
         }
         #addProgramModal .sv-card {
           border: 1px solid var(--sv-bdr);
@@ -138,9 +151,9 @@
 
       {{-- ░░░ START: Header ░░░ --}}
       <div class="modal-header">
-        <h5 class="modal-title fw-semibold d-flex align-items-center gap-2" id="addProgramModalLabel" style="font-size: 1rem;">
+        <h5 class="modal-title d-flex align-items-center gap-2" id="addProgramModalLabel">
           <i data-feather="plus-circle"></i>
-          Add New Program
+          <span>Add New Program</span>
         </h5>
       </div>
       {{-- ░░░ END: Header ░░░ --}}
