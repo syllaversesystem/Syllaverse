@@ -197,5 +197,14 @@
     .programs-toolbar .input-group { max-width: 100%; }
     #soTable td.so-dept { white-space: normal; width: auto; }
   }
+
+  /* Backdrop click restriction animation (Bootstrap applies .modal-static on prevent) */
+  .modal.modal-static .modal-dialog {
+    transform: scale(1.02);
+    transition: transform 0.2s ease-in-out;
+  }
+  .modal.modal-static .modal-content {
+    box-shadow: 0 8px 24px rgba(0,0,0,.12), 0 4px 12px rgba(0,0,0,.08);
+  }
 </style>
 @endpush

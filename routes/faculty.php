@@ -19,6 +19,7 @@ use App\Http\Controllers\Faculty\SyllabusTLAController;
 use App\Http\Controllers\Faculty\SyllabusIloController;
 use App\Http\Controllers\Faculty\SyllabusSoController;
 use App\Http\Controllers\Faculty\SyllabusSdgController;
+use App\Http\Controllers\Faculty\SdgController;
 use App\Http\Controllers\Faculty\DepartmentsController;
 use App\Http\Controllers\Faculty\ProgramController;
 use App\Http\Controllers\Faculty\CourseController;
@@ -46,6 +47,11 @@ Route::middleware([FacultyAuth::class])->group(function () {
     Route::view('/faculty/dashboard', 'faculty.dashboard')->name('faculty.dashboard');
 
     // ---------- Master Data (SO, ILO, SDG, IGA, CDIO) ----------
+    // SDG Master Data
+    Route::get('/faculty/master-data/sdg/filter', [SdgController::class, 'filterByDepartment']);
+    Route::post('/faculty/master-data/sdg', [SdgController::class, 'store']);
+    Route::put('/faculty/master-data/sdg/{id}', [SdgController::class, 'update']);
+    Route::delete('/faculty/master-data/sdg/{id}', [SdgController::class, 'destroy']);
     Route::get('/faculty/master-data', [MasterDataController::class, 'index'])->name('faculty.master-data.index');
     // SO (Student Outcomes) Master Data
     Route::get('/faculty/master-data/so/filter', [StudentOutcomeController::class, 'filterByDepartment'])->name('faculty.master-data.so.filter');

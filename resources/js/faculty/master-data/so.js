@@ -353,6 +353,19 @@ document.addEventListener('DOMContentLoaded', () => {
   const deleteTitleEl = document.getElementById('deleteSoTitle');
   const deleteSubmitBtn = document.getElementById('deleteSoSubmit');
 
+  // Backdrop click restriction animation (mirror Departments):
+  // When backdrop click is prevented (static backdrop), briefly apply Bootstrap's
+  // modal-static class to trigger the bounce feedback.
+  [addModalEl, editModalEl, deleteModalEl].forEach((el) => {
+    if (!el) return;
+    el.addEventListener('hidePrevented.bs.modal', (e) => {
+      // keep modal open and animate
+      e.preventDefault();
+      el.classList.add('modal-static');
+      setTimeout(() => el.classList.remove('modal-static'), 200);
+    });
+  });
+
   function openDeleteModalFromRow(id) {
     const row = document.querySelector(`tr[data-so-id="${CSS.escape(id)}"]`);
     if (!row || !deleteModalEl || !deleteForm) return;
