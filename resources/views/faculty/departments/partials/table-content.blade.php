@@ -6,14 +6,20 @@
 --}}
 
 @if($departments->isEmpty())
-<tr class="superadmin-manage-department-empty-row">
-    <td colspan="4">
-        <div class="empty-table">
-            <h6>No departments found</h6>
-            <p>Click the <i data-feather="plus"></i> button to add one.</p>
-        </div>
-    </td>
-</tr>
+    @php($searching = isset($isSearch) && $isSearch)
+    <tr class="superadmin-manage-department-empty-row">
+        <td colspan="4">
+            <div class="empty-table">
+                @if($searching)
+                    <h6>No matching departments</h6>
+                    <p>Try a different search term.</p>
+                @else
+                    <h6>No departments found</h6>
+                    <p>Click the <i data-feather="plus"></i> button to add one.</p>
+                @endif
+            </div>
+        </td>
+    </tr>
 @else
     @foreach($departments as $department)
     <tr>

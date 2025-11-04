@@ -22,6 +22,8 @@ use App\Http\Controllers\Faculty\SyllabusSdgController;
 use App\Http\Controllers\Faculty\DepartmentsController;
 use App\Http\Controllers\Faculty\ProgramController;
 use App\Http\Controllers\Faculty\CourseController;
+use App\Http\Controllers\Faculty\MasterDataController;
+use App\Http\Controllers\Faculty\StudentOutcomeController;
 use App\Http\Middleware\FacultyAuth;
 
 // ---------- Faculty Login Form View ----------
@@ -42,6 +44,14 @@ Route::middleware(['auth:faculty'])->group(function () {
 // ---------- Faculty-Only Protected Routes ----------
 Route::middleware([FacultyAuth::class])->group(function () {
     Route::view('/faculty/dashboard', 'faculty.dashboard')->name('faculty.dashboard');
+
+    // ---------- Master Data (SO, ILO, SDG, IGA, CDIO) ----------
+    Route::get('/faculty/master-data', [MasterDataController::class, 'index'])->name('faculty.master-data.index');
+    // SO (Student Outcomes) Master Data
+    Route::get('/faculty/master-data/so/filter', [StudentOutcomeController::class, 'filterByDepartment'])->name('faculty.master-data.so.filter');
+    Route::post('/faculty/master-data/so', [StudentOutcomeController::class, 'store'])->name('faculty.master-data.so.store');
+    Route::put('/faculty/master-data/so/{id}', [StudentOutcomeController::class, 'update'])->name('faculty.master-data.so.update');
+    Route::delete('/faculty/master-data/so/{id}', [StudentOutcomeController::class, 'destroy'])->name('faculty.master-data.so.destroy');
 
 
 

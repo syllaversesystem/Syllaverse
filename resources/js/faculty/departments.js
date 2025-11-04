@@ -453,7 +453,91 @@ document.addEventListener('DOMContentLoaded', function () {
     `;
     document.head.appendChild(style);
 
-    // 📝 AJAX Helper Functions
+    // � AJAX search with loading animation (like SO tab) and empty UI (like Courses no matches)
+    (function wireDepartmentsSearch() {
+        const input = document.getElementById('departmentsSearch');
+        const tbody = document.getElementById('departmentsTableBody');
+        if (!input || !tbody) return;
+
+        // Inject is-loading style for the search input (blue glow like SO)
+        if (!document.getElementById('dept-search-loading-style')) {
+            const s = document.createElement('style');
+            s.id = 'dept-search-loading-style';
+            s.textContent = `
+              .superadmin-manage-department-toolbar .form-control.is-loading {
+                border-color: #007bff !important;
+                box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.18) !important;
+                transition: border-color .2s ease, box-shadow .2s ease, transform .12s ease;
+              }
+            `;
+            document.head.appendChild(s);
+        }
+
+        function showTableLoading() {
+            const theadThs = document.querySelectorAll('.superadmin-manage-department-table thead th').length || 4;
+            const loadingRow = `
+              <tr class="departments-loading-row">
+                <td colspan="${theadThs}" class="text-center py-4">
+                  <div class="d-flex flex-column align-items-center">
+                    <i data-feather="loader" class="spinner mb-2" style="width:32px;height:32px;"></i>
+                    <p class="mb-0 text-muted">Loading departments...</p>
+                  </div>
+                </td>
+              </tr>
+            `;
+            tbody.innerHTML = loadingRow;
+            if (typeof feather !== 'undefined') feather.replace();
+        }
+
+        let t = null;
+        async function runSearch(query) {
+            try {
+                showTableLoading();
+                input.disabled = true;
+                input.classList.add('is-loading');
+                // subtle tap feedback
+                input.style.transform = 'scale(0.985)';
+                setTimeout(() => { input.style.transform = ''; }, 160);
+
+                const url = new URL(window.location.origin + '/faculty/departments/table-content');
+                if (query) url.searchParams.set('q', query);
+
+                const res = await fetch(url.toString(), {
+                    method: 'GET',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    }
+                });
+                const data = await res.json().catch(() => null);
+                if (!res.ok || !data || !data.success) throw new Error(data?.message || `Server error: ${res.status}`);
+
+                tbody.innerHTML = data.html || '';
+
+                if (typeof feather !== 'undefined') {
+                    feather.replace();
+                    setTimeout(() => feather.replace(), 10);
+                }
+            } catch (err) {
+                console.error('Departments search failed:', err);
+                if (typeof window.showAlertOverlay === 'function') {
+                    window.showAlertOverlay('error', 'Failed to search departments');
+                }
+            } finally {
+                input.disabled = false;
+                input.classList.remove('is-loading');
+                input.style.transform = '';
+            }
+        }
+
+        input.addEventListener('input', () => {
+            clearTimeout(t);
+            const q = input.value.trim();
+            t = setTimeout(() => runSearch(q), 220);
+        });
+    })();
+
+    // �📝 AJAX Helper Functions
     // Note: addDepartmentToTable removed to prevent pretty print issues
     // Using page reload instead for cleaner experience
 

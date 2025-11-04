@@ -103,12 +103,18 @@
     </td>
   </tr>
 @empty
+  @php($searching = isset($isSearch) && $isSearch)
   <tr class="courses-empty-row">
     <td colspan="{{ (($showDepartmentColumn ?? true) && ($departmentFilter ?? 'all') == 'all') ? '6' : '5' }}">
       <div class="courses-empty">
-        <h6>No courses found</h6>
-        @if ($canManageCourses)
-          <p>Click the <i data-feather="plus"></i> button to add one.</p>
+        @if($searching)
+          <h6>No matching courses</h6>
+          <p>Try a different search term.</p>
+        @else
+          <h6>No courses found</h6>
+          @if ($canManageCourses)
+            <p>Click the <i data-feather="plus"></i> button to add one.</p>
+          @endif
         @endif
       </div>
     </td>

@@ -41,9 +41,6 @@
   @endphp
   @if (is_array($manifest) && array_key_exists('resources/css/superadmin/alerts.css', $manifest))
     @vite('resources/css/superadmin/alerts.css')
-  @else
-    {{-- fallback: include app.css which contains shared styles as a safe default --}}
-    <link rel="stylesheet" href="{{ asset('build/assets/app-B--1BXnR.css') }}">
   @endif
   @vite('resources/css/components/alert-overlay.css')
 

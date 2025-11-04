@@ -24,7 +24,7 @@
     <div class="superadmin-manage-department-toolbar">
         <div class="input-group">
             <span class="input-group-text"><i data-feather="search"></i></span>
-            <input type="search" class="form-control" placeholder="Search departments..." aria-label="Search departments">
+            <input type="search" id="departmentsSearch" class="form-control" placeholder="Search departments..." aria-label="Search departments">
         </div>
 
         <span class="flex-spacer"></span>

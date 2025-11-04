@@ -47,7 +47,7 @@ class DepartmentsController extends Controller
     /**
      * Get departments table content for AJAX requests.
      */
-    public function tableContent(): JsonResponse
+    public function tableContent(Request $request): JsonResponse
     {
         // Check if user has institution-wide role
         if (!$this->hasInstitutionWideRole()) {
@@ -58,13 +58,26 @@ class DepartmentsController extends Controller
         }
 
         try {
-            $departments = Department::orderBy('name')->get();
+            $q = trim((string) $request->query('q', ''));
+
+            $query = Department::query();
+            if ($q !== '') {
+                $query->where(function ($sub) use ($q) {
+                    $sub->where('name', 'like', "%{$q}%")
+                        ->orWhere('code', 'like', "%{$q}%");
+                });
+            }
+
+            $departments = $query->orderBy('name')->get();
+            $isSearch = $q !== '';
             
-            $html = view('faculty.departments.partials.table-content', compact('departments'))->render();
+            $html = view('faculty.departments.partials.table-content', compact('departments', 'isSearch'))->render();
             
             return response()->json([
                 'success' => true,
-                'html' => $html
+                'html' => $html,
+                'count' => $departments->count(),
+                'search' => $q,
             ]);
         } catch (\Exception $e) {
             Log::error('Error fetching departments table content: ' . $e->getMessage());

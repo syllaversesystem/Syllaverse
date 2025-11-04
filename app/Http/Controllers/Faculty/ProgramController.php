@@ -453,13 +453,21 @@ class ProgramController extends Controller
     {
         $user = auth()->user();
         $departmentFilter = $request->get('department');
+        $q = trim((string) $request->get('q', ''));
         
         // Build programs query with optional department filter
         $programsQuery = Program::with(['department'])->notDeleted();
         if ($departmentFilter && $departmentFilter !== 'all') {
             $programsQuery->where('department_id', $departmentFilter);
         }
+        if ($q !== '') {
+            $programsQuery->where(function($sub) use ($q) {
+                $sub->where('name', 'like', "%{$q}%")
+                    ->orWhere('code', 'like', "%{$q}%");
+            });
+        }
         $programs = $programsQuery->get();
+        $isSearch = $q !== '';
         
         // Get all departments for context
         $departments = \App\Models\Department::all();
@@ -490,10 +498,12 @@ class ProgramController extends Controller
                     'programs',
                     'departments', 
                     'showDepartmentColumn',
-                    'departmentFilter'
+                    'departmentFilter',
+                    'isSearch'
                 ))->render(),
                 'count' => $programs->count(),
-                'department_filter' => $departmentFilter
+                'department_filter' => $departmentFilter,
+                'search' => $q,
             ]);
         }
         

@@ -84,6 +84,16 @@ if (!window.__svFacultyCoursesInit) {
   function getTbody() {
     return $('#svCoursesTbody') || $('#svCoursesTable tbody');
   }
+  function getThead() {
+    return $('#svCoursesTable thead');
+  }
+  function getCourseRows() {
+    return $$('#svCoursesTable tr[id^="course-row-"]');
+  }
+  function getHeaderColspan() {
+    const ths = getThead()?.querySelectorAll('th');
+    return ths ? ths.length : 5;
+  }
   // ░░░ END: Tiny DOM helpers ░░░
 
   // ░░░ START: Modal lifecycle & opener ░░░
@@ -299,6 +309,74 @@ if (!window.__svFacultyCoursesInit) {
       if (window.feather) window.feather.replace();
     }
   }
+
+  // ░░░ START: Client-side search ░░░
+  function removeFilterEmptyRow() {
+    const tbody = getTbody();
+    if (!tbody) return;
+    tbody.querySelector('.courses-filter-empty-row')?.remove();
+  }
+
+  function insertFilterEmptyRow() {
+    const tbody = getTbody();
+    if (!tbody) return;
+    // If server already rendered the generic empty row, don't duplicate
+    if (tbody.querySelector('.courses-empty-row')) return;
+    const colspan = getHeaderColspan();
+    tbody.insertAdjacentHTML('beforeend', `
+      <tr class="courses-empty-row courses-filter-empty-row">
+        <td colspan="${colspan}">
+          <div class="courses-empty">
+            <h6>No matching courses</h6>
+            <p>Try a different search term.</p>
+          </div>
+        </td>
+      </tr>
+    `);
+    if (window.feather) window.feather.replace();
+  }
+
+  function applyCoursesSearchFilter(queryRaw) {
+    const tbody = getTbody();
+    if (!tbody) return;
+    const q = String(queryRaw || '').trim().toUpperCase();
+    removeFilterEmptyRow();
+
+    const rows = getCourseRows();
+    if (!rows.length) return; // nothing to filter
+
+    if (!q) {
+      // Show all course rows
+      rows.forEach(tr => { tr.style.display = ''; });
+      return;
+    }
+
+    let visible = 0;
+    rows.forEach(tr => {
+      const code = (tr.dataset.code || tr.querySelector('.course-code-cell')?.textContent || '').toUpperCase();
+      const title = (tr.dataset.title || tr.querySelector('.course-title-cell')?.textContent || '').toUpperCase();
+      const match = code.includes(q) || title.includes(q);
+      tr.style.display = match ? '' : 'none';
+      if (match) visible++;
+    });
+
+    if (visible === 0) insertFilterEmptyRow();
+  }
+
+  function wireCoursesSearch() {
+    const input = $('#coursesSearch');
+    if (!input || input._svBound) return;
+
+    let t = null;
+    input.addEventListener('input', () => {
+      clearTimeout(t);
+      const val = input.value.trim();
+      t = setTimeout(() => runCoursesSearch(val), 220);
+    });
+
+    input._svBound = true;
+  }
+  // ░░░ END: Client-side search ░░░
 
   // For building lists elsewhere
   function collectCoursesFromTable() {
@@ -1041,6 +1119,77 @@ if (!window.__svFacultyCoursesInit) {
     }
   }
   
+  // Global AJAX search for courses (SO-like UX)
+  async function runCoursesSearch(query) {
+    const input = document.getElementById('coursesSearch');
+    const tbody = getTbody();
+    if (!tbody) return;
+
+    // Inject blue glow style once
+    if (!document.getElementById('courses-search-loading-style')) {
+      const s = document.createElement('style');
+      s.id = 'courses-search-loading-style';
+      s.textContent = `
+        .courses-toolbar .form-control.is-loading,
+        .programs-toolbar .form-control.is-loading {
+          border-color: #007bff !important;
+          box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.18) !important;
+          transition: border-color .2s ease, box-shadow .2s ease, transform .12s ease;
+        }
+      `;
+      document.head.appendChild(s);
+    }
+
+    try {
+      showTableLoading();
+      if (input) {
+        input.disabled = true;
+        input.classList.add('is-loading');
+        try { input.style.transform = 'scale(0.985)'; setTimeout(() => { input.style.transform = ''; }, 160); } catch (_) {}
+      }
+
+      // Preserve current department filter
+      const deptSel = document.getElementById('departmentFilter');
+      const department = deptSel ? (deptSel.value || 'all') : 'all';
+
+      const url = new URL(window.location.origin + '/faculty/courses/filter');
+      if (department) url.searchParams.set('department', department);
+      if (query) url.searchParams.set('q', query);
+
+      const response = await fetch(url.toString(), {
+        method: 'GET',
+        headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
+      });
+      const data = await parseJsonSafe(response);
+      if (!data || !response.ok || !data.success) throw new Error(data?.message || `Server error: ${response?.status}`);
+
+      const tableBody = getTbody();
+      if (tableBody) tableBody.innerHTML = data.html;
+
+      if (typeof feather !== 'undefined') {
+        feather.replace();
+        setTimeout(() => feather.replace(), 10);
+      }
+
+      // Update header visibility for department column
+      updateTableHeader(department, data.department_filter);
+
+      // Rewire dynamic behaviors
+      hydrateRows();
+      refreshPrereqColumnForAllRows();
+    } catch (err) {
+      console.error('Courses search failed:', err);
+      if (window.showAlertOverlay) window.showAlertOverlay('error', 'Failed to search courses');
+    } finally {
+      if (input) {
+        input.disabled = false;
+        input.classList.remove('is-loading');
+        input.style.transform = '';
+      }
+      hideTableLoading();
+    }
+  }
+  
   function updateTableHeader(departmentId, departmentFilter) {
     const table = document.getElementById('svCoursesTable');
     if (!table) return;
@@ -1093,8 +1242,7 @@ if (!window.__svFacultyCoursesInit) {
     }
     
     try {
-      // Clear search input when filtering
-      clearSearchOnFilter();
+  // Preserve current search while filtering; we'll re-apply it after update
       
       // Show loading state
       showTableLoading();
@@ -1102,6 +1250,13 @@ if (!window.__svFacultyCoursesInit) {
       // Disable the filter dropdown during request
       if (departmentFilter) {
         departmentFilter.disabled = true;
+        // Add red loading glow similar to SO tab
+        departmentFilter.classList.add('is-loading');
+        // Subtle scale tap feedback
+        try {
+          departmentFilter.style.transform = 'scale(0.985)';
+          setTimeout(() => { departmentFilter.style.transform = ''; }, 160);
+        } catch (_) {}
       }
       
       // Make AJAX request to filter endpoint
@@ -1149,6 +1304,10 @@ if (!window.__svFacultyCoursesInit) {
         // Re-hydrate new rows for JavaScript functionality
         hydrateRows();
         refreshPrereqColumnForAllRows();
+
+  // Re-apply current search (AJAX) to the new rows if there's a query
+  const searchInput = document.getElementById('coursesSearch');
+  if (searchInput && searchInput.value.trim()) await runCoursesSearch(searchInput.value.trim());
         
         console.log(`Filter applied: ${data.count} courses found for department ${departmentId}`);
         
@@ -1170,6 +1329,8 @@ if (!window.__svFacultyCoursesInit) {
       // Re-enable the filter dropdown
       if (departmentFilter) {
         departmentFilter.disabled = false;
+        departmentFilter.classList.remove('is-loading');
+        departmentFilter.style.transform = '';
       }
       
       hideTableLoading();
@@ -1385,6 +1546,9 @@ if (!window.__svFacultyCoursesInit) {
     // Normalize server-rendered table & compute initial prerequisites previews
     hydrateRows();
     refreshPrereqColumnForAllRows();
+
+  // Wire search behavior once
+  wireCoursesSearch();
 
     // Clean any stray backdrops
     document.querySelectorAll('.modal-backdrop').forEach((b) => b.remove());

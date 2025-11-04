@@ -430,6 +430,13 @@
   box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
 }
 
+/* Loading state: make the department filter glow red during AJAX */
+.department-filter-wrapper .form-select.is-loading {
+  border-color: #CB3737 !important;
+  box-shadow: 0 0 0 0.2rem rgba(203, 55, 55, 0.18) !important;
+  transition: border-color .2s ease, box-shadow .2s ease, transform .12s ease;
+}
+
 /* ============================================================================
    RESPONSIVE DESIGN - Maintain mobile responsiveness
    ============================================================================ */

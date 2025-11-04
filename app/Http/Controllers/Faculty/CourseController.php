@@ -547,13 +547,21 @@ class CourseController extends Controller
     {
         $user = auth()->user();
         $departmentFilter = $request->get('department');
+        $q = trim((string) $request->get('q', ''));
         
         // Build courses query with optional department filter (exclude deleted courses)
         $coursesQuery = Course::with(['department', 'prerequisites'])->notDeleted();
         if ($departmentFilter && $departmentFilter !== 'all') {
             $coursesQuery->where('department_id', $departmentFilter);
         }
+        if ($q !== '') {
+            $coursesQuery->where(function($sub) use ($q) {
+                $sub->where('title', 'like', "%{$q}%")
+                    ->orWhere('code', 'like', "%{$q}%");
+            });
+        }
         $courses = $coursesQuery->get();
+        $isSearch = $q !== '';
         
         // Get all departments for context
         $departments = \App\Models\Department::all();
@@ -585,10 +593,12 @@ class CourseController extends Controller
                     'departments', 
                     'canManageCourses',
                     'showDepartmentColumn',
-                    'departmentFilter'
+                    'departmentFilter',
+                    'isSearch'
                 ))->render(),
                 'count' => $courses->count(),
-                'department_filter' => $departmentFilter
+                'department_filter' => $departmentFilter,
+                'search' => $q,
             ]);
         }
         

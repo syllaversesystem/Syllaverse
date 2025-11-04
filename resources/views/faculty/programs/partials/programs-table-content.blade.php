@@ -46,11 +46,17 @@
     </td>
   </tr>
 @empty
+  @php($searching = isset($isSearch) && $isSearch)
   <tr class="programs-empty-row">
     <td colspan="{{ (($showDepartmentColumn ?? true) && ($departmentFilter ?? 'all') == 'all') ? '4' : '3' }}">
       <div class="programs-empty">
-        <h6>No programs found</h6>
-        <p>Click the <i data-feather="plus"></i> button to add one.</p>
+        @if($searching)
+          <h6>No matching programs</h6>
+          <p>Try a different search term.</p>
+        @else
+          <h6>No programs found</h6>
+          <p>Click the <i data-feather="plus"></i> button to add one.</p>
+        @endif
       </div>
     </td>
   </tr>

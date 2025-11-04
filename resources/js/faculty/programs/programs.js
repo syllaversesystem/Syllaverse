@@ -785,63 +785,94 @@ document.addEventListener('submit', async function (e) {
   }
 });
 
-// Enhanced search functionality that works with AJAX filtering
-document.addEventListener('input', function(e) {
-  if (e.target.id !== 'programsSearch') return;
-  
-  const searchTerm = e.target.value.toLowerCase().trim();
-  const rows = document.querySelectorAll('#svProgramsTable tbody tr:not(.programs-empty-row):not(.programs-loading-row)');
-  let visibleCount = 0;
-  
-  rows.forEach(row => {
-    const cells = row.querySelectorAll('td');
-    const programName = cells[0]?.textContent?.toLowerCase() || '';
-    const programCode = cells[1]?.textContent?.toLowerCase() || '';
-    
-    // Check if department column exists by counting header columns
-    const headerCols = document.querySelectorAll('#svProgramsTable thead th').length;
-    const hasDepartmentColumn = headerCols > 3;
-    const department = hasDepartmentColumn ? (cells[2]?.textContent?.toLowerCase() || '') : '';
-    
-    const matches = programName.includes(searchTerm) || 
-                   programCode.includes(searchTerm) || 
-                   (hasDepartmentColumn && department.includes(searchTerm));
-    
-    if (matches) {
-      row.style.display = '';
-      visibleCount++;
-    } else {
-      row.style.display = 'none';
-    }
-  });
-  
-  // Show empty state if no matches
+// AJAX search with SO-like loading and Courses-like 'no matches' UI
+(function wireProgramsAjaxSearch() {
+  const input = document.getElementById('programsSearch');
   const tbody = document.querySelector('#svProgramsTable tbody');
-  if (visibleCount === 0 && searchTerm !== '') {
-    const existingEmptyRow = tbody.querySelector('.programs-empty-row');
-    if (!existingEmptyRow) {
-      const colspan = document.querySelectorAll('#svProgramsTable thead th').length;
-      const emptyRow = `
-        <tr class="programs-empty-row">
-          <td colspan="${colspan}" class="text-center text-muted py-4">
-            <div class="d-flex flex-column align-items-center">
-              <i data-feather="search" class="mb-2" style="width: 48px; height: 48px;"></i>
-              <p class="mb-2">No results found for "${searchTerm}".</p>
-            </div>
-          </td>
-        </tr>
-      `;
-      tbody.insertAdjacentHTML('beforeend', emptyRow);
-      if (window.feather) window.feather.replace();
-    }
-  } else {
-    // Remove empty state if there are matches or search is cleared
-    const existingEmptyRow = tbody.querySelector('.programs-empty-row');
-    if (existingEmptyRow && (visibleCount > 0 || searchTerm === '')) {
-      existingEmptyRow.remove();
+  if (!input || !tbody) return;
+
+  // Inject is-loading style for the search input (blue glow like SO)
+  if (!document.getElementById('programs-search-loading-style')) {
+    const s = document.createElement('style');
+    s.id = 'programs-search-loading-style';
+    s.textContent = `
+      .programs-toolbar .form-control.is-loading {
+        border-color: #007bff !important;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.18) !important;
+        transition: border-color .2s ease, box-shadow .2s ease, transform .12s ease;
+      }
+    `;
+    document.head.appendChild(s);
+  }
+
+  function showTableLoading() {
+    const colspan = document.querySelectorAll('#svProgramsTable thead th').length || 3;
+    const loadingRow = `
+      <tr class="programs-loading-row">
+        <td colspan="${colspan}" class="text-center py-4">
+          <div class="d-flex flex-column align-items-center">
+            <i data-feather="loader" class="spinner mb-2" style="width: 32px; height: 32px;"></i>
+            <p class="mb-0 text-muted">Loading programs...</p>
+          </div>
+        </td>
+      </tr>
+    `;
+    tbody.innerHTML = loadingRow;
+    if (typeof feather !== 'undefined') feather.replace();
+  }
+
+  let t = null;
+  async function runSearch(query) {
+    try {
+      showTableLoading();
+      input.disabled = true;
+      input.classList.add('is-loading');
+      // subtle tap feedback
+      input.style.transform = 'scale(0.985)';
+      setTimeout(() => { input.style.transform = ''; }, 160);
+
+      // Keep current department filter if present
+      const deptSel = document.getElementById('departmentFilter');
+      const department = deptSel ? (deptSel.value || 'all') : 'all';
+
+      const url = new URL(window.location.origin + '/faculty/programs/filter');
+      if (department) url.searchParams.set('department', department);
+      if (query) url.searchParams.set('q', query);
+
+      const res = await fetch(url.toString(), {
+        method: 'GET',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'Accept': 'application/json'
+        }
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data || !data.success) throw new Error(data?.message || `Server error: ${res.status}`);
+
+      tbody.innerHTML = data.html || '';
+
+      if (typeof feather !== 'undefined') {
+        feather.replace();
+        setTimeout(() => feather.replace(), 10);
+      }
+    } catch (err) {
+      console.error('Programs search failed:', err);
+      if (typeof window.showAlertOverlay === 'function') {
+        window.showAlertOverlay('error', 'Failed to search programs');
+      }
+    } finally {
+      input.disabled = false;
+      input.classList.remove('is-loading');
+      input.style.transform = '';
     }
   }
-});
+
+  input.addEventListener('input', () => {
+    clearTimeout(t);
+    const q = input.value.trim();
+    t = setTimeout(() => runSearch(q), 220);
+  });
+})();
 
 // Clear search when department filter changes
 function clearSearchOnFilter() {

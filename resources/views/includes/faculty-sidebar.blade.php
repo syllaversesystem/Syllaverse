@@ -107,6 +107,17 @@
         </a>
       </li>
 
+      {{-- Master Data --}}
+      @php $isActive = request()->routeIs('faculty.master-data*'); @endphp
+      <li class="nav-item">
+        <a class="nav-link d-flex align-items-center {{ $isActive ? 'active' : '' }}"
+           href="{{ route('faculty.master-data.index') }}"
+           aria-current="{{ $isActive ? 'page' : '' }}">
+          <i class="bi bi-database"></i>
+          <span class="label">Master Data</span>
+        </a>
+      </li>
+
 
 
     </ul>

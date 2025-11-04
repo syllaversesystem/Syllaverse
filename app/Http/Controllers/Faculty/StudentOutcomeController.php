@@ -22,18 +22,57 @@ class StudentOutcomeController extends Controller
     public function store(Request $request)
     {
         try {
-            // Simple validation - just validate what's sent
-            $validated = $request->validate([
+            $user = Auth::guard('faculty')->user();
+            $appointments = method_exists($user, 'appointments') ? $user->appointments()->active()->get() : collect();
+            $hasInstitutionWide = $appointments->contains(function ($appointment) {
+                return in_array($appointment->role, ['VCAA', 'ASSOC_VCAA']);
+            });
+
+            // Validation differs by scope
+            $rules = [
                 'title' => 'nullable|string|max:255',
                 'description' => 'required|string|max:2000',
-                'department_id' => 'required|integer|exists:departments,id',
-            ]);
+            ];
+            if ($hasInstitutionWide) {
+                $rules['department_id'] = 'required|integer|exists:departments,id';
+            }
+            $validated = $request->validate($rules);
 
-            // Create the Student Outcome with exactly what was provided
+            // Resolve department id
+            if ($hasInstitutionWide) {
+                $departmentId = (int) $validated['department_id'];
+            } else {
+                // Use robust helper to find the user's primary department
+                $departmentId = method_exists($user, 'getPrimaryDepartmentId')
+                    ? $user->getPrimaryDepartmentId()
+                    : null;
+                // Fallback: derive from any active appointment with a department-like scope
+                if (!$departmentId && $appointments->isNotEmpty()) {
+                    $firstDeptAppt = $appointments->first(function ($appt) {
+                        return in_array($appt->scope_type, [\App\Models\Appointment::SCOPE_DEPT, \App\Models\Appointment::SCOPE_FACULTY]) && !empty($appt->scope_id);
+                    });
+                    if ($firstDeptAppt) {
+                        $departmentId = (int) $firstDeptAppt->scope_id;
+                    }
+                }
+            }
+
+            if (!$departmentId) {
+                // No department resolved; block creation
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Department is required to create a Student Outcome.'
+                    ], 422);
+                }
+                return back()->withErrors(['department_id' => 'Department is required to create a Student Outcome.'])->withInput();
+            }
+
+            // Create the Student Outcome
             $so = StudentOutcome::create([
                 'title' => $validated['title'] ?? null,
                 'description' => $validated['description'],
-                'department_id' => $validated['department_id'],
+                'department_id' => $departmentId,
             ]);
 
             // Load the department relationship
@@ -84,19 +123,33 @@ class StudentOutcomeController extends Controller
     public function update(Request $request, int $id)
     {
         try {
-            $validated = $request->validate([
+            $user = Auth::guard('faculty')->user();
+            $appointments = method_exists($user, 'appointments') ? $user->appointments()->active()->get() : collect();
+            $hasInstitutionWide = $appointments->contains(function ($appointment) {
+                return in_array($appointment->role, ['VCAA', 'ASSOC_VCAA']);
+            });
+
+            $rules = [
                 'title' => 'nullable|string|max:255',
                 'description' => 'required|string|max:2000',
-                'department_id' => 'required|integer|exists:departments,id',
-            ]);
+            ];
+            if ($hasInstitutionWide) {
+                $rules['department_id'] = 'nullable|integer|exists:departments,id';
+            }
+            $validated = $request->validate($rules);
 
             $so = StudentOutcome::findOrFail($id);
-            
-            $so->update([
+
+            $payload = [
                 'title' => $validated['title'] ?? null,
                 'description' => $validated['description'],
-                'department_id' => $validated['department_id'],
-            ]);
+            ];
+
+            if ($hasInstitutionWide && !empty($validated['department_id'])) {
+                $payload['department_id'] = $validated['department_id'];
+            }
+
+            $so->update($payload);
 
             $so->load('department');
 
