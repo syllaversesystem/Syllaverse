@@ -18,54 +18,17 @@ class SdgController extends Controller
     public function store(Request $request)
     {
         try {
-            $user = Auth::guard('faculty')->user();
-            $appointments = method_exists($user, 'appointments') ? $user->appointments()->active()->get() : collect();
-            $hasInstitutionWide = $appointments->contains(function ($appointment) {
-                return in_array($appointment->role, ['VCAA', 'ASSOC_VCAA']);
-            });
-
-            $rules = [
+            $validated = $request->validate([
                 'title' => 'required|string|max:255',
                 'description' => 'required|string|max:2000',
-            ];
-            if ($hasInstitutionWide) {
-                $rules['department_id'] = 'required|integer|exists:departments,id';
-            }
-            $validated = $request->validate($rules);
-
-            if ($hasInstitutionWide) {
-                $departmentId = (int) $validated['department_id'];
-            } else {
-                $departmentId = method_exists($user, 'getPrimaryDepartmentId')
-                    ? $user->getPrimaryDepartmentId()
-                    : null;
-                if (!$departmentId && $appointments->isNotEmpty()) {
-                    $firstDeptAppt = $appointments->first(function ($appt) {
-                        return in_array($appt->scope_type, [\App\Models\Appointment::SCOPE_DEPT, \App\Models\Appointment::SCOPE_FACULTY]) && !empty($appt->scope_id);
-                    });
-                    if ($firstDeptAppt) {
-                        $departmentId = (int) $firstDeptAppt->scope_id;
-                    }
-                }
-            }
-
-            if (!$departmentId) {
-                if ($request->expectsJson()) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Department is required to create an SDG.'
-                    ], 422);
-                }
-                return back()->withErrors(['department_id' => 'Department is required to create an SDG.'])->withInput();
-            }
+            ]);
 
             $sdg = Sdg::create([
                 'title' => $validated['title'],
                 'description' => $validated['description'],
-                'department_id' => $departmentId,
             ]);
 
-            $sdg->load('department');
+            // No department on SDG
 
             if ($request->expectsJson()) {
                 return response()->json([
@@ -102,32 +65,16 @@ class SdgController extends Controller
     public function update(Request $request, int $id)
     {
         try {
-            $user = Auth::guard('faculty')->user();
-            $appointments = method_exists($user, 'appointments') ? $user->appointments()->active()->get() : collect();
-            $hasInstitutionWide = $appointments->contains(function ($appointment) {
-                return in_array($appointment->role, ['VCAA', 'ASSOC_VCAA']);
-            });
-
-            $rules = [
+            $validated = $request->validate([
                 'title' => 'required|string|max:255',
                 'description' => 'required|string|max:2000',
-            ];
-            if ($hasInstitutionWide) {
-                $rules['department_id'] = 'nullable|integer|exists:departments,id';
-            }
-            $validated = $request->validate($rules);
+            ]);
 
             $sdg = Sdg::findOrFail($id);
-            $payload = [
-                'title' => $validated['title'],
-                'description' => $validated['description'],
-            ];
-            if ($hasInstitutionWide && !empty($validated['department_id'])) {
-                $payload['department_id'] = (int) $validated['department_id'];
-            }
+            $payload = [ 'title' => $validated['title'], 'description' => $validated['description'] ];
 
             $sdg->update($payload);
-            $sdg->load('department');
+            // No department on SDG
 
             if ($request->expectsJson()) {
                 return response()->json([
@@ -184,27 +131,14 @@ class SdgController extends Controller
     public function filterByDepartment(Request $request)
     {
         try {
-            $user = Auth::guard('faculty')->user();
-            $departmentFilter = $request->get('department');
-
-            $query = Sdg::with('department');
-            if ($departmentFilter && $departmentFilter !== 'all') {
-                $query->where('department_id', $departmentFilter);
-            }
-            $sdgs = $query->ordered()->get();
-
-            $userAppointments = method_exists($user, 'appointments') ? $user->appointments()->active()->get() : collect();
-            $showDepartmentFilter = $userAppointments->contains(function ($appointment) {
-                return in_array($appointment->role, ['VCAA', 'ASSOC_VCAA']);
-            });
+            // SDG has no department; ignore department filter
+            $sdgs = Sdg::ordered()->get();
 
             if ($request->expectsJson()) {
                 return response()->json([
                     'success' => true,
                     'sdgs' => $sdgs,
                     'count' => $sdgs->count(),
-                    'department_filter' => $departmentFilter,
-                    'showDepartmentFilter' => $showDepartmentFilter,
                 ]);
             }
 

@@ -8,20 +8,7 @@
       <span class="input-group-text" id="sdgSearchIcon"><i data-feather="search"></i></span>
       <input type="search" class="form-control" id="sdgSearch" placeholder="Search SDG..." aria-label="Search SDG" />
     </div>
-
-    @if(!empty($showDepartmentFilter))
-      <div class="department-filter-wrapper" id="sdgDepartmentFilterWrapper">
-        <select class="form-select form-select-sm" id="sdgDepartmentFilter" aria-label="Filter by department">
-          <option value="all">All Departments</option>
-          @foreach(($departments ?? collect()) as $dept)
-            <option value="{{ $dept->id }}">{{ $dept->code }}</option>
-          @endforeach
-        </select>
-      </div>
-    @endif
-
     <span class="flex-spacer"></span>
-
     <button type="button" class="btn programs-add-btn d-none d-md-inline-flex" id="sdgAddBtn" data-bs-toggle="modal" data-bs-target="#addSdgModal" title="Add SDG" aria-label="Add SDG">
       <i data-feather="plus"></i>
     </button>
@@ -29,32 +16,22 @@
 
   <div class="so-table-wrapper" id="sdgTableWrapper">
     <div class="table-responsive">
-      <table class="table mb-0 align-middle so-table" id="sdgTable" data-role-can-see-dept-col="{{ !empty($showDepartmentFilter) ? '1' : '0' }}">
+      <table class="table mb-0 align-middle so-table" id="sdgTable">
         <colgroup>
-          @if(!empty($showDepartmentFilter))
-            <col style="width:24%;" />
-            <col style="width:1%;" />
-            <col />
-            <col style="width:1%;" />
-          @else
             <col style="width:28%;" />
             <col />
             <col style="width:1%;" />
-          @endif
         </colgroup>
         <thead>
           <tr>
             <th scope="col"><i data-feather="type"></i> Title</th>
-            @if(!empty($showDepartmentFilter))
-              <th scope="col" class="th-dept"><i class="bi bi-building"></i> Department</th>
-            @endif
             <th scope="col"><i data-feather="file-text"></i> Description</th>
             <th scope="col" class="text-end"><i data-feather="more-vertical"></i></th>
           </tr>
         </thead>
         <tbody id="sdgTableBody">
           <tr class="superadmin-manage-department-empty-row">
-            <td colspan="{{ !empty($showDepartmentFilter) ? 4 : 3 }}">
+            <td colspan="3">
               <div class="empty-table">
                 <h6>No SDGs found</h6>
                 <p>Click the <i data-feather="plus"></i> button to add one.</p>

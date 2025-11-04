@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\Model;
 class Sdg extends Model
 {
     // START: Fillable & Casts
-    protected $fillable = ['title', 'description', 'code', 'sort_order', 'department_id'];
+    protected $fillable = ['title', 'description', 'code', 'sort_order'];
     protected $casts = [
         'sort_order' => 'integer',
     ];
@@ -27,10 +27,6 @@ class Sdg extends Model
     // END: Constants
 
     // START: Relationships
-    public function department()
-    {
-        return $this->belongsTo(Department::class);
-    }
     /** An SDG can be mapped to many syllabi (with editable pivot values). */
     public function syllabi()
     {

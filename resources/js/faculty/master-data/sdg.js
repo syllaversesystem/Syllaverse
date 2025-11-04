@@ -4,58 +4,21 @@ import axios from 'axios';
 document.addEventListener('DOMContentLoaded', () => {
   const sdgTable = document.getElementById('sdgTable');
   const tableBody = document.getElementById('sdgTableBody');
-  const deptFilter = document.getElementById('sdgDepartmentFilter');
   const searchInput = document.getElementById('sdgSearch');
   const addForm = document.getElementById('addSdgForm');
   const addModalEl = document.getElementById('addSdgModal');
   const addErrors = document.getElementById('addSdgErrors');
   const addSubmitBtn = document.getElementById('addSdgSubmit');
-  const roleCanSeeDeptCol = (sdgTable?.dataset?.roleCanSeeDeptCol === '1');
-  let hasDeptCol = roleCanSeeDeptCol && (!deptFilter || deptFilter.value === 'all');
-
-  function rebuildHeaderAndColgroup() {
-    if (!sdgTable) return;
-    hasDeptCol = roleCanSeeDeptCol && (!deptFilter || deptFilter.value === 'all');
-    const colgroup = sdgTable.querySelector('colgroup');
-    if (colgroup) {
-      colgroup.innerHTML = hasDeptCol
-        ? '<col style="width:24%;" />\n<col style="width:1%;" />\n<col />\n<col style="width:1%;" />'
-        : '<col style="width:28%;" />\n<col />\n<col style="width:1%;" />';
-    }
-    const theadRow = sdgTable.querySelector('thead tr');
-    if (theadRow) {
-      const deptTh = theadRow.querySelector('.th-dept');
-      if (hasDeptCol) {
-        if (!deptTh) {
-          const th = document.createElement('th');
-          th.scope = 'col';
-          th.className = 'th-dept';
-          th.innerHTML = '<i class="bi bi-building"></i> Department';
-          theadRow.insertBefore(th, theadRow.children[1] || null);
-        }
-      } else if (deptTh) {
-        theadRow.removeChild(deptTh);
-      }
-    }
-  }
+  // SDG has no department; no dynamic header/colgroup
 
   async function loadSdg(options = {}) {
     const showLoadingRow = options.showLoading !== false; // default true
-    const department = deptFilter?.value || 'all';
     try {
-      if (document.activeElement === deptFilter && searchInput && searchInput.value) {
-        searchInput.value = '';
-      }
       if (showLoadingRow) {
         showLoading();
-        if (deptFilter) {
-          deptFilter.disabled = true;
-          deptFilter.classList.add('is-loading');
-        }
       }
       const resp = await axios.get(`/faculty/master-data/sdg/filter`, {
-        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-        params: { department }
+        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
       });
       const data = resp.data?.sdgs || [];
       renderRows(data);
@@ -63,10 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
       renderEmpty('Failed to load SDGs');
       console.error('SDG load error:', err);
     } finally {
-      if (deptFilter && showLoadingRow) {
-        deptFilter.disabled = false;
-        deptFilter.classList.remove('is-loading');
-      }
+      // no-op
     }
   }
 
@@ -82,11 +42,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const rowsHtml = filtered.map(it => {
-      const dept = it?.department ? `${it.department.code || ''}` : '';
       const title = (it?.title || '').trim() || '—';
       const cells = [];
       cells.push(`<td class="sdg-title text-wrap">${escapeHtml(title)}</td>`);
-      if (hasDeptCol) cells.push(`<td class="sdg-dept text-wrap">${escapeHtml(dept)}</td>`);
       cells.push(`<td class="sdg-desc-cell text-wrap text-break">${escapeHtml(it.description || '')}</td>`);
       cells.push(`
         <td class="sdg-actions text-end">
@@ -95,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </td>
       `);
       return `
-      <tr data-sdg-id="${it.id}" data-title="${escapeAttr(it.title || '')}" data-description="${escapeAttr(it.description || '')}" data-department-id="${it.department_id || (it.department?.id || '')}">
+      <tr data-sdg-id="${it.id}" data-title="${escapeAttr(it.title || '')}" data-description="${escapeAttr(it.description || '')}">
         ${cells.join('')}
       </tr>`;
     }).join('');
@@ -108,7 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const sub = isSearch ? '<p>Try a different search term.</p>' : ' <p>Click the <i data-feather="plus"></i> button to add one.</p>';
     tableBody.innerHTML = `
       <tr class="sdg-empty-row">
-        <td colspan="${hasDeptCol ? 4 : 3}">
+        <td colspan="3">
           <div class="empty-table">
             <h6>${escapeHtml(message)}</h6>
             ${sub}
@@ -123,7 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!tableBody) return;
     tableBody.innerHTML = `
       <tr class="sdg-loading-row">
-        <td colspan="${hasDeptCol ? 4 : 3}" class="text-center py-4">
+        <td colspan="3" class="text-center py-4">
           <div class="d-flex flex-column align-items-center">
             <i data-feather="loader" class="spinner mb-2" style="width:32px;height:32px;"></i>
             <p class="mb-0 text-muted">Loading SDGs...</p>
@@ -137,16 +95,13 @@ document.addEventListener('DOMContentLoaded', () => {
   function escapeHtml(str) { return String(str || '').replace(/[&<>"]+/g, s => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[s])); }
   function escapeAttr(str) { return String(str || '').replace(/["'&<>]/g, (s) => ({ '"': '&quot;', "'": '&#39;', '&': '&amp;', '<': '&lt;', '>': '&gt;' }[s])); }
 
-  function handleDeptFilterChange() { rebuildHeaderAndColgroup(); loadSdg(); }
-  deptFilter?.addEventListener('change', handleDeptFilterChange);
-  deptFilter?.addEventListener('change', function (e) { e.target.style.transform = 'scale(0.98)'; setTimeout(() => { e.target.style.transform = ''; }, 150); });
   searchInput?.addEventListener('input', loadSdg);
 
   const sdgTab = document.getElementById('sdg-main-tab');
   if (sdgTab) {
-    if (sdgTab.classList.contains('active')) { rebuildHeaderAndColgroup(); loadSdg(); }
-    sdgTab.addEventListener('shown.bs.tab', () => { rebuildHeaderAndColgroup(); loadSdg(); });
-  } else { rebuildHeaderAndColgroup(); loadSdg(); }
+    if (sdgTab.classList.contains('active')) { loadSdg(); }
+    sdgTab.addEventListener('shown.bs.tab', () => { loadSdg(); });
+  } else { loadSdg(); }
 
   // Add SDG modal wiring
   function clearAddErrors() { if (!addErrors) return; addErrors.classList.add('d-none'); addErrors.innerHTML = ''; }
@@ -154,8 +109,6 @@ document.addEventListener('DOMContentLoaded', () => {
   if (addModalEl) {
     addModalEl.addEventListener('shown.bs.modal', () => {
       clearAddErrors();
-      const sel = document.getElementById('sdgDepartment');
-      if (sel && deptFilter && deptFilter.value && deptFilter.value !== 'all') sel.value = deptFilter.value;
       const t = document.getElementById('sdgTitle'); t && t.focus();
     });
   }

@@ -33,16 +33,7 @@
           <input type="text" class="form-control form-control-sm" id="editSdgTitle" name="title" required />
         </div>
 
-        @if(!empty($showDepartmentFilter))
-        <div class="mb-3">
-          <label for="editSdgDepartment" class="form-label small fw-medium text-muted">Department</label>
-          <select id="editSdgDepartment" name="department_id" class="form-select form-select-sm">
-            @foreach(($departments ?? collect()) as $dept)
-              <option value="{{ $dept->id }}">{{ $dept->name }}</option>
-            @endforeach
-          </select>
-        </div>
-        @endif
+        {{-- SDG has no department --}}
 
         <div class="mb-3">
           <label for="editSdgDescription" class="form-label small fw-medium text-muted">Description</label>
