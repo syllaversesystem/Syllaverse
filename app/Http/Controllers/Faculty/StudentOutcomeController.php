@@ -1,211 +1,216 @@
 <?php
 // -----------------------------------------------------------------------------
 // * File: app/Http/Controllers/Faculty/StudentOutcomeController.php
-// * Description: Dedicated controller for Student Outcomes (SO) – add/update/delete/reorder with JSON support
-// -----------------------------------------------------------------------------
-// 📜 Log:
-// [2025-01-20] Copied from admin for Faculty module
+// * Description: Simple Student Outcomes controller for Faculty module
 // -----------------------------------------------------------------------------
 
 namespace App\Http\Controllers\Faculty;
 
 use App\Http\Controllers\Controller;
 use App\Models\StudentOutcome;
-use Illuminate\Http\JsonResponse;
+use App\Models\Department;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class StudentOutcomeController extends Controller
 {
     /**
-     * Small helper: determine if the request expects a JSON response.
-     * This keeps our endpoints compatible with both AJAX and classic redirects.
-     */
-    protected function wantsJson(Request $request): bool
-    {
-        return $request->expectsJson() || $request->wantsJson() || $request->ajax();
-    }
-
-    /**
-     * Helper: simple authorization check for managing SO.
-     * This allows admin, faculty, or (if available) Dept/Prog chairs.
-     * Updated to allow faculty users to manage master data.
-     */
-    protected function canManage(): bool
-    {
-        $u = Auth::user();
-        if (!$u) return false;
-
-        // Allow admin and faculty users
-        if (in_array($u->role, ['admin', 'faculty'])) return true;
-
-        // These helpers exist in your User model per shared code
-        $dept = \method_exists($u, 'isDeptChair') && $u->isDeptChair();
-        $prog = \method_exists($u, 'isProgChair') && $u->isProgChair();
-        return $dept || $prog;
-    }
-
-    // ░░░ START: CRUD ░░░
-
-    /**
-     * Store a new Student Outcome.
-     * Plain-English: Take the title, description and department_id and save.
-     * For faculty role users, automatically use their department.
+     * Store a new Student Outcome
      */
     public function store(Request $request)
     {
-        if (!$this->canManage()) {
-            if ($this->wantsJson($request)) {
-                return response()->json(['message' => 'Forbidden'], 403);
+        try {
+            // Simple validation - just validate what's sent
+            $validated = $request->validate([
+                'title' => 'nullable|string|max:255',
+                'description' => 'required|string|max:2000',
+                'department_id' => 'required|integer|exists:departments,id',
+            ]);
+
+            // Create the Student Outcome with exactly what was provided
+            $so = StudentOutcome::create([
+                'title' => $validated['title'] ?? null,
+                'description' => $validated['description'],
+                'department_id' => $validated['department_id'],
+            ]);
+
+            // Load the department relationship
+            $so->load('department');
+
+            // Return appropriate response
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Student Outcome created successfully!',
+                    'so' => $so
+                ], 201);
             }
-            abort(403, 'Forbidden');
-        }
 
-        $user = Auth::user();
-        
-        // Determine validation rules based on user role
-        $rules = [
-            'title' => 'required|string|max:255',
-            'description' => 'required|string',
-        ];
-        
-        // Admin and chairs can select department; faculty uses their own department
-        if ($user->role !== 'faculty') {
-            $rules['department_id'] = 'required|integer|exists:departments,id';
-        }
+            return redirect()->route('faculty.dashboard')
+                ->with('success', 'Student Outcome created successfully!');
 
-        $validated = $request->validate($rules);
-
-        // Get department_id based on user role
-        if ($user->role === 'faculty') {
-            $departmentId = $user->getPrimaryDepartmentId();
-            if (!$departmentId) {
-                if ($this->wantsJson($request)) {
-                    return response()->json(['message' => 'No department found for your account. Please contact administration.'], 422);
-                }
-                return back()->withErrors(['department' => 'No department found for your account. Please contact administration.']);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $e->errors()
+                ], 422);
             }
-        } else {
-            $departmentId = $validated['department_id'];
+            return back()->withErrors($e->errors())->withInput();
+
+        } catch (\Exception $e) {
+            Log::error('SO Creation Error: ' . $e->getMessage(), [
+                'user_id' => Auth::id(),
+                'request_data' => $request->all()
+            ]);
+            
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'An error occurred while creating the Student Outcome.'
+                ], 500);
+            }
+            
+            return back()->withErrors(['error' => 'An error occurred while creating the Student Outcome.'])->withInput();
         }
-
-        $so = StudentOutcome::create([
-            'title' => $validated['title'],
-            'description' => $validated['description'],
-            'department_id' => $departmentId,
-        ]);
-
-        // Load the department relationship for the response
-        $so->load('department');
-
-        if ($this->wantsJson($request)) {
-            return response()->json([
-                'message' => "Student Outcome added successfully!",
-                'so'      => $so,
-            ], 201);
-        }
-
-        return redirect()->route('faculty.master-data.index', [
-            'tab'    => 'soilo',
-            'subtab' => 'so',
-        ])->with('success', "Student Outcome added successfully!");
     }
 
     /**
-     * Update an existing Student Outcome.
-     * Plain-English: Edit the SO's title, description and department.
-     * For faculty role users, department is fixed to their department.
+     * Update an existing Student Outcome
      */
     public function update(Request $request, int $id)
     {
-        if (!$this->canManage()) {
-            if ($this->wantsJson($request)) {
-                return response()->json(['message' => 'Forbidden'], 403);
-            }
-            abort(403, 'Forbidden');
-        }
-
-        $user = Auth::user();
-        
-        // Determine validation rules based on user role
-        $rules = [
-            'title' => 'required|string|max:255',
-            'description' => 'required|string',
-        ];
-        
-        // Admin and chairs can change department; faculty keeps their department
-        if ($user->role !== 'faculty') {
-            $rules['department_id'] = 'required|integer|exists:departments,id';
-        }
-
-        $validated = $request->validate($rules);
-
-        $so = StudentOutcome::findOrFail($id);
-
-        // Get department_id based on user role
-        if ($user->role === 'faculty') {
-            $departmentId = $user->getPrimaryDepartmentId();
-            if (!$departmentId) {
-                if ($this->wantsJson($request)) {
-                    return response()->json(['message' => 'No department found for your account. Please contact administration.'], 422);
-                }
-                return back()->withErrors(['department' => 'No department found for your account. Please contact administration.']);
-            }
-        } else {
-            $departmentId = $validated['department_id'];
-        }
-
-        $so->update([
-            'title' => $validated['title'],
-            'description' => $validated['description'],
-            'department_id' => $departmentId,
-        ]);
-
-        // Load the department relationship for the response
-        $so->load('department');
-
-        if ($this->wantsJson($request)) {
-            return response()->json([
-                'message' => 'Student Outcome updated successfully!',
-                'so'      => $so,
+        try {
+            $validated = $request->validate([
+                'title' => 'nullable|string|max:255',
+                'description' => 'required|string|max:2000',
+                'department_id' => 'required|integer|exists:departments,id',
             ]);
-        }
 
-        return redirect()->route('faculty.master-data.index', [
-            'tab'    => 'soilo',
-            'subtab' => 'so',
-        ])->with('success', 'SO updated successfully!');
+            $so = StudentOutcome::findOrFail($id);
+            
+            $so->update([
+                'title' => $validated['title'] ?? null,
+                'description' => $validated['description'],
+                'department_id' => $validated['department_id'],
+            ]);
+
+            $so->load('department');
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Student Outcome updated successfully!',
+                    'so' => $so
+                ]);
+            }
+
+            return redirect()->route('faculty.dashboard')
+                ->with('success', 'Student Outcome updated successfully!');
+
+        } catch (\Exception $e) {
+            Log::error('SO Update Error: ' . $e->getMessage());
+            
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'An error occurred while updating the Student Outcome.'
+                ], 500);
+            }
+            
+            return back()->withErrors(['error' => 'An error occurred while updating the Student Outcome.']);
+        }
     }
 
     /**
-     * Destroy a Student Outcome.
-     * Plain-English: Remove the SO; front-end will drop the row.
+     * Delete a Student Outcome
      */
     public function destroy(Request $request, int $id)
     {
-        if (!$this->canManage()) {
-            if ($this->wantsJson($request)) {
-                return response()->json(['message' => 'Forbidden'], 403);
+        try {
+            $so = StudentOutcome::findOrFail($id);
+            $so->delete();
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Student Outcome deleted successfully!',
+                    'id' => $id,
+                ]);
             }
-            abort(403, 'Forbidden');
+
+            return redirect()->route('faculty.dashboard')
+                ->with('success', 'Student Outcome deleted successfully!');
+
+        } catch (\Exception $e) {
+            Log::error('SO Delete Error: ' . $e->getMessage());
+            
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'An error occurred while deleting the Student Outcome.'
+                ], 500);
+            }
+            
+            return back()->withErrors(['error' => 'An error occurred while deleting the Student Outcome.']);
         }
-
-        $so = StudentOutcome::findOrFail($id);
-        $so->delete();
-
-        if ($this->wantsJson($request)) {
-            return response()->json([
-                'message' => 'Student Outcome deleted successfully!',
-                'id'      => $id,
-            ]);
-        }
-
-        return redirect()->route('faculty.master-data.index', [
-            'tab'    => 'soilo',
-            'subtab' => 'so',
-        ])->with('success', 'Student Outcome deleted successfully!');
     }
 
-    // ░░░ END: CRUD ░░░
+    /**
+     * Filter Student Outcomes by department via AJAX
+     */
+    public function filterByDepartment(Request $request)
+    {
+        try {
+            $user = Auth::user();
+            $departmentFilter = $request->get('department');
+            
+            // Build student outcomes query with optional department filter
+            $soQuery = StudentOutcome::with(['department']);
+            if ($departmentFilter && $departmentFilter !== 'all') {
+                $soQuery->where('department_id', $departmentFilter);
+            }
+            $studentOutcomes = $soQuery->get();
+            
+            // Get all departments for context
+            $departments = Department::orderBy('code')->get();
+            
+            // Get user permissions (same logic as MasterDataController)
+            $userAppointments = $user->appointments()->active()->get();
+            
+            // Check if user has VCAA/ASSOC_VCAA roles for department filter
+            $showDepartmentFilter = $userAppointments->contains(function($appointment) {
+                return in_array($appointment->role, ['VCAA', 'ASSOC_VCAA']);
+            });
+            
+            // Return JSON response with data
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'studentOutcomes' => $studentOutcomes,
+                    'count' => $studentOutcomes->count(),
+                    'department_filter' => $departmentFilter
+                ]);
+            }
+            
+            // Fallback to redirect for non-AJAX requests
+            return redirect()->route('faculty.dashboard')
+                ->with('department', $departmentFilter);
+                
+        } catch (\Exception $e) {
+            Log::error('SO Filter Error: ' . $e->getMessage());
+            
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'An error occurred while filtering Student Outcomes.'
+                ], 500);
+            }
+            
+            return back()->withErrors(['error' => 'An error occurred while filtering Student Outcomes.']);
+        }
+    }
 }

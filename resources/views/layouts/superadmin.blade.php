@@ -9,7 +9,6 @@
 [2025-07-28] Removed inline JS; added `layout.js` for sidebar, collapse, theme.
 [2025-08-06] Added floating alert component <x-alert-overlay /> above all content.
 [2025-08-11] Fix – load Bootstrap JS via Vite (@vite('resources/js/app.js')) and render @stack('modals') at body end to avoid z-index traps.
-[2025-08-12] Add – wire Master Data scripts via Vite (@vite('resources/js/superadmin/master-data/index.js')).
 -------------------------------------------------------------------------------
 --}}
 
@@ -75,7 +74,6 @@
   @vite('resources/js/superadmin/chair-requests.js')
   @vite('resources/js/superadmin/appointments.js')
   @vite('resources/js/superadmin/manage-accounts/manage-accounts.js')
-  @vite('resources/js/superadmin/master-data/sortable.js')
   {{-- Assessment Tasks JS removed because AssessmentTaskGroup table may be absent in this deployment --}}
   {{-- ░░░ END: Page bundles ░░░ --}}
 

@@ -44,11 +44,6 @@ export default defineConfig({
                 'resources/js/faculty/syllabus-tla-ai.js',
                 'resources/js/faculty/syllabus-ilo-sortable.js',
                 'resources/js/faculty/syllabus-iga-sortable.js',
-                'resources/js/faculty/master-data/ilo.js',
-                'resources/js/faculty/master-data/ilo-simple.js',
-                'resources/js/faculty/master-data/ilo-sortable.js',
-                'resources/js/faculty/master-data/so-sortable.js',
-                'resources/js/faculty/master-data/shared-crud.js',
                 
                 // Super Admin JS
                 'resources/js/superadmin/superadmin-login.js',
@@ -57,8 +52,7 @@ export default defineConfig({
                 'resources/js/superadmin/alert-timer.js',
                 'resources/js/superadmin/chair-requests.js',
                 'resources/js/superadmin/appointments.js',
-                'resources/js/superadmin/manage-accounts/manage-accounts.js',
-                'resources/js/superadmin/master-data/sortable.js'
+                'resources/js/superadmin/manage-accounts/manage-accounts.js'
             ],
             refresh: true,
         }),

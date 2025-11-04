@@ -7,9 +7,6 @@
 // 📜 Log:
 // [2025-08-11] Update – switched Appointments routes to model binding {appointment},
 //              added DELETE /appointments/{appointment} (destroy) and standardized names.
-// [2025-08-12] Master Data – added POST /master-data/{type}/reorder for drag-to-reorder with renumbering.
-// [2025-08-17] Fix – corrected reorder path to '/master-data/{type}/reorder' within the group
-//              (removed absolute '/superladmin/...' duplication).
 // -----------------------------------------------------------------------------
 
 use Illuminate\Support\Facades\Route;
