@@ -20,6 +20,7 @@ use App\Http\Controllers\Faculty\SyllabusIloController;
 use App\Http\Controllers\Faculty\SyllabusSoController;
 use App\Http\Controllers\Faculty\SyllabusSdgController;
 use App\Http\Controllers\Faculty\SdgController;
+use App\Http\Controllers\Faculty\IgaController;
 use App\Http\Controllers\Faculty\DepartmentsController;
 use App\Http\Controllers\Faculty\ProgramController;
 use App\Http\Controllers\Faculty\CourseController;
@@ -52,6 +53,11 @@ Route::middleware([FacultyAuth::class])->group(function () {
     Route::post('/faculty/master-data/sdg', [SdgController::class, 'store']);
     Route::put('/faculty/master-data/sdg/{id}', [SdgController::class, 'update']);
     Route::delete('/faculty/master-data/sdg/{id}', [SdgController::class, 'destroy']);
+    // IGA Master Data
+    Route::get('/faculty/master-data/iga/filter', [IgaController::class, 'filter']);
+    Route::post('/faculty/master-data/iga', [IgaController::class, 'store']);
+    Route::put('/faculty/master-data/iga/{id}', [IgaController::class, 'update']);
+    Route::delete('/faculty/master-data/iga/{id}', [IgaController::class, 'destroy']);
     Route::get('/faculty/master-data', [MasterDataController::class, 'index'])->name('faculty.master-data.index');
     // SO (Student Outcomes) Master Data
     Route::get('/faculty/master-data/so/filter', [StudentOutcomeController::class, 'filterByDepartment'])->name('faculty.master-data.so.filter');

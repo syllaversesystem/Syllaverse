@@ -48,6 +48,7 @@ export default defineConfig({
                 // Faculty Master Data JS
                 'resources/js/faculty/master-data/so.js',
                 'resources/js/faculty/master-data/sdg.js',
+                'resources/js/faculty/master-data/iga.js',
                 'resources/js/faculty/master-data/ilo-simple.js',
                 'resources/js/faculty/master-data/shared-crud.js',
                 

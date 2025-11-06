@@ -46,6 +46,7 @@
 @push('scripts')
 @vite('resources/js/faculty/master-data/so.js')
 @vite('resources/js/faculty/master-data/sdg.js')
+@vite('resources/js/faculty/master-data/iga.js')
 @vite('resources/js/faculty/master-data/ilo-simple.js')
 @vite('resources/js/faculty/master-data/shared-crud.js')
 @endpush
@@ -56,3 +57,6 @@
 @include('faculty.master-data.modals.add-sdg-modal')
 @include('faculty.master-data.modals.edit-sdg-modal')
 @include('faculty.master-data.modals.delete-sdg-modal')
+@include('faculty.master-data.modals.add-iga-modal')
+@include('faculty.master-data.modals.edit-iga-modal')
+@include('faculty.master-data.modals.delete-iga-modal')
