@@ -16,15 +16,9 @@ use Illuminate\Database\Eloquent\Model;
 class Sdg extends Model
 {
     // START: Fillable & Casts
-    protected $fillable = ['title', 'description', 'code', 'sort_order'];
-    protected $casts = [
-        'sort_order' => 'integer',
-    ];
+    protected $fillable = ['title', 'description'];
+    protected $casts = [];
     // END: Fillable & Casts
-
-    // START: Constants
-    public const CODE_PREFIX = 'SDG';
-    // END: Constants
 
     // START: Relationships
     /** An SDG can be mapped to many syllabi (with editable pivot values). */
@@ -41,53 +35,22 @@ class Sdg extends Model
     // END: Relationships
 
     // START: Scopes
-    /** Order by sort_order ascending (then id for stability). */
+    /** Order by id ascending (sort_order removed). */
     public function scopeOrdered(Builder $query): Builder
     {
-        return $query->orderBy('sort_order')->orderBy('id');
+        return $query->orderBy('id');
     }
 
-    /** Quick code filter (e.g., SDG3). */
-    public function scopeByCode(Builder $query, string $code): Builder
-    {
-        return $query->where('code', $code);
-    }
+    // (Removed code-based scope; SDG no longer has a `code` column)
     // END: Scopes
 
-    // START: Helpers
-    /** Returns the code prefix for this model (SDG). */
-    public static function codePrefix(): string
-    {
-        return static::CODE_PREFIX;
-    }
-
-    /** Compose code from a 1-based position (e.g., SDG + 3 => SDG3). */
-    public static function makeCodeFromPosition(int $position): string
-    {
-        return static::CODE_PREFIX . max(1, $position);
-    }
+    // START: Helpers (removed code helpers)
     // END: Helpers
 
-    // START: Model Events (keep code ↔ sort_order in sync)
+    // START: Model Events
     protected static function booted(): void
     {
-        static::creating(function (self $model): void {
-            // Default sort_order to (max + 1) if not provided
-            if (is_null($model->sort_order)) {
-                $model->sort_order = (int) static::max('sort_order') + 1;
-            }
-            // Default code from sort_order if empty
-            if (empty($model->code)) {
-                $model->code = static::makeCodeFromPosition((int) $model->sort_order);
-            }
-        });
-
-        static::saving(function (self $model): void {
-            // If sort_order changed, regenerate code to match
-            if ($model->isDirty('sort_order')) {
-                $model->code = static::makeCodeFromPosition((int) $model->sort_order);
-            }
-        });
+        // No-op (sort_order removed)
     }
     // END: Model Events
 }
