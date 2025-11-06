@@ -9,8 +9,17 @@
         #addSdgModal .modal-title{ font-weight:600; font-size:1rem; display:inline-flex; align-items:center; gap:.5rem; }
         #addSdgModal .modal-content{ border-radius:16px; border:1px solid var(--sv-bdr); background:#fff; box-shadow:0 10px 30px rgba(0,0,0,.08), 0 2px 12px rgba(0,0,0,.06); overflow:hidden; }
         #addSdgModal .form-control, #addSdgModal .form-select{ border-radius:12px; border:1px solid var(--sv-bdr); background:#fff; }
-        #addSdgModal .form-control:focus, #addSdgModal .form-select:focus{ border-color: var(--sv-acct); box-shadow:0 0 0 3px rgba(238,111,87,.16); }
+        /* Align typography and spacing across Title and Description fields */
         #addSdgModal .form-label{ margin-bottom:.35rem; font-size:.8rem; letter-spacing:.02em; }
+        #addSdgModal .form-control.form-control-sm,
+        #addSdgModal .form-select.form-select-sm,
+        #addSdgModal textarea.form-control.form-control-sm {
+          font-size:.875rem; /* match small input */
+          line-height:1.4;
+          padding:.35rem .75rem;
+        }
+        #addSdgModal textarea.form-control.form-control-sm{ resize:vertical; }
+        #addSdgModal .form-control:focus, #addSdgModal .form-select:focus{ border-color: var(--sv-acct); box-shadow:0 0 0 3px rgba(238,111,87,.16); }
         #addSdgModal .btn-danger{ background:#fff; border:none; color:#000; transition:all .2s ease; display:inline-flex; align-items:center; gap:.5rem; padding:.5rem 1rem; border-radius:.375rem; }
         #addSdgModal .btn-danger:hover, #addSdgModal .btn-danger:focus{ background:linear-gradient(135deg, rgba(255,240,235,.88), rgba(255,255,255,.46)); box-shadow:0 4px 10px rgba(204,55,55,.12); color:#CB3737; }
         #addSdgModal .btn-light{ background:#fff; border:none; color:#6c757d; transition:all .2s ease; display:inline-flex; align-items:center; gap:.5rem; padding:.5rem 1rem; border-radius:.375rem; }

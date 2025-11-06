@@ -65,7 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderEmpty(message, isSearch = false) {
     const sub = isSearch ? '<p>Try a different search term.</p>' : ' <p>Click the <i data-feather="plus"></i> button to add one.</p>';
     tableBody.innerHTML = `
-      <tr class="sdg-empty-row">
+      <tr class="superadmin-manage-department-empty-row">
         <td colspan="3">
           <div class="empty-table">
             <h6>${escapeHtml(message)}</h6>

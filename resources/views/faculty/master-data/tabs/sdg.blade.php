@@ -18,7 +18,7 @@
     <div class="table-responsive">
       <table class="table mb-0 align-middle so-table" id="sdgTable">
         <colgroup>
-            <col style="width:28%;" />
+            <col style="width:1%;" />
             <col />
             <col style="width:1%;" />
         </colgroup>
@@ -72,7 +72,15 @@
   #sdgTableWrapper, .so-table-wrapper { height: auto; }
   .so-table-wrapper .table-responsive { max-height: none; overflow-y: visible; }
   #sdgTable td.sdg-dept { white-space: nowrap; width: 1%; }
-  #sdgTable td.sdg-title { color: #000 !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* Title column: shrink-to-fit with sensible bounds and ellipsis */
+  #sdgTable td.sdg-title {
+    color: #000 !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 220px;      /* don't get too tiny on wide desc */
+    max-width: 480px;      /* avoid eating too much from description */
+  }
   #sdgTable td.sdg-desc-cell { white-space: normal; overflow-wrap: anywhere; word-break: break-word; }
   #sdgTable td.sdg-actions { white-space: nowrap; width: 1%; }
   #sdgTable tbody tr:hover, #sdgTable tbody tr:hover > * { background-color: transparent !important; }
