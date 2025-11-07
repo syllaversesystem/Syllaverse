@@ -28,6 +28,7 @@ class MasterDataController extends Controller
         return view('faculty.master-data.index', [
             'departments' => $departments,
             'showDepartmentFilter' => $showDepartmentFilter,
+            'showCdioTab' => true,
         ]);
     }
 }

@@ -15,62 +15,13 @@ use Illuminate\Database\Eloquent\Model;
 
 class Cdio extends Model
 {
-    // START: Fillable & Casts
-    protected $fillable = ['title', 'description', 'code', 'sort_order'];
-    protected $casts = [
-        'sort_order' => 'integer',
-    ];
-    // END: Fillable & Casts
+    // Simplified: code & sort_order removed
+    protected $fillable = ['title', 'description'];
+    protected $casts = [];
 
-    // START: Constants
-    public const CODE_PREFIX = 'CDIO';
-    // END: Constants
-
-    // START: Scopes
-    /** Order by sort_order ascending (then id for stability). */
+    // Order by id (stable)
     public function scopeOrdered(Builder $query): Builder
     {
-        return $query->orderBy('sort_order')->orderBy('id');
+        return $query->orderBy('id');
     }
-
-    /** Quick code filter (e.g., CDIO7). */
-    public function scopeByCode(Builder $query, string $code): Builder
-    {
-        return $query->where('code', $code);
-    }
-    // END: Scopes
-
-    // START: Helpers
-    /** Returns the code prefix for this model (CDIO). */
-    public static function codePrefix(): string
-    {
-        return static::CODE_PREFIX;
-    }
-
-    /** Compose code from a 1-based position (e.g., CDIO + 5 => CDIO5). */
-    public static function makeCodeFromPosition(int $position): string
-    {
-        return static::CODE_PREFIX . max(1, $position);
-    }
-    // END: Helpers
-
-    // START: Model Events (keep code ↔ sort_order in sync)
-    protected static function booted(): void
-    {
-        static::creating(function (self $model): void {
-            if (is_null($model->sort_order)) {
-                $model->sort_order = (int) static::max('sort_order') + 1;
-            }
-            if (empty($model->code)) {
-                $model->code = static::makeCodeFromPosition((int) $model->sort_order);
-            }
-        });
-
-        static::saving(function (self $model): void {
-            if ($model->isDirty('sort_order')) {
-                $model->code = static::makeCodeFromPosition((int) $model->sort_order);
-            }
-        });
-    }
-    // END: Model Events
 }
