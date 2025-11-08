@@ -24,18 +24,18 @@
       <div class="modal-header">
         <h5 class="modal-title d-flex align-items-center gap-2" id="addIloModalLabel">
           <i data-feather="plus-circle" style="width:1.05rem;height:1.05rem;"></i>
-          <span>Add Intended Learning Outcome</span>
+          <span>Add ILO</span>
         </h5>
       </div>
       <div class="modal-body">
         <div id="addIloErrors" class="alert alert-danger d-none small mb-3" role="alert"></div>
         <div class="mb-3">
-          <label for="iloTitle" class="form-label small fw-medium text-muted">Title (optional)</label>
-          <input type="text" class="form-control form-control-sm" id="iloTitle" name="title" maxlength="255" placeholder="e.g., Identify fundamental concepts of data structures" />
+          <label for="iloCode" class="form-label small fw-medium text-muted">Code</label>
+          <input type="text" class="form-control form-control-sm" id="iloCode" name="code" maxlength="64" placeholder="e.g., ILO1" required />
         </div>
         <div class="mb-0">
           <label for="iloDescription" class="form-label small fw-medium text-muted">Description</label>
-          <textarea class="form-control form-control-sm" id="iloDescription" name="description" rows="4" maxlength="2000" placeholder="Describe the ILO" required></textarea>
+          <textarea class="form-control form-control-sm" id="iloDescription" name="description" rows="4" maxlength="2000" placeholder="Brief learning outcome statement" required></textarea>
         </div>
       </div>
       <div class="modal-footer">
