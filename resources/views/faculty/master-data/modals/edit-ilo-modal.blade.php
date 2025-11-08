@@ -32,7 +32,7 @@
         <div id="editIloErrors" class="alert alert-danger d-none small mb-3" role="alert"></div>
         <div class="mb-3">
           <label for="editIloCode" class="form-label small fw-medium text-muted">Code</label>
-          <input type="text" class="form-control form-control-sm" id="editIloCode" name="code" maxlength="64" placeholder="e.g., ILO1" required />
+          <input type="text" class="form-control form-control-sm" id="editIloCode" name="code" maxlength="64" placeholder="e.g., ILO1" required readonly />
         </div>
         <div class="mb-0">
           <label for="editIloDescription" class="form-label small fw-medium text-muted">Description</label>

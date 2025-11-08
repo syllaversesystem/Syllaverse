@@ -30,8 +30,8 @@
       <div class="modal-body">
         <div id="addIloErrors" class="alert alert-danger d-none small mb-3" role="alert"></div>
         <div class="mb-3">
-          <label for="iloCode" class="form-label small fw-medium text-muted">Code</label>
-          <input type="text" class="form-control form-control-sm" id="iloCode" name="code" maxlength="64" placeholder="e.g., ILO1" required />
+          <label for="iloCode" class="form-label small fw-medium text-muted">Code (auto)</label>
+          <input type="text" class="form-control form-control-sm" id="iloCode" name="code" maxlength="64" placeholder="Auto" required readonly />
         </div>
         <div class="mb-0">
           <label for="iloDescription" class="form-label small fw-medium text-muted">Description</label>
