@@ -72,8 +72,16 @@
   #iloTable td.ilo-desc { white-space:normal; overflow-wrap:anywhere; word-break:break-word; }
   #iloTable td.ilo-actions { white-space:nowrap; width:1%; }
   #iloTable tbody tr:hover, #iloTable tbody tr:hover > * { background-color:transparent !important; }
-  .department-filter-wrapper { margin-left:.5rem; }
-  .department-filter-wrapper .form-select { min-width:200px; }
-  @media (max-width:768px){ .department-filter-wrapper { width:100%; margin-left:0; } .department-filter-wrapper .form-select { width:100%; } }
+  /* Department filter parity with SDG tab */
+  .department-filter-wrapper { margin-left:10px; margin-right:10px; }
+  .department-filter-wrapper .form-select {
+    min-width:200px;
+    transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+  .department-filter-wrapper .form-select.is-loading {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    cursor: progress;
+  }
 </style>
 @endpush
