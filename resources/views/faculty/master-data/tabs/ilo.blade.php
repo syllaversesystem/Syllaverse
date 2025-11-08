@@ -1,30 +1,79 @@
 <div class="ilo-section" id="iloSection">
-  <form id="iloFilterForm" method="GET" action="{{ route('faculty.master-data.index') }}" class="mb-3">
-    <div class="row g-2 align-items-center">
-      <div class="col-auto"><strong>ILO</strong></div>
-      <div class="col-auto">
-        <select class="form-select" id="iloDepartmentFilter" aria-label="Filter ILO by department">
+  <!-- Header / Title -->
+  <div class="so-header mb-2" id="iloHeader">
+    <h5 class="mb-0 so-tab-title">Intended Learning Outcomes</h5>
+  </div>
+
+  <!-- Unified toolbar (search + optional department filter + add button) -->
+  <div class="programs-toolbar" id="iloToolbar">
+    <div class="input-group">
+      <span class="input-group-text" id="iloSearchIcon"><i data-feather="search"></i></span>
+      <input type="search" class="form-control" id="iloSearch" placeholder="Search ILO..." aria-label="Search ILO" />
+    </div>
+    @if(!empty($departments) && ($departments->count() > 0))
+      <div class="department-filter-wrapper">
+        <select class="form-select form-select-sm" id="iloDepartmentFilter" aria-label="Filter ILO by department">
           <option value="all">All Departments</option>
           @foreach(($departments ?? collect()) as $dept)
             <option value="{{ $dept->id }}">{{ $dept->code }} — {{ $dept->name }}</option>
           @endforeach
         </select>
       </div>
+    @endif
+    <span class="flex-spacer"></span>
+    <button type="button"
+            class="btn programs-add-btn d-none d-md-inline-flex"
+            id="iloAddBtn"
+            data-bs-toggle="modal"
+            data-bs-target="#addIloModal"
+            title="Add ILO"
+            aria-label="Add ILO">
+      <i data-feather="plus"></i>
+    </button>
+  </div>
+
+  <!-- Table wrapper -->
+  <div class="so-table-wrapper" id="iloTableWrapper">
+    <div class="table-responsive">
+      <table class="table mb-0 align-middle so-table" id="iloTable">
+        <colgroup>
+          <col style="width:1%;" />
+          <col />
+          <col style="width:1%;" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th scope="col"><i data-feather="type"></i> Title</th>
+            <th scope="col"><i data-feather="file-text"></i> Description</th>
+            <th scope="col" class="text-end"><i data-feather="more-vertical"></i></th>
+          </tr>
+        </thead>
+        <tbody id="iloTableBody">
+          <tr class="superadmin-manage-department-empty-row">
+            <td colspan="3">
+              <div class="empty-table">
+                <h6>No ILOs found</h6>
+                <p>Click the <i data-feather="plus"></i> button to add one.</p>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
-  </form>
-  <div class="table-responsive">
-    <table class="table table-hover align-middle" id="iloTable">
-      <thead>
-        <tr>
-          <th scope="col">Code</th>
-          <th scope="col">Title</th>
-          <th scope="col">Description</th>
-          <th scope="col" class="text-end">Actions</th>
-        </tr>
-      </thead>
-      <tbody id="iloTableBody">
-        <tr><td colspan="4" class="text-center text-muted py-4">ILO master list is based on per-syllabus ILOs. Coming soon.</td></tr>
-      </tbody>
-    </table>
   </div>
 </div>
+
+@push('styles')
+<style>
+  /* Reuse common master-data styles already defined in other tabs. Add only ILO-specific tweaks as needed. */
+  #iloTable thead th { font-weight:600; color: var(--sv-text-muted,#666); }
+  #iloTable thead th i[data-feather], #iloTable thead th svg[data-feather] { width:1rem !important; height:1rem !important; vertical-align:text-bottom; margin-right:.45rem; stroke: var(--sv-text-muted,#666) !important; }
+  #iloTable td.ilo-title { color:#000 !important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:220px; max-width:480px; }
+  #iloTable td.ilo-desc { white-space:normal; overflow-wrap:anywhere; word-break:break-word; }
+  #iloTable td.ilo-actions { white-space:nowrap; width:1%; }
+  #iloTable tbody tr:hover, #iloTable tbody tr:hover > * { background-color:transparent !important; }
+  .department-filter-wrapper { margin-left:.5rem; }
+  .department-filter-wrapper .form-select { min-width:200px; }
+  @media (max-width:768px){ .department-filter-wrapper { width:100%; margin-left:0; } .department-filter-wrapper .form-select { width:100%; } }
+</style>
+@endpush

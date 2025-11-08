@@ -64,3 +64,6 @@
 @include('faculty.master-data.modals.add-cdio-modal')
 @include('faculty.master-data.modals.edit-cdio-modal')
 @include('faculty.master-data.modals.delete-cdio-modal')
+@include('faculty.master-data.modals.add-ilo-modal')
+@include('faculty.master-data.modals.edit-ilo-modal')
+@include('faculty.master-data.modals.delete-ilo-modal')
