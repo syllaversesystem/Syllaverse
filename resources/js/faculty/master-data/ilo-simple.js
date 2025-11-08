@@ -10,9 +10,21 @@ document.addEventListener('DOMContentLoaded', () => {
   // Optional: focus search on add modal hide/show for smoother UX later
   const addModalEl = document.getElementById('addIloModal');
   const searchInput = document.getElementById('iloSearch');
+  const deptFilter = document.getElementById('iloDepartmentFilter');
+  const courseFilter = document.getElementById('iloCourseFilter');
   if (addModalEl && searchInput) {
     addModalEl.addEventListener('hidden.bs.modal', () => searchInput.focus());
   }
+
+  // Placeholder listeners for future data-loading logic
+  deptFilter?.addEventListener('change', () => {
+    deptFilter.classList.add('is-loading');
+    setTimeout(() => deptFilter.classList.remove('is-loading'), 300); // will be replaced by real fetch
+  });
+  courseFilter?.addEventListener('change', () => {
+    courseFilter.classList.add('is-loading');
+    setTimeout(() => courseFilter.classList.remove('is-loading'), 300); // will be replaced by real fetch
+  });
 
   // Backdrop click restriction animation (static bounce)
   [document.getElementById('addIloModal'), document.getElementById('editIloModal'), document.getElementById('deleteIloModal')]

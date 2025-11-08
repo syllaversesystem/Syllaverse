@@ -20,6 +20,16 @@
         </select>
       </div>
     @endif
+    @if(!empty($courses) && ($courses->count() > 0))
+      <div class="course-filter-wrapper">
+        <select class="form-select form-select-sm" id="iloCourseFilter" aria-label="Filter ILO by course">
+          <option value="all">All Courses</option>
+          @foreach(($courses ?? collect()) as $course)
+            <option value="{{ $course->id }}">{{ $course->code }}</option>
+          @endforeach
+        </select>
+      </div>
+    @endif
     <span class="flex-spacer"></span>
     <button type="button"
             class="btn programs-add-btn d-none d-md-inline-flex"
@@ -77,6 +87,17 @@
   .department-filter-wrapper .form-select {
     min-width:200px;
     transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+  /* Course filter styling mirrors department filter */
+  .course-filter-wrapper { margin-left:10px; margin-right:10px; }
+  .course-filter-wrapper .form-select {
+    min-width:180px;
+    transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+  .course-filter-wrapper .form-select.is-loading {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    cursor: progress;
   }
   .department-filter-wrapper .form-select.is-loading {
     border-color: #007bff;
