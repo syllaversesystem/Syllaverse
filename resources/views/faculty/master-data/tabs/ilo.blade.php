@@ -15,7 +15,7 @@
         <select class="form-select form-select-sm" id="iloDepartmentFilter" aria-label="Filter ILO by department">
           <option value="all">All Departments</option>
           @foreach(($departments ?? collect()) as $dept)
-            <option value="{{ $dept->id }}">{{ $dept->code }} — {{ $dept->name }}</option>
+            <option value="{{ $dept->id }}">{{ $dept->code }}</option>
           @endforeach
         </select>
       </div>
