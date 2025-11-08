@@ -24,20 +24,19 @@
 
       <div class="modal-header">
         <h5 class="modal-title d-flex align-items-center gap-2" id="editIloModalLabel">
-          <i data-feather="edit-3"></i>
-          <span>Edit ILO</span>
+          <i data-feather="edit-3" style="width:1.05rem;height:1.05rem;"></i>
+          <span>Edit Intended Learning Outcome</span>
         </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
         <div id="editIloErrors" class="alert alert-danger d-none small mb-3" role="alert"></div>
         <div class="mb-3">
-          <label for="editIloTitle" class="form-label small fw-medium text-muted">Title</label>
-          <input type="text" class="form-control form-control-sm" id="editIloTitle" name="title" maxlength="255" required />
+          <label for="editIloTitle" class="form-label small fw-medium text-muted">Title (optional)</label>
+          <input type="text" class="form-control form-control-sm" id="editIloTitle" name="title" maxlength="255" placeholder="e.g., Identify fundamental concepts of data structures" />
         </div>
         <div class="mb-0">
           <label for="editIloDescription" class="form-label small fw-medium text-muted">Description</label>
-          <textarea class="form-control form-control-sm" id="editIloDescription" name="description" rows="4" maxlength="2000" required></textarea>
+          <textarea class="form-control form-control-sm" id="editIloDescription" name="description" rows="4" maxlength="2000" placeholder="Describe the ILO" required></textarea>
         </div>
       </div>
       <div class="modal-footer">
