@@ -114,8 +114,34 @@ class IloController extends Controller
             return $this->errorResponse('ILO not found.', 404);
         }
         try {
-            $ilo->delete();
-            return $this->successResponse(['deleted' => true]);
+            $courseId = $ilo->course_id;
+            \DB::transaction(function () use ($ilo, $courseId) {
+                // Delete the ILO
+                $ilo->delete();
+                // Fetch remaining IDs ordered by current position then id
+                $remaining = IntendedLearningOutcome::where('course_id', $courseId)
+                    ->orderBy('position')
+                    ->orderBy('id')
+                    ->pluck('id');
+                // Phase 1: assign temporary codes to avoid uniqueness conflicts
+                foreach ($remaining as $rid) {
+                    IntendedLearningOutcome::where('id', $rid)
+                        ->where('course_id', $courseId)
+                        ->update(['code' => 'TMP' . $rid]);
+                }
+                // Phase 2: assign new sequential positions & codes
+                $pos = 1;
+                foreach ($remaining as $rid) {
+                    IntendedLearningOutcome::where('id', $rid)
+                        ->where('course_id', $courseId)
+                        ->update([
+                            'position' => $pos,
+                            'code' => 'ILO' . $pos,
+                        ]);
+                    $pos++;
+                }
+            });
+            return $this->successResponse(['deleted' => true, 'renumbered' => true]);
         } catch (\Throwable $e) {
             Log::error('ILO destroy error', ['id' => $id, 'error' => $e->getMessage()]);
             return $this->errorResponse('Failed to delete ILO.', 500);
