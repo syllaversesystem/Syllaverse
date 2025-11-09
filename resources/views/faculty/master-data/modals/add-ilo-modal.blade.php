@@ -32,6 +32,7 @@
         <div class="mb-3">
           <label for="iloCode" class="form-label small fw-medium text-muted">Code (auto)</label>
           <input type="text" class="form-control form-control-sm" id="iloCode" name="code" maxlength="64" placeholder="Auto" required readonly />
+          <input type="hidden" id="iloCourseId" name="course_id" value="">
         </div>
         <div class="mb-0">
           <label for="iloDescription" class="form-label small fw-medium text-muted">Description</label>

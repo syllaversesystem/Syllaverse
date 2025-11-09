@@ -59,6 +59,12 @@ Route::middleware([FacultyAuth::class])->group(function () {
     Route::post('/faculty/master-data/iga', [IgaController::class, 'store']);
     Route::put('/faculty/master-data/iga/{id}', [IgaController::class, 'update']);
     Route::delete('/faculty/master-data/iga/{id}', [IgaController::class, 'destroy']);
+    // ILO master data
+    Route::get('/faculty/master-data/ilo/filter', [\App\Http\Controllers\Faculty\IloController::class, 'filter']);
+    Route::post('/faculty/master-data/ilo', [\App\Http\Controllers\Faculty\IloController::class, 'store']);
+    Route::put('/faculty/master-data/ilo/{id}', [\App\Http\Controllers\Faculty\IloController::class, 'update']);
+    Route::delete('/faculty/master-data/ilo/{id}', [\App\Http\Controllers\Faculty\IloController::class, 'destroy']);
+    Route::post('/faculty/master-data/ilo/reorder', [\App\Http\Controllers\Faculty\IloController::class, 'reorder']);
 
     // CDIO Master Data
     Route::get('/faculty/master-data/cdio/filter', [CdioController::class, 'filter'])->name('cdio.filter');

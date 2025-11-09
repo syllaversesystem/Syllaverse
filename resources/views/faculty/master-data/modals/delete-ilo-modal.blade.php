@@ -17,9 +17,10 @@
 
       <div class="modal-header">
         <h5 class="modal-title fw-semibold d-flex align-items-center gap-2" id="deleteIloModalLabel">
-          <i data-feather="trash-2" style="width:1.05rem;height:1.05rem;"></i>
+          <i data-feather="trash-2"></i>
           <span>Delete ILO</span>
         </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
 
       <div class="modal-body">
