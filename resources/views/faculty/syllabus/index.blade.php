@@ -12,19 +12,7 @@
 
   <div class="svx-fullbleed">
 
-    {{-- Alerts (full-bleed) --}}
-    @if (session('success'))
-      <div class="alert alert-success alert-dismissible rounded-0 mb-0 fade show" role="alert">
-        {{ session('success') }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-      </div>
-      @endif
-    @if ($errors->any())
-      <div class="alert alert-danger alert-dismissible rounded-0 mb-0 fade show" role="alert">
-        {{ $errors->first() }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-      </div>
-      @endif
+    {{-- Alerts handled globally via <x-alert-overlay /> in layout --}}
 
     {{-- Content --}}
     <div class="container-fluid px-3 py-3">
