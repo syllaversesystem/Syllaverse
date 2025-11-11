@@ -33,8 +33,12 @@
   #ilo-right-wrap > table { width: 100%; height: 100%; margin: 0; border-spacing: 0; border-collapse: collapse; }
   /* inner table cell padding so content is flush with container */
   #ilo-right-wrap td, #ilo-right-wrap th { vertical-align: middle; padding: 0.5rem 0.5rem; }
-  /* show cell borders for the inner ILO table (internal grid only) */
-  #ilo-right-wrap > table th, #ilo-right-wrap > table td { border: 1px solid #dee2e6; }
+  /* force header text style (ILO code + description) to Times New Roman 10pt black */
+  #ilo-right-wrap > table thead th.cis-label { color:#000 !important; font-family:'Times New Roman', Times, serif !important; font-size:10pt !important; }
+  /* Make the first header cell ("ILO") shrink to content and avoid growing */
+  #ilo-right-wrap > table thead th.cis-label:first-child { white-space: nowrap; width:1%; }
+  /* show cell borders for the inner ILO table (internal grid only) – now forced black */
+    #ilo-right-wrap > table th, #ilo-right-wrap > table td { border: 1px solid #000; }
   /* hide outer edges so only internal dividers remain */
   #ilo-right-wrap > table thead th { border-top: 0; }
   #ilo-right-wrap > table th:first-child, #ilo-right-wrap > table td:first-child { border-left: 0; }
@@ -42,14 +46,46 @@
   /* remove the bottom-most outer border line of the inner table (no visible border under last row) */
   #ilo-right-wrap > table tbody tr:last-child td { border-bottom: 0 !important; }
   /* Ensure badge/code cell and grip align and don't push width */
-  .ilo-badge { display: inline-block; min-width: 48px; text-align: center; }
+  /* ILO badge: allow auto sizing (no forced min-width) so column shrinks to content */
+  .ilo-badge { display: inline-block; min-width: 0; width: auto; padding: 0; text-align: center; color:#000; white-space: normal; line-height: 1.1; }
+  
+    /* tighten header and first column padding to reduce visual height */
+    /* Uniform 6.4px padding for ILO code header and code cells */
+  #ilo-right-wrap > table thead th.cis-label:first-child { padding: 6.4px !important; }
+  #ilo-right-wrap > table td:first-child, #ilo-right-wrap > table th:first-child { padding: 6.4px !important; }
   .drag-handle { width: 28px; display: inline-flex; justify-content: center; }
   /* Make textarea fill remaining space and autosize */
   .cis-textarea { width: 100%; box-sizing: border-box; resize: none; }
-  /* Allow ILO textareas to collapse to a single-line look (match Course Title feel) */
-  #ilo-right-wrap textarea.cis-textarea.autosize { min-height: 34px; overflow: hidden; }
+  /* Align ILO textareas styling with Course Title textareas (single-line autosize) */
+  #ilo-right-wrap textarea.cis-textarea.autosize { overflow: hidden; }
   /* Ensure the left header cell aligns with other CIS module headers */
   table.cis-table th.cis-label, table.cis-table th { vertical-align: top; }
+  /* Icon-only header buttons styled like Add Dept / syllabus toolbar */
+  .ilo-header-actions .btn {
+    position: relative; padding: 0 !important;
+    width: 2.2rem; height: 2.2rem; min-width: 2.2rem; min-height: 2.2rem;
+    border-radius: 50% !important;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--sv-card-bg, #fff);
+    border: none; box-shadow: none; color: #000;
+    transition: all 0.2s ease-in-out;
+    line-height: 0; /* eliminate baseline gap for perfect centering */
+  }
+  .ilo-header-actions .btn .bi { font-size: 1rem; width: 1rem; height: 1rem; line-height: 1; color: var(--sv-text, #000); }
+  /* Center Feather SVG icons and give them a consistent size */
+  .ilo-header-actions .btn svg {
+    width: 1.05rem; height: 1.05rem;
+    display: block; margin: 0; vertical-align: middle;
+    stroke: currentColor; /* inherit button/text color */
+  }
+  .ilo-header-actions .btn:hover, .ilo-header-actions .btn:focus {
+    background: linear-gradient(135deg, rgba(255,240,235,.88), rgba(255,255,255,.46));
+    backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px);
+    box-shadow: 0 4px 10px rgba(204,55,55,.12);
+    color: #CB3737;
+  }
+  .ilo-header-actions .btn:hover .bi, .ilo-header-actions .btn:focus .bi { color: #CB3737; }
+  .ilo-header-actions .btn:active { transform: scale(.97); filter: brightness(.98); }
   </style>
 
   <table class="table table-bordered mb-4 cis-table">
@@ -66,13 +102,27 @@
         <td id="ilo-right-wrap">
           <table class="table mb-0" style="font-family: Georgia, serif; font-size: 13px; line-height: 1.4; border: none;">
             <colgroup>
-              <col style="width: 10%"> <!-- ILO code column -->
-              <col style="width: 90%"> <!-- Description column -->
+              <col style="width:1%"> <!-- ILO code column compressed -->
+              <col style="width:auto"> <!-- Description column flexes remaining -->
             </colgroup>
             <thead>
               <tr class="table-light">
                 <th class="text-center cis-label">ILO</th>
-                <th class="text-start cis-label">Upon completion of this course, the students should be able to:</th>
+                <th class="text-start cis-label">
+                  <div class="d-flex justify-content-between align-items-start gap-2">
+                    <span>Upon completion of this course, the students should be able to:</span>
+                    <span class="ilo-header-actions d-inline-flex gap-1" style="white-space:nowrap;">
+                        <button type="button" class="btn btn-sm" id="ilo-add-header" title="Add ILO" aria-label="Add ILO" style="background:transparent;">
+                          <i data-feather="plus"></i>
+                          <span class="visually-hidden">Add ILO</span>
+                        </button>
+                        <button type="button" class="btn btn-sm" id="ilo-remove-header" title="Remove last ILO" aria-label="Remove last ILO" style="background:transparent;">
+                          <i data-feather="minus"></i>
+                          <span class="visually-hidden">Remove last ILO</span>
+                        </button>
+                    </span>
+                  </div>
+                </th>
               </tr>
             </thead>
             <tbody id="syllabus-ilo-sortable" data-syllabus-id="{{ $default['id'] }}">
@@ -90,8 +140,11 @@
                         </span>
                         <textarea
                           name="ilos[]"
-                          class="form-control cis-textarea autosize flex-grow-1"
+                          class="cis-textarea cis-field autosize flex-grow-1"
                           data-original="{{ old("ilos.$index", $ilo->description) }}"
+                          placeholder="-"
+                          rows="1"
+                          style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;"
                           required>{{ old("ilos.$index", $ilo->description) }}</textarea>
                         <input type="hidden" name="code[]" value="{{ $seqCode }}" data-original-code="{{ $ilo->code }}">
                         <button type="button" class="btn btn-sm btn-outline-danger btn-delete-ilo ms-2" title="Delete ILO">
@@ -113,7 +166,10 @@
                       </span>
                       <textarea
                         name="ilos[]"
-                        class="form-control cis-textarea autosize flex-grow-1"
+                        class="cis-textarea cis-field autosize flex-grow-1"
+                        placeholder="-"
+                        rows="1"
+                        style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;"
                         required></textarea>
                       <input type="hidden" name="code[]" value="ILO1" data-original-code="">
                       <button type="button" class="btn btn-sm btn-outline-danger btn-delete-ilo ms-2" title="Delete ILO">
@@ -250,6 +306,44 @@
           });
         } catch (e) { console.error('removeIloColumnInAT error', e); }
       }
+
+      // Header Add / Remove buttons
+      function renumberIloRows(){
+        const list = document.getElementById('syllabus-ilo-sortable');
+        if(!list) return;
+        const rows = Array.from(list.querySelectorAll('tr')).filter(r => r.querySelector('textarea[name="ilos[]"]') || r.querySelector('.ilo-badge'));
+        rows.forEach((r,i)=>{
+          const code = `ILO${i+1}`;
+          const badge = r.querySelector('.ilo-badge'); if(badge) badge.textContent = code;
+          const codeInput = r.querySelector('input[name="code[]"]'); if(codeInput) codeInput.value = code;
+        });
+        try { window.markAsUnsaved && window.markAsUnsaved('ilos'); } catch {}
+      }
+      const addBtn = document.getElementById('ilo-add-header');
+      const removeBtn = document.getElementById('ilo-remove-header');
+      const listRef = document.getElementById('syllabus-ilo-sortable');
+      addBtn && addBtn.addEventListener('click', ()=>{
+        if(!listRef) return;
+        const rows = Array.from(listRef.querySelectorAll('tr')).filter(r => r.querySelector('textarea[name="ilos[]"]') || r.querySelector('.ilo-badge'));
+        const template = rows[rows.length-1];
+        const newRow = template ? template.cloneNode(true) : document.createElement('tr');
+        newRow.removeAttribute('data-id');
+        newRow.querySelectorAll('textarea').forEach(t=>{ t.value=''; });
+        newRow.querySelectorAll('input[type="hidden"][name="code[]"]').forEach(i=>{ i.value=''; });
+        listRef.appendChild(newRow);
+        // bind autosize to new textarea(s)
+        newRow.querySelectorAll('textarea.autosize').forEach(bindAutosize);
+        renumberIloRows();
+        const focusTa = newRow.querySelector('textarea.autosize'); if(focusTa) setTimeout(()=>focusTa.focus(),10);
+      });
+      removeBtn && removeBtn.addEventListener('click', ()=>{
+        if(!listRef) return;
+        const rows = Array.from(listRef.querySelectorAll('tr')).filter(r => r.querySelector('textarea[name="ilos[]"]') || r.querySelector('.ilo-badge'));
+        if(rows.length <= 1) return; // keep at least one
+        const last = rows[rows.length-1];
+        last.parentNode.removeChild(last);
+        renumberIloRows();
+      });
 
       // delegated keyboard handlers for ILO textareas
       const ilolist = document.getElementById('syllabus-ilo-sortable');
