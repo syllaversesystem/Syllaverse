@@ -21,15 +21,25 @@
   $lab = (int) ($local?->contact_hours_lab ?? $course?->contact_hours_lab ?? 0);
   $total = $lec + $lab;
 
-  // human-readable contact hours text
+  // human-readable contact hours text (newline between entries when both exist)
   if ($lec && $lab) {
-    $contactText = "{$lec} hours lecture; {$lab} hours laboratory";
+    $contactText = "{$lec} hours lecture\n{$lab} hours laboratory";
   } elseif ($lec) {
     $contactText = "{$lec} hours lecture";
   } elseif ($lab) {
     $contactText = "{$lab} hours laboratory";
   } else {
     $contactText = '-';
+  }
+
+  // Normalize any saved/old contact_hours that used semicolons into newlines for display
+  $contactHoursRaw = trim((string) ($local?->contact_hours ?? ''));
+  $contactHoursDisplay = $contactHoursRaw !== '' ? preg_replace('/;\s*/', "\n", $contactHoursRaw) : $contactText;
+  $contactHoursOld = old('contact_hours');
+  if ($contactHoursOld !== null) {
+    $contactHoursValue = preg_replace('/;\s*/', "\n", (string) $contactHoursOld);
+  } else {
+    $contactHoursValue = $contactHoursDisplay;
   }
 
   $prereqs = collect();
@@ -100,19 +110,23 @@
         <span id="unsaved-course_title" class="unsaved-pill d-none">Unsaved</span>
       </th>
       <td>
-  <input type="text" name="course_title" class="cis-input"
-         value="{{ old('course_title', $local?->course_title ?? $course->title ?? '') }}"
-         data-original="{{ $local?->course_title ?? $course->title ?? '' }}"
-         placeholder="Enter course title">
+  <textarea name="course_title"
+      class="cis-textarea cis-field autosize"
+      data-original="{{ $local?->course_title ?? $course->title ?? '' }}"
+    placeholder="-"
+      rows="1"
+      style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">{{ old('course_title', $local?->course_title ?? $course->title ?? '') }}</textarea>
       </td>
       <th class="align-top text-start cis-label">Course Code
         <span id="unsaved-course_code" class="unsaved-pill d-none">Unsaved</span>
       </th>
       <td>
-  <input type="text" name="course_code" class="cis-input"
-         value="{{ old('course_code', $local?->course_code ?? $course->code ?? '') }}"
-         data-original="{{ $local?->course_code ?? $course->code ?? '' }}"
-         placeholder="Enter course code">
+  <textarea name="course_code"
+      class="cis-textarea cis-field autosize"
+      data-original="{{ $local?->course_code ?? $course->code ?? '' }}"
+    placeholder="-"
+      rows="1"
+      style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">{{ old('course_code', $local?->course_code ?? $course->code ?? '') }}</textarea>
       </td>
     </tr>
 
@@ -121,19 +135,23 @@
         <span id="unsaved-course_category" class="unsaved-pill d-none">Unsaved</span>
       </th>
       <td>
-  <input type="text" name="course_category" class="cis-input"
-         value="{{ old('course_category', $local?->course_category ?? $courseCategory) }}"
-         data-original="{{ $local?->course_category ?? $courseCategory }}"
-         placeholder="e.g., Professional Elective: Business Analytics Track">
+  <textarea name="course_category"
+                  class="cis-textarea cis-field autosize"
+                  data-original="{{ $local?->course_category ?? $courseCategory }}"
+      placeholder="-"
+                  rows="1"
+                  style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">{{ old('course_category', $local?->course_category ?? $courseCategory) }}</textarea>
       </td>
       <th class="align-top text-start cis-label">Pre-requisite(s)
         <span id="unsaved-course_prerequisites" class="unsaved-pill d-none">Unsaved</span>
       </th>
-      <td>
-  <textarea name="course_prerequisites" class="cis-field autosize"
-      data-original="{{ $local?->course_prerequisites ?? $prereqStr }}"
-      placeholder="IT 221 - Information Mngt & IT&#10;IT 222 - Advanced Database Management Systems">{{ old('course_prerequisites', $local?->course_prerequisites ?? $prereqStr) }}</textarea>
-      </td>
+    <td>
+  <textarea name="course_prerequisites" class="cis-textarea cis-field autosize"
+    data-original="{{ $local?->course_prerequisites ?? $prereqStr }}"
+    placeholder="-"
+    rows="1"
+    style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">{{ old('course_prerequisites', $local?->course_prerequisites ?? $prereqStr) }}</textarea>
+    </td>
     </tr>
 
     <tr>
@@ -142,26 +160,31 @@
         <span id="unsaved-year_level" class="unsaved-pill d-none">Unsaved</span>
       </th>
       <td>
-        <div class="d-flex align-items-center gap-2">
-     <input type="text" name="semester" class="cis-input"
-       value="{{ old('semester', $local?->semester ?? $syllabus->semester ?? '') }}"
-       data-original="{{ $local?->semester ?? $syllabus->semester ?? '' }}"
-       placeholder="First Semester">
-          <span>/</span>
-     <input type="text" name="year_level" class="cis-input"
-       value="{{ old('year_level', $local?->year_level ?? $syllabus->year_level ?? '') }}"
-       data-original="{{ $local?->year_level ?? $syllabus->year_level ?? '' }}"
-       placeholder="Third Year">
+        <div class="d-flex gap-2 align-items-stretch instructor-split" style="width:100%;">
+  <textarea name="semester"
+            class="cis-textarea cis-field autosize flex-grow-1"
+            data-original="{{ $local?->semester ?? $syllabus->semester ?? '' }}"
+            placeholder="-"
+            rows="1"
+            style="flex:1 1 0;min-width:0;width:auto !important;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">{{ old('semester', $local?->semester ?? $syllabus->semester ?? '') }}</textarea>
+          <div class="employee-code-col" style="flex:0 0 160px;min-width:140px;">
+  <textarea name="year_level"
+            class="cis-textarea cis-field autosize"
+            data-original="{{ $local?->year_level ?? $syllabus->year_level ?? '' }}"
+            placeholder="-"
+            rows="1"
+            style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">{{ old('year_level', $local?->year_level ?? $syllabus->year_level ?? '') }}</textarea>
+          </div>
         </div>
       </td>
       <th class="align-top text-start cis-label">Credit Hours
         <span id="unsaved-credit_hours_text" class="unsaved-pill d-none">Unsaved</span>
       </th>
       <td>
-  <input id="credit_hours_text" type="text" name="credit_hours_text" class="cis-input"
-         value="{{ old('credit_hours_text', $local?->credit_hours_text ?? ($total ? ($total . ' (' . $lec . ' hrs lec; ' . $lab . ' hrs lab)') : '-')) }}"
-         data-original="{{ $local?->credit_hours_text ?? ($total ? ($total . ' (' . $lec . ' hrs lec; ' . $lab . ' hrs lab)') : '-') }}"
-               placeholder="e.g., 5 (2 hrs lec; 3 hrs lab)" aria-live="polite">
+  <textarea id="credit_hours_text" name="credit_hours_text" class="cis-textarea cis-field autosize"
+            data-original="{{ $local?->credit_hours_text ?? ($total ? ($total . ' (' . $lec . ' hrs lec; ' . $lab . ' hrs lab)') : '-') }}"
+            placeholder="-" aria-live="polite" rows="1"
+            style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">{{ old('credit_hours_text', $local?->credit_hours_text ?? ($total ? ($total . ' (' . $lec . ' hrs lec; ' . $lab . ' hrs lab)') : '-')) }}</textarea>
       </td>
     </tr>
 
@@ -177,18 +200,21 @@
             <col style="width: 25%">
           </colgroup>
           <tr>
-            <td>
-    <input type="text" name="instructor_name" class="cis-input"
-      value="{{ old('instructor_name', $local?->instructor_name ?? $nameDisplay) }}"
-      data-original="{{ $local?->instructor_name ?? $nameDisplay }}"
-      placeholder="Enter instructor's name" style="text-transform:none;">
-            </td>
-            <td>
-              <label class="visually-hidden" for="employee_code">Employee No.</label>
-    <input type="text" name="employee_code" class="cis-input"
-      value="{{ old('employee_code', $local?->employee_code ?? $employeeCode) }}"
-      data-original="{{ $local?->employee_code ?? $employeeCode }}"
-      placeholder="Emp No.">
+            <td colspan="2">
+              <div class="d-flex gap-2 align-items-stretch instructor-split" style="width:100%;">
+        <textarea name="instructor_name"
+          class="cis-textarea cis-field autosize instructor-field flex-grow-1"
+          data-original="{{ $local?->instructor_name ?? $nameDisplay }}"
+          placeholder="-" rows="1"
+          style="flex:1 1 0;min-width:0;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">{{ old('instructor_name', $local?->instructor_name ?? $nameDisplay) }}</textarea>
+        <div class="employee-code-col" style="flex:0 0 160px;min-width:140px;">
+          <label class="visually-hidden" for="employee_code">Employee No.</label>
+          <textarea name="employee_code" class="cis-textarea cis-field autosize instructor-field"
+            data-original="{{ $local?->employee_code ?? $employeeCode }}"
+            placeholder="-" rows="1"
+            style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">{{ old('employee_code', $local?->employee_code ?? $employeeCode) }}</textarea>
+        </div>
+              </div>
             </td>
           </tr>
         </table>
@@ -197,72 +223,42 @@
         <span id="unsaved-reference_cmo" class="unsaved-pill d-none">Unsaved</span>
       </th>
       <td>
-        <input type="text" name="reference_cmo" class="cis-input"
-               value="{{ old('reference_cmo', $referenceCMO ?: '') }}"
-               data-original="{{ $referenceCMO ?: '' }}"
-               placeholder="e.g., 25 Series of 2015, 12 Series of 2013">
+     <textarea name="reference_cmo" class="cis-textarea cis-field autosize"
+                 data-original="{{ $referenceCMO ?: '' }}" placeholder="-" rows="1"
+                 style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">{{ old('reference_cmo', $referenceCMO ?: '') }}</textarea>
       </td>
     </tr>
     <tr>
-      <td>
-        <table class="cis-inline-split">
-          <colgroup>
-            <col style="width: 75%">
-            <col style="width: 25%">
-          </colgroup>
-          <tr class="no-vline">
-            <td>
-              <div class="text-muted" style="font-size: 12px;">
-                <label class="visually-hidden" for="instructor_designation">Designation</label>
-      <input type="text" name="instructor_designation" class="cis-input"
-        value="{{ old('instructor_designation', $local?->instructor_designation ?? $designation) }}"
-        data-original="{{ $local?->instructor_designation ?? $designation }}"
-        placeholder="Designation (e.g., Assistant Professor)">
-              </div>
-            </td>
-            <td>&nbsp;</td>
-          </tr>
-        </table>
+      <td class="designation-cell">
+        <label class="visually-hidden" for="instructor_designation">Designation</label>
+        <textarea name="instructor_designation" class="cis-textarea cis-field autosize instructor-field"
+          data-original="{{ $local?->instructor_designation ?? $designation }}"
+          placeholder="-" rows="1"
+          style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">{{ old('instructor_designation', $local?->instructor_designation ?? $designation) }}</textarea>
       </td>
       <th class="align-top text-start cis-label">Date Prepared
         <span id="unsaved-date_prepared" class="unsaved-pill d-none">Unsaved</span>
       </th>
       <td>
-  <input type="text" name="date_prepared" class="cis-input"
-         value="{{ old('date_prepared', $local?->date_prepared ?? $datePrepared ?: '') }}"
-         data-original="{{ $local?->date_prepared ?? $datePrepared ?: '' }}"
-         placeholder="July 26, 2024">
+  <textarea name="date_prepared" class="cis-textarea cis-field autosize"
+         data-original="{{ $local?->date_prepared ?? $datePrepared ?: '' }}" placeholder="-" rows="1"
+         style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">{{ old('date_prepared', $local?->date_prepared ?? $datePrepared ?: '') }}</textarea>
       </td>
     </tr>
     <tr>
       <td>
-        <table class="cis-inline-split">
-          <colgroup>
-            <col style="width: 75%">
-            <col style="width: 25%">
-          </colgroup>
-          <tr class="no-vline">
-            <td>
-              <div class="text-muted" style="font-size: 12px;">
-                <label class="visually-hidden" for="instructor_email">Email</label>
-      <input type="email" name="instructor_email" class="cis-input"
-        value="{{ old('instructor_email', $local?->instructor_email ?? $faculty->email ?? '') }}"
-        data-original="{{ $local?->instructor_email ?? $faculty->email ?? '' }}"
-                       placeholder="email@domain.tld">
-              </div>
-            </td>
-            <td>&nbsp;</td>
-          </tr>
-        </table>
+        <label class="visually-hidden" for="instructor_email">Email</label>
+        <textarea name="instructor_email" class="cis-textarea cis-field autosize instructor-field"
+          data-original="{{ $local?->instructor_email ?? $faculty->email ?? '' }}" placeholder="-" rows="1"
+          style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">{{ old('instructor_email', $local?->instructor_email ?? $faculty->email ?? '') }}</textarea>
       </td>
       <th class="align-top text-start cis-label">Revision No.
         <span id="unsaved-revision_no" class="unsaved-pill d-none">Unsaved</span>
       </th>
       <td>
-  <input type="text" name="revision_no" class="cis-input"
-         value="{{ old('revision_no', $local?->revision_no ?? $revisionNo ?: '') }}"
-         data-original="{{ $local?->revision_no ?? $revisionNo ?: '' }}"
-         placeholder="-">
+  <textarea name="revision_no" class="cis-textarea cis-field autosize"
+         data-original="{{ $local?->revision_no ?? $revisionNo ?: '' }}" placeholder="-" rows="1"
+         style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">{{ old('revision_no', $local?->revision_no ?? $revisionNo ?: '') }}</textarea>
       </td>
     </tr>
     {{-- ░░░ END: Course Instructor ░░░ --}}
@@ -272,19 +268,17 @@
         <span id="unsaved-academic_year" class="unsaved-pill d-none">Unsaved</span>
       </th>
       <td>
-  <input type="text" name="academic_year" class="cis-input"
-         value="{{ old('academic_year', $local?->academic_year ?? $periodOfStudy ?: '') }}"
-         data-original="{{ $local?->academic_year ?? $periodOfStudy ?: '' }}"
-         placeholder="AY 2024 - 2025">
+  <textarea name="academic_year" class="cis-textarea cis-field autosize"
+         data-original="{{ $local?->academic_year ?? $periodOfStudy ?: '' }}" placeholder="-" rows="1"
+         style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">{{ old('academic_year', $local?->academic_year ?? $periodOfStudy ?: '') }}</textarea>
       </td>
       <th class="align-top text-start cis-label">Revision Date
         <span id="unsaved-revision_date" class="unsaved-pill d-none">Unsaved</span>
       </th>
       <td>
-  <input type="text" name="revision_date" class="cis-input"
-         value="{{ old('revision_date', $local?->revision_date ?? $revisionDate ?: '') }}"
-         data-original="{{ $local?->revision_date ?? $revisionDate ?: '' }}"
-         placeholder="-">
+  <textarea name="revision_date" class="cis-textarea cis-field autosize"
+         data-original="{{ $local?->revision_date ?? $revisionDate ?: '' }}" placeholder="-" rows="1"
+         style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">{{ old('revision_date', $local?->revision_date ?? $revisionDate ?: '') }}</textarea>
       </td>
     </tr>
 
@@ -299,35 +293,24 @@
           name="course_description"
           class="cis-textarea cis-field autosize"
           data-original="{{ $local?->course_description ?? $courseDescription }}"
-          placeholder="Enter a concise course rationale and description based on the official CIS."
+          placeholder="-"
+          rows="1"
+          style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;"
         >{{ old('course_description', $local?->course_description ?? $courseDescription) }}</textarea>
       </td>
     </tr>
     {{-- ░░░ END: Course Rationale & Description ░░░ --}}
 
-    {{-- Contact Hours UI: two-column lecture/lab and combined text below --}}
+    {{-- Contact Hours UI: single textarea (autosize) --}}
 <tr>
   <th class="align-top text-start cis-label">Contact Hours
     <span id="unsaved-contact_hours" class="unsaved-pill d-none">Unsaved</span>
   </th>
   <td colspan="3">
-    <div class="contact-hours">
-      <div>
-        <label class="visually-hidden" for="contact_hours_lec">Lecture Hours</label>
-        <input id="contact_hours_lec" type="text" name="contact_hours_lec" class="cis-input w-100"
-               value="{{ old('contact_hours_lec', $local?->contact_hours_lec ?? ($lec ? ($lec . ' hours lecture') : '')) }}"
-               data-original="{{ $local?->contact_hours_lec ?? ($lec ? ($lec . ' hours lecture') : '') }}"
-               placeholder="e.g., 3 hours lecture">
-      </div>
-
-      <div style="margin-top:6px;">
-        <label class="visually-hidden" for="contact_hours_lab">Lab Hours</label>
-        <input id="contact_hours_lab" type="text" name="contact_hours_lab" class="cis-input w-100"
-               value="{{ old('contact_hours_lab', $local?->contact_hours_lab ?? ($lab ? ($lab . ' hours laboratory') : '')) }}"
-               data-original="{{ $local?->contact_hours_lab ?? ($lab ? ($lab . ' hours laboratory') : '') }}"
-               placeholder="e.g., 3 hours laboratory">
-      </div>
-    </div>
+  <textarea name="contact_hours" class="cis-textarea cis-field autosize"
+        data-original="{{ $contactHoursDisplay }}"
+        placeholder="-" rows="1"
+        style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">{{ $contactHoursValue }}</textarea>
   </td>
 </tr>
 </table>

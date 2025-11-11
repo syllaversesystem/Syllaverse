@@ -17,9 +17,11 @@ Description: Institutional Vision & Mission section (refactored for semantic, ac
         <textarea
           id="vision-text"
           name="vision"
-          class="form-control cis-textarea sv-mv-textarea autosize"
+          class="cis-textarea cis-field autosize"
           data-original="{{ old('vision', $default['vision'] ?? $syllabus->missionVision?->vision ?? '') }}"
-          placeholder="Enter the official university vision"
+          placeholder="-"
+          rows="1"
+          style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;"
           required>{{ old('vision', $default['vision'] ?? $syllabus->missionVision?->vision ?? '') }}</textarea>
       </td>
     </tr>
@@ -31,9 +33,11 @@ Description: Institutional Vision & Mission section (refactored for semantic, ac
         <textarea
           id="mission-text"
           name="mission"
-          class="form-control cis-textarea sv-mv-textarea autosize"
+          class="cis-textarea cis-field autosize"
           data-original="{{ old('mission', $default['mission'] ?? $syllabus->missionVision?->mission ?? '') }}"
-          placeholder="Enter the official university mission"
+          placeholder="-"
+          rows="1"
+          style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;"
           required>{{ old('mission', $default['mission'] ?? $syllabus->missionVision?->mission ?? '') }}</textarea>
       </td>
     </tr>

@@ -20,6 +20,38 @@
 .syllabus-doc .cis-textarea,
 .syllabus-doc .sv-mv-textarea {
 	line-height: 1.35;
+	display: block;
+	width: 100%;
+}
+
+/* Autosize textareas: start at one line, grow to fit content without manual resize handle */
+.syllabus-doc textarea.autosize {
+	resize: none;
+	overflow: hidden; /* hide scrollbars; JS expands height */
+	min-height: 1.35em; /* roughly one line at current font-size */
+}
+.syllabus-doc textarea.cis-textarea,
+.syllabus-doc textarea.cis-field,
+.syllabus-doc .cis-textarea.cis-field {
+	white-space: pre-wrap !important; /* preserve line breaks and wrap */
+	overflow-wrap: anywhere !important; /* break long tokens */
+	word-break: break-word !important; /* legacy fallback */
+	width: 100% !important;
+	display: block;
+}
+
+/* Mission & Vision specific: ensure their table cells allow wrapping */
+.syllabus-doc .sv-mv-table td,
+.syllabus-doc .sv-mv-table th { white-space: normal !important; }
+
+
+/* Ensure editing areas wrap like printed CIS cells and break long words/codes */
+.syllabus-doc textarea,
+.syllabus-doc .cis-textarea,
+.syllabus-doc .sv-mv-textarea {
+  white-space: pre-wrap;        /* preserve line breaks, allow wrapping */
+  overflow-wrap: anywhere;      /* break long words if needed */
+  word-break: break-word;       /* legacy support */
 }
 
 /* Remove borders from all form controls inside the syllabus document */
@@ -35,6 +67,14 @@
 	outline: none !important;
 	background-color: transparent;
 	border-radius: 0;
+}
+
+/* Remove internal padding from all syllabus textareas for CIS-tight look */
+.syllabus-doc textarea,
+.syllabus-doc .cis-textarea,
+.syllabus-doc .sv-mv-textarea,
+.syllabus-doc .form-control.cis-textarea {
+  padding: 0 !important;
 }
 
 /* Ensure focus state does not reintroduce borders/shadows */
@@ -55,6 +95,87 @@
 .syllabus-doc .cis-table th,
 .syllabus-doc .cis-table td {
 	border: 1px solid #000; /* revert accidental red cell borders */
+}
+
+/* Within the syllabus document, allow table cell content to wrap normally */
+.syllabus-doc .cis-table td,
+.syllabus-doc .cis-table th {
+  white-space: normal;
+}
+
+/* Compact CIS cell padding and vertical alignment so rows fit textarea height closely */
+.syllabus-doc .cis-table th,
+.syllabus-doc .cis-table td {
+	padding: 0.2rem 0.4rem; /* match MV table tightness */
+	vertical-align: top;
+}
+
+/* Textareas inside CIS tables should not add extra spacing */
+.syllabus-doc .cis-table textarea { margin: 0; }
+
+/* Remove outer border for the Designation content cell in Course Instructor */
+.syllabus-doc .cis-table td.designation-cell {
+	border: none !important;
+	white-space: normal !important;
+	height: auto !important;
+	padding: 0.2rem 0.4rem !important; /* match Course Title cell tightness */
+}
+
+/* More aggressive wrapping specifically for Designation cell */
+.syllabus-doc .cis-table td.designation-cell textarea {
+	overflow-wrap: anywhere !important;
+	word-break: break-word !important;
+	hyphens: auto;
+	/* If still too long, allow break-all fallback (commented out unless needed) */
+	/* word-break: break-all; */
+}
+
+/* Remove inner borders for the nested Instructor inline split table */
+.syllabus-doc .cis-table .cis-inline-split {
+	border: none !important;
+	border-collapse: collapse;
+	border-spacing: 0;
+	width: 100%;
+}
+.syllabus-doc .cis-table .cis-inline-split td,
+.syllabus-doc .cis-table .cis-inline-split th,
+.syllabus-doc .cis-table .cis-inline-split tr {
+	border: none !important;
+	height: auto !important;
+}
+.syllabus-doc .cis-table .cis-inline-split td,
+.syllabus-doc .cis-table .cis-inline-split th {
+	padding: 0 !important; /* keep tight layout like CIS */
+}
+
+/* Ensure instructor rows collapse exactly to textarea height */
+.syllabus-doc .cis-table tr,
+.syllabus-doc .cis-table td,
+.syllabus-doc .cis-table th { height: auto; }
+.syllabus-doc .cis-table .cis-inline-split .text-muted { margin: 0; }
+.syllabus-doc .cis-table .d-flex.gap-2.align-items-start { margin: 0; }
+
+/* Course Instructor: make textareas borderless and seamless */
+.syllabus-doc .cis-table textarea.instructor-field,
+.syllabus-doc .cis-table textarea.instructor-field:focus,
+.syllabus-doc .cis-table textarea.instructor-field:hover {
+	border: none !important;
+	outline: none !important;
+	box-shadow: none !important;
+	background-color: transparent !important;
+}
+/* Vertical divider between Instructor Name and Employee Code */
+.syllabus-doc .cis-table .instructor-split { align-items: stretch !important; }
+.syllabus-doc .cis-table .instructor-split .employee-code-col {
+	border-left: 1px solid #000;
+	padding-left: 0.4rem;
+}
+
+/* Course Instructor: wrap even more aggressively for long tokens */
+.syllabus-doc .cis-table textarea.instructor-field {
+	overflow-wrap: anywhere !important; /* prefer breaking anywhere */
+	word-break: break-word !important;  /* legacy fallback */
+	hyphens: auto;                      /* browser hyphenation support */
 }
 
 /* Mission & Vision table should not show the outer container border */

@@ -239,8 +239,15 @@ function autosize(el) { el.style.height = 'auto'; el.style.height = (el.scrollHe
 function initAutosize() {
   const areas = document.querySelectorAll('textarea.autosize');
   areas.forEach((ta) => {
+    // Avoid stacking multiple listeners if initAutosize runs more than once
+    if (!ta.__autosizeBound) {
+      ta.__autosizeBound = true;
+      const resize = () => autosize(ta);
+      ta.addEventListener('input', resize);
+      ta.addEventListener('change', resize);
+    }
+    // Run at call time to sync height with current content
     autosize(ta);
-    ta.addEventListener('input', () => autosize(ta));
   });
 }
 
@@ -478,6 +485,9 @@ document.addEventListener('DOMContentLoaded', () => {
   trackFormChanges();
   setupExitConfirmation();
   initAutosize();
+  // Re-run after layout/fonts/images settle to ensure correct scrollHeight
+  setTimeout(() => { try { initAutosize(); } catch (e) {} }, 120);
+  try { window.addEventListener('load', () => { try { initAutosize(); } catch (e) {} }); } catch (e) { /* noop */ }
   initDynamicInputLists();
   initCriteriaLists();
 
