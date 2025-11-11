@@ -52,31 +52,146 @@
       ['key' => 'laboratory', 'heading' => preg_replace('/\s*\(?\d+%?\)?$/','', explode('\n', trim($labText))[0] ?? ''), 'value' => []],
     ];
   }
+  // Default to a single section in the UI: prefer 'lecture' if present, else the first available
+  if (!empty($sections)) {
+    $preferred = null;
+    foreach ($sections as $s) {
+      if (($s['key'] ?? '') === 'lecture') { $preferred = $s; break; }
+    }
+    $sections = [$preferred ?: $sections[0]];
+  }
 @endphp
 
 <style>
   /* keep typography and spacing consistent with course-info and mission-vision */
   .cis-criteria { font-size: 13px; }
-  .cis-criteria .section { padding: 6px 8px; border:0; border-radius:6px; background:#fff }
-  /* use the same textarea look as mission-vision: form-control + cis-textarea */
-  .cis-criteria .main-input { width:100%; border:none; background:transparent; padding:0; font-weight:400; font-family: inherit; font-size: inherit; line-height:1.15; color:#000; }
-  /* sub items: indented and matching textarea style */
-  .cis-criteria .sub-list { margin-top:6px; }
-  .cis-criteria .sub-line { margin-left:18px; display:flex; gap:8px; align-items:center; }
-  /* make sub input match Course Title (`.cis-input`) appearance */
-  .cis-criteria .sub-input { width:100%; border:none; background:transparent; padding:0; }
-  /* compact percent field, vertically centered with the sub title */
-  .cis-criteria .sub-percent { flex:0 0 64px; width:64px; font-size:13px; padding:0 6px; margin-bottom:4px; height:28px; align-self:center; border:none; background:transparent; text-align:right; }
-  /* yellow focus for main and sub fields (match .cis-input focus) */
-  .cis-criteria .main-input:focus, .cis-criteria .sub-input:focus, .cis-criteria .sub-percent:focus { outline: none; box-shadow: none; background-color: #fffbe6; }
+  .cis-criteria .section { padding: 6px 8px; border:0; border-radius:6px; background:#fff; display:flex; flex-direction:column }
+  /* textarea look unified */
+  .cis-criteria textarea { width:100%; border:none; background:transparent; padding:0; font-weight:400; font-family: inherit; font-size: inherit; line-height:1.15; color:#000; resize:none; overflow:hidden; }
+  .cis-criteria .sub-list { margin-top:6px; flex: 1 1 auto; }
+  .cis-criteria .sub-line { margin-left:18px; display:flex; gap:8px; align-items:flex-start; }
+  .cis-criteria .sub-input { flex:1 1 auto; max-width: 50%; }
+  .cis-criteria .sub-percent { flex:0 0 64px; width:64px; text-align:right; font-family: 'Times New Roman', Times, serif; font-size: 10pt; font-weight: 400; line-height: 1.15; }
+  .cis-criteria textarea:focus { outline: none; box-shadow: none; background-color: transparent; }
   .cis-criteria .section-head { display:flex; justify-content:flex-start; align-items:flex-start; gap:8px; }
+  /* allow add button to sit on the right of the main heading */
+  .cis-criteria .section-head .main-input { width: auto; flex: 1 1 auto; }
   .cis-criteria .placeholder-muted { color:#6c757d; }
+  /* remove all padding of the Criteria cell */
+  .cis-criteria td { position: relative; }
+  .cis-criteria .cis-table td { padding: 0 !important; }
+  /* bottom action row under the sub-list */
+  .cis-criteria .criteria-actions-row {
+    display: flex;
+    gap: 8px;
+    margin-top: auto; /* anchor at bottom of section */
+    padding-top: 8px; /* keep visual spacing from content */
+  }
+  /* board layout with fixed side controls and adaptable sections */
+  .cis-criteria .criteria-board { display: flex; align-items: stretch; gap: 0; }
+  .cis-criteria .sections-container { flex: 1 1 auto; display: flex; gap: 8px; }
+  .cis-criteria .sections-container .section { flex: 1 1 0; min-width: 240px; }
+  .cis-criteria .criteria-side-btn {
+    padding: 0 8px;
+    line-height: 1;
+    font-weight: 600;
+    border: none !important;
+    background: #fff !important;
+    color: #212529;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    align-self: stretch;
+    height: auto;
+  }
+  .cis-criteria .criteria-side-btn i,
+  .cis-criteria .criteria-side-btn svg { width: 14px; height: 14px; }
+  .cis-criteria .criteria-add-btn {
+    padding: 4px 10px;
+    line-height: 1;
+    font-weight: 600;
+    border: none !important;
+    background: #fff !important;
+    color: #212529;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    height: auto;
+  }
+  .cis-criteria .criteria-remove-btn {
+    padding: 4px 10px;
+    line-height: 1;
+    font-weight: 600;
+    border: none !important;
+    background: #fff !important;
+    color: #212529;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    height: auto;
+  }
+  /* hover/active for side controls */
+  .cis-criteria .criteria-side-btn:hover,
+  .cis-criteria .criteria-side-btn:focus {
+    background: linear-gradient(135deg, rgba(255, 240, 235, 0.88), rgba(255, 255, 255, 0.46)) !important;
+    backdrop-filter: blur(7px);
+    -webkit-backdrop-filter: blur(7px);
+    box-shadow: 0 4px 10px rgba(204, 55, 55, 0.12);
+    color: #CB3737;
+  }
+  .cis-criteria .criteria-side-btn:active { transform: scale(0.97); filter: brightness(0.98); }
+  .cis-criteria .criteria-side-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  /* inside bottom action row, split equally 50/50 */
+  .cis-criteria .criteria-actions-row .criteria-add-btn,
+  .cis-criteria .criteria-actions-row .criteria-remove-btn {
+    flex: 1 1 50%;
+  }
+  @media print { .cis-criteria .criteria-add-btn { display: none !important; } }
+  @media print { .cis-criteria .criteria-remove-btn { display: none !important; } }
+  @media print { .cis-criteria .criteria-side-btn { display: none !important; } }
+    /* Match syllabus toolbar hover effect */
+    .cis-criteria .criteria-add-btn:hover,
+    .cis-criteria .criteria-add-btn:focus {
+      background: linear-gradient(135deg, rgba(255, 240, 235, 0.88), rgba(255, 255, 255, 0.46)) !important;
+      backdrop-filter: blur(7px);
+      -webkit-backdrop-filter: blur(7px);
+      box-shadow: 0 4px 10px rgba(204, 55, 55, 0.12);
+      color: #CB3737;
+    }
+    .cis-criteria .criteria-add-btn:hover i,
+    .cis-criteria .criteria-add-btn:hover svg,
+    .cis-criteria .criteria-add-btn:focus i,
+    .cis-criteria .criteria-add-btn:focus svg {
+      color: #CB3737;
+    }
+    .cis-criteria .criteria-add-btn:active { transform: scale(0.97); filter: brightness(0.98); }
+  /* smaller icon inside add button */
+  .cis-criteria .criteria-add-btn i,
+  .cis-criteria .criteria-add-btn svg { width: 14px; height: 14px; }
+  /* match remove button icon size to add button */
+  .cis-criteria .criteria-remove-btn i,
+  .cis-criteria .criteria-remove-btn svg { width: 14px; height: 14px; }
+  .cis-criteria .criteria-remove-btn:hover,
+  .cis-criteria .criteria-remove-btn:focus {
+    background: linear-gradient(135deg, rgba(255, 240, 235, 0.88), rgba(255, 255, 255, 0.46)) !important;
+    backdrop-filter: blur(7px);
+    -webkit-backdrop-filter: blur(7px);
+    box-shadow: 0 4px 10px rgba(204, 55, 55, 0.12);
+    color: #CB3737;
+  }
+  .cis-criteria .criteria-remove-btn:hover i,
+  .cis-criteria .criteria-remove-btn:hover svg,
+  .cis-criteria .criteria-remove-btn:focus i,
+  .cis-criteria .criteria-remove-btn:focus svg {
+    color: #CB3737;
+  }
+  .cis-criteria .criteria-remove-btn:active { transform: scale(0.97); filter: brightness(0.98); }
 </style>
 
 <div class="mt-3 cis-criteria">
-  <div class="mb-1">
-    <p class="mb-0 text-muted small">Keyboard shortcuts: press <strong>ENTER</strong> in a sub-item (or in the main heading) to add a new sub-item; press <strong>BACKSPACE</strong> on an empty sub-item to remove it.</p>
-  </div>
   <table class="table table-bordered mb-4 cis-table">
     <colgroup>
       <col style="width: 16%">
@@ -88,17 +203,31 @@
           <span id="unsaved-criteria" class="unsaved-pill d-none">Unsaved</span>
         </th>
         <td>
-          <div class="d-flex gap-2">
-            @foreach($sections as $idx => $sec)
-              <div class="flex-fill">
-                <div class="section" id="criteria-{{ $sec['key'] ?? ('section_' . ($idx+1)) }}">
+          <div class="criteria-board">
+            <button type="button" class="btn btn-sm criteria-side-btn criteria-remove-section-btn" title="Remove last section" aria-label="Remove last section">
+              <i data-feather="minus"></i>
+            </button>
+            <div class="sections-container" id="criteria-sections-container">
+              @foreach($sections as $idx => $sec)
+                <div class="section" data-section-key="{{ $sec['key'] ?? ('section_' . ($idx+1)) }}">
                   <div class="section-head">
-                    <input type="text" name="criteria_{{ $sec['key'] ?? ($idx+1) }}_display" data-section="{{ $sec['key'] ?? ('section_' . ($idx+1)) }}" class="main-input cis-input" placeholder="{{ $sec['heading'] ?: ucfirst($sec['key'] ?? 'Section') }}" value="{{ old('criteria_section_heading.' . $idx, $sec['heading'] ?? '') }}">
+                    <textarea rows="1" name="criteria_{{ $sec['key'] ?? ($idx+1) }}_display" data-section="{{ $sec['key'] ?? ('section_' . ($idx+1)) }}" class="main-input cis-input autosize" placeholder="-">{{ old('criteria_section_heading.' . $idx, $sec['heading'] ?? '') }}</textarea>
                   </div>
                   <div class="sub-list" aria-live="polite" data-init='{{ json_encode($sec['value'] ?? []) }}'></div>
+                  <div class="criteria-actions-row">
+                    <button type="button" class="btn btn-sm criteria-remove-btn" title="Remove last sub-item" aria-label="Remove last sub-item">
+                      <i data-feather="minus"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm criteria-add-btn" title="Add sub-item" aria-label="Add sub-item">
+                      <i data-feather="plus"></i>
+                    </button>
+                  </div>
                 </div>
-              </div>
-            @endforeach
+              @endforeach
+            </div>
+            <button type="button" class="btn btn-sm criteria-side-btn criteria-add-section-btn" title="Add section" aria-label="Add section">
+              <i data-feather="plus"></i>
+            </button>
           </div>
 
           {{-- Hidden inputs to submit serialized criteria lines (one per section) --}}
@@ -118,30 +247,31 @@ document.addEventListener('DOMContentLoaded', function(){
   function createSubLine(text) {
     const el = document.createElement('div');
     el.className = 'sub-line';
-  const ta = document.createElement('input');
-  ta.type = 'text';
-  ta.className = 'sub-input cis-input';
-  ta.placeholder = 'e.g., Midterm Exam';
-    // if incoming text contains a trailing percentage like '... 20%' or '(20%)', extract it into percent field
+    // description textarea
+    const ta = document.createElement('textarea');
+    ta.rows = 1;
+    ta.className = 'sub-input cis-input autosize';
+  ta.placeholder = '-';
+    // extract trailing percent if present
     let pct = '';
     if (text) {
-      const m = text.match(/^(.*?)\s*(?:\(?([0-9]{1,3}%?)\)?)?\s*$/);
+      const m = text.match(/^(.*?)\s*(?:\(?([0-9]{1,3}%?)\)?)\s*$/);
       if (m) { ta.value = (m[1] || '').trim(); pct = (m[2] || '').trim(); }
       else { ta.value = text; }
-    } else { ta.value = ''; }
+    }
     el.appendChild(ta);
-    // percent input to the right
-  const p = document.createElement('input');
-  p.type = 'text';
-  p.className = 'sub-percent cis-number';
-  p.placeholder = '20%';
+    // percent textarea (keep small width via existing class styles)
+    const p = document.createElement('textarea');
+    p.rows = 1;
+    p.className = 'sub-percent cis-number autosize';
+  p.placeholder = '%';
     p.value = pct || '';
     el.appendChild(p);
     return el;
   }
 
   // initialize each section: parse main textarea into first line and remaining sublines
-  document.querySelectorAll('.cis-criteria .section').forEach(function(section){
+  document.querySelectorAll('.cis-criteria .sections-container .section').forEach(function(section){
     const main = section.querySelector('.main-input');
     const subList = section.querySelector('.sub-list');
 
@@ -153,9 +283,8 @@ document.addEventListener('DOMContentLoaded', function(){
       for (let i=1;i<raw.length;i++) {
         if (raw[i]) { subList.appendChild(createSubLine(raw[i])); }
       }
-      // ensure two default sublines if none exist
+      // ensure a single default subline if none exist
       if (subList.children.length === 0) {
-        subList.appendChild(createSubLine());
         subList.appendChild(createSubLine());
       }
       attachSubHandlers(subList, main);
@@ -163,24 +292,7 @@ document.addEventListener('DOMContentLoaded', function(){
     }
 
     // main: Enter should create a new sub line (do not allow newline in main)
-    main.addEventListener('keydown', function(e){
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        const subListEl = section.querySelector('.sub-list');
-        // do not add if last sub is empty
-        const last = subListEl.lastElementChild;
-        if (last) {
-          const lastInp = last.querySelector('.sub-input');
-          if (lastInp && lastInp.value.trim() === '') { lastInp.focus(); return; }
-        }
-        const newLine = createSubLine();
-        subListEl.appendChild(newLine);
-        attachSubHandlers(subListEl, main);
-        const ta = newLine.querySelector('.sub-input');
-        if (ta) ta.focus();
-        fireCriteriaChanged();
-      }
-    });
+    // Removed Enter key handler that auto-added sub-lines from main heading to simplify UX
     main.addEventListener('input', function(){ fireCriteriaChanged(); });
 
     // initial sync: prefer `data-init` on .sub-list (JSON array of {description,percent}), else fallback to legacy main.value newline parsing
@@ -196,98 +308,34 @@ document.addEventListener('DOMContentLoaded', function(){
       } else if ((main.value || '').indexOf('\n') !== -1) {
         syncFromMain();
       } else {
-        // default: two blank sub inputs so user fills them; placeholders show examples
+        // default: one blank sub input so user fills it; placeholder shows example
         subList.innerHTML = '';
-        subList.appendChild(createSubLine());
         subList.appendChild(createSubLine());
         attachSubHandlers(subList, main);
       }
     } catch (e) {
       // if JSON parsing fails, fallback to previous behavior
       if ((main.value || '').indexOf('\n') !== -1) { syncFromMain(); }
-      else { subList.innerHTML = ''; subList.appendChild(createSubLine()); subList.appendChild(createSubLine()); attachSubHandlers(subList, main); }
+  else { subList.innerHTML = ''; subList.appendChild(createSubLine()); attachSubHandlers(subList, main); }
     }
   });
 
   // attach handlers to sub textareas: Enter creates a new sibling sub, Backspace on empty removes it
   function attachSubHandlers(listEl, mainEl) {
+    // Only basic input listeners retained; removed Enter add and Backspace remove shortcuts
     Array.from(listEl.querySelectorAll('.sub-line .sub-input')).forEach(function(inp){
-      inp.addEventListener('keydown', function(e){
-        if (e.key === 'Backspace' && inp.value === '') {
-          // remove this line if more than one; focus moves sensibly
-          const wrapper = inp.parentElement;
-          const list = wrapper.parentElement;
-          if (list.children.length > 1) {
-            const prev = wrapper.previousElementSibling;
-            wrapper.remove();
-            if (prev) {
-              const prevTa = prev.querySelector('.sub-input');
-              if (prevTa) prevTa.focus();
-            } else {
-              // focus main header if no previous
-              const main = list.parentElement.querySelector('.main-input');
-              if (main) main.focus();
-            }
-          } else {
-            // keep one empty field and focus it
-            inp.value = '';
-            inp.focus();
-          }
-          fireCriteriaChanged();
-          e.preventDefault();
-          return;
-        }
-        if (e.key === 'Enter') {
-          // create new sub after this one, but avoid duplicates
-          e.preventDefault();
-          const wrapper = inp.parentElement;
-          const next = wrapper.nextElementSibling;
-          if (next) {
-            const nextInp = next.querySelector('.sub-input');
-            if (nextInp && nextInp.value.trim() === '') { nextInp.focus(); return; }
-          }
-          const newLine = createSubLine();
-          wrapper.parentElement.insertBefore(newLine, wrapper.nextSibling);
-          attachSubHandlers(listEl, mainEl);
-          const ta = newLine.querySelector('.sub-input');
-          if (ta) { ta.focus(); ta.setSelectionRange(0,0); }
-          fireCriteriaChanged();
-        }
-      });
       inp.addEventListener('input', function(){ fireCriteriaChanged(); });
     });
-    // percent inputs: Enter creates a new sub line and focuses the new sub title input
     Array.from(listEl.querySelectorAll('.sub-percent')).forEach(function(pin){
-      pin.addEventListener('keydown', function(e){
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          const wrapper = pin.parentElement;
-          const next = wrapper.nextElementSibling;
-          if (next) {
-            const nextTa = next.querySelector('.sub-input');
-            if (nextTa && nextTa.value.trim() === '') { nextTa.focus(); return; }
-          }
-          const newLine = createSubLine();
-          wrapper.parentElement.insertBefore(newLine, wrapper.nextSibling);
-          attachSubHandlers(listEl, mainEl);
-          const ta = newLine.querySelector('.sub-input');
-          if (ta) { ta.focus(); ta.setSelectionRange(0,0); }
-          fireCriteriaChanged();
-        }
-      });
-      // when the user finishes editing the percent, normalize simple numeric input to include a percent sign
       pin.addEventListener('blur', function(){
         let v = (pin.value || '').toString().trim();
         if (v === '') return;
-        // remove accidental multiple percent signs and whitespace
         v = v.replace(/%+/g, '%').replace(/\s+/g, '');
-        // If it's a plain number like '20' or '20.5', append '%'
         if (/^\d+(?:\.\d+)?$/.test(v)) {
           pin.value = v + '%';
         } else if (/^\d+(?:\.\d+)?%$/.test(v)) {
-          pin.value = v; // already ok
+          pin.value = v;
         } else {
-          // leave custom values untouched
           pin.value = v;
         }
         fireCriteriaChanged();
@@ -296,15 +344,72 @@ document.addEventListener('DOMContentLoaded', function(){
     });
   }
 
-  function serializeSection(sectionId) {
-    const section = document.getElementById(sectionId);
+  // Public helpers to add/remove a sub-line within a specific section
+  function addSubLineToSection(sectionEl) {
+    if (!sectionEl) return;
+    const subList = sectionEl.querySelector('.sub-list');
+    if (!subList) return;
+    // Always append a new sub-line, even if the last one is blank
+    const newLine = createSubLine();
+    subList.appendChild(newLine);
+    attachSubHandlers(subList, sectionEl.querySelector('.main-input'));
+    newLine.querySelectorAll('textarea.autosize').forEach(function(ta){
+      try { ta.style.height = 'auto'; ta.style.height = (ta.scrollHeight || 0) + 'px'; } catch (e) { /* noop */ }
+    });
+    const ta = newLine.querySelector('.sub-input');
+    if (ta) ta.focus();
+    fireCriteriaChanged();
+    try { recomputeAutosizeAll(); } catch (e) { /* noop */ }
+  }
+
+  function removeSubLineFromSection(sectionEl) {
+    if (!sectionEl) return;
+    const subList = sectionEl.querySelector('.sub-list');
+    if (!subList) return;
+    const lines = Array.from(subList.querySelectorAll('.sub-line'));
+    if (!lines.length) return;
+    let target = null;
+    for (let i = lines.length - 1; i >= 0; i--) {
+      const desc = (lines[i].querySelector('.sub-input')?.value || '').trim();
+      const pct  = (lines[i].querySelector('.sub-percent')?.value || '').trim();
+      if (desc !== '' || pct !== '') { target = lines[i]; break; }
+      if (desc === '' && pct === '' && lines.length > 1) { target = lines[i]; break; }
+    }
+    if (!target) {
+      if (lines.length > 1) { lines[lines.length - 1].remove(); fireCriteriaChanged(); }
+      try { recomputeAutosizeAll(); } catch (e) { /* noop */ }
+      return;
+    }
+    if (lines.length === 1) {
+      const ti = target.querySelector('.sub-input');
+      const tp = target.querySelector('.sub-percent');
+      if (ti) ti.value = '';
+      if (tp) tp.value = '';
+      fireCriteriaChanged();
+      try { recomputeAutosizeAll(); } catch (e) { /* noop */ }
+      return;
+    }
+    const prev = target.previousElementSibling;
+    target.remove();
+    if (prev) {
+      const prevDesc = prev.querySelector('.sub-input');
+      if (prevDesc) prevDesc.focus();
+    }
+    fireCriteriaChanged();
+    try { recomputeAutosizeAll(); } catch (e) { /* noop */ }
+  }
+
+  // Optional: expose helpers on window for external triggers/debug
+  window.addCriteriaSubLine = addSubLineToSection;
+  window.removeCriteriaSubLine = removeSubLineFromSection;
+
+  function serializeSectionEl(section) {
     if (!section) return '';
-  const main = section.querySelector('.main-input');
-  const subLines = section.querySelectorAll('.sub-list .sub-line');
-  let lines = [];
-  // main title only (no main percent)
-  if (main && (main.value || '').trim() !== '') lines.push((main.value || '').trim());
-  subLines.forEach(function(line){
+    const main = section.querySelector('.main-input');
+    const subLines = section.querySelectorAll('.sub-list .sub-line');
+    let lines = [];
+    if (main && (main.value || '').trim() !== '') lines.push((main.value || '').trim());
+    subLines.forEach(function(line){
       const ta = line.querySelector('.sub-input');
       const p = line.querySelector('.sub-percent');
       const tval = ta ? (ta.value || '').trim() : '';
@@ -322,10 +427,11 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 
   window.serializeCriteriaData = function(){
-    const lecture = serializeSection('criteria-lecture');
-    const laboratory = serializeSection('criteria-laboratory');
-    document.getElementById('criteria_lecture_input').value = lecture;
-    document.getElementById('criteria_laboratory_input').value = laboratory;
+  const sectionEls = document.querySelectorAll('.cis-criteria .sections-container .section');
+  const lecture = sectionEls[0] ? serializeSectionEl(sectionEls[0]) : '';
+  const laboratory = sectionEls[1] ? serializeSectionEl(sectionEls[1]) : '';
+  document.getElementById('criteria_lecture_input').value = lecture;
+  document.getElementById('criteria_laboratory_input').value = laboratory;
     // build structured payload: array of { key, heading, value: [{description,percent}] }
     const payload = [];
     function slugify(s) {
@@ -336,7 +442,7 @@ document.addEventListener('DOMContentLoaded', function(){
         .replace(/^_|_$/g, '');
     }
     // iterate all configured sections so this is not tied to 'lecture'/'laboratory'
-    const sections = document.querySelectorAll('.cis-criteria .section');
+  const sections = document.querySelectorAll('.cis-criteria .sections-container .section');
     sections.forEach(function(sectionEl, idx){
       const main = sectionEl.querySelector('.main-input');
       const heading = main ? (main.value || '').trim() : '';
@@ -374,6 +480,127 @@ document.addEventListener('DOMContentLoaded', function(){
     const __critInit = document.getElementById('criteria_data_input');
     if (__critInit) __critInit.dataset.original = __critInit.value || '[]';
   } catch (e) { /* noop */ }
+
+  // Recompute autosize heights for all textareas in this component
+  function recomputeAutosizeAll(){
+    try {
+      document.querySelectorAll('.cis-criteria textarea.autosize').forEach(function(ta){
+        ta.style.height = 'auto';
+        ta.style.height = (ta.scrollHeight || 0) + 'px';
+      });
+    } catch (e) { /* noop */ }
+  }
+  // Initial autosize pass
+  recomputeAutosizeAll();
+
+  // Keep hidden fields in sync whenever criteria changes
+  document.addEventListener('criteriaChanged', function(){
+    try { window.serializeCriteriaData(); } catch (e) { /* noop */ }
+  });
+
+  // Limit: maximum number of sections allowed
+  function updateAddSectionState(){
+    const container = document.getElementById('criteria-sections-container');
+    const btn = document.querySelector('.cis-criteria .criteria-add-section-btn');
+    if (!container || !btn) return;
+    const count = container.querySelectorAll('.section').length;
+    const disabled = count >= 3;
+    btn.disabled = disabled;
+    btn.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+    try { btn.title = disabled ? 'Maximum of 3 sections reached' : 'Add section'; } catch(e){}
+  }
+
+  // Add button(s) inside section: append a new sub-line for the nearest section and focus it
+  document.querySelectorAll('.cis-criteria .criteria-actions-row .criteria-add-btn').forEach(function(addBtn){
+    addBtn.addEventListener('click', function(){
+      const section = this.closest('.section') || document.querySelector('.cis-criteria .section');
+      addSubLineToSection(section);
+    });
+  });
+
+  // Remove button(s) inside section: remove the last non-empty sub-line (keep at least one blank line)
+  document.querySelectorAll('.cis-criteria .criteria-actions-row .criteria-remove-btn').forEach(function(removeBtn){
+    removeBtn.addEventListener('click', function(){
+      const section = this.closest('.section') || document.querySelector('.cis-criteria .section');
+      removeSubLineFromSection(section);
+    });
+  });
+
+  // Side button: add a new section to the right
+  const addSectionBtn = document.querySelector('.cis-criteria .criteria-add-section-btn');
+  if (addSectionBtn) {
+    addSectionBtn.addEventListener('click', function(){
+      const container = document.getElementById('criteria-sections-container');
+      if (!container) return;
+      // enforce max of 3 sections
+      if (container.querySelectorAll('.section').length >= 3) { return; }
+      // create new empty section structure
+      const index = container.querySelectorAll('.section').length + 1;
+      const key = 'section_' + index;
+      const section = document.createElement('div');
+      section.className = 'section';
+      section.dataset.sectionKey = key;
+      section.innerHTML = `
+        <div class="section-head">
+          <textarea rows="1" name="criteria_${key}_display" data-section="${key}" class="main-input cis-input autosize" placeholder="-"></textarea>
+        </div>
+        <div class="sub-list" aria-live="polite" data-init='[]'></div>
+        <div class="criteria-actions-row">
+          <button type="button" class="btn btn-sm criteria-remove-btn" title="Remove last sub-item" aria-label="Remove last sub-item"><i data-feather="minus"></i></button>
+          <button type="button" class="btn btn-sm criteria-add-btn" title="Add sub-item" aria-label="Add sub-item"><i data-feather="plus"></i></button>
+        </div>`;
+      container.appendChild(section);
+      // initialize autosize & one blank sub-line
+      const subList = section.querySelector('.sub-list');
+      if (subList) {
+        subList.appendChild(createSubLine());
+        attachSubHandlers(subList, section.querySelector('.main-input'));
+      }
+      // autosize main textarea
+      const mainTa = section.querySelector('.main-input');
+      if (mainTa) {
+        mainTa.addEventListener('input', function(){ fireCriteriaChanged(); });
+        try { mainTa.style.height = 'auto'; mainTa.style.height = (mainTa.scrollHeight||0)+'px'; } catch(e){}
+      }
+      // bind internal add/remove buttons for this section only
+      section.querySelectorAll('.criteria-actions-row .criteria-add-btn').forEach(function(btn){
+        btn.addEventListener('click', function(){
+          const sec = this.closest('.section') || section;
+          addSubLineToSection(sec);
+        });
+      });
+      section.querySelectorAll('.criteria-actions-row .criteria-remove-btn').forEach(function(btn){
+        btn.addEventListener('click', function(){
+          const sec = this.closest('.section') || section;
+          removeSubLineFromSection(sec);
+        });
+      });
+      // re-run feather icons if available
+      if (window.feather && typeof window.feather.replace==='function') { try { window.feather.replace(); } catch(e){} }
+      fireCriteriaChanged();
+      updateAddSectionState();
+      recomputeAutosizeAll();
+    });
+  }
+
+  // Side button: remove last section (keep at least one)
+  const removeSectionBtn = document.querySelector('.cis-criteria .criteria-remove-section-btn');
+  if (removeSectionBtn) {
+    removeSectionBtn.addEventListener('click', function(){
+      const container = document.getElementById('criteria-sections-container');
+      if (!container) return;
+      const sections = container.querySelectorAll('.section');
+      if (sections.length <= 1) return; // keep at least one
+      const last = sections[sections.length - 1];
+      last.remove();
+      fireCriteriaChanged();
+      updateAddSectionState();
+      recomputeAutosizeAll();
+    });
+  }
+
+  // initialize add-section button state
+  updateAddSectionState();
 
 });
 </script>
