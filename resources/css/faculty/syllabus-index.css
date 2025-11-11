@@ -52,7 +52,7 @@ Description: Professional, clean UI for Faculty → Syllabi index (cards + heade
   overflow: hidden;
   transition: box-shadow .18s ease, transform .18s ease, border-color .18s ease;
 }
-.svx-card:hover { transform: translateY(-2px); box-shadow: 0 12px 24px rgba(0,0,0,.06); border-color: #d9d9d9; }
+.svx-card:hover { /* hover lift removed for a calmer UI */ transform: none; box-shadow: none; border-color: var(--color-muted); }
 .svx-card:focus-within { border-color: var(--color-primary); box-shadow: 0 0 0 2px rgba(238,111,87,.12), 0 8px 18px rgba(0,0,0,.05); }
 
 /* Removed brand edge strip on the left for a cleaner card */
