@@ -63,8 +63,11 @@
         {{-- Mission & Vision --}}
         @include('faculty.syllabus.partials.mission-vision')
 
-        {{-- Course Information (CIS table) + Criteria for Assessment (embedded inside partial) --}}
-        @include('faculty.syllabus.partials.course-info')
+  {{-- Course Information (CIS table) + Criteria for Assessment (embedded inside partial) --}}
+  @include('faculty.syllabus.partials.course-info')
+
+  {{-- Teaching, Learning, and Assessment Strategies (summary) --}}
+  @includeWhen(View::exists('faculty.syllabus.partials.tlas'), 'faculty.syllabus.partials.tlas')
 
         {{-- Intended Learning Outcomes --}}
         @include('faculty.syllabus.partials.ilo')
