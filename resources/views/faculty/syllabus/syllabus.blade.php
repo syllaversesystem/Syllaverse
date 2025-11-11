@@ -17,7 +17,7 @@
 @section('content')
 <div class="syllabus-doc" id="syllabus-document" data-syllabus-id="{{ $syllabus->id }}">
   {{-- Top toolbar card (parity with index toolbar) --}}
-  <div class="svx-card mb-3 syllabus-toolbar-card">
+  <div class="svx-card mb-3">
     <div class="svx-card-body">
       <div class="programs-toolbar mb-0 w-100" id="syllabusToolbar">
         <!-- Left: Save + Undo/Redo -->
@@ -140,26 +140,6 @@
   // Undo / Redo & Auto-Save Logic
   // -----------------------------
   document.addEventListener('DOMContentLoaded', function(){
-    // Toggle a stuck class on the toolbar card to adjust look when it sticks
-    // Refined stuck detection: when the sticky element's top reaches its sticky offset
-    try {
-      const card = document.querySelector('.syllabus-toolbar-card');
-      if (card) {
-        const topOffset = parseInt(getComputedStyle(card).top, 10) || 8; // read from CSS
-        const checkStuck = () => {
-          // When sticky engages, boundingClientRect().top will equal the offset
-          if (card.getBoundingClientRect().top <= topOffset + 0.5) {
-            card.classList.add('is-stuck');
-          } else {
-            card.classList.remove('is-stuck');
-          }
-        };
-        window.addEventListener('scroll', () => requestAnimationFrame(checkStuck), { passive: true });
-        window.addEventListener('resize', () => requestAnimationFrame(checkStuck));
-        checkStuck();
-      }
-    } catch (e) { /* noop */ }
-
     const form = document.getElementById('syllabusForm');
     if (!form) return;
     const undoBtn = document.getElementById('undoBtn');
