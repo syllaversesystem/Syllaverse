@@ -69,8 +69,11 @@
   {{-- Teaching, Learning, and Assessment Strategies (summary) --}}
   @includeWhen(View::exists('faculty.syllabus.partials.tlas'), 'faculty.syllabus.partials.tlas')
 
-        {{-- Intended Learning Outcomes --}}
-        @include('faculty.syllabus.partials.ilo')
+  {{-- Intended Learning Outcomes --}}
+  @include('faculty.syllabus.partials.ilo')
+
+  {{-- Assessment Method and Distribution Map (moved directly below ILO for workflow continuity) --}}
+  @includeWhen(View::exists('faculty.syllabus.partials.assessment-tasks-distribution'), 'faculty.syllabus.partials.assessment-tasks-distribution')
 
         {{-- Student Outcomes --}}
         @includeWhen(View::exists('faculty.syllabus.partials.so'), 'faculty.syllabus.partials.so')
@@ -96,9 +99,8 @@
         {{-- ILO ↔ CDIO ↔ SDG Mapping --}}
         @includeWhen(View::exists('faculty.syllabus.partials.mapping-ilo-cdio-sdg'), 'faculty.syllabus.partials.mapping-ilo-cdio-sdg')
 
-        {{-- Assessment Tasks + Distribution --}}
-        @includeWhen(View::exists('faculty.syllabus.partials.assessment-tasks-distribution'), 'faculty.syllabus.partials.assessment-tasks-distribution')
-        @includeWhen(View::exists('faculty.syllabus.partials.assessment-mapping'), 'faculty.syllabus.partials.assessment-mapping')
+  {{-- Assessment Mapping (retained lower with other cross-domain mappings) --}}
+  @includeWhen(View::exists('faculty.syllabus.partials.assessment-mapping'), 'faculty.syllabus.partials.assessment-mapping')
 
         {{-- Textbook Upload / References --}}
         @includeWhen(View::exists('faculty.syllabus.partials.textbook-upload'), 'faculty.syllabus.partials.textbook-upload')
