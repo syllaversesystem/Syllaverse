@@ -154,55 +154,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   } catch (e) { /* noop */ }
 
-  list.addEventListener('keydown', (e) => {
-    const el = e.target; if (!el || el.tagName !== 'TEXTAREA') return;
-    // Align with ILO/IGA/SO/CDIO: remove Ctrl/Cmd+Enter add; support Ctrl/Cmd+Backspace deletion
-    if (e.key === 'Backspace' && (e.ctrlKey || e.metaKey)) {
-      const val = el.value || ''; const selStart = (typeof el.selectionStart === 'number') ? el.selectionStart : 0;
-      if (val.trim() === '' && selStart === 0) {
-        e.preventDefault(); e.stopPropagation();
-        const row = el.closest('tr'); const allRows = Array.from(list.querySelectorAll('tr')).filter(r => r.querySelector('textarea[name="sdgs[]"]') || r.querySelector('.cdio-badge'));
-        const rowIndex = allRows.indexOf(row); if (rowIndex === 0) { el.value = ''; try { initAutosize(); } catch (e) {} return; }
-        if (allRows.length === 1) { el.value = ''; try { initAutosize(); } catch (e) {} return; }
-        const id = row.getAttribute('data-id'); if (!id || id.startsWith('new-')) { const prev = row.previousElementSibling; try { row.remove(); } catch (e) { row.remove(); } updateVisibleCodes(); if (prev) { const prevTa = prev.querySelector('textarea.autosize'); if (prevTa) { prevTa.focus(); prevTa.selectionStart = prevTa.value.length; } } return; }
-  if (!confirm('This SDG exists on the server. Press OK to delete it.')) return;
-  // Prefer deleting by per-syllabus entry id (row data-id). Fallback to syllabus+sdg route.
-  const entryId = row.getAttribute('data-id');
-  const sdgId = row.getAttribute('data-sdg-id');
-  const syllabusId = list.dataset.syllabusId;
-  let deleteUrl;
-  if (entryId && syllabusId) {
-    deleteUrl = `/faculty/syllabi/${syllabusId}/sdgs/entry/${entryId}`;
-  } else if (sdgId && syllabusId) {
-    deleteUrl = `/faculty/syllabi/${syllabusId}/sdgs/${sdgId}`;
-  } else {
-    deleteUrl = `/faculty/syllabi/sdgs/${entryId}`;
-  }
-  fetch(deleteUrl, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' } })
-  .then(async (res) => {
-    if (!res.ok) {
-      const msg = await res.text().catch(() => 'Delete failed');
-      throw new Error(msg);
-    }
-    return res.json().catch(() => ({}));
-  })
-    .then((data) => {
-    // remove row and update UI
-    try { row.remove(); } catch (e) { row.parentElement && row.parentElement.removeChild(row); }
-    if (window.updateVisibleCodes) try { window.updateVisibleCodes(); } catch (e) {}
-    // toast and dispatch detached event with title so modal select can be repopulated
-    try {
-      const titleEl = row.querySelector('input[name="title[]"]') || row.querySelector('.sdg-title') || row.querySelector('textarea[name="sdgs[]"]');
-      const title = titleEl ? (titleEl.value || titleEl.textContent || '') : null;
-      const ev = new CustomEvent('sdg:detached', { detail: { sdg_id: sdgId, title, pivot: id } });
-      document.dispatchEvent(ev);
-    } catch (e) {}
-    alert(data.message || 'SDG deleted.');
-  })
-  .catch(err => { console.error(err); alert('Failed to delete SDG.'); });
-      }
-    }
-  });
+  // Removed keyboard shortcut handler (Ctrl/Cmd+Backspace row delete) per request.
 
   list.addEventListener('click', (e) => {
     const btn = e.target.closest('.btn-delete-cdio'); if (!btn) return; const row = btn.closest('tr'); const allRows = Array.from(list.querySelectorAll('tr')).filter(r => r.querySelector('textarea[name="sdgs[]"]') || r.querySelector('.cdio-badge'));

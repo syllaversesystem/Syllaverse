@@ -58,6 +58,11 @@
 		.sdg-header-actions .btn:hover, .sdg-header-actions .btn:focus { background: linear-gradient(135deg, rgba(255,240,235,.88), rgba(255,255,255,.46)); backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px); box-shadow: 0 4px 10px rgba(204,55,55,.12); color: #CB3737; }
 		.sdg-header-actions .btn:hover .bi, .sdg-header-actions .btn:focus .bi { color: #CB3737; }
 		.sdg-header-actions .btn:active { transform: scale(.97); filter: brightness(.98); }
+
+		/* Center the header title regardless of actions width */
+		.sdg-header-wrap { position: relative; display: block; }
+		.sdg-header-wrap .sdg-header-title { display:block; text-align:center; width:100%; }
+		.sdg-header-wrap .sdg-header-actions { position:absolute; right:0; top:0; }
 	</style>
 
 	<table class="table table-bordered mb-4 cis-table">
@@ -80,12 +85,16 @@
 							<tr class="table-light">
 								<th class="text-center cis-label">SDG</th>
 								<th class="text-center cis-label">
-									<div class="d-flex justify-content-between align-items-start gap-2">
-										<span class="flex-grow-1 text-center">SDG Skills Statements</span>
+									<div class="sdg-header-wrap">
+										<span class="sdg-header-title">SDG Skills Statements</span>
 										<span class="sdg-header-actions d-inline-flex gap-1" style="white-space:nowrap;">
-											<button type="button" class="btn btn-sm" id="sdg-add-header" title="Add" aria-label="Add" data-bs-toggle="modal" data-bs-target="#addSdgModal" style="background:transparent;">
+											<button type="button" class="btn btn-sm" id="sdg-add-header" title="Add SDG" aria-label="Add SDG" data-bs-toggle="modal" data-bs-target="#addSdgModal" style="background:transparent;">
 												<i data-feather="plus"></i>
-												<span class="visually-hidden">Add</span>
+												<span class="visually-hidden">Add SDG</span>
+											</button>
+											<button type="button" class="btn btn-sm" id="sdg-remove-header" title="Remove last SDG" aria-label="Remove last SDG" style="background:transparent;">
+												<i data-feather="minus"></i>
+												<span class="visually-hidden">Remove last SDG</span>
 											</button>
 										</span>
 									</div>
