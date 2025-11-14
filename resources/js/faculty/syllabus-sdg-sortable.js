@@ -156,15 +156,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   list.addEventListener('keydown', (e) => {
     const el = e.target; if (!el || el.tagName !== 'TEXTAREA') return;
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-      e.preventDefault(); const tr = el.closest('tr'); if (!tr) return; const newRow = createNewRow();
-      if (tr.parentElement) { if (tr.nextSibling) tr.parentElement.insertBefore(newRow, tr.nextSibling); else tr.parentElement.appendChild(newRow); } else { list.appendChild(newRow); }
-      try { initAutosize(); } catch (e) {}
-      updateVisibleCodes(); const nta = newRow.querySelector('textarea.autosize') || newRow.querySelector('textarea'); if (nta) { setTimeout(() => nta.focus(), 10); }
-      return;
-    }
-
-    if (e.key === 'Backspace') {
+    // Align with ILO/IGA/SO/CDIO: remove Ctrl/Cmd+Enter add; support Ctrl/Cmd+Backspace deletion
+    if (e.key === 'Backspace' && (e.ctrlKey || e.metaKey)) {
       const val = el.value || ''; const selStart = (typeof el.selectionStart === 'number') ? el.selectionStart : 0;
       if (val.trim() === '' && selStart === 0) {
         e.preventDefault(); e.stopPropagation();
@@ -398,6 +391,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
   bindGlobalUnsaved();
+
+  // Header buttons: if add button is configured to open modal, do not addRow here
+  try {
+    const addBtn = document.getElementById('sdg-add-header');
+    if (addBtn && addBtn.getAttribute('data-bs-toggle') === 'modal') {
+      // modal-managed; no inline add
+    } else if (addBtn) {
+      addBtn.addEventListener('click', () => addRow(null));
+    }
+    // remove header may not exist anymore; keep a safe handler if present
+    const remBtn = document.getElementById('sdg-remove-header');
+    if (remBtn) remBtn.addEventListener('click', () => {
+      const rows = Array.from(list.querySelectorAll('tr')).filter(r => r.querySelector('textarea[name="sdgs[]"]') || r.querySelector('.cdio-badge'));
+      if (rows.length > 0) { rows[rows.length - 1].remove(); updateVisibleCodes(); }
+    });
+  } catch (e) {}
 
   // Debounced autosave for SDG textarea changes (per-row)
   (function bindAutosave() {
