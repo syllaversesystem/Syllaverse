@@ -123,6 +123,38 @@
             vertical-align: middle !important;
             box-shadow: 0 0 0 4px rgba(247,224,83,0.12) !important;
           }
+          /* Remove bottom border line of the outer Course Policies table and last row cells */
+          table.table.table-bordered.course-policies {
+            border-bottom: 0 !important;
+          }
+          table.table.table-bordered.course-policies > tbody > tr:last-child > td,
+          table.table.table-bordered.course-policies > tbody > tr:last-child > th {
+            border-bottom: 0 !important;
+          }
+          /* Seam adjustment: remove outer right border of 'A.' label cell, keep inner table left border */
+          table.table.table-bordered.course-policies > tbody > tr:nth-child(2) > td:first-child {
+            border-right: 0 !important;
+          }
+            /* Ensure the left label column (A., B., C.) renders black */
+            table.table.table-bordered.course-policies > tbody > tr > td:first-child {
+              color: #000 !important;
+            }
+          /* Utility: remove all borders for targeted inner header/lead cells */
+          .course-policies .cis-inner th.no-borderline,
+          .course-policies .cis-inner td.no-borderline {
+            border: 0 !important;
+          }
+            /* Utility: remove only left/right borders for specific inner cells */
+            .course-policies .cis-inner td.no-border-sides {
+              border-left: 0 !important;
+              border-right: 0 !important;
+            }
+            /* Remove left border for selected grade label cells */
+            .course-policies .cis-inner td.grade-label-noleft {
+              border-left: 0 !important;
+            }
+            /* Force left alignment for grading system description row */
+            .course-policies .cis-inner td.grade-desc-left { text-align: left !important; padding-left: 0 !important; }
         </style>
         <table class="table mb-0 cis-inner" style="border:none; margin:0; padding:0; border-collapse:collapse; width:100%;">
           <colgroup>
@@ -133,69 +165,69 @@
           </colgroup>
           <tbody>
             <tr>
-              <th colspan="3" class="text-start cis-label" style="border-bottom:0; padding:0.25rem 0;">Grading System</th>
+              <th colspan="3" class="text-start cis-label no-borderline" style="border:0 !important; padding:0.25rem 0;">Grading System</th>
             </tr>
             <tr>
-              <td colspan="3" class="small text-muted" style="padding:0 0 0.5rem 0; border-bottom:0 !important;">The grading system adopted by this course is as follows:</td>
+              <td colspan="3" class="small text-muted no-borderline grade-desc-left" style="padding:0.25rem 0; border:0 !important;">The grading system adopted by this course is as follows:</td>
             </tr>
 
             <tr>
-              <td style="padding:0 .5rem; height:28px; line-height:28px; vertical-align:middle; border-top:1px solid #343a40; border-right:1px solid #343a40;">Excellent</td>
+              <td class="grade-label-noleft" style="padding:0 .5rem; height:28px; line-height:28px; vertical-align:middle; border-top:1px solid #343a40; border-right:1px solid #343a40;">Excellent</td>
               <td style="padding:0 .5rem; height:28px; line-height:28px; vertical-align:middle; border-top:1px solid #343a40; border-right:1px solid #343a40;">1.00</td>
               <td style="padding:0 .5rem; height:28px; line-height:28px; vertical-align:middle; border-top:1px solid #343a40;">98 - 100</td>
               <td rowspan="11" style="padding:0; height:28px; line-height:28px; vertical-align:middle; border-left:1px solid #343a40; text-align:center"></td>
             </tr>
             <tr>
-              <td style="padding:0 .5rem; height:28px; line-height:28px; vertical-align:middle; border-top:1px solid #343a40; border-right:1px solid #343a40;">Superior</td>
+              <td class="grade-label-noleft" style="padding:0 .5rem; height:28px; line-height:28px; vertical-align:middle; border-top:1px solid #343a40; border-right:1px solid #343a40;">Superior</td>
               <td style="padding:0 .5rem; height:28px; line-height:28px; vertical-align:middle; border-top:1px solid #343a40; border-right:1px solid #343a40;">1.25</td>
               <td style="padding:0 .5rem; height:28px; line-height:28px; vertical-align:middle; border-top:1px solid #343a40;">94 - 97</td>
             </tr>
             <tr>
-              <td style="padding:0 .5rem; height:28px; line-height:28px; vertical-align:middle; border-top:1px solid #343a40; border-right:1px solid #343a40;">Very Good</td>
+              <td class="grade-label-noleft" style="padding:0 .5rem; height:28px; line-height:28px; vertical-align:middle; border-top:1px solid #343a40; border-right:1px solid #343a40;">Very Good</td>
               <td style="padding:0 .5rem; height:28px; line-height:28px; vertical-align:middle; border-top:1px solid #343a40; border-right:1px solid #343a40;">1.50</td>
               <td style="padding:0 .5rem; height:28px; line-height:28px; vertical-align:middle; border-top:1px solid #343a40;">90 - 93</td>
             </tr>
             <tr>
-              <td style="padding:0 .5rem; height:28px; line-height:28px; vertical-align:middle; border-top:1px solid #343a40; border-right:1px solid #343a40;">Good</td>
+              <td class="grade-label-noleft" style="padding:0 .5rem; height:28px; line-height:28px; vertical-align:middle; border-top:1px solid #343a40; border-right:1px solid #343a40;">Good</td>
               <td style="padding:0 .5rem; height:28px; line-height:28px; vertical-align:middle; border-top:1px solid #343a40; border-right:1px solid #343a40;">1.75</td>
               <td style="padding:0 .5rem; height:28px; line-height:28px; vertical-align:middle; border-top:1px solid #343a40;">88 - 89</td>
             </tr>
             <tr>
-              <td style="padding:0 .5rem; height:28px; line-height:28px; vertical-align:middle; border-top:1px solid #343a40; border-right:1px solid #343a40;">Meritorious</td>
+              <td class="grade-label-noleft" style="padding:0 .5rem; height:28px; line-height:28px; vertical-align:middle; border-top:1px solid #343a40; border-right:1px solid #343a40;">Meritorious</td>
               <td style="padding:0 .5rem; height:28px; line-height:28px; vertical-align:middle; border-top:1px solid #343a40; border-right:1px solid #343a40;">2.00</td>
               <td style="padding:0 .5rem; height:28px; line-height:28px; vertical-align:middle; border-top:1px solid #343a40;">85 - 87</td>
             </tr>
             <tr>
-              <td style="padding:0 .5rem; height:28px; line-height:28px; vertical-align:middle; border-top:1px solid #343a40; border-right:1px solid #343a40;">Very Satisfactory</td>
+              <td class="grade-label-noleft" style="padding:0 .5rem; height:28px; line-height:28px; vertical-align:middle; border-top:1px solid #343a40; border-right:1px solid #343a40;">Very Satisfactory</td>
               <td style="padding:0 .5rem; height:28px; line-height:28px; vertical-align:middle; border-top:1px solid #343a40; border-right:1px solid #343a40;">2.25</td>
               <td style="padding:0 .5rem; height:28px; line-height:28px; vertical-align:middle; border-top:1px solid #343a40;">83 - 84</td>
             </tr>
             <tr>
-              <td style="padding:0 .5rem; height:28px; line-height:28px; vertical-align:middle; border-top:1px solid #343a40; border-right:1px solid #343a40;">Satisfactory</td>
+              <td class="grade-label-noleft" style="padding:0 .5rem; height:28px; line-height:28px; vertical-align:middle; border-top:1px solid #343a40; border-right:1px solid #343a40;">Satisfactory</td>
               <td style="padding:0 .5rem; height:28px; line-height:28px; vertical-align:middle; border-top:1px solid #343a40; border-right:1px solid #343a40;">2.50</td>
               <td style="padding:0 .5rem; height:28px; line-height:28px; vertical-align:middle; border-top:1px solid #343a40;">80 - 82</td>
             </tr>
             <tr>
-              <td style="padding:0 .5rem; height:28px; line-height:28px; vertical-align:middle; border-top:1px solid #343a40; border-right:1px solid #343a40;">Fairly Satisfactory</td>
+              <td class="grade-label-noleft" style="padding:0 .5rem; height:28px; line-height:28px; vertical-align:middle; border-top:1px solid #343a40; border-right:1px solid #343a40;">Fairly Satisfactory</td>
               <td style="padding:0 .5rem; height:28px; line-height:28px; vertical-align:middle; border-top:1px solid #343a40; border-right:1px solid #343a40;">2.75</td>
               <td style="padding:0 .5rem; height:28px; line-height:28px; vertical-align:middle; border-top:1px solid #343a40;">78 - 79</td>
             </tr>
             <tr>
-              <td style="padding:0 .5rem; height:28px; line-height:28px; vertical-align:middle; border-top:1px solid #343a40; border-right:1px solid #343a40;">Passing</td>
+              <td class="grade-label-noleft" style="padding:0 .5rem; height:28px; line-height:28px; vertical-align:middle; border-top:1px solid #343a40; border-right:1px solid #343a40;">Passing</td>
               <td style="padding:0 .5rem; height:28px; line-height:28px; vertical-align:middle; border-top:1px solid #343a40; border-right:1px solid #343a40;">3.00</td>
               <td style="padding:0 .5rem; height:28px; line-height:28px; vertical-align:middle; border-top:1px solid #343a40;">75 - 77</td>
             </tr>
             <tr>
-              <td style="padding:0 .5rem; height:28px; line-height:28px; vertical-align:middle; border-top:1px solid #343a40; border-right:1px solid #343a40;">Failure</td>
+              <td class="grade-label-noleft" style="padding:0 .5rem; height:28px; line-height:28px; vertical-align:middle; border-top:1px solid #343a40; border-right:1px solid #343a40;">Failure</td>
               <td style="padding:0 .5rem; height:28px; line-height:28px; vertical-align:middle; border-top:1px solid #343a40; border-right:1px solid #343a40;">5.00</td>
               <td style="padding:0 .5rem; height:28px; line-height:28px; vertical-align:middle; border-top:1px solid #343a40;">Below 70</td>
             </tr>
             <tr>
-              <td style="padding:0 .5rem; height:28px; line-height:28px; vertical-align:middle; border-top:1px solid #343a40; border-right:1px solid #343a40;">Incomplete</td>
+              <td class="grade-label-noleft" style="padding:0 .5rem; height:28px; line-height:28px; vertical-align:middle; border-top:1px solid #343a40; border-right:1px solid #343a40;">Incomplete</td>
               <td colspan="2" style="padding:0 .5rem; height:28px; line-height:28px; vertical-align:middle; border-top:1px solid #343a40; text-align:center;">INC</td>
             </tr>
             <tr>
-              <td colspan="4" class="small text-muted" style="padding:0; vertical-align:top; border-bottom:0 !important;">
+              <td colspan="4" class="small text-muted no-border-sides" style="padding:0; vertical-align:top; border-bottom:0 !important;">
                 <div style="display:block; width:100%; box-sizing:border-box; padding:0.25rem 0.5rem; margin:0; white-space:normal; word-break:break-word; line-height:1.2;">*Students who got a computed grade of 70-74 will be given an appropriate remedial activity in which the final grade should be either passing (3.0) or failure (5.0).</div>
               </td>
             </tr>
@@ -234,7 +266,7 @@
   </td></tr>
 
   <tr class="no-sep no-borderline" style="border-bottom:0 !important;">
-    <td style="border-bottom:100 !important;"></td>
+    <td style="border-bottom:0 !important;"></td>
     <td class="text-start no-borderline" style="border-bottom:0 !important;">dropping</td>
   </tr>
   <tr class="no-sep no-borderline" style="border-top:0 !important;">
