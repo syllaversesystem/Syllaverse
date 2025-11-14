@@ -21,6 +21,7 @@ class SyllabusSo extends Model
     protected $fillable = [
         'syllabus_id',
         'code',
+        'title',
         'description',
         'position',
     ];

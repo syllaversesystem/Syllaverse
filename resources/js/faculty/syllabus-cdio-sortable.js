@@ -46,28 +46,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   } catch (e) { /* noop */ }
 
-  // Keyboard handlers: Ctrl/Cmd+Enter to add/clone; Backspace to remove empty
+  // Keyboard handlers: match ILO/SO/IGA — Ctrl/Cmd+Backspace removes empty; no Ctrl+Enter add
   list.addEventListener('keydown', (e) => {
     const el = e.target; if (!el || el.tagName !== 'TEXTAREA') return;
-    // Ctrl/Cmd+Enter -> clone/add after
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-      e.preventDefault();
-      const tr = el.closest('tr'); if (!tr) return;
-      const newRow = createNewRow();
-      if (tr.parentElement) {
-        if (tr.nextSibling) tr.parentElement.insertBefore(newRow, tr.nextSibling);
-        else tr.parentElement.appendChild(newRow);
-      } else {
-        list.appendChild(newRow);
-      }
-      try { initAutosize(); } catch (e) {}
-      updateVisibleCodes();
-      const nta = newRow.querySelector('textarea.autosize') || newRow.querySelector('textarea');
-      if (nta) { setTimeout(() => nta.focus(), 10); }
-      return;
-    }
-
-    if (e.key === 'Backspace') {
+    if (e.key === 'Backspace' && (e.ctrlKey || e.metaKey)) {
       const val = el.value || ''; const selStart = (typeof el.selectionStart === 'number') ? el.selectionStart : 0;
       if (val.trim() === '' && selStart === 0) {
         e.preventDefault(); e.stopPropagation();
@@ -102,7 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
   .then(res => res.json()).then(data => { alert(data.message || 'CDIO deleted.'); location.reload(); }).catch(err => { console.error(err); alert('Failed to delete CDIO.'); });
   });
 
-  // Inline save of a single row (debounced pattern could be added later)
+  // Inline save of a single row (send title + description)
   list.addEventListener('blur', (e) => {
     const ta = e.target; if (!ta || ta.tagName !== 'TEXTAREA') return;
     const row = ta.closest('tr'); if (!row) return;
@@ -112,7 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
   fetch((window.syllabusBasePath || '/faculty/syllabi') + `/${list.dataset.syllabusId}/cdios/${id}`, {
       method: 'PUT', credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' },
-      body: JSON.stringify({ description: ta.value })
+      body: JSON.stringify({ title: row.querySelector('textarea[name="cdio_titles[]"]').value || '', description: row.querySelector('textarea[name="cdios[]"]').value || '' })
     }).then(r => r.json()).then(d => { if (d && d.message) console.debug('CDIO inline save:', d.message); else console.debug('CDIO inline save response', d); })
     .catch(err => { console.error('CDIO inline save error', err); });
   }, true);
@@ -126,7 +108,10 @@ document.addEventListener('DOMContentLoaded', () => {
       <td>
         <div class="d-flex align-items-center gap-2">
           <span class="drag-handle text-muted" title="Drag to reorder" style="cursor: grab; display:flex; align-items:center;"><i class="bi bi-grip-vertical"></i></span>
-          <textarea name="cdios[]" class="form-control cis-textarea autosize flex-grow-1"></textarea>
+          <div class="flex-grow-1 w-100">
+            <textarea name="cdio_titles[]" class="cis-textarea cis-field autosize" placeholder="-" rows="1" style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;font-weight:700;" required></textarea>
+            <textarea name="cdios[]" class="cis-textarea cis-field autosize" placeholder="Description" rows="1" style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;" required></textarea>
+          </div>
           <input type="hidden" name="code[]" value="">
           <button type="button" class="btn btn-sm btn-outline-danger btn-delete-cdio ms-2" title="Delete CDIO"><i class="bi bi-trash"></i></button>
         </div>
@@ -165,6 +150,13 @@ document.addEventListener('DOMContentLoaded', () => {
   // expose add/remove helpers (programmatic)
   try { window.addCdioRow = function(afterRowSelector = null) { const after = afterRowSelector ? document.querySelector(afterRowSelector) : null; return addRow(after); }; } catch (e) {}
   try { window.removeCdioRow = function(rowSelector) { const row = (typeof rowSelector === 'string') ? document.querySelector(rowSelector) : rowSelector; if (!row) return false; const id = row.getAttribute && row.getAttribute('data-id'); if (!id || id.startsWith('new-')) { row.remove(); updateVisibleCodes(); return Promise.resolve({ message: 'row removed' }); } return fetch(`/faculty/syllabi/cdios/${id}`, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' } }).then(res => res.json()).then(data => { location.reload(); }); }; } catch (e) {}
+
+  // Header add/remove buttons
+  document.getElementById('cdio-add-header')?.addEventListener('click', () => addRow(null));
+  document.getElementById('cdio-remove-header')?.addEventListener('click', () => {
+    const rows = Array.from(list.querySelectorAll('tr')).filter(r => r.querySelector('textarea[name="cdios[]"]') || r.querySelector('.cdio-badge'));
+    if (rows.length > 0) { rows[rows.length - 1].remove(); updateVisibleCodes(); }
+  });
 
   // ensure at least one row exists
   (function ensureAtLeastOne() {
@@ -206,9 +198,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const tbody = document.querySelector('#syllabus-cdio-sortable');
     const items = [];
     Array.from(tbody.querySelectorAll('tr')).forEach((tr, idx) => {
+      const title = tr.querySelector('textarea[name="cdio_titles[]"]')?.value || '';
       const desc = tr.querySelector('textarea[name="cdios[]"]')?.value || '';
       const code = tr.querySelector('input[name="code[]"]')?.value || (`CDIO${idx+1}`);
-      items.push({ id: tr.getAttribute('data-id') || null, code, description: desc, position: idx + 1 });
+      items.push({ id: tr.getAttribute('data-id') || null, code, title, description: desc, position: idx + 1 });
     });
     try {
       console.debug('saveCdio payload', items, 'form.action=', form.action);

@@ -8,7 +8,7 @@ class SyllabusCdio extends Model
 {
     protected $table = 'syllabus_cdios';
 
-    protected $fillable = ['syllabus_id', 'code', 'description', 'position'];
+    protected $fillable = ['syllabus_id', 'code', 'title', 'description', 'position'];
 
     public $timestamps = true;
 }

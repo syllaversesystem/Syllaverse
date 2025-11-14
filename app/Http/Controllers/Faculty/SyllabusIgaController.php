@@ -22,6 +22,7 @@ class SyllabusIgaController extends Controller
             'igas' => 'required|array',
             'igas.*.id' => 'nullable|integer|exists:syllabus_igas,id',
             'igas.*.code' => 'required|string',
+            'igas.*.title' => 'nullable|string|max:255',
             'igas.*.description' => 'nullable|string|max:2000',
             'igas.*.position' => 'required|integer',
         ]);
@@ -41,6 +42,7 @@ class SyllabusIgaController extends Controller
                 $attrs = [
                     'syllabus_id' => $syllabusId,
                     'code' => $igaData['code'] ?? null,
+                    'title' => $igaData['title'] ?? '',
                     'description' => $igaData['description'] ?? '',
                     'position' => $igaData['position'] ?? 0,
                 ];

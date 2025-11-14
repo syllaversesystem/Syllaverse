@@ -47,13 +47,38 @@
     /* Uniform 6.4px padding for SO code header and code cells */
     #so-right-wrap > table thead th.cis-label:first-child { padding: 6.4px !important; }
     #so-right-wrap > table td:first-child, #so-right-wrap > table th:first-child { padding: 6.4px !important; }
-    .drag-handle { width: 28px; display: inline-flex; justify-content: center; }
+    .drag-handle { width: 28px; display: inline-flex; justify-content: center; align-self: center; }
     /* Make textarea fill remaining space and autosize */
     .cis-textarea { width: 100%; box-sizing: border-box; resize: none; }
     /* Align SO textareas styling with Course Title textareas (single-line autosize) */
     #so-right-wrap textarea.cis-textarea.autosize { overflow: hidden; }
     /* Ensure the left header cell aligns with other CIS module headers */
     table.cis-table th.cis-label, table.cis-table th { vertical-align: top; }
+    /* Icon-only header buttons styled like IGA */
+    .so-header-actions .btn {
+      position: relative; padding: 0 !important;
+      width: 2.2rem; height: 2.2rem; min-width: 2.2rem; min-height: 2.2rem;
+      border-radius: 50% !important;
+      display: inline-flex; align-items: center; justify-content: center;
+      background: var(--sv-card-bg, #fff);
+      border: none; box-shadow: none; color: #000;
+      transition: all 0.2s ease-in-out;
+      line-height: 0;
+    }
+    .so-header-actions .btn .bi { font-size: 1rem; width: 1rem; height: 1rem; line-height: 1; color: var(--sv-text, #000); }
+    .so-header-actions .btn svg {
+      width: 1.05rem; height: 1.05rem;
+      display: block; margin: 0; vertical-align: middle;
+      stroke: currentColor;
+    }
+    .so-header-actions .btn:hover, .so-header-actions .btn:focus {
+      background: linear-gradient(135deg, rgba(255,240,235,.88), rgba(255,255,255,.46));
+      backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px);
+      box-shadow: 0 4px 10px rgba(204,55,55,.12);
+      color: #CB3737;
+    }
+    .so-header-actions .btn:hover .bi, .so-header-actions .btn:focus .bi { color: #CB3737; }
+    .so-header-actions .btn:active { transform: scale(.97); filter: brightness(.98); }
   </style>
 
   <table class="table table-bordered mb-4 cis-table">
@@ -75,7 +100,21 @@
             <thead>
               <tr class="table-light">
                 <th class="text-center cis-label">SO</th>
-                <th class="text-center cis-label">Student Outcomes (SO) Statements</th>
+                <th class="text-center cis-label">
+                  <div class="d-flex justify-content-between align-items-start gap-2">
+                    <span class="flex-grow-1 text-center">Student Outcomes (SO) Statements</span>
+                    <span class="so-header-actions d-inline-flex gap-1" style="white-space:nowrap;">
+                      <button type="button" class="btn btn-sm" id="so-add-header" title="Add SO" aria-label="Add SO" style="background:transparent;">
+                        <i data-feather="plus"></i>
+                        <span class="visually-hidden">Add SO</span>
+                      </button>
+                      <button type="button" class="btn btn-sm" id="so-remove-header" title="Remove last SO" aria-label="Remove last SO" style="background:transparent;">
+                        <i data-feather="minus"></i>
+                        <span class="visually-hidden">Remove last SO</span>
+                      </button>
+                    </span>
+                  </div>
+                </th>
               </tr>
             </thead>
             <tbody id="syllabus-so-sortable" data-syllabus-id="{{ $default['id'] }}">
@@ -89,14 +128,24 @@
                     <td>
                       <div class="d-flex align-items-center gap-2">
                         <span class="drag-handle text-muted" title="Drag to reorder" style="cursor: grab;"><i class="bi bi-grip-vertical"></i></span>
-                        <textarea
-                          name="sos[]"
-                          class="cis-textarea cis-field autosize flex-grow-1"
-                          data-original="{{ old("sos.$index", $so->description) }}"
-                          placeholder="-"
-                          rows="1"
-                          style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;"
-                          required>{{ old("sos.$index", $so->description) }}</textarea>
+                        <div class="flex-grow-1 w-100">
+                          <textarea
+                            name="so_titles[]"
+                            class="cis-textarea cis-field autosize"
+                            data-original="{{ old("so_titles.$index", $so->title ?? '') }}"
+                            placeholder="-"
+                            rows="1"
+                            style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;font-weight:700;"
+                            required>{{ old("so_titles.$index", $so->title ?? '') }}</textarea>
+                          <textarea
+                            name="sos[]"
+                            class="cis-textarea cis-field autosize"
+                            data-original="{{ old("sos.$index", $so->description) }}"
+                            placeholder="Description"
+                            rows="1"
+                            style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;"
+                            required>{{ old("sos.$index", $so->description) }}</textarea>
+                        </div>
                         <input type="hidden" name="code[]" value="{{ $seqCode }}">
                         <button type="button" class="btn btn-sm btn-outline-danger btn-delete-so ms-2" title="Delete SO"><i class="bi bi-trash"></i></button>
                       </div>
@@ -109,13 +158,22 @@
                   <td>
                     <div class="d-flex align-items-center gap-2">
                       <span class="drag-handle text-muted" title="Drag to reorder" style="cursor: grab;"><i class="bi bi-grip-vertical"></i></span>
-                      <textarea
-                        name="sos[]"
-                        class="cis-textarea cis-field autosize flex-grow-1"
-                        placeholder="-"
-                        rows="1"
-                        style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;"
-                        required></textarea>
+                      <div class="flex-grow-1 w-100">
+                        <textarea
+                          name="so_titles[]"
+                          class="cis-textarea cis-field autosize"
+                          placeholder="-"
+                          rows="1"
+                          style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;font-weight:700;"
+                          required></textarea>
+                        <textarea
+                          name="sos[]"
+                          class="cis-textarea cis-field autosize"
+                          placeholder="Description"
+                          rows="1"
+                          style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;"
+                          required></textarea>
+                      </div>
                       <input type="hidden" name="code[]" value="SO1">
                       <button type="button" class="btn btn-sm btn-outline-danger btn-delete-so ms-2" title="Delete SO"><i class="bi bi-trash"></i></button>
                     </div>

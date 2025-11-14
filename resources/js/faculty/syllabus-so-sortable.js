@@ -82,27 +82,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   } catch (e) { /* noop */ }
 
-  // Backspace deletion at start of empty textarea
+  // Keyboard behavior: match ILO/IGA — Ctrl/Cmd+Backspace deletes empty row; remove Ctrl+Enter add
   list.addEventListener('keydown', (e) => {
     const el = e.target; if (!el || el.tagName !== 'TEXTAREA') return;
-    // Ctrl/Cmd+Enter: clone/add empty row after current
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-      e.preventDefault();
-      const tr = el.closest('tr'); if (!tr) return;
-      const newRow = createNewRow();
-      if (tr.parentElement) {
-        if (tr.nextSibling) tr.parentElement.insertBefore(newRow, tr.nextSibling);
-        else tr.parentElement.appendChild(newRow);
-      } else {
-        list.appendChild(newRow);
-      }
-      try { initAutosize(); } catch (e) {}
-      updateVisibleCodes();
-      const nta = newRow.querySelector('textarea.autosize') || newRow.querySelector('textarea');
-      if (nta) { setTimeout(() => nta.focus(), 10); }
-      return;
-    }
-    if (e.key === 'Backspace') {
+    if (e.key === 'Backspace' && (e.ctrlKey || e.metaKey)) {
       const val = el.value || ''; const selStart = (typeof el.selectionStart === 'number') ? el.selectionStart : 0;
       if (val.trim() === '' && selStart === 0) {
         e.preventDefault(); e.stopPropagation();
@@ -146,7 +129,10 @@ document.addEventListener('DOMContentLoaded', () => {
       <td>
         <div class="d-flex align-items-center gap-2">
           <span class="drag-handle text-muted" title="Drag to reorder" style="cursor: grab; display:flex; align-items:center;"><i class="bi bi-grip-vertical"></i></span>
-          <textarea name="sos[]" class="form-control cis-textarea autosize flex-grow-1"></textarea>
+          <div class="flex-grow-1 w-100">
+            <textarea name="so_titles[]" class="cis-textarea cis-field autosize" placeholder="-" rows="1" style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;font-weight:700;" required></textarea>
+            <textarea name="sos[]" class="cis-textarea cis-field autosize" placeholder="Description" rows="1" style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;" required></textarea>
+          </div>
           <input type="hidden" name="code[]" value="">
           <button type="button" class="btn btn-sm btn-outline-danger btn-delete-so ms-2" title="Delete SO"><i class="bi bi-trash"></i></button>
         </div>
@@ -177,6 +163,13 @@ document.addEventListener('DOMContentLoaded', () => {
       return addRow(after);
     };
   } catch (e) {}
+
+  // Header buttons for add/remove
+  document.getElementById('so-add-header')?.addEventListener('click', () => addRow(null));
+  document.getElementById('so-remove-header')?.addEventListener('click', () => {
+    const rows = Array.from(list.querySelectorAll('tr')).filter(r => r.querySelector('textarea[name="sos[]"]') || r.querySelector('.so-badge'));
+    if (rows.length > 0) { rows[rows.length - 1].remove(); updateVisibleCodes(); }
+  });
 
   try {
     window.removeSoRow = function(rowSelector) {

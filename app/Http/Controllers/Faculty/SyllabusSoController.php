@@ -27,6 +27,8 @@ class SyllabusSoController extends Controller
         $request->validate([
             'sos' => 'required|array',
             'sos.*' => 'required|string|max:1000',
+            'so_titles' => 'nullable|array',
+            'so_titles.*' => 'nullable|string|max:255',
             'code' => 'required|array',
             'code.*' => 'required|string|max:20',
         ]);
@@ -39,6 +41,7 @@ class SyllabusSoController extends Controller
             SyllabusSo::create([
                 'syllabus_id' => $syllabus->id,
                 'code' => $request->code[$index] ?? 'SO' . ($index + 1),
+                'title' => $request->input('so_titles.' . $index),
                 'description' => $description,
                 'position' => $index + 1,
             ]);

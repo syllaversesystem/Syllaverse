@@ -30,6 +30,7 @@ class SyllabusCdioController extends Controller
             SyllabusCdio::create([
                 'syllabus_id' => $syllabus->id,
                 'code' => $it['code'] ?? null,
+                'title' => $it['title'] ?? null,
                 'description' => $it['description'] ?? null,
                 'position' => $it['position'] ?? $pos++,
             ]);
@@ -77,6 +78,7 @@ class SyllabusCdioController extends Controller
     {
         $request->validate([
             'syllabus_id' => 'required|exists:syllabi,id',
+            'title' => 'nullable|string|max:255',
             'description' => 'nullable|string|max:1000'
         ]);
 
@@ -88,6 +90,7 @@ class SyllabusCdioController extends Controller
         $cdio = SyllabusCdio::create([
             'syllabus_id' => $syllabus->id,
             'code' => 'CDIO' . $pos,
+            'title' => $request->input('title'),
             'description' => $request->description,
             'position' => $pos,
         ]);
@@ -98,10 +101,13 @@ class SyllabusCdioController extends Controller
     // Inline update: update description only
     public function inlineUpdate(Request $request, $syllabusId, $cdioId)
     {
-        $request->validate(['description' => 'nullable|string|max:1000']);
+        $request->validate(['title' => 'nullable|string|max:255', 'description' => 'nullable|string|max:1000']);
         $syllabus = $this->getSyllabusForAction($syllabusId);
         $cdio = SyllabusCdio::where('syllabus_id', $syllabus->id)->findOrFail($cdioId);
-        $cdio->update(['description' => $request->description]);
+        $cdio->update([
+            'title' => $request->input('title'),
+            'description' => $request->description
+        ]);
         return response()->json(['message' => 'CDIO updated.']);
     }
 
