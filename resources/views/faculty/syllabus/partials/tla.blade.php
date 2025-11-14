@@ -4,29 +4,46 @@
   including this partial won't error. Restore original UI here when needed.
 --}}
 
-<!-- Compact toolbar placed above the TLA module for actions → clean professional layout -->
-<div class="d-flex justify-content-end align-items-center mb-2">
-  <div class="btn-toolbar">
-    <div class="btn-group me-2" role="group" aria-label="TLA actions">
-      <button type="button" class="btn btn-sm btn-outline-secondary" data-action="distribute-task" title="Distribute task across weeks">Distribute Task</button>
-    </div>
-    <div class="btn-group" role="group">
-      <button type="button" class="btn btn-sm btn-primary" data-action="generate-tla" title="Generate TLA with AI">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="me-1">
-          <path d="M12 2v4"></path>
-          <path d="M12 18v4"></path>
-          <path d="M4.9 4.9l2.8 2.8"></path>
-          <path d="M16.3 16.3l2.8 2.8"></path>
-          <circle cx="12" cy="12" r="3"></circle>
-        </svg>
-        Generate TLA
-      </button>
-    </div>
-  </div>
-  </div>
-</div>
+<!-- Toolbar with Generate/Distribute actions removed per request -->
 
 <div class="tla-partial">
+  <style>
+    /* Harmonize TLA table typography with other CIS partials */
+    .tla-partial #tlaTable,
+    .tla-partial #tlaTable th,
+    .tla-partial #tlaTable td,
+    .tla-partial #tlaTable textarea,
+    .tla-partial #tlaTable input {
+      font-family: Georgia, serif !important;
+      font-size: 13px !important;
+      line-height: 1.4 !important;
+      color: #111 !important;
+    }
+    .tla-partial #tlaTable th,
+    .tla-partial #tlaTable td { padding: 0.25rem 0.5rem !important; vertical-align: middle; }
+    .tla-partial #tlaTable textarea.cis-textarea { border:0 !important; background:transparent !important; resize:vertical; }
+    /* Remove previous yellow focus effect; keep neutral focus */
+    .tla-partial #tlaTable textarea.cis-textarea.cis-field:focus { background:transparent !important; outline:none !important; box-shadow:none !important; }
+    .tla-partial #tlaTable input.cis-input { height:28px; }
+    /* Icon-only header buttons styled like ILO/SDG circular actions */
+    .tla-header-actions .btn {
+      position: relative; padding: 0 !important;
+      width: 2.2rem; height: 2.2rem; min-width: 2.2rem; min-height: 2.2rem;
+      border-radius: 50% !important;
+      display: inline-flex; align-items: center; justify-content: center;
+      background: var(--sv-card-bg, #fff);
+      border: none; box-shadow: none; color: #000;
+      transition: all 0.2s ease-in-out; line-height: 0;
+    }
+    .tla-header-actions .btn svg { width: 1.05rem; height: 1.05rem; display:block; margin:0; vertical-align:middle; stroke: currentColor; }
+    .tla-header-actions .btn:hover, .tla-header-actions .btn:focus {
+      background: linear-gradient(135deg, rgba(255,240,235,.88), rgba(255,255,255,.46));
+      backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px);
+      box-shadow: 0 4px 10px rgba(204,55,55,.12);
+      color: #CB3737;
+    }
+    .tla-header-actions .btn:active { transform: scale(.97); filter: brightness(.98); }
+  </style>
   <table class="table table-bordered mb-4 cis-table" id="tlaTable" style="width: 100%; margin: 0;">
     <colgroup>
       <col style="width:4%">
@@ -39,16 +56,30 @@
     </colgroup>
     <thead>
       <tr>
-        <th colspan="7" class="text-center">Teaching, Learning, and Assessment (TLA) Activities</th>
+        <th colspan="7" class="text-start">
+          <div class="d-flex justify-content-between align-items-center">
+            <span>Teaching, Learning, and Assessment (TLA) Activities</span>
+            <span class="tla-header-actions d-inline-flex gap-1" style="white-space:nowrap;">
+              <button type="button" class="btn btn-sm" id="tla-add-row" title="Add TLA Row" aria-label="Add TLA Row" style="background:transparent;">
+                <i data-feather="plus"></i>
+                <span class="visually-hidden">Add TLA Row</span>
+              </button>
+              <button type="button" class="btn btn-sm" id="tla-remove-row" title="Remove Last TLA Row" aria-label="Remove Last TLA Row" style="background:transparent;">
+                <i data-feather="minus"></i>
+                <span class="visually-hidden">Remove Last TLA Row</span>
+              </button>
+            </span>
+          </div>
+        </th>
       </tr>
-      <tr class="table-light text-center align-middle">
-        <th style="width: 4%;">Ch.</th>
-        <th style="width: 38%;">Topics / Reading List</th>
-        <th style="width: 6%;">Wks.</th>
-        <th style="width: 32%;">Topic Outcomes</th>
-        <th style="width: 6%;">ILO</th>
-        <th style="width: 6%;">SO</th>
-        <th style="width: 8%;">Delivery Method</th>
+      <tr class="table-light align-middle">
+        <th class="text-center" style="width: 4%;">Ch.</th>
+        <th class="text-start" style="width: 38%;">Topics / Reading List</th>
+        <th class="text-center" style="width: 6%;">Wks.</th>
+        <th class="text-center" style="width: 32%;">Topic Outcomes</th>
+        <th class="text-center" style="width: 6%;">ILO</th>
+        <th class="text-center" style="width: 6%;">SO</th>
+        <th class="text-center" style="width: 8%;">Delivery Method</th>
       </tr>
     </thead>
     <tbody>
@@ -64,25 +95,25 @@
         {{-- Render one empty template row when no saved rows exist --}}
   <tr class="text-center align-middle">
           <td>
-            <input name="tla[][ch]" form="syllabusForm" class="form-control cis-input text-center" value="" placeholder="Ch.">
+            <input name="tla[][ch]" form="syllabusForm" class="form-control cis-input text-center" value="" placeholder="-">
           </td>
           <td class="text-start">
-            <textarea name="tla[][topic]" form="syllabusForm" class="form-control cis-textarea autosize cis-field" rows="2" placeholder="Enter topics / reading list"></textarea>
+            <textarea name="tla[][topic]" form="syllabusForm" class="form-control cis-textarea autosize cis-field" rows="2" placeholder="-"></textarea>
           </td>
           <td>
-            <input name="tla[][wks]" form="syllabusForm" class="form-control cis-input text-center" value="" placeholder="Wks">
+            <input name="tla[][wks]" form="syllabusForm" class="form-control cis-input text-center" value="" placeholder="-">
           </td>
           <td class="text-start">
-            <textarea name="tla[][outcomes]" form="syllabusForm" class="form-control cis-textarea autosize cis-field" rows="2" placeholder="Enter topic outcomes"></textarea>
+            <textarea name="tla[][outcomes]" form="syllabusForm" class="form-control cis-textarea autosize cis-field" rows="2" placeholder="-"></textarea>
           </td>
           <td>
-            <input name="tla[][ilo]" form="syllabusForm" class="form-control cis-input text-center" value="" placeholder="ILO">
+            <input name="tla[][ilo]" form="syllabusForm" class="form-control cis-input text-center" value="" placeholder="-">
           </td>
           <td>
-            <input name="tla[][so]" form="syllabusForm" class="form-control cis-input text-center" value="" placeholder="SO">
+            <input name="tla[][so]" form="syllabusForm" class="form-control cis-input text-center" value="" placeholder="-">
           </td>
           <td>
-            <input name="tla[][delivery]" form="syllabusForm" class="form-control cis-input" value="" placeholder="Delivery Method">
+            <input name="tla[][delivery]" form="syllabusForm" class="form-control cis-input" value="" placeholder="-">
           </td>
           {{-- hidden id & position for template row so client-side clones include them --}}
           <input type="hidden" class="tla-id-field" name="tla[][id]" value="">
@@ -103,25 +134,25 @@
           @endphp
           <tr class="text-center align-middle" data-tla-id="{{ $id }}">
             <td>
-              <input name="tla[{{ $i }}][ch]" form="syllabusForm" class="form-control cis-input text-center" value="{{ $ch }}" placeholder="Ch.">
+              <input name="tla[{{ $i }}][ch]" form="syllabusForm" class="form-control cis-input text-center" value="{{ $ch }}" placeholder="-">
             </td>
             <td class="text-start">
-              <textarea name="tla[{{ $i }}][topic]" form="syllabusForm" class="form-control cis-textarea autosize cis-field" rows="2" placeholder="Enter topics / reading list">{{ $topic }}</textarea>
+              <textarea name="tla[{{ $i }}][topic]" form="syllabusForm" class="form-control cis-textarea autosize cis-field" rows="2" placeholder="-">{{ $topic }}</textarea>
             </td>
             <td>
-              <input name="tla[{{ $i }}][wks]" form="syllabusForm" class="form-control cis-input text-center" value="{{ $wks }}" placeholder="Wks">
+              <input name="tla[{{ $i }}][wks]" form="syllabusForm" class="form-control cis-input text-center" value="{{ $wks }}" placeholder="-">
             </td>
             <td class="text-start">
-              <textarea name="tla[{{ $i }}][outcomes]" form="syllabusForm" class="form-control cis-textarea autosize cis-field" rows="2" placeholder="Enter topic outcomes">{{ $outcomes }}</textarea>
+              <textarea name="tla[{{ $i }}][outcomes]" form="syllabusForm" class="form-control cis-textarea autosize cis-field" rows="2" placeholder="-">{{ $outcomes }}</textarea>
             </td>
             <td>
-              <input name="tla[{{ $i }}][ilo]" form="syllabusForm" class="form-control cis-input text-center" value="{{ $ilo }}" placeholder="ILO">
+              <input name="tla[{{ $i }}][ilo]" form="syllabusForm" class="form-control cis-input text-center" value="{{ $ilo }}" placeholder="-">
             </td>
             <td>
-              <input name="tla[{{ $i }}][so]" form="syllabusForm" class="form-control cis-input text-center" value="{{ $so }}" placeholder="SO">
+              <input name="tla[{{ $i }}][so]" form="syllabusForm" class="form-control cis-input text-center" value="{{ $so }}" placeholder="-">
             </td>
             <td>
-              <input name="tla[{{ $i }}][delivery]" form="syllabusForm" class="form-control cis-input" value="{{ $delivery }}" placeholder="Delivery Method">
+              <input name="tla[{{ $i }}][delivery]" form="syllabusForm" class="form-control cis-input" value="{{ $delivery }}" placeholder="-">
             </td>
             {{-- Hidden id & position fields so JS can detect existing DB row IDs when using server-backed add/delete --}}
             <input type="hidden" class="tla-id-field" name="tla[{{ $i }}][id]" value="{{ $id }}">
@@ -132,3 +163,57 @@
     </tbody>
   </table>
 </div>
+
+<script>
+// Simple add/remove row logic for TLA table (no Ctrl+Enter / Backspace shortcuts)
+(function(){
+  function cloneTemplateRow(){
+    const tbody = document.querySelector('#tlaTable tbody');
+    if(!tbody) return null;
+    // prefer last existing data row as template
+    const rows = Array.from(tbody.querySelectorAll('tr')).filter(r => r.querySelector('input[name^="tla"], textarea[name^="tla"]'));
+    const template = rows[rows.length-1];
+    if(!template) return null;
+    const newRow = template.cloneNode(true);
+    // Clear all form field values
+    newRow.querySelectorAll('input, textarea').forEach(el=>{ if(el.tagName==='TEXTAREA') el.value=''; else if(el.type!=='hidden') el.value=''; });
+    return newRow;
+  }
+  function addRow(){
+    const tbody = document.querySelector('#tlaTable tbody');
+    if(!tbody) return;
+    const newRow = cloneTemplateRow();
+    if(!newRow){ return; }
+    tbody.appendChild(newRow);
+    // focus first field
+    const first = newRow.querySelector('input, textarea');
+    if(first) setTimeout(()=>first.focus(),10);
+    updateRemoveState();
+    try { window.updateUnsavedCount && window.updateUnsavedCount(); } catch(e){}
+  }
+  function removeRow(){
+    const tbody = document.querySelector('#tlaTable tbody');
+    if(!tbody) return;
+    const rows = Array.from(tbody.querySelectorAll('tr')).filter(r => r.querySelector('input[name^="tla"], textarea[name^="tla"]'));
+    if(rows.length <= 1) return; // keep one
+    const last = rows[rows.length-1];
+    last.parentNode.removeChild(last);
+    updateRemoveState();
+    try { window.updateUnsavedCount && window.updateUnsavedCount(); } catch(e){}
+  }
+  function updateRemoveState(){
+    const btn = document.getElementById('tla-remove-row');
+    if(!btn) return;
+    const tbody = document.querySelector('#tlaTable tbody');
+    const rows = tbody ? Array.from(tbody.querySelectorAll('tr')).filter(r => r.querySelector('input[name^="tla"], textarea[name^="tla"]')) : [];
+    btn.disabled = rows.length <= 1;
+  }
+  document.addEventListener('DOMContentLoaded', function(){
+    const addBtn = document.getElementById('tla-add-row');
+    const removeBtn = document.getElementById('tla-remove-row');
+    addBtn && addBtn.addEventListener('click', addRow);
+    removeBtn && removeBtn.addEventListener('click', removeRow);
+    updateRemoveState();
+  });
+})();
+</script>

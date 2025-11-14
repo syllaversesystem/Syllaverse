@@ -257,32 +257,6 @@ document.addEventListener('DOMContentLoaded', () => {
   if (addRowBtn) addRowBtn.addEventListener('click', addTlaRow);
   form.addEventListener('submit', saveTlaRows);
 
-  // ➕ Ctrl/Cmd + Enter inside any TLA input/textarea => add new TLA row (client-side)
-  tlaBody.addEventListener('keydown', function (e) {
-    const target = e.target;
-    if (!target) return;
-    const isInput = target.tagName === 'TEXTAREA' || target.tagName === 'INPUT';
-    if (!isInput) return;
-
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-      e.preventDefault();
-      addTlaRowClient();
-    }
-  });
-
-  // Fallback: Listen on document in case delegated listener couldn't catch events
-  document.addEventListener('keydown', function (e) {
-  if (!((e.ctrlKey || e.metaKey) && e.key === 'Enter')) return;
-  // if a delegated handler already handled this event, don't run again
-  if (e.defaultPrevented) return;
-    const active = document.activeElement;
-    if (!active) return;
-    // Only trigger when focus is inside the TLA table
-    if (tlaTable && tlaTable.contains(active)) {
-      e.preventDefault();
-      addTlaRowClient();
-    }
-  });
 
   // Focus helpers
   function focusElementAtEnd(el) {
@@ -382,56 +356,6 @@ document.addEventListener('DOMContentLoaded', () => {
     return result;
   };
 
-  // Ctrl/Cmd + Backspace: remove the focused TLA row (client-side)
-  document.addEventListener('keydown', function (e) {
-  if (!((e.ctrlKey || e.metaKey) && e.key === 'Backspace')) return;
-    const active = document.activeElement;
-    if (!active) return;
-    if (tlaTable && tlaTable.contains(active)) {
-      e.preventDefault();
-      const row = active.closest('tr');
-      // determine column index in the row
-      let colIndex = -1;
-      if (row) {
-        const els = Array.from(row.querySelectorAll('input,textarea'));
-        colIndex = Math.max(0, els.indexOf(active));
-      }
-      removeTlaRowClient(row, colIndex);
-    }
-  });
-
-  // Backspace on empty input/textarea at caret start -> remove the row
-  document.addEventListener('keydown', function (e) {
-    if (e.key !== 'Backspace') return;
-    // don't handle when Ctrl/Cmd is pressed (handled by Ctrl/Cmd+Backspace)
-    if (e.ctrlKey || e.metaKey) return;
-    const active = document.activeElement;
-    if (!active) return;
-    if (!(active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) return;
-    if (!tlaTable || !tlaTable.contains(active)) return;
-
-    try {
-      const val = active.value || '';
-      const start = typeof active.selectionStart === 'number' ? active.selectionStart : 0;
-      const end = typeof active.selectionEnd === 'number' ? active.selectionEnd : 0;
-
-      // If field is empty OR caret is at start with no selection, remove the row
-      if (val.trim() === '' || (start === 0 && end === 0)) {
-        const row = active.closest('tr');
-        // Don't remove the first (header/template) row
-        const rows = Array.from(tlaBody.querySelectorAll('tr'));
-        const index = rows.indexOf(row);
-        if (index <= 0) return; // keep first row
-        e.preventDefault();
-        // determine column index to preserve focus
-        const els = Array.from(row.querySelectorAll('input,textarea'));
-        const colIndex = Math.max(0, els.indexOf(active));
-        removeTlaRowClient(row, colIndex);
-      }
-    } catch (err) {
-      // ignore selection access errors
-    }
-  });
 
   updateTlaIndices();
 });
