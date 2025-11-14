@@ -19,7 +19,7 @@
       $mainCount = 1;
     @endphp
     <tr>
-      <td class="align-middle fw-bold cis-label" rowspan="{{ $textbooksMain->count() + 1 }}">Textbook</td>
+      <th class="align-top text-start cis-label" rowspan="{{ $textbooksMain->count() + 1 }}">Textbook</th>
       <td colspan="3">
         <input 
           type="file" 
@@ -67,7 +67,7 @@
       $otherCount = 1;
     @endphp
     <tr>
-      <td class="align-middle fw-bold cis-label" rowspan="{{ $textbooksOther->count() + 1 }}">Other Books and Articles</td>
+      <th class="align-top text-start cis-label" rowspan="{{ $textbooksOther->count() + 1 }}">Other Books and Articles</th>
       <td colspan="3">
         <input 
           type="file" 

@@ -169,9 +169,7 @@
   <tbody>
     <tr>
       <th id="at-left-title" class="align-top text-start cis-label">Assessment Method and Distribution Map
-        <div style="margin-top:6px;">
-          <span id="unsaved-assessment_tasks_left" class="unsaved-pill d-none">Unsaved</span>
-        </div>
+        <span id="unsaved-assessment_tasks_left" class="unsaved-pill d-none">Unsaved</span>
       </th>
       <td class="at-map-right">
   <table class="table table-bordered mb-0 cis-table" style="table-layout: fixed; margin:0;">

@@ -75,6 +75,9 @@
   {{-- Assessment Method and Distribution Map (moved directly below ILO for workflow continuity) --}}
   @includeWhen(View::exists('faculty.syllabus.partials.assessment-tasks-distribution'), 'faculty.syllabus.partials.assessment-tasks-distribution')
 
+  {{-- Textbook Upload / References --}}
+  @includeWhen(View::exists('faculty.syllabus.partials.textbook-upload'), 'faculty.syllabus.partials.textbook-upload')
+
         {{-- Student Outcomes --}}
         @includeWhen(View::exists('faculty.syllabus.partials.so'), 'faculty.syllabus.partials.so')
 
@@ -101,9 +104,6 @@
 
   {{-- Assessment Mapping (retained lower with other cross-domain mappings) --}}
   @includeWhen(View::exists('faculty.syllabus.partials.assessment-mapping'), 'faculty.syllabus.partials.assessment-mapping')
-
-        {{-- Textbook Upload / References --}}
-        @includeWhen(View::exists('faculty.syllabus.partials.textbook-upload'), 'faculty.syllabus.partials.textbook-upload')
 
         {{-- Course Policies --}}
         @include('faculty.syllabus.partials.course-policies')
