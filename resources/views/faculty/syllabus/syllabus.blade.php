@@ -90,6 +90,9 @@
         {{-- Sustainable Development Goals --}}
         @includeWhen(View::exists('faculty.syllabus.partials.sdg'), 'faculty.syllabus.partials.sdg')
 
+        {{-- Course Policies --}}
+        @include('faculty.syllabus.partials.course-policies')
+
         {{-- Teaching & Learning Activities (dedicated partial if present) --}}
         @includeWhen(View::exists('faculty.syllabus.partials.tla'), 'faculty.syllabus.partials.tla')
 
@@ -104,9 +107,6 @@
 
   {{-- Assessment Mapping (retained lower with other cross-domain mappings) --}}
   @includeWhen(View::exists('faculty.syllabus.partials.assessment-mapping'), 'faculty.syllabus.partials.assessment-mapping')
-
-        {{-- Course Policies --}}
-        @include('faculty.syllabus.partials.course-policies')
       </div>
     </div>
 
