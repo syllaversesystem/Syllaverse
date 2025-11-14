@@ -13,17 +13,13 @@ document.addEventListener('DOMContentLoaded', () => {
   let previousIgaIds = null;
 
   function updateVisibleCodes() {
-    const rows = Array.from(list.querySelectorAll('tr')).filter(r => r.querySelector('textarea[name="igas[]"]') || r.querySelector('.iga-badge'));
+    const rows = Array.from(list.querySelectorAll('tr.iga-row'));
     const currentIds = rows.map((r) => r.getAttribute('data-id') || `client-${Math.random().toString(36).slice(2,8)}`);
     rows.forEach((row, index) => {
       const newCode = `IGA${index + 1}`;
       const badge = row.querySelector('.iga-badge'); if (badge) badge.textContent = newCode;
       const codeInput = row.querySelector('input[name="code[]"]'); if (codeInput) codeInput.value = newCode;
-    });
-
-    // show/hide delete buttons
-    rows.forEach((row, index) => {
-      const btn = row.querySelector('.btn-delete-iga'); if (!btn) return; btn.style.display = index === 0 ? 'none' : '';
+      const btn = row.querySelector('.btn-delete-iga'); if (btn) btn.style.display = index === 0 ? 'none' : '';
     });
 
     // detect adds/removes/reorders and dispatch events if needed
@@ -50,14 +46,14 @@ document.addEventListener('DOMContentLoaded', () => {
   // expose the renumbering function so other scripts (inline clones) can call it
   try { window.updateIgaVisibleCodes = updateVisibleCodes; } catch (e) { /* noop */ }
 
-  // Enable sortable
+  // Enable sortable on single-row IGAs – mirror ILO config
   Sortable.create(list, {
     handle: '.drag-handle',
     animation: 150,
     fallbackOnBody: true,
     draggable: 'tr',
     swapThreshold: 0.65,
-    onEnd: function (evt) {
+    onEnd: function(evt) {
       updateVisibleCodes();
       try { markDirty('unsaved-igas'); } catch (e) { }
       try { updateUnsavedCount(); } catch (e) { }
@@ -93,14 +89,16 @@ document.addEventListener('DOMContentLoaded', () => {
   window.saveIga = async function() {
     const form = document.getElementById('igaForm');
     if (!form) return { message: 'No IGA form present' };
-    const rows = Array.from(list.querySelectorAll('tr')).filter(r => r.querySelector('textarea[name="igas[]"]') || r.querySelector('.iga-badge'));
+    const rows = Array.from(list.querySelectorAll('tr.iga-row'));
     const payload = rows.map((row, index) => {
       const rawId = row.getAttribute('data-id');
       const id = rawId && !rawId.startsWith('new-') ? Number(rawId) : null;
-      const code = row.querySelector('input[name="code[]"]')?.value || `IGA${index + 1}`;
+      const code = `IGA${index + 1}`;
+      const title = row.querySelector('textarea[name="iga_titles[]"]')?.value || '';
       const description = row.querySelector('textarea[name="igas[]"]')?.value || '';
+      
       const position = index + 1;
-      return { id, code, description, position };
+      return { id, code, title, description, position };
     });
     const tokenMeta = document.querySelector('meta[name="csrf-token"]');
     const headers = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
@@ -122,6 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function createNewRow() {
     const timestamp = Date.now();
     const newRow = document.createElement('tr');
+    newRow.className = 'iga-row';
     newRow.setAttribute('data-id', `new-${timestamp}`);
     newRow.innerHTML = `
       <td class="text-center align-middle">
@@ -132,7 +131,10 @@ document.addEventListener('DOMContentLoaded', () => {
           <span class="drag-handle text-muted" title="Drag to reorder" style="cursor: grab; display:flex; align-items:center;">
             <i class="bi bi-grip-vertical"></i>
           </span>
-          <textarea name="igas[]" class="form-control cis-textarea autosize flex-grow-1"></textarea>
+          <div class="flex-grow-1 w-100">
+            <textarea name="iga_titles[]" class="cis-textarea cis-field autosize" placeholder="-" rows="1" style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;font-weight:700;" required></textarea>
+            <textarea name="igas[]" class="cis-textarea cis-field autosize" placeholder="Description" rows="1" style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;" required></textarea>
+          </div>
           <input type="hidden" name="code[]" value="">
           <button type="button" class="btn btn-sm btn-outline-danger btn-delete-iga ms-2" title="Delete IGA"><i class="bi bi-trash"></i></button>
         </div>
@@ -155,22 +157,22 @@ document.addEventListener('DOMContentLoaded', () => {
     return newRow;
   }
 
-  // Keyboard: Backspace at caret 0 on an empty textarea removes the row (mirrors ILO behavior)
+  // Keyboard: Ctrl/Cmd+Backspace at caret 0 on an empty textarea removes the row (match ILO)
   list.addEventListener('keydown', (e) => {
     const el = e.target; if (!el || el.tagName !== 'TEXTAREA') return;
-    if (e.key === 'Backspace') {
+    if (e.key === 'Backspace' && (e.ctrlKey || e.metaKey)) {
       const val = el.value || ''; const selStart = (typeof el.selectionStart === 'number') ? el.selectionStart : 0;
       if (val.trim() === '' && selStart === 0) {
         e.preventDefault(); e.stopPropagation();
-        const row = el.closest('tr');
-        const allRows = Array.from(list.querySelectorAll('tr')).filter(r => r.querySelector('textarea[name="igas[]"]') || r.querySelector('.iga-badge'));
+        const row = el.closest('tr.iga-row');
+        const allRows = Array.from(list.querySelectorAll('tr.iga-row'));
         const rowIndex = allRows.indexOf(row);
         if (rowIndex === 0) { el.value = ''; try { initAutosize(); } catch (e) {} return; }
         if (allRows.length === 1) { el.value = ''; try { initAutosize(); } catch (e) {} return; }
         const id = row.getAttribute('data-id');
         if (!id || id.startsWith('new-')) {
           const prev = row.previousElementSibling;
-          try { const rows = Array.from(list.querySelectorAll('tr')).filter(r => r.querySelector('textarea[name="igas[]"]') || r.querySelector('.iga-badge')); const idx = rows.indexOf(row); row.remove(); } catch (e) { row.remove(); }
+          try { const rows = Array.from(list.querySelectorAll('tr.iga-row')); const idx = rows.indexOf(row); row.remove(); } catch (e) { row.remove(); }
           updateVisibleCodes();
           if (prev) { const prevTa = prev.querySelector('textarea.autosize'); if (prevTa) { prevTa.focus(); prevTa.selectionStart = prevTa.value.length; } }
           return;
@@ -185,7 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Click delete button
   list.addEventListener('click', (e) => {
     const btn = e.target.closest('.btn-delete-iga'); if (!btn) return;
-    const row = btn.closest('tr'); const allRows = Array.from(list.querySelectorAll('tr')).filter(r => r.querySelector('textarea[name="igas[]"]') || r.querySelector('.iga-badge'));
+    const row = btn.closest('tr.iga-row'); const allRows = Array.from(list.querySelectorAll('tr.iga-row'));
     const rowIndex = allRows.indexOf(row); if (rowIndex === 0) { alert('At least one IGA must be present.'); return; }
     const id = row.getAttribute('data-id'); if (!id || id.startsWith('new-')) { try { row.remove(); } catch (e) { row.remove(); } updateVisibleCodes(); return; }
     if (!confirm('Are you sure you want to delete this IGA?')) return;
