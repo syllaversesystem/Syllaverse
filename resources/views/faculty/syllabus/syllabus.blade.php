@@ -96,17 +96,17 @@
         {{-- Teaching & Learning Activities (dedicated partial if present) --}}
         @includeWhen(View::exists('faculty.syllabus.partials.tla'), 'faculty.syllabus.partials.tla')
 
+        {{-- Assessment Mapping (moved directly below TLA for workflow continuity) --}}
+        @includeWhen(View::exists('faculty.syllabus.partials.assessment-mapping'), 'faculty.syllabus.partials.assessment-mapping')
+
         {{-- Assessment Mappings (ILO → SO → CPA) --}}
         @includeWhen(View::exists('faculty.syllabus.partials.ilo-so-cpa-mapping'), 'faculty.syllabus.partials.ilo-so-cpa-mapping')
 
         {{-- ILO ↔ IGA Mapping --}}
         @includeWhen(View::exists('faculty.syllabus.partials.ilo-iga-mapping'), 'faculty.syllabus.partials.ilo-iga-mapping')
 
-        {{-- ILO ↔ CDIO ↔ SDG Mapping --}}
-        @includeWhen(View::exists('faculty.syllabus.partials.mapping-ilo-cdio-sdg'), 'faculty.syllabus.partials.mapping-ilo-cdio-sdg')
-
-  {{-- Assessment Mapping (retained lower with other cross-domain mappings) --}}
-  @includeWhen(View::exists('faculty.syllabus.partials.assessment-mapping'), 'faculty.syllabus.partials.assessment-mapping')
+          {{-- ILO ↔ CDIO ↔ SDG Mapping --}}
+          @includeWhen(View::exists('faculty.syllabus.partials.mapping-ilo-cdio-sdg'), 'faculty.syllabus.partials.mapping-ilo-cdio-sdg')
       </div>
     </div>
 
