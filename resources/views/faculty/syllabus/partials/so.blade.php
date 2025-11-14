@@ -18,25 +18,42 @@
   @endphp
 
   <style>
-    /* Tight layout to match IGA: remove outer padding/margins and make inner table flush */
-    .so-left-title { font-weight: 700; padding: 0.5rem; font-family: Georgia, serif; vertical-align: top; box-sizing: border-box; line-height: 1.2; font-size: 0.97rem; }
-    table.cis-table { table-layout: fixed; margin: 0; }
-    /* Make the right inner table sit flush in its cell */
+    /* keep title typography consistent with other CIS modules */
+    .so-left-title { font-weight: 700; padding: 0.75rem; font-family: Georgia, serif; vertical-align: top; box-sizing: border-box; line-height: 1.2; }
+    table.cis-table { table-layout: fixed; }
+    table.cis-table th.cis-label { white-space: normal; overflow-wrap: break-word; word-break: break-word; }
+    table.cis-table td, table.cis-table th { overflow: hidden; }
+    /* Make inner table fill the right cell container and sit flush */
     #so-right-wrap { padding: 0; margin: 0; }
     #so-right-wrap > table { width: 100%; height: 100%; margin: 0; border-spacing: 0; border-collapse: collapse; }
     /* inner table cell padding so content is flush with container */
-    #so-right-wrap td, #so-right-wrap th { vertical-align: middle; padding: 0.45rem 0.5rem; }
-    /* show internal grid lines only */
-    #so-right-wrap > table th, #so-right-wrap > table td { border: 1px solid #dee2e6; }
+    #so-right-wrap td, #so-right-wrap th { vertical-align: middle; padding: 0.5rem 0.5rem; }
+    /* force header text style (SO code + description) to Times New Roman 10pt black */
+    #so-right-wrap > table thead th.cis-label { color:#000 !important; font-family:'Times New Roman', Times, serif !important; font-size:10pt !important; }
+    /* Make the first header cell ("SO") shrink to content and avoid growing */
+    #so-right-wrap > table thead th.cis-label:first-child { white-space: nowrap; width:1%; }
+    /* show cell borders for the inner SO table (internal grid only) – now forced black */
+    #so-right-wrap > table th, #so-right-wrap > table td { border: 1px solid #000; }
+    /* hide outer edges so only internal dividers remain */
     #so-right-wrap > table thead th { border-top: 0; }
     #so-right-wrap > table th:first-child, #so-right-wrap > table td:first-child { border-left: 0; }
     #so-right-wrap > table th:last-child, #so-right-wrap > table td:last-child { border-right: 0; }
+    /* remove the bottom-most outer border line of the inner table (no visible border under last row) */
     #so-right-wrap > table tbody tr:last-child td { border-bottom: 0 !important; }
-    .so-badge { display: inline-block; min-width: 48px; text-align: center; }
+    /* SO badge: allow auto sizing (no forced min-width) so column shrinks to content */
+    .so-badge { display: inline-block; min-width: 0; width: auto; padding: 0; text-align: center; color:#000; white-space: normal; line-height: 1.1; }
+    
+    /* tighten header and first column padding to reduce visual height */
+    /* Uniform 6.4px padding for SO code header and code cells */
+    #so-right-wrap > table thead th.cis-label:first-child { padding: 6.4px !important; }
+    #so-right-wrap > table td:first-child, #so-right-wrap > table th:first-child { padding: 6.4px !important; }
     .drag-handle { width: 28px; display: inline-flex; justify-content: center; }
-    .cis-textarea { width: 100%; box-sizing: border-box; resize: none; padding: 0.25rem 0.4rem; border-radius: 4px; }
-    textarea.autosize { min-height: 42px; overflow: hidden; }
-    .btn-delete-so { margin-left: 0.25rem; }
+    /* Make textarea fill remaining space and autosize */
+    .cis-textarea { width: 100%; box-sizing: border-box; resize: none; }
+    /* Align SO textareas styling with Course Title textareas (single-line autosize) */
+    #so-right-wrap textarea.cis-textarea.autosize { overflow: hidden; }
+    /* Ensure the left header cell aligns with other CIS module headers */
+    table.cis-table th.cis-label, table.cis-table th { vertical-align: top; }
   </style>
 
   <table class="table table-bordered mb-4 cis-table">
@@ -50,15 +67,15 @@
           <span id="unsaved-sos" class="unsaved-pill d-none">Unsaved</span>
         </th>
   <td id="so-right-wrap">
-          <table class="table mb-0" style="font-family: Georgia, serif; font-size: 13px; line-height: 1.4; border: none;">
+          <table class="table mb-0" style="font-family: Georgia, serif; font-size: 13px; line-height: 1.4; border: none; table-layout: fixed;">
             <colgroup>
-              <col style="width: 10%">
-              <col style="width: 90%">
+              <col style="width:70px"> <!-- SO code column fixed -->
+              <col style="width:auto"> <!-- Description column flexes remaining -->
             </colgroup>
             <thead>
               <tr class="table-light">
                 <th class="text-center cis-label">SO</th>
-                <th class="text-start cis-label">Student Outcome / Notes</th>
+                <th class="text-center cis-label">Student Outcomes (SO) Statements</th>
               </tr>
             </thead>
             <tbody id="syllabus-so-sortable" data-syllabus-id="{{ $default['id'] }}">
@@ -72,7 +89,14 @@
                     <td>
                       <div class="d-flex align-items-center gap-2">
                         <span class="drag-handle text-muted" title="Drag to reorder" style="cursor: grab;"><i class="bi bi-grip-vertical"></i></span>
-                        <textarea name="sos[]" class="form-control cis-textarea autosize flex-grow-1" data-original="{{ old("sos.$index", $so->description) }}" required>{{ old("sos.$index", $so->description) }}</textarea>
+                        <textarea
+                          name="sos[]"
+                          class="cis-textarea cis-field autosize flex-grow-1"
+                          data-original="{{ old("sos.$index", $so->description) }}"
+                          placeholder="-"
+                          rows="1"
+                          style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;"
+                          required>{{ old("sos.$index", $so->description) }}</textarea>
                         <input type="hidden" name="code[]" value="{{ $seqCode }}">
                         <button type="button" class="btn btn-sm btn-outline-danger btn-delete-so ms-2" title="Delete SO"><i class="bi bi-trash"></i></button>
                       </div>
@@ -85,7 +109,13 @@
                   <td>
                     <div class="d-flex align-items-center gap-2">
                       <span class="drag-handle text-muted" title="Drag to reorder" style="cursor: grab;"><i class="bi bi-grip-vertical"></i></span>
-                      <textarea name="sos[]" class="form-control cis-textarea autosize flex-grow-1" required></textarea>
+                      <textarea
+                        name="sos[]"
+                        class="cis-textarea cis-field autosize flex-grow-1"
+                        placeholder="-"
+                        rows="1"
+                        style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;"
+                        required></textarea>
                       <input type="hidden" name="code[]" value="SO1">
                       <button type="button" class="btn btn-sm btn-outline-danger btn-delete-so ms-2" title="Delete SO"><i class="bi bi-trash"></i></button>
                     </div>

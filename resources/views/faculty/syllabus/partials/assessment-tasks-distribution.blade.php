@@ -174,10 +174,10 @@
       <td class="at-map-right">
   <table class="table table-bordered mb-0 cis-table" style="table-layout: fixed; margin:0;">
           @php
-            // code: fixed 40px, task: 40%, small fixed widths for control columns; ILO columns left flexible to fill remaining space
+            // code: fixed 70px, task: 40%, small fixed widths for control columns; ILO columns left flexible to fill remaining space
           @endphp
           <colgroup>
-            <col style="width:40px;"> <!-- Code fixed -->
+            <col style="width:70px;"> <!-- Code fixed -->
             <col style="width:40%;"> <!-- Task large -->
             <col style="width:48px;"> <!-- I/R/D -->
             <col style="width:48px;"> <!-- Percent -->

@@ -102,7 +102,7 @@
         <td id="ilo-right-wrap">
           <table class="table mb-0" style="font-family: Georgia, serif; font-size: 13px; line-height: 1.4; border: none;">
             <colgroup>
-              <col style="width:1%"> <!-- ILO code column compressed -->
+              <col style="width:70px"> <!-- ILO code column fixed -->
               <col style="width:auto"> <!-- Description column flexes remaining -->
             </colgroup>
             <thead>
