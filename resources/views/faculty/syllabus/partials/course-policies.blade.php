@@ -154,7 +154,9 @@
               border-left: 0 !important;
             }
             /* Force left alignment for grading system description row */
-            .course-policies .cis-inner td.grade-desc-left { text-align: left !important; padding-left: 0 !important; }
+            .course-policies .cis-inner td.grade-desc-left { text-align: left !important; padding-left: 0.5rem !important; }
+            /* Left-align remedial activity note with consistent padding */
+            .course-policies .cis-inner td.note-left { text-align:left !important; padding:0.25rem 0.5rem !important; }
         </style>
         <table class="table mb-0 cis-inner" style="border:none; margin:0; padding:0; border-collapse:collapse; width:100%;">
           <colgroup>
@@ -227,8 +229,8 @@
               <td colspan="2" style="padding:0 .5rem; height:28px; line-height:28px; vertical-align:middle; border-top:1px solid #343a40; text-align:center;">INC</td>
             </tr>
             <tr>
-              <td colspan="4" class="small text-muted no-border-sides" style="padding:0; vertical-align:top; border-bottom:0 !important;">
-                <div style="display:block; width:100%; box-sizing:border-box; padding:0.25rem 0.5rem; margin:0; white-space:normal; word-break:break-word; line-height:1.2;">*Students who got a computed grade of 70-74 will be given an appropriate remedial activity in which the final grade should be either passing (3.0) or failure (5.0).</div>
+              <td colspan="4" class="small text-muted no-border-sides note-left" style="vertical-align:top; border-bottom:0 !important;">
+                *Students who got a computed grade of 70-74 will be given an appropriate remedial activity in which the final grade should be either passing (3.0) or failure (5.0).
               </td>
             </tr>
           </tbody>
