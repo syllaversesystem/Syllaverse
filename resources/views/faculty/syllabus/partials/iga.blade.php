@@ -28,8 +28,12 @@
   #iga-right-wrap > table { width: 100%; height: 100%; margin: 0; border-spacing: 0; border-collapse: collapse; }
   /* inner table cell padding so content is flush with container */
   #iga-right-wrap td, #iga-right-wrap th { vertical-align: middle; padding: 0.5rem 0.5rem; }
-  /* show cell borders for the inner ILO table (internal grid only) */
-  #iga-right-wrap > table th, #iga-right-wrap > table td { border: 1px solid #dee2e6; }
+  /* force header text style (IGA code + description) to Times New Roman 10pt black */
+  #iga-right-wrap > table thead th.cis-label { color:#000 !important; font-family:'Times New Roman', Times, serif !important; font-size:10pt !important; }
+  /* Make the first header cell ("IGA") shrink to content and avoid growing */
+  #iga-right-wrap > table thead th.cis-label:first-child { white-space: nowrap; width:1%; }
+  /* show cell borders for the inner IGA table (internal grid only) – now forced black */
+  #iga-right-wrap > table th, #iga-right-wrap > table td { border: 1px solid #000; }
   /* hide outer edges so only internal dividers remain */
   #iga-right-wrap > table thead th { border-top: 0; }
   #iga-right-wrap > table th:first-child, #iga-right-wrap > table td:first-child { border-left: 0; }
@@ -37,12 +41,18 @@
   /* remove the bottom-most outer border line of the inner table (no visible border under last row) */
   #iga-right-wrap > table tbody tr:last-child td { border-bottom: 0 !important; }
   /* Ensure badge/code cell and grip align and don't push width */
-  .iga-badge { display: inline-block; min-width: 48px; text-align: center; }
+  /* IGA badge: allow auto sizing (no forced min-width) so column shrinks to content */
+  .iga-badge { display: inline-block; min-width: 0; width: auto; padding: 0; text-align: center; color:#000; white-space: normal; line-height: 1.1; }
+  
+  /* tighten header and first column padding to reduce visual height */
+  /* Uniform 6.4px padding for IGA code header and code cells */
+  #iga-right-wrap > table thead th.cis-label:first-child { padding: 6.4px !important; }
+  #iga-right-wrap > table td:first-child, #iga-right-wrap > table th:first-child { padding: 6.4px !important; }
   .drag-handle { width: 28px; display: inline-flex; justify-content: center; }
   /* Make textarea fill remaining space and autosize */
   .cis-textarea { width: 100%; box-sizing: border-box; resize: none; }
-  /* Allow IGA textareas to collapse to a single-line look (match Course Title feel) */
-  #iga-right-wrap textarea.cis-textarea.autosize { min-height: 34px; overflow: hidden; }
+  /* Align IGA textareas styling with Course Title textareas (single-line autosize) */
+  #iga-right-wrap textarea.cis-textarea.autosize { overflow: hidden; }
   /* Ensure the left header cell aligns with other CIS module headers */
   table.cis-table th.cis-label, table.cis-table th { vertical-align: top; }
   </style>
@@ -60,13 +70,13 @@
         <td id="iga-right-wrap">
           <table class="table mb-0" style="font-family: Georgia, serif; font-size: 13px; line-height: 1.4; border: none;">
             <colgroup>
-              <col style="width: 10%"> <!-- code column -->
-              <col style="width: 90%"> <!-- description -->
+              <col style="width:1%"> <!-- IGA code column compressed -->
+              <col style="width:auto"> <!-- Description column flexes remaining -->
             </colgroup>
             <thead>
               <tr class="table-light">
                 <th class="text-center cis-label">IGA</th>
-                <th class="text-start cis-label">Institutional Graduate Attribute / Notes</th>
+                <th class="text-center cis-label">Institutional Graduate Attributes (IGA) Statements</th>
               </tr>
             </thead>
             <tbody id="syllabus-iga-sortable" data-syllabus-id="{{ $default['id'] }}">
@@ -82,7 +92,14 @@
                         <span class="drag-handle text-muted" title="Drag to reorder" style="cursor: grab;">
                           <i class="bi bi-grip-vertical"></i>
                         </span>
-                        <textarea name="igas[]" class="form-control cis-textarea autosize flex-grow-1" data-original="{{ old("igas.$index", $iga->description) }}" required>{{ old("igas.$index", $iga->description) }}</textarea>
+                        <textarea
+                          name="igas[]"
+                          class="cis-textarea cis-field autosize flex-grow-1"
+                          data-original="{{ old("igas.$index", $iga->description) }}"
+                          placeholder="-"
+                          rows="1"
+                          style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;"
+                          required>{{ old("igas.$index", $iga->description) }}</textarea>
                         <input type="hidden" name="code[]" value="{{ $seqCode }}" data-original-code="{{ $iga->code }}">
                         <button type="button" class="btn btn-sm btn-outline-danger btn-delete-iga ms-2" title="Delete IGA">
                           <i class="bi bi-trash"></i>
@@ -101,7 +118,13 @@
                       <span class="drag-handle text-muted" title="Drag to reorder" style="cursor: grab;">
                         <i class="bi bi-grip-vertical"></i>
                       </span>
-                      <textarea name="igas[]" class="form-control cis-textarea autosize flex-grow-1" required></textarea>
+                      <textarea
+                        name="igas[]"
+                        class="cis-textarea cis-field autosize flex-grow-1"
+                        placeholder="-"
+                        rows="1"
+                        style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;"
+                        required></textarea>
                       <input type="hidden" name="code[]" value="IGA1" data-original-code="">
                       <button type="button" class="btn btn-sm btn-outline-danger btn-delete-iga ms-2" title="Delete IGA">
                         <i class="bi bi-trash"></i>
@@ -121,7 +144,7 @@
 </form>
 
 <script>
-  // minimal inline autosize and keyboard hooks for IGA matching ILO behaviors
+  // minimal inline autosize for IGA
   (function(){
     function autosizeEl(el){ try { el.style.height = 'auto'; el.style.height = (el.scrollHeight || 0) + 'px'; } catch(e) {} }
     function bindAutosize(ta){ if (!ta) return; autosizeEl(ta); ta.addEventListener('input', () => autosizeEl(ta)); }
@@ -134,22 +157,6 @@
         const mo = new MutationObserver((mutations) => { for (const m of mutations) { for (const node of m.addedNodes) { if (node && node.querySelectorAll) node.querySelectorAll('textarea.autosize').forEach(bindAutosize); } } });
         mo.observe(list, { childList: true, subtree: true });
       }
-
-      // Support Ctrl+Enter to add row (clone behavior similar to ILO but without AT sync)
-      list.addEventListener('keydown', function(ev){
-        const target = ev.target; if (!target || target.tagName !== 'TEXTAREA') return;
-        if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) {
-          ev.preventDefault();
-          const tr = target.closest('tr'); if (!tr) return;
-          const newRow = tr.cloneNode(true);
-          newRow.removeAttribute('data-id');
-          newRow.querySelectorAll('textarea').forEach(t => t.value = '');
-          newRow.querySelectorAll('input[type="hidden"]').forEach(i => i.value = '');
-          tr.parentNode.insertBefore(newRow, tr.nextSibling);
-          newRow.querySelectorAll('textarea.autosize').forEach(bindAutosize);
-          const nta = newRow.querySelector('textarea'); if (nta) { setTimeout(() => nta.focus(), 10); }
-        }
-      });
     });
   })();
 </script>

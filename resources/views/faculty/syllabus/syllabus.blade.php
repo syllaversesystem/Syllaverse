@@ -78,11 +78,11 @@
   {{-- Textbook Upload / References --}}
   @includeWhen(View::exists('faculty.syllabus.partials.textbook-upload'), 'faculty.syllabus.partials.textbook-upload')
 
+  {{-- IGA (Institutional Graduate Attributes) --}}
+  @includeWhen(View::exists('faculty.syllabus.partials.iga'), 'faculty.syllabus.partials.iga')
+
         {{-- Student Outcomes --}}
         @includeWhen(View::exists('faculty.syllabus.partials.so'), 'faculty.syllabus.partials.so')
-
-        {{-- IGA (Institutional Graduate Attributes) --}}
-        @includeWhen(View::exists('faculty.syllabus.partials.iga'), 'faculty.syllabus.partials.iga')
 
         {{-- CDIO --}}
         @includeWhen(View::exists('faculty.syllabus.partials.cdio'), 'faculty.syllabus.partials.cdio')
