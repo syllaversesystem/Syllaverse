@@ -243,6 +243,15 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function(){
+  // Debounce helpers to smooth typing performance
+  let __critChangedTimer = null;
+  function fireCriteriaChangedDebounced(delay){
+    try {
+      const d = Number.isFinite(delay) ? delay : 60;
+      if (__critChangedTimer) clearTimeout(__critChangedTimer);
+      __critChangedTimer = setTimeout(() => { try { fireCriteriaChanged(); } catch (e) { /* noop */ } }, d);
+    } catch (e) { /* noop */ }
+  }
   // helper to create a sub input line
   function createSubLine(text) {
     const el = document.createElement('div');
@@ -291,9 +300,18 @@ document.addEventListener('DOMContentLoaded', function(){
       fireCriteriaChanged();
     }
 
-    // main: Enter should create a new sub line (do not allow newline in main)
+    // main typing: emit detailed event for fast AT sync + debounced generic criteriaChanged for others
     // Removed Enter key handler that auto-added sub-lines from main heading to simplify UX
-    main.addEventListener('input', function(){ fireCriteriaChanged(); });
+    main.addEventListener('input', function(){
+      try {
+        const container = document.getElementById('criteria-sections-container');
+        const sections = Array.from(container ? container.querySelectorAll('.section') : []);
+        const sectionEl = main.closest('.section');
+        const sectionIndex = Math.max(1, sections.indexOf(sectionEl) + 1);
+        document.dispatchEvent(new CustomEvent('criteria:sectionMainChanged', { detail: { section: sectionIndex, value: main.value || '' } }));
+      } catch (e) { /* noop */ }
+      fireCriteriaChangedDebounced(60);
+    });
 
     // initial sync: prefer `data-init` on .sub-list (JSON array of {description,percent}), else fallback to legacy main.value newline parsing
     try {
@@ -324,7 +342,19 @@ document.addEventListener('DOMContentLoaded', function(){
   function attachSubHandlers(listEl, mainEl) {
     // Only basic input listeners retained; removed Enter add and Backspace remove shortcuts
     Array.from(listEl.querySelectorAll('.sub-line .sub-input')).forEach(function(inp){
-      inp.addEventListener('input', function(){ fireCriteriaChanged(); });
+      inp.addEventListener('input', function(){
+        try {
+          const sectionEl = inp.closest('.section');
+          const container = document.getElementById('criteria-sections-container');
+          const sections = Array.from(container ? container.querySelectorAll('.section') : []);
+          const sectionIndex = Math.max(1, sections.indexOf(sectionEl) + 1);
+          const subLines = Array.from(sectionEl.querySelectorAll('.sub-list .sub-line'));
+          const thisLine = inp.closest('.sub-line');
+          const subIndex = Math.max(1, subLines.indexOf(thisLine) + 1);
+          document.dispatchEvent(new CustomEvent('criteria:subChanged', { detail: { section: sectionIndex, subIndex: subIndex, value: inp.value || '' } }));
+        } catch (e) { /* noop */ }
+        fireCriteriaChangedDebounced(60);
+      });
     });
     Array.from(listEl.querySelectorAll('.sub-percent')).forEach(function(pin){
       pin.addEventListener('blur', function(){
@@ -340,7 +370,7 @@ document.addEventListener('DOMContentLoaded', function(){
         }
         fireCriteriaChanged();
       });
-      pin.addEventListener('input', function(){ fireCriteriaChanged(); });
+      pin.addEventListener('input', function(){ fireCriteriaChangedDebounced(80); });
     });
   }
 
@@ -493,9 +523,13 @@ document.addEventListener('DOMContentLoaded', function(){
   // Initial autosize pass
   recomputeAutosizeAll();
 
-  // Keep hidden fields in sync whenever criteria changes
+  // Keep hidden fields in sync whenever criteria changes (debounced)
+  let __critSerializeTimer = null;
   document.addEventListener('criteriaChanged', function(){
-    try { window.serializeCriteriaData(); } catch (e) { /* noop */ }
+    try {
+      if (__critSerializeTimer) clearTimeout(__critSerializeTimer);
+      __critSerializeTimer = setTimeout(function(){ try { window.serializeCriteriaData(); } catch (e) { /* noop */ } }, 80);
+    } catch (e) { /* noop */ }
   });
 
   // Limit: maximum number of sections allowed
