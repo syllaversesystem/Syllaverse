@@ -1,9 +1,9 @@
 <?php
 
-// File: app/Http/Controllers/Faculty/SyllabusSdgController.php
+// File: app/Http/Controllers/Faculty/Syllabus/SyllabusSdgController.php
 // Description: Handles AJAX-based Sustainable Development Goal (SDG) mapping logic for faculty syllabus – Syllaverse
 
-namespace App\Http\Controllers\Faculty;
+namespace App\Http\Controllers\Faculty\Syllabus;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;

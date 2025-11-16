@@ -61,7 +61,7 @@
 						<td style="border:1px solid #343a40; padding:0.5rem; min-height:3.5rem; vertical-align:middle; text-align:center;"></td>
 						<td style="border:1px solid #343a40; padding:0.5rem; min-height:3.5rem; vertical-align:middle; text-align:center;">
 							<span class="ilo-badge fw-semibold d-inline-block text-center" tabindex="0" style="min-width:48px;">{{ e($r->ilo_text ?? ('ILO' . ($r->position + 1))) }}</span>
-							<input type="hidden" name="ilo_so_cpa_ilos_text[]" form="syllabusForm" value="{{ e($r->ilo_text ?? ('ILO' . ($r->position + 1))) }}" data-original="{{ e($r->ilo_text ?? '') }}" />
+							<input type="hidden" name="ilo_so_cpa_ilos_text[]" form="syllabusForm" value="{{ e($r->ilo_text ?? ('ILO' . ($r->position + 1))) }}" />
 						</td>
 						@for ($i = 0; $i < $soCount; $i++)
 							@php $val = $soVals[$i] ?? ''; @endphp
@@ -86,7 +86,7 @@
 					@php $visible = old('ilo_so_cpa_ilos_text', $syllabus?->ilo_so_cpa_ilos_text ?? ''); @endphp
 					<td style="border:1px solid #343a40; padding:0.5rem; min-height:3.5rem; vertical-align:middle; text-align:center;">
 						<span class="ilo-badge fw-semibold d-inline-block text-center" tabindex="0" style="min-width:48px;">{{ e($visible) }}</span>
-						<input type="hidden" name="ilo_so_cpa_ilos_text[]" form="syllabusForm" value="{{ e($visible) }}" data-original="{{ e($syllabus?->ilo_so_cpa_ilos_text ?? '') }}" />
+						<input type="hidden" name="ilo_so_cpa_ilos_text[]" form="syllabusForm" value="{{ e($visible) }}" />
 					</td>
 					@for ($i = 1; $i <= $soCount; $i++)
 						@php $prop = 'ilo_so_cpa_so' . $i . '_text'; @endphp
@@ -277,9 +277,9 @@ document.addEventListener('DOMContentLoaded', function(){
 					for (let i = current; i < desired; i++) {
 						let newRow;
 						if (template) {
-							newRow = template.cloneNode(true);
-							// clear inputs and identifiers
-							newRow.querySelectorAll('input').forEach(inp => { inp.value = ''; if (inp.hasAttribute('data-original')) inp.removeAttribute('data-original'); });
+						newRow = template.cloneNode(true);
+						// clear inputs and identifiers
+						newRow.querySelectorAll('input').forEach(inp => { inp.value = ''; });
 							// remove any id attributes to avoid collisions; we'll reassign row-index later
 							newRow.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
 							// reset visible badge(s)

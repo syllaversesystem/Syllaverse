@@ -1,11 +1,11 @@
 <?php
 
 // -------------------------------------------------------------------------------
-// * File: app/Http/Controllers/Faculty/SyllabusIgaController.php
+// * File: app/Http/Controllers/Faculty/Syllabus/SyllabusIgaController.php
 // * Description: Handles CRUD and ordering for master IGA items used in syllabi – Syllaverse
 // -------------------------------------------------------------------------------
 
-namespace App\Http\Controllers\Faculty;
+namespace App\Http\Controllers\Faculty\Syllabus;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;

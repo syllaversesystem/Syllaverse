@@ -12,7 +12,16 @@
 @php $rp = $routePrefix ?? 'faculty.syllabi'; @endphp
 <form id="iloForm" method="POST" action="{{ route($rp . '.ilos.update', $default['id']) }}">
   @csrf
-  @method('PUT')
+  {{-- Using new batch upsert endpoint (PUT /{syllabus}/ilos); JS handles method override. --}}
+  <script>
+    // Prevent native form submission; rely solely on JS bulk save (window.saveIlo)
+    document.addEventListener('DOMContentLoaded', function(){
+      var f = document.getElementById('iloForm');
+      if (f) {
+        f.addEventListener('submit', function(ev){ ev.preventDefault(); ev.stopPropagation(); });
+      }
+    });
+  </script>
 
   @php
     $ilosSorted = $ilos->sortBy('position')->values();
@@ -94,11 +103,8 @@
       <col style="width:84%">
     </colgroup>
     <tbody>
-      <tr>
-        <th id="ilo-left-title" class="align-top text-start cis-label">Intended Learning Outcomes (ILO)
-          <span id="unsaved-ilos" class="unsaved-pill d-none">Unsaved</span>
-          <!-- Save handled by main syllabus Save button in the page toolbar -->
-        </th>
+            <tr>
+        <th id="ilo-left-title" class="align-top text-start cis-label">Intended Learning Outcomes (ILO)</th>
         <td id="ilo-right-wrap">
           <table class="table mb-0" style="font-family: Georgia, serif; font-size: 13px; line-height: 1.4; border: none;">
             <colgroup>
@@ -112,6 +118,10 @@
                   <div class="d-flex justify-content-between align-items-start gap-2">
                     <span>Upon completion of this course, the students should be able to:</span>
                     <span class="ilo-header-actions d-inline-flex gap-1" style="white-space:nowrap;">
+                        <button type="button" class="btn btn-sm" id="ilo-load-predefined" title="Load Predefined ILOs" aria-label="Load Predefined ILOs" style="background:transparent;">
+                          <i data-feather="download"></i>
+                          <span class="visually-hidden">Load Predefined ILOs</span>
+                        </button>
                         <button type="button" class="btn btn-sm" id="ilo-add-header" title="Add ILO" aria-label="Add ILO" style="background:transparent;">
                           <i data-feather="plus"></i>
                           <span class="visually-hidden">Add ILO</span>
@@ -141,13 +151,12 @@
                         <textarea
                           name="ilos[]"
                           class="cis-textarea cis-field autosize flex-grow-1"
-                          data-original="{{ old("ilos.$index", $ilo->description) }}"
                           placeholder="-"
                           rows="1"
                           style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;"
                           required>{{ old("ilos.$index", $ilo->description) }}</textarea>
-                        <input type="hidden" name="code[]" value="{{ $seqCode }}" data-original-code="{{ $ilo->code }}">
-                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-ilo ms-2" title="Delete ILO">
+                        <input type="hidden" name="code[]" value="{{ $seqCode }}">
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-ilo ms-2" title="Delete ILO" @if(!is_numeric($ilo->id ?? null)) style="display:none;" @endif>
                           <i class="bi bi-trash"></i>
                         </button>
                       </div>
@@ -171,8 +180,8 @@
                         rows="1"
                         style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;"
                         required></textarea>
-                      <input type="hidden" name="code[]" value="ILO1" data-original-code="">
-                      <button type="button" class="btn btn-sm btn-outline-danger btn-delete-ilo ms-2" title="Delete ILO">
+                      <input type="hidden" name="code[]" value="ILO1">
+                      <button type="button" class="btn btn-sm btn-outline-danger btn-delete-ilo ms-2" title="Delete ILO" style="display:none;">
                         <i class="bi bi-trash"></i>
                       </button>
                     </div>
@@ -319,99 +328,284 @@
         });
         try { window.markAsUnsaved && window.markAsUnsaved('ilos'); } catch {}
       }
-      const addBtn = document.getElementById('ilo-add-header');
-      const removeBtn = document.getElementById('ilo-remove-header');
-      const listRef = document.getElementById('syllabus-ilo-sortable');
-      addBtn && addBtn.addEventListener('click', ()=>{
-        if(!listRef) return;
-        const rows = Array.from(listRef.querySelectorAll('tr')).filter(r => r.querySelector('textarea[name="ilos[]"]') || r.querySelector('.ilo-badge'));
-        const template = rows[rows.length-1];
-        const newRow = template ? template.cloneNode(true) : document.createElement('tr');
-        newRow.removeAttribute('data-id');
-        newRow.querySelectorAll('textarea').forEach(t=>{ t.value=''; });
-        newRow.querySelectorAll('input[type="hidden"][name="code[]"]').forEach(i=>{ i.value=''; });
-        listRef.appendChild(newRow);
-        // bind autosize to new textarea(s)
-        newRow.querySelectorAll('textarea.autosize').forEach(bindAutosize);
-        renumberIloRows();
-        const focusTa = newRow.querySelector('textarea.autosize'); if(focusTa) setTimeout(()=>focusTa.focus(),10);
-      });
-      removeBtn && removeBtn.addEventListener('click', ()=>{
-        if(!listRef) return;
-        const rows = Array.from(listRef.querySelectorAll('tr')).filter(r => r.querySelector('textarea[name="ilos[]"]') || r.querySelector('.ilo-badge'));
-        if(rows.length <= 1) return; // keep at least one
-        const last = rows[rows.length-1];
-        last.parentNode.removeChild(last);
-        renumberIloRows();
-      });
 
-      // delegated keyboard handlers for ILO textareas
-      const ilolist = document.getElementById('syllabus-ilo-sortable');
-      if (ilolist) {
-        ilolist.addEventListener('keydown', function(ev){
-          const target = ev.target;
-          if (!target || target.tagName !== 'TEXTAREA') return;
-          // Ctrl/Cmd+Enter -> clone current ILO row and add AT column at same position (append)
-          if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) {
-            ev.preventDefault();
-            const tr = target.closest('tr');
-            if (!tr) return;
-            // Clone the row, but ensure the clone does not keep duplicate data-id values
-            const newRow = tr.cloneNode(true);
-            newRow.removeAttribute('data-id');
-            // clear textarea and hidden code input
-            newRow.querySelectorAll('textarea').forEach(t => t.value = '');
-            newRow.querySelectorAll('input[type="hidden"]').forEach(i => i.value = '');
-            tr.parentNode.insertBefore(newRow, tr.nextSibling);
+      // Load Predefined ILOs button - opens modal
+      const loadPredefinedBtn = document.getElementById('ilo-load-predefined');
+      const loadPredefinedModal = document.getElementById('loadPredefinedIlosModal');
+      const confirmLoadBtn = document.getElementById('confirmLoadPredefinedIlos');
+      
+      if (loadPredefinedBtn && loadPredefinedModal) {
+        loadPredefinedBtn.addEventListener('click', function() {
+          const modal = new bootstrap.Modal(loadPredefinedModal);
+          modal.show();
+        });
+      }
 
-            // After insertion, compute its sequential index and set badge + hidden code immediately
-            try {
-              const list = document.getElementById('syllabus-ilo-sortable');
-              const rows = Array.from(list.querySelectorAll('tr')).filter(r => r.querySelector('textarea[name="ilos[]"]') || r.querySelector('.ilo-badge'));
-              const idx = rows.indexOf(newRow);
-              const code = `ILO${(idx >= 0 ? idx + 1 : rows.length)}`;
-              const badge = newRow.querySelector('.ilo-badge'); if (badge) badge.textContent = code;
-              const codeInput = newRow.querySelector('input[type="hidden"][name="code[]"]'); if (codeInput) codeInput.value = code;
-            } catch (e) { /* noop */ }
-
-            // initialize autosize on new textarea
-            newRow.querySelectorAll('textarea.autosize').forEach(bindAutosize);
-            // (Standalone mode) do not dispatch cross-module events for AT syncing
-            // focus new textarea
-            const nta = newRow.querySelector('textarea'); if (nta) { setTimeout(() => nta.focus(), 10); }
+      // Confirm button in modal
+      if (confirmLoadBtn) {
+        confirmLoadBtn.addEventListener('click', async function() {
+          const syllabusId = listRef.dataset.syllabusId;
+          if (!syllabusId) {
+            alert('Syllabus ID not found');
             return;
           }
 
-          // Backspace on empty textarea at caret 0 -> remove this ILO row and remove corresponding AT column
-          if (ev.key === 'Backspace') {
-            const raw = target.value || '';
-            const selStart = (typeof target.selectionStart === 'number') ? target.selectionStart : 0;
-            const selEnd = (typeof target.selectionEnd === 'number') ? target.selectionEnd : selStart;
-            const trimmed = raw.trim();
-            // Only intercept when there is nothing meaningful to delete (trimmed empty)
-            // AND caret is at the start (selection at 0). Otherwise allow normal Backspace behavior.
-            if (trimmed === '' && selStart === 0 && selEnd === 0) {
-              ev.preventDefault();
-              const tr = target.closest('tr');
-              if (!tr) return;
-              const list = Array.from(ilolist.querySelectorAll('tr'));
-              if (list.length <= 1) return; // keep at least one ILO
-              const index = list.indexOf(tr);
-              tr.parentNode.removeChild(tr);
-              // focus previous textarea if present
-              const prev = list[index - 1] || list[0];
-              const pta = prev ? prev.querySelector('textarea') : null;
-              if (pta) setTimeout(() => pta.focus(), 10);
+          try {
+            confirmLoadBtn.disabled = true;
+            const response = await fetch(`/faculty/syllabi/${syllabusId}/load-predefined-ilos`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+              }
+            });
+
+            if (!response.ok) {
+              const errorData = await response.json().catch(() => ({}));
+              throw new Error(errorData.message || 'Failed to load predefined ILOs');
             }
+
+            const data = await response.json();
+            
+            if (!data.ilos || data.ilos.length === 0) {
+              alert('No predefined ILOs found for this course.');
+              return;
+            }
+
+            // Clear existing rows
+            while (listRef.firstChild) {
+              listRef.removeChild(listRef.firstChild);
+            }
+
+            // Add new rows from predefined ILOs (now preserving server IDs via data-id attribute)
+            data.ilos.forEach((ilo, index) => {
+              const code = `ILO${index + 1}`;
+              const newRow = document.createElement('tr');
+              newRow.setAttribute('data-id', ilo.id); // Preserve ID so subsequent saves perform updates, not recreates
+              newRow.innerHTML = `
+                <td class="text-center align-middle">
+                  <div class="ilo-badge fw-semibold">${code}</div>
+                </td>
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="drag-handle text-muted" title="Drag to reorder" style="cursor: grab;">
+                      <i class="bi bi-grip-vertical"></i>
+                    </span>
+                    <textarea
+                      name="ilos[]"
+                      class="cis-textarea cis-field autosize flex-grow-1"
+                      placeholder="-"
+                      rows="1"
+                      style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;"
+                      required>${ilo.description || ''}</textarea>
+                    <input type="hidden" name="code[]" value="${code}">
+                    <button type="button" class="btn btn-sm btn-outline-danger btn-delete-ilo ms-2" title="Delete ILO">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              `;
+              listRef.appendChild(newRow);
+              
+              // Bind autosize to the new textarea
+              const textarea = newRow.querySelector('textarea.autosize');
+              if (textarea) bindAutosize(textarea);
+            });
+
+            try { window.markAsUnsaved && window.markAsUnsaved('ilos'); } catch {}
+            
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(loadPredefinedModal);
+            if (modal) modal.hide();
+            
+            // Show success toast/notification
+            if (window.showToast) {
+              window.showToast(`Successfully loaded ${data.ilos.length} predefined ILO(s)`, 'success');
+            }
+            
+          } catch (error) {
+            console.error('Error loading predefined ILOs:', error);
+            if (window.showToast) {
+              window.showToast(error.message || 'An error occurred while loading predefined ILOs', 'error');
+            }
+          } finally {
+            confirmLoadBtn.disabled = false;
           }
         });
       }
+      // Note: Add/Remove button bindings and keyboard handlers are handled by syllabus-ilo.js
+      // to avoid duplicate event listeners. This inline script only handles modal loading
+      // and table renumbering helpers.
     });
   })();
 </script>
 
 @push('scripts')
-  @vite('resources/js/faculty/syllabus-ilo-sortable.js')
+  @vite('resources/js/faculty/syllabus-ilo.js')
 @endpush
 <!-- Local ILO Save button removed — saving is handled by the main syllabus Save button -->
+
+{{-- ░░░ START: Load Predefined ILOs Modal ░░░ --}}
+<div class="modal fade sv-ilo-modal" id="loadPredefinedIlosModal" tabindex="-1" aria-labelledby="loadPredefinedIlosModalLabel" aria-hidden="true" data-bs-backdrop="static">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      @csrf
+
+      {{-- ░░░ START: Local styles (scoped to this modal) ░░░ --}}
+      <style>
+        /* Brand tokens */
+        #loadPredefinedIlosModal {
+          --sv-bg:   #FAFAFA;   /* light bg */
+          --sv-bdr:  #E3E3E3;   /* borders */
+          --sv-acct: #EE6F57;   /* accent/focus */
+          --sv-danger:#CB3737;  /* primary action (danger style) */
+        }
+        #loadPredefinedIlosModal .modal-header {
+          padding: .85rem 1rem;
+          border-bottom: 1px solid var(--sv-bdr);
+          background: #fff;
+        }
+        #loadPredefinedIlosModal .modal-title {
+          font-weight: 600;
+          font-size: 1rem;
+          display: inline-flex;
+          align-items: center;
+          gap: .5rem;
+        }
+        #loadPredefinedIlosModal .modal-title i,
+        #loadPredefinedIlosModal .modal-title svg {
+          width: 1.05rem;
+          height: 1.05rem;
+          stroke: var(--sv-text-muted, #777777);
+        }
+        #loadPredefinedIlosModal .modal-content {
+          border-radius: 16px;
+          border: 1px solid var(--sv-bdr);
+          background: #fff;
+          box-shadow: 0 10px 30px rgba(0,0,0,.08), 0 2px 12px rgba(0,0,0,.06);
+          overflow: hidden;
+        }
+        #loadPredefinedIlosModal .alert {
+          border-radius: 12px;
+          padding: .75rem 1rem;
+          font-size: .875rem;
+        }
+        #loadPredefinedIlosModal .alert-warning {
+          background: linear-gradient(135deg, rgba(255, 243, 205, 0.88), rgba(255, 255, 255, 0.46));
+          border: 1px solid rgba(255, 193, 7, 0.3);
+          color: #856404;
+        }
+        #loadPredefinedIlosModal .btn-danger {
+          background: var(--sv-card-bg, #fff);
+          border: none;
+          color: #000;
+          transition: all 0.2s ease-in-out;
+          box-shadow: none;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.5rem 1rem;
+          border-radius: 0.375rem;
+        }
+        #loadPredefinedIlosModal .btn-danger:hover,
+        #loadPredefinedIlosModal .btn-danger:focus {
+          background: linear-gradient(135deg, rgba(255, 240, 235, 0.88), rgba(255, 255, 255, 0.46));
+          backdrop-filter: blur(7px);
+          -webkit-backdrop-filter: blur(7px);
+          box-shadow: 0 4px 10px rgba(204, 55, 55, 0.12);
+          color: #CB3737;
+        }
+        #loadPredefinedIlosModal .btn-danger:hover i,
+        #loadPredefinedIlosModal .btn-danger:hover svg,
+        #loadPredefinedIlosModal .btn-danger:focus i,
+        #loadPredefinedIlosModal .btn-danger:focus svg {
+          stroke: #CB3737;
+        }
+        #loadPredefinedIlosModal .btn-danger:active {
+          background: linear-gradient(135deg, rgba(255, 230, 225, 0.98), rgba(255, 255, 255, 0.62));
+          box-shadow: 0 1px 8px rgba(204, 55, 55, 0.16);
+        }
+        #loadPredefinedIlosModal .btn-danger:active i,
+        #loadPredefinedIlosModal .btn-danger:active svg {
+          stroke: #CB3737;
+        }
+        #loadPredefinedIlosModal .btn-danger:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+        /* Cancel button styling */
+        #loadPredefinedIlosModal .btn-light {
+          background: var(--sv-card-bg, #fff);
+          border: none;
+          color: #6c757d;
+          transition: all 0.2s ease-in-out;
+          box-shadow: none;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.5rem 1rem;
+          border-radius: 0.375rem;
+        }
+        #loadPredefinedIlosModal .btn-light:hover,
+        #loadPredefinedIlosModal .btn-light:focus {
+          background: linear-gradient(135deg, rgba(220, 220, 220, 0.88), rgba(240, 240, 240, 0.46));
+          backdrop-filter: blur(7px);
+          -webkit-backdrop-filter: blur(7px);
+          box-shadow: 0 4px 10px rgba(108, 117, 125, 0.12);
+          color: #495057;
+        }
+        #loadPredefinedIlosModal .btn-light:hover i,
+        #loadPredefinedIlosModal .btn-light:hover svg,
+        #loadPredefinedIlosModal .btn-light:focus i,
+        #loadPredefinedIlosModal .btn-light:focus svg {
+          stroke: #495057;
+        }
+        #loadPredefinedIlosModal .btn-light:active {
+          background: linear-gradient(135deg, rgba(240, 242, 245, 0.98), rgba(255, 255, 255, 0.62));
+          box-shadow: 0 1px 8px rgba(108, 117, 125, 0.16);
+        }
+        #loadPredefinedIlosModal .btn-light:active i,
+        #loadPredefinedIlosModal .btn-light:active svg {
+          stroke: #495057;
+        }
+      </style>
+      {{-- ░░░ END: Local styles ░░░ --}}
+
+      {{-- ░░░ START: Header ░░░ --}}
+      <div class="modal-header">
+        <h5 class="modal-title d-flex align-items-center gap-2" id="loadPredefinedIlosModalLabel">
+          <i data-feather="download"></i>
+          <span>Load Predefined ILOs</span>
+        </h5>
+      </div>
+      {{-- ░░░ END: Header ░░░ --}}
+
+      {{-- ░░░ START: Body ░░░ --}}
+      <div class="modal-body">
+        <div class="alert alert-warning d-flex align-items-start gap-2" role="alert">
+          <i data-feather="alert-triangle" style="width: 1.25rem; height: 1.25rem; flex-shrink: 0; margin-top: 0.125rem;"></i>
+          <div>
+            <strong>Warning:</strong> This will replace all existing ILOs with predefined ILOs from the master data for this course.
+          </div>
+        </div>
+        <p class="mb-0 text-muted small">
+          This action cannot be undone. Make sure you want to proceed before confirming.
+        </p>
+      </div>
+      {{-- ░░░ END: Body ░░░ --}}
+
+      {{-- ░░░ START: Footer ░░░ --}}
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">
+          <i data-feather="x"></i> Cancel
+        </button>
+        <button type="button" class="btn btn-danger" id="confirmLoadPredefinedIlos">
+          <i data-feather="download"></i> Load ILOs
+        </button>
+      </div>
+      {{-- ░░░ END: Footer ░░░ --}}
+    </div>
+  </div>
+</div>
+{{-- ░░░ END: Load Predefined ILOs Modal ░░░ --}}
   

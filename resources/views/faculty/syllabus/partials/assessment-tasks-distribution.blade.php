@@ -168,9 +168,7 @@
   </colgroup>
   <tbody>
     <tr>
-      <th id="at-left-title" class="align-top text-start cis-label">Assessment Method and Distribution Map
-        <span id="unsaved-assessment_tasks_left" class="unsaved-pill d-none">Unsaved</span>
-      </th>
+      <th id="at-left-title" class="align-top text-start cis-label">Assessment Method and Distribution Map</th>
       <td class="at-map-right">
   <table class="table table-bordered mb-0 cis-table" style="table-layout: fixed; margin:0;">
           @php
@@ -359,7 +357,7 @@
        The `form="syllabusForm"` attribute associates this textarea with the main
        syllabus form even though the AT UI is rendered outside the <form> element.
      --}}
-     <textarea id="assessment_tasks_data" name="assessment_tasks_data" form="syllabusForm" class="d-none" data-original="{{ old('assessment_tasks_data', $syllabus->assessment_tasks_data ?? '') }}">{{ old('assessment_tasks_data', $syllabus->assessment_tasks_data ?? '') }}</textarea>
+     <textarea id="assessment_tasks_data" name="assessment_tasks_data" form="syllabusForm" class="d-none">{{ old('assessment_tasks_data', $syllabus->assessment_tasks_data ?? '') }}</textarea>
 
         {{-- Removed outdated feedback availability note per latest requirements --}}
 
@@ -548,13 +546,7 @@
           } catch (e) { /* noop */ }
           serializeAT();
           try {
-            // prefer the global helper when available
-            if (window.markAsUnsaved) window.markAsUnsaved('assessment_tasks');
-            // fallback: directly reveal the pills so they always appear when typing
-            const p1 = document.getElementById('unsaved-assessment_tasks_left');
-            if (p1) p1.classList.remove('d-none');
-            // If markDirty is available, call it to keep global counters in sync
-            if (window.markDirty && typeof window.markDirty === 'function') window.markDirty('unsaved-assessment_tasks_left');
+            // Removed unsaved tracking logic
 
             // Propagation: if this input is in the Task column (colIndex 1), copy its value
             // into the corresponding assessment mapping name input (by data-row index) when present.
@@ -993,7 +985,7 @@
           const ta = document.querySelector('[name="assessment_tasks_data"]');
           let rows = [];
           if (ta) {
-            const raw = (ta.value && ta.value.trim()) ? ta.value.trim() : (ta.getAttribute('data-original') || '').trim();
+            const raw = (ta.value && ta.value.trim()) ? ta.value.trim() : '';
             if (raw) {
               try { rows = JSON.parse(raw); } catch (e) { rows = []; }
             }
@@ -1791,16 +1783,7 @@
   try { if (window.bindUnsavedIndicator) window.bindUnsavedIndicator('assessment_tasks_data','assessment_tasks_left'); } catch (e) { /* noop */ }
       // Provide a lightweight global helper used by other modules to mark this module as unsaved
       try {
-        window.markAsUnsaved = function(key) {
-          try {
-            const badgeId = 'unsaved-' + (key || 'assessment_tasks');
-            if (window.markDirty && typeof window.markDirty === 'function') {
-              window.markDirty(badgeId);
-            } else {
-              const el = document.getElementById(badgeId);
-              if (el) el.classList.remove('d-none');
-            }
-          } catch (e) { /* noop */ }
+        // Removed markAsUnsaved function
         };
 
         // Expose a lightweight save function so the top Save can call it before performing the main form save.

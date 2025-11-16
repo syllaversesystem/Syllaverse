@@ -10,15 +10,12 @@ Description: Institutional Vision & Mission section (refactored for semantic, ac
   </colgroup>
   <tbody>
     <tr>
-      <th class="text-start cis-label sv-mv-label">Vision
-        <span id="unsaved-vision" class="unsaved-pill sv-mv-unsaved d-none" aria-live="polite">Unsaved</span>
-      </th>
+      <th class="text-start cis-label sv-mv-label">Vision</th>
       <td>
         <textarea
           id="vision-text"
           name="vision"
           class="cis-textarea cis-field autosize"
-          data-original="{{ old('vision', $default['vision'] ?? $syllabus->missionVision?->vision ?? '') }}"
           placeholder="-"
           rows="1"
           style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;"
@@ -26,15 +23,12 @@ Description: Institutional Vision & Mission section (refactored for semantic, ac
       </td>
     </tr>
     <tr>
-      <th class="text-start cis-label sv-mv-label">Mission
-        <span id="unsaved-mission" class="unsaved-pill sv-mv-unsaved d-none" aria-live="polite">Unsaved</span>
-      </th>
+      <th class="text-start cis-label sv-mv-label">Mission</th>
       <td>
         <textarea
           id="mission-text"
           name="mission"
           class="cis-textarea cis-field autosize"
-          data-original="{{ old('mission', $default['mission'] ?? $syllabus->missionVision?->mission ?? '') }}"
           placeholder="-"
           rows="1"
           style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;"
@@ -76,7 +70,6 @@ Description: Institutional Vision & Mission section (refactored for semantic, ac
   .sv-mv-table tr { height: auto; }
   .sv-mv-textarea { min-height: unset; height:auto; font-size:10pt; font-family:'Times New Roman', Times, serif; line-height:1.35; resize:vertical; }
   .sv-mv-textarea:focus { box-shadow:none; border-color:#666; }
-  .sv-mv-unsaved { font-size:.6rem; padding:2px 6px; border-radius:10px; background:#ffc107; color:#333; font-weight:500; }
   /* table layout is responsive by default */
 </style>
 @endpush

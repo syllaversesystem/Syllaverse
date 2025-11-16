@@ -21,7 +21,7 @@ $mappings = [
 ];
 
 $request = Request::create('/faculty/syllabi/' . $syllabusId . '/assessment-mappings', 'POST', ['mappings' => $mappings]);
-$controller = new App\Http\Controllers\Faculty\SyllabusController();
+$controller = new App\Http\Controllers\Faculty\Syllabus\SyllabusController();
 $response = app()->call([$controller, 'saveAssessmentMappings'], ['request' => $request, 'syllabus' => $syllabusId]);
 
 echo "Response: " . $response->getContent() . PHP_EOL;

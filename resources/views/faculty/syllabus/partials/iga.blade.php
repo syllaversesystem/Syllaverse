@@ -93,9 +93,7 @@
     </colgroup>
     <tbody>
       <tr>
-  <th id="iga-left-title" class="align-top text-start cis-label iga-left-title">Institutional Graduate Attributes (IGA)
-          <span id="unsaved-igas" class="unsaved-pill d-none">Unsaved</span>
-        </th>
+  <th id="iga-left-title" class="align-top text-start cis-label iga-left-title">Institutional Graduate Attributes (IGA)</th>
         <td id="iga-right-wrap">
           <table class="table mb-0" style="font-family: Georgia, serif; font-size: 13px; line-height: 1.4; border: none; table-layout: fixed;">
             <colgroup>
@@ -137,7 +135,6 @@
                           <textarea
                             name="iga_titles[]"
                             class="cis-textarea cis-field autosize"
-                            data-original="{{ old("iga_titles.$index", $iga->title ?? '') }}"
                             placeholder="-"
                             rows="1"
                             style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;font-weight:700;"
@@ -145,13 +142,12 @@
                           <textarea
                             name="igas[]"
                             class="cis-textarea cis-field autosize"
-                            data-original="{{ old("igas.$index", $iga->description) }}"
                             placeholder="Description"
                             rows="1"
                             style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;"
                             required>{{ old("igas.$index", $iga->description) }}</textarea>
                         </div>
-                        <input type="hidden" name="code[]" value="{{ $seqCode }}" data-original-code="{{ $iga->code }}">
+                        <input type="hidden" name="code[]" value="{{ $seqCode }}">
                         <button type="button" class="btn btn-sm btn-outline-danger btn-delete-iga ms-2" title="Delete IGA">
                           <i class="bi bi-trash"></i>
                         </button>
@@ -183,7 +179,7 @@
                           style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;"
                           required></textarea>
                       </div>
-                      <input type="hidden" name="code[]" value="IGA1" data-original-code="">
+                      <input type="hidden" name="code[]" value="IGA1">
                       <button type="button" class="btn btn-sm btn-outline-danger btn-delete-iga ms-2" title="Delete IGA">
                         <i class="bi bi-trash"></i>
                       </button>
@@ -237,7 +233,7 @@
                 <textarea name="iga_titles[]" class="cis-textarea cis-field autosize" placeholder="-" rows="1" style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;font-weight:700;" required></textarea>
                 <textarea name="igas[]" class="cis-textarea cis-field autosize" placeholder="Description" rows="1" style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;" required></textarea>
               </div>
-              <input type="hidden" name="code[]" value="${newCode}" data-original-code="">
+              <input type="hidden" name="code[]" value="${newCode}">
               <button type="button" class="btn btn-sm btn-outline-danger btn-delete-iga ms-2" title="Delete IGA"><i class="bi bi-trash"></i></button>
             </div>
           </td>

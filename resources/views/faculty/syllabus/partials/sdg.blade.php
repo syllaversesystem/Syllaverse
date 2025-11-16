@@ -72,9 +72,7 @@
 		</colgroup>
 		<tbody>
 			<tr>
-				<th class="align-top text-start cis-label sdg-left-title">Sustainable Development Goals (SDG)
-					<span id="unsaved-sdgs" class="unsaved-pill d-none">Unsaved</span>
-				</th>
+				<th class="align-top text-start cis-label sdg-left-title">Sustainable Development Goals (SDG)</th>
 				<td id="sdg-right-wrap">
 					<table class="table mb-0" style="font-family: Georgia, serif; font-size: 13px; line-height: 1.4; border: none; table-layout: fixed;">
 						<colgroup>
@@ -118,9 +116,9 @@
 										<td>
 											<div class="d-flex align-items-center gap-2">
 												<span class="drag-handle text-muted" title="Drag to reorder"><i class="bi bi-grip-vertical"></i></span>
-												<div class="flex-grow-1 w-100">
-													<input type="text" name="title[]" class="form-control form-control-sm" value="{{ $visibleTitle }}" data-original="{{ $visibleTitle }}" placeholder="-" style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;font-weight:700;background:transparent;border:none;" />
-													<textarea name="sdgs[]" class="cis-textarea cis-field autosize" data-original="{{ old("sdgs.$index", $visibleDesc) }}" placeholder="Description" rows="1" style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;" required>{{ old("sdgs.$index", $visibleDesc) }}</textarea>
+											<div class="flex-grow-1 w-100">
+												<input type="text" name="title[]" class="form-control form-control-sm" value="{{ $visibleTitle }}" placeholder="-" style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;font-weight:700;background:transparent;border:none;" />
+												<textarea name="sdgs[]" class="cis-textarea cis-field autosize" placeholder="Description" rows="1" style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;" required>{{ old("sdgs.$index", $visibleDesc) }}</textarea>
 												</div>
 												<input type="hidden" name="code[]" value="{{ $seqCode }}">
 												<button type="button" class="btn btn-sm btn-outline-danger btn-delete-cdio ms-2" title="Delete SDG"><i class="bi bi-trash"></i></button>
@@ -244,8 +242,8 @@ document.addEventListener('DOMContentLoaded', function () {
 							<div class="d-flex align-items-center gap-2">
 								<span class="drag-handle text-muted" title="Drag to reorder"><i class="bi bi-grip-vertical"></i></span>
 								<div class="flex-grow-1 w-100">
-									<input type="text" name="title[]" class="form-control form-control-sm" value="${(item.title||'').replace(/"/g,'&quot;')}" data-original="${(item.title||'').replace(/"/g,'&quot;')}" placeholder="-" style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;font-weight:700;background:transparent;border:none;" />
-									<textarea name="sdgs[]" class="cis-textarea cis-field autosize" data-original="${(item.description||'').replace(/"/g,'&quot;')}" placeholder="Description" rows="1" style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">${item.description||''}</textarea>
+									<input type="text" name="title[]" class="form-control form-control-sm" value="${(item.title||'').replace(/"/g,'&quot;')}" placeholder="-" style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;font-weight:700;background:transparent;border:none;" />
+									<textarea name="sdgs[]" class="cis-textarea cis-field autosize" placeholder="Description" rows="1" style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">${item.description||''}</textarea>
 								</div>
 								<input type="hidden" name="code[]" value="">
 								<button type="button" class="btn btn-sm btn-outline-danger btn-delete-cdio ms-2" title="Delete SDG"><i class="bi bi-trash"></i></button>

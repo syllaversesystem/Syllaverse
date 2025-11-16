@@ -289,7 +289,7 @@
                 let newRow;
                 if (template) {
                     newRow = template.cloneNode(true);
-                    newRow.querySelectorAll('input').forEach(inp => { inp.value = ''; if (inp.hasAttribute('data-original')) inp.removeAttribute('data-original'); });
+                    newRow.querySelectorAll('input').forEach(inp => { inp.value = ''; });
                     newRow.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
                     newRow.querySelectorAll('.ilo-badge').forEach(b => { b.textContent = ''; b.className = 'ilo-badge fw-semibold d-inline-block text-center'; });
                 } else {

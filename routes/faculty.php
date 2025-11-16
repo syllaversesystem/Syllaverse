@@ -13,12 +13,12 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Faculty\AuthController as FacultyAuthController;
 use App\Http\Controllers\Faculty\ProfileController;
-use App\Http\Controllers\Faculty\SyllabusController;
-use App\Http\Controllers\Faculty\SyllabusTextbookController;
-use App\Http\Controllers\Faculty\SyllabusTLAController;
-use App\Http\Controllers\Faculty\SyllabusIloController;
-use App\Http\Controllers\Faculty\SyllabusSoController;
-use App\Http\Controllers\Faculty\SyllabusSdgController;
+use App\Http\Controllers\Faculty\Syllabus\SyllabusController;
+use App\Http\Controllers\Faculty\Syllabus\SyllabusTextbookController;
+use App\Http\Controllers\Faculty\Syllabus\SyllabusTLAController;
+use App\Http\Controllers\Faculty\Syllabus\SyllabusIloController;
+use App\Http\Controllers\Faculty\Syllabus\SyllabusSoController;
+use App\Http\Controllers\Faculty\Syllabus\SyllabusSdgController;
 use App\Http\Controllers\Faculty\SdgController;
 use App\Http\Controllers\Faculty\IgaController;
 use App\Http\Controllers\Faculty\CdioController;
@@ -112,25 +112,32 @@ Route::middleware([FacultyAuth::class])->group(function () {
     Route::get('/faculty/syllabi/{id}', [SyllabusController::class, 'show'])->name('faculty.syllabi.show');
     Route::put('/faculty/syllabi/{id}', [SyllabusController::class, 'update'])->name('faculty.syllabi.update');
     Route::delete('/faculty/syllabi/{id}', [SyllabusController::class, 'destroy'])->name('faculty.syllabi.destroy');
-
-    // ---------- ✅ ILO CRUD + Sortable ----------
-    Route::put('/faculty/syllabi/{syllabus}/ilos', [SyllabusIloController::class, 'update'])->name('faculty.syllabi.ilos.update');
-    Route::post('/faculty/syllabi/ilos/store', [SyllabusIloController::class, 'store'])->name('faculty.syllabi.ilos.store');
-    Route::put('/faculty/syllabi/ilos/{syllabus}/{ilo}', [SyllabusIloController::class, 'inlineUpdate'])->name('faculty.syllabi.ilos.inline');
-    Route::delete('/faculty/syllabi/ilos/{id}', [SyllabusIloController::class, 'destroy'])->name('faculty.syllabi.ilos.destroy');
-    Route::post('/faculty/syllabi/reorder/ilo', [SyllabusIloController::class, 'reorder'])->name('faculty.syllabi.ilos.reorder');
+    
+    // (Removed live save endpoints: mission-vision, course-info, tlas, criteria, ilo-save)
+    // ---------- ILO CRUD & Batch Operations (replacing deprecated IloSaveController) ----------
+    // Batch upsert (create/update/delete based on payload) of syllabus ILOs
+    Route::put('/faculty/syllabi/{syllabus}/ilos', [\App\Http\Controllers\Faculty\Syllabus\SyllabusIloController::class, 'update'])->name('faculty.syllabi.ilos.update');
+    // Create a single new ILO (appends at end; code auto-generated)
+    Route::post('/faculty/syllabi/{syllabus}/ilos', [\App\Http\Controllers\Faculty\Syllabus\SyllabusIloController::class, 'store'])->name('faculty.syllabi.ilos.store');
+    // Inline update description of a single ILO
+    Route::put('/faculty/syllabi/{syllabus}/ilos/{ilo}/inline', [\App\Http\Controllers\Faculty\Syllabus\SyllabusIloController::class, 'inlineUpdate'])->name('faculty.syllabi.ilos.inline');
+    // Delete a single ILO
+    Route::delete('/faculty/syllabi/ilos/{ilo}', [\App\Http\Controllers\Faculty\Syllabus\SyllabusIloController::class, 'destroy'])->name('faculty.syllabi.ilos.destroy');
+    // Reorder + recode ILOs (positions array)
+    Route::post('/faculty/syllabi/{syllabus}/ilos/reorder', [\App\Http\Controllers\Faculty\Syllabus\SyllabusIloController::class, 'reorder'])->name('faculty.syllabi.ilos.reorder');
+    Route::post('/faculty/syllabi/{syllabus}/load-predefined-ilos', [SyllabusIloController::class, 'loadPredefinedIlos'])->name('faculty.syllabi.ilos.load-predefined');
 
     // ---------- IGA (Institutional Graduate Attributes) — managed by dedicated controller ----------
-    Route::put('/faculty/syllabi/{syllabus}/igas', [\App\Http\Controllers\Faculty\SyllabusIgaController::class, 'update'])->name('faculty.syllabi.iga.update');
-    Route::post('/faculty/syllabi/igas/reorder', [\App\Http\Controllers\Faculty\SyllabusIgaController::class, 'reorder'])->name('faculty.syllabi.iga.reorder');
-    Route::delete('/faculty/syllabi/igas/{id}', [\App\Http\Controllers\Faculty\SyllabusIgaController::class, 'destroy'])->name('faculty.syllabi.iga.destroy');
+    Route::put('/faculty/syllabi/{syllabus}/igas', [\App\Http\Controllers\Faculty\Syllabus\SyllabusIgaController::class, 'update'])->name('faculty.syllabi.iga.update');
+    Route::post('/faculty/syllabi/igas/reorder', [\App\Http\Controllers\Faculty\Syllabus\SyllabusIgaController::class, 'reorder'])->name('faculty.syllabi.iga.reorder');
+    Route::delete('/faculty/syllabi/igas/{id}', [\App\Http\Controllers\Faculty\Syllabus\SyllabusIgaController::class, 'destroy'])->name('faculty.syllabi.iga.destroy');
 
     // ---------- CDIO (Conceive–Design–Implement–Operate) — per-syllabus CDIO CRUD + Sortable ----------
-    Route::put('/faculty/syllabi/{syllabus}/cdios', [\App\Http\Controllers\Faculty\SyllabusCdioController::class, 'update'])->name('faculty.syllabi.cdios.update');
-    Route::post('/faculty/syllabi/{syllabus}/cdios/reorder', [\App\Http\Controllers\Faculty\SyllabusCdioController::class, 'reorder'])->name('faculty.syllabi.cdios.reorder');
-    Route::post('/faculty/syllabi/cdios', [\App\Http\Controllers\Faculty\SyllabusCdioController::class, 'store'])->name('faculty.syllabi.cdios.store');
-    Route::put('/faculty/syllabi/{syllabus}/cdios/{cdio}', [\App\Http\Controllers\Faculty\SyllabusCdioController::class, 'inlineUpdate'])->name('faculty.syllabi.cdios.inline');
-    Route::delete('/faculty/syllabi/cdios/{id}', [\App\Http\Controllers\Faculty\SyllabusCdioController::class, 'destroy'])->name('faculty.syllabi.cdios.destroy');
+    Route::put('/faculty/syllabi/{syllabus}/cdios', [\App\Http\Controllers\Faculty\Syllabus\SyllabusCdioController::class, 'update'])->name('faculty.syllabi.cdios.update');
+    Route::post('/faculty/syllabi/{syllabus}/cdios/reorder', [\App\Http\Controllers\Faculty\Syllabus\SyllabusCdioController::class, 'reorder'])->name('faculty.syllabi.cdios.reorder');
+    Route::post('/faculty/syllabi/cdios', [\App\Http\Controllers\Faculty\Syllabus\SyllabusCdioController::class, 'store'])->name('faculty.syllabi.cdios.store');
+    Route::put('/faculty/syllabi/{syllabus}/cdios/{cdio}', [\App\Http\Controllers\Faculty\Syllabus\SyllabusCdioController::class, 'inlineUpdate'])->name('faculty.syllabi.cdios.inline');
+    Route::delete('/faculty/syllabi/cdios/{id}', [\App\Http\Controllers\Faculty\Syllabus\SyllabusCdioController::class, 'destroy'])->name('faculty.syllabi.cdios.destroy');
 
     // ---------- ✅ SO CRUD + Sortable ----------
     Route::put('/faculty/syllabi/{syllabus}/sos', [SyllabusSoController::class, 'update'])->name('faculty.syllabi.sos.update');
@@ -168,17 +175,7 @@ Route::middleware([FacultyAuth::class])->group(function () {
     Route::post('/faculty/syllabi/{syllabus}/generate-tla', [SyllabusTLAController::class, 'generateWithAI'])
      ->name('faculty.syllabi.tla.generate');
 
-    // Persist Assessment Tasks payload for a syllabus
-    Route::post('/faculty/syllabi/{syllabus}/assessment-tasks', [SyllabusController::class, 'saveAssessmentTasks'])->name('faculty.syllabi.assessment_tasks.save');
-    // Persist Assessment Mappings payload for a syllabus
-    Route::post('/faculty/syllabi/{syllabus}/assessment-mappings', [SyllabusController::class, 'saveAssessmentMappings'])->name('faculty.syllabi.assessment_mappings.save');
-
-    // Persist ILO -> SO -> CPA mapping payload for a syllabus
-    Route::post('/faculty/syllabi/{syllabus}/ilo-so-cpa', [SyllabusController::class, 'saveIloSoCpa'])->name('faculty.syllabi.ilo_so_cpa.save');
-    // Persist ILO -> IGA mapping payload for a syllabus
-    Route::post('/faculty/syllabi/{syllabus}/ilo-iga', [SyllabusController::class, 'saveIloIga'])->name('faculty.syllabi.ilo_iga.save');
-    // Persist ILO -> CDIO -> SDG mapping payload for a syllabus
-    Route::post('/faculty/syllabi/{syllabus}/ilo-cdio-sdg', [SyllabusController::class, 'saveIloCdioSdg'])->name('faculty.syllabi.ilo_cdio_sdg.save');
+    // (Removed bulk mapping save endpoints: assessment tasks/mappings, ilo-so-cpa, ilo-iga, ilo-cdio-sdg)
 
 
 

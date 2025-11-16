@@ -55,7 +55,7 @@
                         <td style="border:1px solid #343a40; padding:0.5rem; min-height:3.5rem; vertical-align:middle; text-align:center;"></td>
                         <td style="border:1px solid #343a40; padding:0.5rem; min-height:3.5rem; vertical-align:middle; text-align:center;">
                         <span class="ilo-badge fw-semibold d-inline-block text-center" tabindex="0">{{ e($r->ilo_text ?? ('ILO' . ($r->position + 1))) }}</span>
-                        <input type="hidden" name="ilo_iga_ilos_text[]" form="syllabusForm" value="{{ e($r->ilo_text ?? ('ILO' . ($r->position + 1))) }}" data-original="{{ e($r->ilo_text ?? '') }}" />
+                        <input type="hidden" name="ilo_iga_ilos_text[]" form="syllabusForm" value="{{ e($r->ilo_text ?? ('ILO' . ($r->position + 1))) }}" />
                         </td>
                         @for ($i = 0; $i < $igaCount; $i++)
                             @php $val = $igaVals[$i] ?? ''; @endphp
@@ -71,7 +71,7 @@
                     @php $visible = old('ilo_iga_ilos_text', $syllabus?->ilo_iga_ilos_text ?? ''); @endphp
                     <td style="border:1px solid #343a40; padding:0.5rem; min-height:3.5rem; vertical-align:middle; text-align:center;">
                         <span class="ilo-badge fw-semibold d-inline-block text-center" tabindex="0">{{ e($visible) }}</span>
-                        <input type="hidden" name="ilo_iga_ilos_text[]" form="syllabusForm" value="{{ e($visible) }}" data-original="{{ e($syllabus?->ilo_iga_ilos_text ?? '') }}" />
+                        <input type="hidden" name="ilo_iga_ilos_text[]" form="syllabusForm" value="{{ e($visible) }}" />
                     </td>
                     @for ($i = 1; $i <= $igaCount; $i++)
                         @php $prop = 'ilo_iga_iga' . $i . '_text'; @endphp
@@ -245,7 +245,7 @@ document.addEventListener('DOMContentLoaded', function(){
                     let newRow;
                     if (template) {
                         newRow = template.cloneNode(true);
-                        newRow.querySelectorAll('input').forEach(inp => { inp.value = ''; if (inp.hasAttribute('id')) inp.removeAttribute('id'); if (inp.hasAttribute('data-original')) inp.removeAttribute('data-original'); });
+                        newRow.querySelectorAll('input').forEach(inp => { inp.value = ''; if (inp.hasAttribute('id')) inp.removeAttribute('id'); });
                     } else {
                         newRow = document.createElement('tr');
                         newRow.innerHTML = tBody.querySelector('tr[data-template]') ? tBody.querySelector('tr[data-template]').innerHTML : '';

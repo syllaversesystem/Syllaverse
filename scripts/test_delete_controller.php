@@ -5,7 +5,7 @@ $app = require_once __DIR__ . '/../bootstrap/app.php';
 $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
 $kernel->bootstrap();
 
-use App\Http\Controllers\Faculty\SyllabusSdgController;
+use App\Http\Controllers\Faculty\Syllabus\SyllabusSdgController;
 use App\Models\Syllabus;
 
 $syllabus = Syllabus::find(117);

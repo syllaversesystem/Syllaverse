@@ -20,16 +20,12 @@
   <div class="svx-card mb-3">
     <div class="svx-card-body">
       <div class="programs-toolbar mb-0 w-100" id="syllabusToolbar">
-        <!-- Left: Save + Undo/Redo -->
+        <!-- Left: Save -->
         <div class="d-flex align-items-center gap-2">
-          <button id="syllabusSaveBtn" type="button" class="btn btn-danger" disabled title="Save" aria-label="Save">
-            <i class="bi bi-save"></i> <span class="d-none d-sm-inline">Save</span>
+          <button id="syllabusSaveBtn" type="button" class="btn btn-danger" title="Save" aria-label="Save">
+            <i class="bi bi-save"></i>
             <span id="unsaved-count-badge" class="badge bg-warning text-dark ms-1" style="display:none;">0</span>
           </button>
-          <div class="btn-group" role="group" aria-label="Undo/Redo controls">
-            <button type="button" id="undoBtn" class="btn btn-outline-secondary" disabled title="Undo (Ctrl+Z)"><i class="bi bi-arrow-counterclockwise"></i><span class="d-none d-md-inline ms-1">Undo</span></button>
-            <button type="button" id="redoBtn" class="btn btn-outline-secondary" disabled title="Redo (Ctrl+Y)"><i class="bi bi-arrow-clockwise"></i><span class="d-none d-md-inline ms-1">Redo</span></button>
-          </div>
         </div>
 
         <span class="flex-spacer"></span>
@@ -48,7 +44,6 @@
       </div>
     </div>
   </div>
-  <div id="svToast" class="position-fixed top-0 start-50 translate-middle-x bg-dark text-white px-3 py-2 rounded shadow" style="z-index:1080; display:none;">Saved</div>
 
   <form id="syllabusForm" method="POST" action="{{ route('faculty.syllabi.update', $syllabus->id) }}" novalidate>
     @csrf
@@ -96,7 +91,7 @@
         {{-- Teaching & Learning Activities (dedicated partial if present) --}}
         @includeWhen(View::exists('faculty.syllabus.partials.tla'), 'faculty.syllabus.partials.tla')
 
-        {{-- Assessment Mapping (moved directly below TLA for workflow continuity) --}}
+        {{-- Assessment Mapping (ILO/SO/CDIO/SDG/IGA crosswalk) moved directly below TLA for immediate follow-up workflows --}}
         @includeWhen(View::exists('faculty.syllabus.partials.assessment-mapping'), 'faculty.syllabus.partials.assessment-mapping')
 
         {{-- Assessment Mappings (ILO → SO → CPA) --}}
@@ -112,8 +107,8 @@
 
     {{-- Bottom Save / Exit (redundant for long scroll) --}}
     <div class="d-flex gap-2 my-4">
-      <button id="syllabusSaveBtnBottom" type="button" class="btn btn-danger" onclick="document.getElementById('syllabusSaveBtn').click();" disabled>
-        <i class="bi bi-save"></i> Save
+      <button id="syllabusSaveBtnBottom" type="button" class="btn btn-danger" onclick="document.getElementById('syllabusSaveBtn').click();">
+        <i class="bi bi-save"></i>
         <span class="badge bg-warning text-dark ms-1 d-none" id="unsaved-count-badge-bottom">0</span>
       </button>
       <button type="button" class="btn btn-outline-secondary" onclick="handleExit('{{ route('faculty.syllabi.index') }}')">
@@ -234,7 +229,6 @@
         }
       });
       applyingSnapshot = false;
-      try { window.isDirty = true; } catch(e){}
       updateButtons();
     }
 
@@ -257,6 +251,7 @@
     let changeTimer = null;
     function onUserChange(){
       if (applyingSnapshot) return;
+      try { window.isDirty = true; } catch(e){}
       clearTimeout(changeTimer);
       changeTimer = setTimeout(()=>{
         pushPast(captureSnapshot());
@@ -307,13 +302,10 @@
       if (!autoSaveEnabled) return;
       if (!saveBtn) return;
       if (window._syllabusSaveLock) return;
-      // only auto-save if UI considers there are unsaved changes
-      if (typeof window.isDirty !== 'undefined' && !window.isDirty) return;
-      if (saveBtn.disabled) return;
       clearTimeout(autoSaveTimer);
       autoSaveTimer = setTimeout(()=>{
         if (window._syllabusSaveLock) return;
-        if (saveBtn && !saveBtn.disabled) {
+        if (saveBtn) {
           try { saveBtn.click(); } catch(e){}
         }
       }, 1500);
@@ -340,5 +332,9 @@
   .programs-toolbar .input-group .input-group-text { background:transparent; border:none; padding-left:.7rem; padding-right:.4rem; display:flex; align-items:center; }
   .svx-card { background:#fff; border:1px solid var(--sv-border,#E3E3E3); border-radius:10px; }
   .svx-card-body { padding: .85rem; }
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
 </style>
 @endpush

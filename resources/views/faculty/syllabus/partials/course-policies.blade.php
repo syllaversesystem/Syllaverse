@@ -12,9 +12,7 @@
   </colgroup>
   <tbody>
     <tr>
-      <th colspan="2" class="text-start cis-label">Course Policies
-        <span id="unsaved-course_policies" class="unsaved-pill unsaved-dot d-none" aria-hidden="true"></span>
-      </th>
+      <th colspan="2" class="text-start cis-label">Course Policies</th>
     </tr>
     <tr>
       <td class="text-center align-top" style="padding-top:0.35rem;">A.</td>
@@ -302,17 +300,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     areas.forEach((ta) => {
       // ensure original snapshot exists for bindUnsavedIndicator-style comparisons
-      if (typeof ta.dataset.original === 'undefined') ta.dataset.original = ta.value ?? '';
-
-      const onChange = function (e) {
-        try { if (window.markDirty) window.markDirty('unsaved-course_policies'); } catch (e) { /* noop */ }
-        try { if (window.updateUnsavedCount) window.updateUnsavedCount(); } catch (e) { /* noop */ }
-        // also add visual highlight
-        try { ta.classList.toggle('sv-new-highlight', (ta.value ?? '') !== (ta.dataset.original ?? '')); } catch (e) {}
-      };
-
-      ta.addEventListener('input', onChange);
-      ta.addEventListener('change', onChange);
+      // Removed unsaved tracking logic
     });
   } catch (e) { /* noop */ }
 });

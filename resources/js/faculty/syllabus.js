@@ -23,25 +23,21 @@ function setSyllabusSaveState(state, originalHtml = null) {
     _sv_state = state;
     switch(state) {
       case 'saving':
-        saveBtn.disabled = true;
         saveBtn.classList.remove('btn-danger'); saveBtn.classList.add('btn-warning');
-        saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
+        saveBtn.innerHTML = '<i class="bi bi-arrow-repeat" style="animation: spin 1s linear infinite;"></i>';
         break;
       case 'saved':
-        saveBtn.disabled = true;
         saveBtn.classList.remove('btn-warning'); saveBtn.classList.add('btn-success');
-        saveBtn.innerHTML = '<i class="bi bi-check-lg"></i> Saved';
-        // short visual then revert to idle (disabled)
+        saveBtn.innerHTML = '<i class="bi bi-check-lg"></i>';
+        // short visual then revert to idle
         setTimeout(() => { setSyllabusSaveState('idle', originalHtml); }, 900);
         break;
       case 'dirty':
-        saveBtn.disabled = false;
         saveBtn.classList.remove('btn-danger'); saveBtn.classList.add('btn-warning');
         if (unsavedCountBadge) unsavedCountBadge.style.display = '';
         break;
       case 'idle':
       default:
-        saveBtn.disabled = true;
         saveBtn.classList.remove('btn-success','btn-warning'); saveBtn.classList.add('btn-danger');
         if (originalHtml) saveBtn.innerHTML = originalHtml;
         if (unsavedCountBadge) unsavedCountBadge.style.display = 'none';
@@ -138,16 +134,7 @@ try {
       try {
         const text = String(msg || '').toLowerCase();
         if (text.includes('failed to save') || text.includes('failed to fetch') || text.includes('failed to save assessment tasks')) {
-          // show non-blocking toast if available
-          const toast = document.getElementById('svToast');
-          if (toast) {
-            toast.textContent = (String(msg) || 'Save failed. Check console for details.');
-            toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 3000);
-            console.warn('Suppressed blocking alert:', msg);
-            return;
-          }
-          // fallback: log and don't block
+          // log and don't block
           console.warn('Suppressed blocking alert:', msg);
           return;
         }
@@ -224,13 +211,8 @@ function updateUnsavedCount() {
   badge.setAttribute('aria-label', `${count} unsaved changes`);
   // small pulse animation
   badge.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.06)' }, { transform: 'scale(1)' }], { duration: 280 });
-  // enable Save if disabled
-  const saveBtn = document.getElementById('syllabusSaveBtn');
-  if (saveBtn) saveBtn.disabled = false;
   } else {
     badge.style.display = 'none';
-  const saveBtn = document.getElementById('syllabusSaveBtn');
-  if (saveBtn) saveBtn.disabled = true;
   }
 }
 
@@ -509,8 +491,7 @@ document.addEventListener('DOMContentLoaded', () => {
   bindUnsavedIndicator('contact_hours_lec');
   bindUnsavedIndicator('contact_hours_lab');
 
-  // TLA strategies unsaved binding
-  bindUnsavedIndicator('tla_strategies');
+  // TLA strategies auto-saved via dedicated controller (no unsaved indicator)
 
   // Criteria module disabled
 
@@ -696,7 +677,7 @@ document.addEventListener('DOMContentLoaded', () => {
             'semester','year_level','credit_hours_text','instructor_name','employee_code',
             'reference_cmo','instructor_designation','date_prepared','instructor_email',
             'revision_no','academic_year','revision_date','course_description',
-            'contact_hours_lec','contact_hours_lab','tla_strategies'
+            'contact_hours','tla_strategies'
           ];
           extraFields.forEach((name) => {
             const el = form.querySelector(`[name="${name}"]`);
@@ -790,15 +771,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // Hide all unsaved indicators when form is submitted successfully
         document.querySelectorAll('.unsaved-pill').forEach(pill => {
           pill.classList.add('d-none');
-        });        // show lightweight toast
+        });
   // reset criteria original snapshot so its unsaved badge won't reappear
   try { if (window._resetCriteriaOriginal) window._resetCriteriaOriginal(); } catch (e) { /* noop */ }
-        const toast = document.getElementById('svToast');
-        if (toast) {
-          toast.textContent = 'Saved';
-          toast.classList.add('show');
-          setTimeout(() => toast.classList.remove('show'), 1600);
-        }
 
   console.debug('save click handler: save succeeded, restoring button UI', new Date());
   // brief success feedback on button
@@ -820,19 +795,99 @@ document.addEventListener('DOMContentLoaded', () => {
   // If this is a network/fetch error or aborted by navigation, don't block the user with an alert.
   const msg = (err && err.message) ? err.message : 'See console for details.';
   if (String(msg).toLowerCase().includes('failed to fetch') || err.name === 'AbortError') {
-    // non-blocking notification via toast if available
-    try {
-      const toast = document.getElementById('svToast');
-      if (toast) {
-        toast.textContent = 'Saved (network may be slow). Check console for details.';
-        toast.classList.add('show');
-        setTimeout(() => toast.classList.remove('show'), 2400);
-      }
-    } catch (e) { /* noop */ }
+    // Log network errors silently
+    console.warn('Network error during save:', msg);
   } else {
     // show an alert for non-network errors that likely need user action
     try { alert('Failed to save. ' + msg); } catch (e) { console.warn('Could not show alert', e); }
   }
+
+  // ------------------------------
+  // Minimal ILO save (no external module)
+  // ------------------------------
+  window.saveIlo = async function() {
+    const list = document.getElementById('syllabus-ilo-sortable');
+    if (!list) return { message: 'No ILO list present' };
+
+    function getSyllabusId() {
+      try { const id = list.getAttribute('data-syllabus-id'); if (id) return id; } catch (e) {}
+      try { const act = (form && form.action) ? form.action : ''; const m = act.match(/\/faculty\/syllabi\/([^\/?#]+)/); if (m) return decodeURIComponent(m[1]); } catch (e) {}
+      try {
+        const idInput = document.querySelector('[name="id"], input[name="syllabus_id"], input[name="syllabus"]');
+        if (idInput && idInput.value) return idInput.value;
+      } catch (e) {}
+      return '';
+    }
+
+    const syllabusId = getSyllabusId();
+    if (!syllabusId) throw new Error('Cannot determine syllabus id for ILO save');
+
+    // Build payload from visible rows
+    const rows = Array.from(list.querySelectorAll('tr'))
+      .filter(r => r.querySelector('textarea[name="ilos[]"]') || r.querySelector('.ilo-badge'));
+
+    // Ensure codes are sequential before reading hidden inputs
+    rows.forEach((row, i) => {
+      const code = `ILO${i + 1}`;
+      const badge = row.querySelector('.ilo-badge'); if (badge) badge.textContent = code;
+      const codeInput = row.querySelector('input[name="code[]"]'); if (codeInput) codeInput.value = code;
+    });
+
+    const descriptors = rows.map((row, index) => {
+      const rawId = row.getAttribute('data-id') || '';
+      const id = (/^\d+$/.test(rawId)) ? Number(rawId) : null;
+      const code = row.querySelector('input[name="code[]"]')?.value || `ILO${index + 1}`;
+      const ta = row.querySelector('textarea[name="ilos[]"]');
+      const description = ta ? (ta.value || '') : '';
+      const hasContent = (description.trim().length > 0);
+      return { row, entry: { id, code, description, position: index + 1 }, hasContent };
+    });
+
+    const payloadIlos = descriptors
+      .filter(d => d.entry.id || d.hasContent)
+      .map(d => d.entry);
+
+    // CSRF headers
+    const headers = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
+    try {
+      const token = document.querySelector('meta[name="csrf-token"]')?.content
+        || document.querySelector('#iloForm input[name="_token"], #syllabusForm input[name="_token"]')?.value
+        || '';
+      if (token) headers['X-CSRF-TOKEN'] = token;
+    } catch (e) { /* noop */ }
+
+    const url = (window.syllabusBasePath || '/faculty/syllabi') + `/${encodeURIComponent(syllabusId)}/ilos`;
+
+    const pendingNew = descriptors.filter(d => !d.entry.id && d.hasContent).map(d => d.row);
+
+    const res = await fetch(url, {
+      method: 'PUT',
+      headers,
+      credentials: 'same-origin',
+      body: JSON.stringify({ ilos: payloadIlos })
+    });
+    if (!res.ok) {
+      let body = null; try { body = await res.json(); } catch (e) {}
+      const msg = (body && (body.message || (body.errors && JSON.stringify(body.errors)))) || 'Failed to save ILOs';
+      throw new Error(msg);
+    }
+    const data = await res.json();
+
+    // Assign server IDs back to newly-created rows in DOM
+    if (Array.isArray(data.created_ids) && data.created_ids.length) {
+      const apply = pendingNew.slice(0, data.created_ids.length);
+      apply.forEach((row, i) => {
+        const nid = data.created_ids[i];
+        if (row && nid) row.setAttribute('data-id', String(nid));
+      });
+    }
+
+    // Update originals and hide unsaved pill
+    try { document.getElementById('unsaved-ilos')?.classList.add('d-none'); } catch (e) {}
+    try { list.querySelectorAll('textarea[name="ilos[]"]').forEach(ta => ta.setAttribute('data-original', ta.value || '')); } catch (e) {}
+    try { updateUnsavedCount(); } catch (e) {}
+    return data;
+  };
   // restore button text to original so user can retry
   try { saveBtn.innerHTML = originalHtml; } catch (e) { console.warn(e); }
       } finally {

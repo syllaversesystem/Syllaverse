@@ -52,14 +52,7 @@
       ['key' => 'laboratory', 'heading' => preg_replace('/\s*\(?\d+%?\)?$/','', explode('\n', trim($labText))[0] ?? ''), 'value' => []],
     ];
   }
-  // Default to a single section in the UI: prefer 'lecture' if present, else the first available
-  if (!empty($sections)) {
-    $preferred = null;
-    foreach ($sections as $s) {
-      if (($s['key'] ?? '') === 'lecture') { $preferred = $s; break; }
-    }
-    $sections = [$preferred ?: $sections[0]];
-  }
+  // Don't override sections - render all saved sections
 @endphp
 
 <style>
@@ -199,9 +192,7 @@
     </colgroup>
     <tbody>
       <tr>
-        <th class="align-top text-start cis-label">Criteria for Assessment
-          <span id="unsaved-criteria" class="unsaved-pill d-none">Unsaved</span>
-        </th>
+        <th class="align-top text-start cis-label">Criteria for Assessment</th>
         <td>
           <div class="criteria-board">
             <button type="button" class="btn btn-sm criteria-side-btn criteria-remove-section-btn" title="Remove last section" aria-label="Remove last section">
@@ -243,6 +234,84 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function(){
+  const removedState = window.__criteriaRemovedState = window.__criteriaRemovedState || {
+    sections: [],
+    rows: {}
+  };
+
+  function getSectionKey(sectionEl) {
+    if (!sectionEl) return '';
+    return sectionEl.dataset.sectionKey
+      || (sectionEl.querySelector('.main-input')?.dataset.section ?? '')
+      || '';
+  }
+
+  function stashRemovedRow(sectionKey, rowData) {
+    if (!sectionKey || !rowData) return;
+    if (!removedState.rows[sectionKey]) {
+      removedState.rows[sectionKey] = [];
+    }
+    removedState.rows[sectionKey].push({
+      description: (rowData.description ?? '').trim(),
+      percent: (rowData.percent ?? '').trim(),
+    });
+  }
+
+  function popRemovedRow(sectionKey) {
+    if (!sectionKey) return null;
+    const stack = removedState.rows[sectionKey];
+    if (!stack || !stack.length) return null;
+    return stack.pop();
+  }
+
+  function stashRemovedSection(sectionData) {
+    if (!sectionData) return;
+    removedState.sections.push(sectionData);
+  }
+
+  function popRemovedSection() {
+    if (!removedState.sections.length) return null;
+    return removedState.sections.pop();
+  }
+
+  function sanitizeSectionKey(rawKey, fallbackIndex) {
+    let key = (rawKey || '').toString().trim().toLowerCase();
+    key = key.replace(/[^a-z0-9\s-_]/g, '').replace(/[\s-_]+/g, '_').replace(/^_|_$/g, '');
+    if (!key) {
+      key = 'section_' + (Number.isFinite(fallbackIndex) ? fallbackIndex : Date.now());
+    }
+    return key;
+  }
+
+  function collectSectionData(sectionEl) {
+    if (!sectionEl) return null;
+    const key = getSectionKey(sectionEl);
+    const heading = (sectionEl.querySelector('.main-input')?.value || '').trim();
+    const values = [];
+    sectionEl.querySelectorAll('.sub-list .sub-line').forEach(function(line){
+      const desc = (line.querySelector('.sub-input')?.value || '').trim();
+      const percent = (line.querySelector('.sub-percent')?.value || '').trim();
+      if (desc === '' && percent === '') return;
+      values.push({ description: desc, percent: percent });
+    });
+
+    if (!heading && values.length === 0) {
+      return null;
+    }
+
+    return { key, heading, values };
+  }
+
+  function updateSectionRemoveState(sectionEl) {
+    if (!sectionEl) return;
+    const removeBtn = sectionEl.querySelector('.criteria-actions-row .criteria-remove-btn');
+    if (!removeBtn) return;
+    const subList = sectionEl.querySelector('.sub-list');
+    const count = subList ? subList.querySelectorAll('.sub-line').length : 0;
+    const disable = count <= 1;
+    removeBtn.disabled = disable;
+    removeBtn.setAttribute('aria-disabled', disable ? 'true' : 'false');
+  }
   // Debounce helpers to smooth typing performance
   let __critChangedTimer = null;
   function fireCriteriaChangedDebounced(delay){
@@ -253,7 +322,7 @@ document.addEventListener('DOMContentLoaded', function(){
     } catch (e) { /* noop */ }
   }
   // helper to create a sub input line
-  function createSubLine(text) {
+  function createSubLine(initial) {
     const el = document.createElement('div');
     el.className = 'sub-line';
     // description textarea
@@ -261,13 +330,21 @@ document.addEventListener('DOMContentLoaded', function(){
     ta.rows = 1;
     ta.className = 'sub-input cis-input autosize';
   ta.placeholder = '-';
-    // extract trailing percent if present
+    let descValue = '';
     let pct = '';
-    if (text) {
-      const m = text.match(/^(.*?)\s*(?:\(?([0-9]{1,3}%?)\)?)\s*$/);
-      if (m) { ta.value = (m[1] || '').trim(); pct = (m[2] || '').trim(); }
-      else { ta.value = text; }
+    if (initial && typeof initial === 'object') {
+      descValue = (initial.description ?? '').toString();
+      pct = (initial.percent ?? '').toString();
+    } else if (typeof initial === 'string' && initial !== '') {
+      const m = initial.match(/^(.*?)\s*(?:\(?([0-9]{1,3}%?)\)?)\s*$/);
+      if (m) {
+        descValue = (m[1] || '').trim();
+        pct = (m[2] || '').trim();
+      } else {
+        descValue = initial;
+      }
     }
+    ta.value = descValue;
     el.appendChild(ta);
     // percent textarea (keep small width via existing class styles)
     const p = document.createElement('textarea');
@@ -297,6 +374,7 @@ document.addEventListener('DOMContentLoaded', function(){
         subList.appendChild(createSubLine());
       }
       attachSubHandlers(subList, main);
+      updateSectionRemoveState(section);
       fireCriteriaChanged();
     }
 
@@ -323,6 +401,7 @@ document.addEventListener('DOMContentLoaded', function(){
           subList.appendChild(line);
         });
         attachSubHandlers(subList, main);
+        updateSectionRemoveState(section);
       } else if ((main.value || '').indexOf('\n') !== -1) {
         syncFromMain();
       } else {
@@ -330,11 +409,12 @@ document.addEventListener('DOMContentLoaded', function(){
         subList.innerHTML = '';
         subList.appendChild(createSubLine());
         attachSubHandlers(subList, main);
+        updateSectionRemoveState(section);
       }
     } catch (e) {
       // if JSON parsing fails, fallback to previous behavior
       if ((main.value || '').indexOf('\n') !== -1) { syncFromMain(); }
-  else { subList.innerHTML = ''; subList.appendChild(createSubLine()); attachSubHandlers(subList, main); }
+  else { subList.innerHTML = ''; subList.appendChild(createSubLine()); attachSubHandlers(subList, main); updateSectionRemoveState(section); }
     }
   });
 
@@ -379,13 +459,18 @@ document.addEventListener('DOMContentLoaded', function(){
     if (!sectionEl) return;
     const subList = sectionEl.querySelector('.sub-list');
     if (!subList) return;
-    // Always append a new sub-line, even if the last one is blank
-    const newLine = createSubLine();
+    const sectionKey = getSectionKey(sectionEl);
+    const restoredRow = popRemovedRow(sectionKey);
+    const newLine = createSubLine(restoredRow || undefined);
     subList.appendChild(newLine);
     attachSubHandlers(subList, sectionEl.querySelector('.main-input'));
     newLine.querySelectorAll('textarea.autosize').forEach(function(ta){
       try { ta.style.height = 'auto'; ta.style.height = (ta.scrollHeight || 0) + 'px'; } catch (e) { /* noop */ }
     });
+    updateSectionRemoveState(sectionEl);
+    if (restoredRow) {
+      fireCriteriaChanged();
+    }
     const ta = newLine.querySelector('.sub-input');
     if (ta) ta.focus();
     fireCriteriaChanged();
@@ -398,6 +483,19 @@ document.addEventListener('DOMContentLoaded', function(){
     if (!subList) return;
     const lines = Array.from(subList.querySelectorAll('.sub-line'));
     if (!lines.length) return;
+    const sectionKey = getSectionKey(sectionEl);
+    if (lines.length === 1) {
+      const onlyLine = lines[0];
+      if (onlyLine) {
+        const subInput = onlyLine.querySelector('.sub-input');
+        const pctInput = onlyLine.querySelector('.sub-percent');
+        if (subInput && pctInput && (subInput.value || pctInput.value)) {
+          try { subInput.focus(); } catch (e) { /* noop */ }
+        }
+      }
+      updateSectionRemoveState(sectionEl);
+      return;
+    }
     let target = null;
     for (let i = lines.length - 1; i >= 0; i--) {
       const desc = (lines[i].querySelector('.sub-input')?.value || '').trim();
@@ -408,16 +506,13 @@ document.addEventListener('DOMContentLoaded', function(){
     if (!target) {
       if (lines.length > 1) { lines[lines.length - 1].remove(); fireCriteriaChanged(); }
       try { recomputeAutosizeAll(); } catch (e) { /* noop */ }
+      updateSectionRemoveState(sectionEl);
       return;
     }
-    if (lines.length === 1) {
-      const ti = target.querySelector('.sub-input');
-      const tp = target.querySelector('.sub-percent');
-      if (ti) ti.value = '';
-      if (tp) tp.value = '';
-      fireCriteriaChanged();
-      try { recomputeAutosizeAll(); } catch (e) { /* noop */ }
-      return;
+    const descVal = (target.querySelector('.sub-input')?.value || '').trim();
+    const pctVal = (target.querySelector('.sub-percent')?.value || '').trim();
+    if (descVal !== '' || pctVal !== '') {
+      stashRemovedRow(sectionKey, { description: descVal, percent: pctVal });
     }
     const prev = target.previousElementSibling;
     target.remove();
@@ -427,6 +522,7 @@ document.addEventListener('DOMContentLoaded', function(){
     }
     fireCriteriaChanged();
     try { recomputeAutosizeAll(); } catch (e) { /* noop */ }
+    updateSectionRemoveState(sectionEl);
   }
 
   // Optional: expose helpers on window for external triggers/debug
@@ -568,9 +664,9 @@ document.addEventListener('DOMContentLoaded', function(){
       if (!container) return;
       // enforce max of 3 sections
       if (container.querySelectorAll('.section').length >= 3) { return; }
-      // create new empty section structure
       const index = container.querySelectorAll('.section').length + 1;
-      const key = 'section_' + index;
+      const restored = popRemovedSection();
+      const key = sanitizeSectionKey(restored && restored.key ? restored.key : '', index);
       const section = document.createElement('div');
       section.className = 'section';
       section.dataset.sectionKey = key;
@@ -586,15 +682,30 @@ document.addEventListener('DOMContentLoaded', function(){
       container.appendChild(section);
       // initialize autosize & one blank sub-line
       const subList = section.querySelector('.sub-list');
+      const mainEl = section.querySelector('.main-input');
+      if (restored && restored.heading && mainEl) {
+        mainEl.value = restored.heading;
+      }
       if (subList) {
-        subList.appendChild(createSubLine());
-        attachSubHandlers(subList, section.querySelector('.main-input'));
+        subList.innerHTML = '';
+        const rows = Array.isArray(restored?.values) ? restored.values : (Array.isArray(restored?.value) ? restored.value : []);
+        if (rows.length) {
+          rows.forEach(function(row){
+            subList.appendChild(createSubLine(row));
+          });
+        } else {
+          subList.appendChild(createSubLine());
+        }
+        attachSubHandlers(subList, mainEl);
+        subList.querySelectorAll('textarea.autosize').forEach(function(ta){
+          try { ta.style.height = 'auto'; ta.style.height = (ta.scrollHeight || 0) + 'px'; } catch (e) { /* noop */ }
+        });
+        updateSectionRemoveState(section);
       }
       // autosize main textarea
-      const mainTa = section.querySelector('.main-input');
-      if (mainTa) {
-        mainTa.addEventListener('input', function(){ fireCriteriaChanged(); });
-        try { mainTa.style.height = 'auto'; mainTa.style.height = (mainTa.scrollHeight||0)+'px'; } catch(e){}
+      if (mainEl) {
+        mainEl.addEventListener('input', function(){ fireCriteriaChanged(); });
+        try { mainEl.style.height = 'auto'; mainEl.style.height = (mainEl.scrollHeight||0)+'px'; } catch(e){}
       }
       // bind internal add/remove buttons for this section only
       section.querySelectorAll('.criteria-actions-row .criteria-add-btn').forEach(function(btn){
@@ -611,6 +722,10 @@ document.addEventListener('DOMContentLoaded', function(){
       });
       // re-run feather icons if available
       if (window.feather && typeof window.feather.replace==='function') { try { window.feather.replace(); } catch(e){} }
+      if (restored && restored.key) {
+        removedState.rows[restored.key] = [];
+        removedState.rows[key] = [];
+      }
       fireCriteriaChanged();
       updateAddSectionState();
       recomputeAutosizeAll();
@@ -626,6 +741,11 @@ document.addEventListener('DOMContentLoaded', function(){
       const sections = container.querySelectorAll('.section');
       if (sections.length <= 1) return; // keep at least one
       const last = sections[sections.length - 1];
+      const stored = collectSectionData(last);
+      if (stored) {
+        stashRemovedSection(stored);
+        removedState.rows[stored.key] = [];
+      }
       last.remove();
       fireCriteriaChanged();
       updateAddSectionState();

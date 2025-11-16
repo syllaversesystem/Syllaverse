@@ -1,9 +1,9 @@
 <?php
 
-// File: app/Http/Controllers/Faculty/SyllabusTextbookController.php
+// File: app/Http/Controllers/Faculty/Syllabus/SyllabusTextbookController.php
 // Description: Enhanced textbook upload, delete, and listing controller with `type` support – Syllaverse
 
-namespace App\Http\Controllers\Faculty;
+namespace App\Http\Controllers\Faculty\Syllabus;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;

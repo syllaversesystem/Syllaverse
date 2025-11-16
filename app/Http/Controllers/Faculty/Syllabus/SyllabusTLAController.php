@@ -1,7 +1,7 @@
 <?php
 
 // -----------------------------------------------------------------------------
-// File: app/Http/Controllers/Faculty/SyllabusTLAController.php
+// File: app/Http/Controllers/Faculty/Syllabus/SyllabusTLAController.php
 // Description: Handles AJAX updates of TLA rows and AI-based TLA generation – Syllaverse
 // -----------------------------------------------------------------------------
 // 📜 Log:
@@ -10,7 +10,7 @@
 // [2025-07-30] Integrated Gemini AI generation via TlaAiGeneratorService.
 // -----------------------------------------------------------------------------
 
-namespace App\Http\Controllers\Faculty;
+namespace App\Http\Controllers\Faculty\Syllabus;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;

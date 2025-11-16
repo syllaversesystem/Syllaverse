@@ -42,7 +42,7 @@ export default defineConfig({
                 'resources/js/faculty/syllabus-textbook.js',
                 'resources/js/faculty/syllabus-tla.js',
                 'resources/js/faculty/syllabus-tla-ai.js',
-                'resources/js/faculty/syllabus-ilo-sortable.js',
+                'resources/js/faculty/syllabus-ilo.js',
                 'resources/js/faculty/syllabus-iga-sortable.js',
 
                 // Faculty Master Data JS

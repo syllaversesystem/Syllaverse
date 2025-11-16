@@ -88,9 +88,7 @@
     </colgroup>
     <tbody>
       <tr>
-        <th class="align-top text-start cis-label so-left-title">Student Outcomes (SO)
-          <span id="unsaved-sos" class="unsaved-pill d-none">Unsaved</span>
-        </th>
+        <th class="align-top text-start cis-label so-left-title">Student Outcomes (SO)</th>
   <td id="so-right-wrap">
           <table class="table mb-0" style="font-family: Georgia, serif; font-size: 13px; line-height: 1.4; border: none; table-layout: fixed;">
             <colgroup>
@@ -132,7 +130,6 @@
                           <textarea
                             name="so_titles[]"
                             class="cis-textarea cis-field autosize"
-                            data-original="{{ old("so_titles.$index", $so->title ?? '') }}"
                             placeholder="-"
                             rows="1"
                             style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;font-weight:700;"
@@ -140,7 +137,6 @@
                           <textarea
                             name="sos[]"
                             class="cis-textarea cis-field autosize"
-                            data-original="{{ old("sos.$index", $so->description) }}"
                             placeholder="Description"
                             rows="1"
                             style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;"

@@ -7,7 +7,7 @@ $kernel->bootstrap();
 use App\Models\User;
 use App\Models\Syllabus;
 use Illuminate\Http\Request;
-use App\Http\Controllers\Faculty\SyllabusController;
+use App\Http\Controllers\Faculty\Syllabus\SyllabusController;
 
 // create user and syllabus (no factories available)
 $user = User::create([ 'name' => 'Test User', 'email' => 'test+' . time() . '@example.com', 'password' => bcrypt('secret') ]);

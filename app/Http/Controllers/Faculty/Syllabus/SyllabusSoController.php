@@ -1,7 +1,7 @@
 <?php
 
 // -------------------------------------------------------------------------------
-// * File: app/Http/Controllers/Faculty/SyllabusSoController.php
+// * File: app/Http/Controllers/Faculty/Syllabus/SyllabusSoController.php
 // * Description: Handles AJAX-based updates, reordering, and deletion of syllabus-specific SOs – Syllaverse
 // -------------------------------------------------------------------------------
 // 📜 Log:
@@ -9,7 +9,7 @@
 // -------------------------------------------------------------------------------
 
 
-namespace App\Http\Controllers\Faculty;
+namespace App\Http\Controllers\Faculty\Syllabus;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;

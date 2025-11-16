@@ -23,7 +23,7 @@ $payload = ['rows' => [
 
 $request = Request::create('/faculty/syllabi/' . $syllabusId . '/assessment-tasks', 'POST', $payload);
 
-$controller = new App\Http\Controllers\Faculty\SyllabusController();
+$controller = new App\Http\Controllers\Faculty\Syllabus\SyllabusController();
 
 $response = app()->call([$controller, 'saveAssessmentTasks'], ['request' => $request, 'syllabus' => $syllabusId]);
 
