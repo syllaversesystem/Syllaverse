@@ -16,15 +16,11 @@ use Illuminate\Database\Eloquent\Model;
 class Iga extends Model
 {
     // START: Fillable & Casts
-    protected $fillable = ['title', 'description', 'department_id'];
+    protected $fillable = ['title', 'description'];
     protected $casts = [];
     // END: Fillable & Casts
 
     // START: Relationships
-    public function department()
-    {
-        return $this->belongsTo(Department::class);
-    }
     // END: Relationships
 
     // START: Scopes

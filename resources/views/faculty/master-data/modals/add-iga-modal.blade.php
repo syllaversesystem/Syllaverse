@@ -35,18 +35,6 @@
           <input type="text" class="form-control form-control-sm" id="igaTitle" name="title" placeholder="e.g., Lifelong Learning" required />
         </div>
 
-        @if(!empty($showDepartmentFilter))
-        <div class="mb-3">
-          <label for="igaDepartment" class="form-label small fw-medium text-muted">Department</label>
-          <select id="igaDepartment" name="department_id" class="form-select form-select-sm">
-            <option value="" selected>All Departments</option>
-            @foreach(($departments ?? collect()) as $dept)
-              <option value="{{ $dept->id }}">{{ $dept->name }}</option>
-            @endforeach
-          </select>
-        </div>
-        @endif
-
         <div class="mb-3">
           <label for="igaDescription" class="form-label small fw-medium text-muted">Description</label>
           <textarea id="igaDescription" name="description" class="form-control form-control-sm" rows="4" placeholder="Describe the IGA" required></textarea>

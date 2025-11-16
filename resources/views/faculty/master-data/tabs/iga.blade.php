@@ -9,16 +9,6 @@
       <input type="search" class="form-control" id="igaSearch" placeholder="Search IGA..." aria-label="Search IGA" />
     </div>
 
-    @if(!empty($showDepartmentFilter))
-      <div class="department-filter-wrapper" id="igaDepartmentFilterWrapper">
-        <select class="form-select form-select-sm" id="igaDepartmentFilter" aria-label="Filter by department">
-          <option value="all">All Departments</option>
-          @foreach(($departments ?? collect()) as $dept)
-            <option value="{{ $dept->id }}">{{ $dept->code }}</option>
-          @endforeach
-        </select>
-      </div>
-    @endif
     <span class="flex-spacer"></span>
     <button type="button" class="btn programs-add-btn d-none d-md-inline-flex" id="igaAddBtn" data-bs-toggle="modal" data-bs-target="#addIgaModal" title="Add IGA" aria-label="Add IGA">
       <i data-feather="plus"></i>
@@ -27,32 +17,22 @@
 
   <div class="so-table-wrapper" id="igaTableWrapper">
     <div class="table-responsive">
-      <table class="table mb-0 align-middle so-table" id="igaTable" data-role-can-see-dept-col="{{ !empty($showDepartmentFilter) ? '1' : '0' }}">
+      <table class="table mb-0 align-middle so-table" id="igaTable">
         <colgroup>
-          @if(!empty($showDepartmentFilter))
-            <col style="width:1%;" /> <!-- Title -->
-            <col style="width:1%;" /> <!-- Department -->
-            <col />                   <!-- Description (fills) -->
-            <col style="width:1%;" /> <!-- Actions -->
-          @else
-            <col style="width:1%;" /> <!-- Title -->
-            <col />                   <!-- Description (fills) -->
-            <col style="width:1%;" /> <!-- Actions -->
-          @endif
+          <col style="width:1%;" /> <!-- Title -->
+          <col />                   <!-- Description (fills) -->
+          <col style="width:1%;" /> <!-- Actions -->
         </colgroup>
         <thead>
           <tr>
             <th scope="col"><i data-feather="type"></i> Title</th>
-            @if(!empty($showDepartmentFilter))
-              <th scope="col" class="th-dept"><i class="bi bi-building"></i> Department</th>
-            @endif
             <th scope="col"><i data-feather="file-text"></i> Description</th>
             <th scope="col" class="text-end"><i data-feather="more-vertical"></i></th>
           </tr>
         </thead>
         <tbody id="igaTableBody">
           <tr class="superadmin-manage-department-empty-row">
-            <td colspan="{{ !empty($showDepartmentFilter) ? 4 : 3 }}">
+            <td colspan="3">
               <div class="empty-table">
                 <h6>No IGAs found</h6>
                 <p>Click the <i data-feather="plus"></i> button to add one.</p>
