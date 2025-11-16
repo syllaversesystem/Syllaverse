@@ -113,9 +113,9 @@
             </colgroup>
             <thead>
               <tr class="table-light">
-                <th class="text-center cis-label">ILO</th>
-                <th class="text-start cis-label">
-                  <div class="d-flex justify-content-between align-items-start gap-2">
+                <th class="text-center align-middle cis-label">ILO</th>
+                <th class="text-start align-middle cis-label">
+                  <div class="d-flex justify-content-between align-items-center gap-2">
                     <span>Upon completion of this course, the students should be able to:</span>
                     <span class="ilo-header-actions d-inline-flex gap-1" style="white-space:nowrap;">
                         <button type="button" class="btn btn-sm" id="ilo-load-predefined" title="Load Predefined ILOs" aria-label="Load Predefined ILOs" style="background:transparent;">

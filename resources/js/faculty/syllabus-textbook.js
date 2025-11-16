@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
   const mainInput = document.getElementById('textbook_main_files');
   const otherInput = document.getElementById('textbook_other_files');
+  const base = window.syllabusBasePath || '/faculty/syllabi';
 
   if (!csrfToken || typeof syllabusId === 'undefined') return;
 
@@ -13,8 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const inputId = type === 'main' ? 'textbook_main_files' : 'textbook_other_files';
     const label = type === 'main' ? 'Textbook' : 'Other Books and Articles';
 
-  const base = window.syllabusBasePath || '/faculty/syllabi';
-  fetch(`${base}/${syllabusId}/textbook/list?type=${type}`)
+    fetch(`${base}/${syllabusId}/textbook/list?type=${type}`)
       .then(res => res.json())
       .then(data => {
         if (data.success) {
@@ -38,30 +38,29 @@ document.addEventListener('DOMContentLoaded', () => {
     const iconFor = (name) => {
       const m = (name || '').split('.');
       const ext = (m.length ? m[m.length - 1] : '').toLowerCase();
-      if (ext === 'pdf') return 'bi-filetype-pdf';
-      if (ext === 'doc' || ext === 'docx') return 'bi-file-earmark-word';
-      if (ext === 'xls' || ext === 'xlsx' || ext === 'csv') return 'bi-file-earmark-excel';
-      if (ext === 'txt') return 'bi-file-earmark-text';
-      return 'bi-file-earmark';
+      if (ext === 'pdf') return 'bi-filetype-pdf text-danger';
+      if (ext === 'doc' || ext === 'docx') return 'bi-file-earmark-word text-primary';
+      return 'bi-file-earmark text-secondary';
     };
 
     files.forEach((file, index) => {
       const newRow = document.createElement('tr');
+      newRow.className = 'textbook-file-row';
       newRow.setAttribute('data-id', file.id);
       newRow.setAttribute('data-type', type);
       newRow.innerHTML = `
-        <td class="text-center">${index + 1}</td>
-        <td>
-          <div class="file-name-wrap">
-            <i class="bi ${iconFor(file.name)} file-icon"></i>
-            <a href="${file.url}" target="_blank" class="textbook-name file-name" title="${file.name}">${file.name}</a>
-            <button type="button" class="btn btn-link btn-sm p-0 ms-1 edit-textbook-btn edit-inline-btn" title="Rename">
-              <i class="bi bi-pencil"></i>
-            </button>
-          </div>
+        <td class="text-center align-middle">${index + 1}</td>
+        <td class="align-middle">
+          <i class="bi ${iconFor(file.name)} textbook-file-icon"></i>
+          <a href="${file.url}" target="_blank" class="textbook-file-link" title="${file.name}">${file.name}</a>
         </td>
-        <td class="text-end cis-actions align-middle">
-          <button type="button" class="btn btn-sm btn-outline-danger delete-textbook-btn" title="Delete"><i class="bi bi-trash"></i></button>
+        <td class="text-end align-middle">
+          <button type="button" class="btn btn-outline-secondary btn-sm textbook-edit-btn edit-textbook-btn me-1" title="Rename">
+            <i class="bi bi-pencil"></i>
+          </button>
+          <button type="button" class="btn btn-outline-danger btn-sm textbook-delete-btn delete-textbook-btn" title="Delete">
+            <i class="bi bi-trash"></i>
+          </button>
         </td>
       `;
       lastRow.insertAdjacentElement('afterend', newRow);
@@ -69,7 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // 🔁 Update rowspan on section label
-    const labelCell = inputRow.querySelector('td');
+    const labelCell = inputRow.querySelector('th');
     if (labelCell) {
       labelCell.setAttribute('rowspan', files.length + 1); // Upload row + file rows
     }
@@ -84,7 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
     files.forEach(file => formData.append('textbook_files[]', file));
     formData.append('type', type);
 
-  fetch(`${base}/${syllabusId}/textbook`, {
+    fetch(`${base}/${syllabusId}/textbook`, {
       method: 'POST',
       headers: { 'X-CSRF-TOKEN': csrfToken },
       body: formData,

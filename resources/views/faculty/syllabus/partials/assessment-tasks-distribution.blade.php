@@ -146,7 +146,7 @@
           </colgroup>
           <thead class="table-light">
             <tr>
-              <th colspan="4" class="text-start cis-label">Assessment Tasks (AT) Distribution</th>
+              <th colspan="4" class="text-center cis-label">Assessment Tasks (AT) Distribution</th>
               <th class="text-center cis-label" colspan="{{ $iloColsCount }}">Intended Learning Outcomes</th>
               <th class="text-center cis-label" colspan="3">Domains</th>
             </tr>
