@@ -38,6 +38,7 @@ class SyllabusController extends Controller
         protected SyllabusCourseInfoController $courseInfo,
         protected SyllabusCriteriaController $criteria,
         protected SyllabusIloController $ilos,
+        protected SyllabusAssessmentTasksController $assessmentTasks,
     ) {
     }
     public function index()
@@ -311,16 +312,8 @@ class SyllabusController extends Controller
         // ILO persistence primarily flows through the live-save endpoint; syncFromRequest keeps
         // this method compatible when the full payload includes an `ilos` array.
 
-        // Persist the serialized Assessment Tasks payload (hidden textarea) into the syllabus table
-        if ($request->has('assessment_tasks_data')) {
-            try {
-                $syllabus->assessment_tasks_data = $request->input('assessment_tasks_data');
-                $syllabus->save();
-                \Log::info('Syllabus::update persisted assessment_tasks_data', ['syllabus_id' => $syllabus->id]);
-            } catch (\Throwable $e) {
-                \Log::warning('Syllabus::update failed to persist assessment_tasks_data', ['error' => $e->getMessage(), 'syllabus_id' => $syllabus->id]);
-            }
-        }
+        // Delegate assessment tasks persistence to dedicated controller
+        $this->assessmentTasks->syncFromRequest($request, $syllabus);
 
         return redirect()->route('faculty.syllabi.show', $syllabus->id)
             ->with('success', 'Syllabus updated successfully.');

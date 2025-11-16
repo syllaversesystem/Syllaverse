@@ -127,6 +127,9 @@ Route::middleware([FacultyAuth::class])->group(function () {
     Route::post('/faculty/syllabi/{syllabus}/ilos/reorder', [\App\Http\Controllers\Faculty\Syllabus\SyllabusIloController::class, 'reorder'])->name('faculty.syllabi.ilos.reorder');
     Route::post('/faculty/syllabi/{syllabus}/load-predefined-ilos', [SyllabusIloController::class, 'loadPredefinedIlos'])->name('faculty.syllabi.ilos.load-predefined');
 
+    // ---------- Assessment Tasks & Distribution Map ----------
+    Route::post('/faculty/syllabi/{syllabus}/assessment-tasks', [\App\Http\Controllers\Faculty\Syllabus\SyllabusAssessmentTasksController::class, 'store'])->name('faculty.syllabi.assessment-tasks.store');
+
     // ---------- IGA (Institutional Graduate Attributes) — managed by dedicated controller ----------
     Route::put('/faculty/syllabi/{syllabus}/igas', [\App\Http\Controllers\Faculty\Syllabus\SyllabusIgaController::class, 'update'])->name('faculty.syllabi.iga.update');
     Route::post('/faculty/syllabi/igas/reorder', [\App\Http\Controllers\Faculty\Syllabus\SyllabusIgaController::class, 'reorder'])->name('faculty.syllabi.iga.reorder');

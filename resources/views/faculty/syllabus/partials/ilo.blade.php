@@ -342,7 +342,8 @@
       }
 
       // Confirm button in modal
-      if (confirmLoadBtn) {
+      const listRef = document.getElementById('syllabus-ilo-sortable');
+      if (confirmLoadBtn && listRef) {
         confirmLoadBtn.addEventListener('click', async function() {
           const syllabusId = listRef.dataset.syllabusId;
           if (!syllabusId) {
@@ -397,9 +398,10 @@
                       placeholder="-"
                       rows="1"
                       style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;"
+                      data-original="${(ilo.description || '').replace(/"/g, '&quot;')}"
                       required>${ilo.description || ''}</textarea>
                     <input type="hidden" name="code[]" value="${code}">
-                    <button type="button" class="btn btn-sm btn-outline-danger btn-delete-ilo ms-2" title="Delete ILO">
+                    <button type="button" class="btn btn-sm btn-outline-danger btn-delete-ilo ms-2" title="Delete ILO" style="display:${ilo.id ? '' : 'none'};">
                       <i class="bi bi-trash"></i>
                     </button>
                   </div>
