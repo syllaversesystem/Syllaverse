@@ -170,7 +170,7 @@
         if (el.type === 'radio') {
           if (radiosHandled.has(name)) return;
           radiosHandled.add(name);
-          const selected = form.querySelector(`input[type="radio"][name="${CSS.escape(name)}"]:checked`);
+          const selected = elements.find(e => e.type === 'radio' && e.name === name && e.checked);
           groups[name] = selected ? selected.value : null;
           return;
         }
@@ -207,7 +207,7 @@
       applyingSnapshot = true;
       Object.keys(snap).forEach(name => {
         const value = snap[name];
-        const nodes = form.querySelectorAll(`[name="${CSS.escape(name)}"]`);
+        const nodes = Array.from(form.elements).filter(function(n){ return n.name === name; });
         if (!nodes || nodes.length === 0) return;
         const first = nodes[0];
         if (first.type === 'radio') {

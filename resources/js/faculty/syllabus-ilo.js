@@ -78,14 +78,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renumber() {
     const rows = getIloRows();
+    const codes = [];
     rows.forEach((row, i) => {
       const code = `ILO${i + 1}`;
+      codes.push(code);
       const badge = row.querySelector('.ilo-badge'); if (badge) badge.textContent = code;
       const codeInput = row.querySelector('input[name="code[]"]'); if (codeInput) codeInput.value = code;
     });
     // mark ILOs as unsaved and update unsaved counter
     try { const pill = document.getElementById('unsaved-ilos'); if (pill) pill.classList.remove('d-none'); } catch (e) { /* noop */ }
     try { updateUnsavedCount(); } catch (e) { /* noop */ }
+    
+    // Dispatch event for AT module to sync columns
+    try {
+      document.dispatchEvent(new CustomEvent('ilo:changed', { 
+        detail: { 
+          count: rows.length,
+          codes: codes
+        } 
+      }));
+    } catch (e) { /* noop */ }
   }
 
   function createRow() {

@@ -44,11 +44,16 @@ export default defineConfig({
                 'resources/js/faculty/syllabus-tla-ai.js',
                 'resources/js/faculty/syllabus-ilo.js',
                 'resources/js/faculty/syllabus-iga-sortable.js',
+                'resources/js/faculty/syllabus-sdg-sortable.js',
+                'resources/js/faculty/syllabus-so.js',
+                'resources/js/faculty/syllabus-so-sortable.js',
+                'resources/js/faculty/syllabus-cdio.js',
 
                 // Faculty Master Data JS
                 'resources/js/faculty/master-data/so.js',
                 'resources/js/faculty/master-data/sdg.js',
                 'resources/js/faculty/master-data/iga.js',
+                'resources/js/faculty/master-data/cdio.js',
                 'resources/js/faculty/master-data/ilo-simple.js',
                 'resources/js/faculty/master-data/shared-crud.js',
                 

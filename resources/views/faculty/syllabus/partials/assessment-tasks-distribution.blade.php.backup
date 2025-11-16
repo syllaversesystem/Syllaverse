@@ -1,0 +1,2678 @@
+{{-- 
+-------------------------------------------------------------------------------
+* File: resources/views/faculty/syllabus/partials/assessment-tasks-distribution.blade.php
+* Description: Assessment Tasks Distribution — Static table (server-rendered only)
+-------------------------------------------------------------------------------
+--}}
+
+@php
+  // Static ILO column count based on available ILOs (fallback to 1)
+  $iloColsCount = max(1, ($ilos ?? collect([]))->count());
+  // Parse saved AT data if available
+  $savedData = [];
+  if (isset($syllabus->assessment_tasks_data)) {
+    try {
+      $savedData = json_decode($syllabus->assessment_tasks_data, true) ?? [];
+    } catch (\Exception $e) {
+      $savedData = [];
+    }
+  }
+@endphp
+<style>
+  /* Outer wrapper to mimic CIS two-column map: left label + right detail grid */
+  /* outer wrapper: no outer border, only internal separators */
+  .at-map-outer { width: 100%; margin-bottom: 0; border: 1px solid #000; border-bottom: none; border-left: 1px solid #000; border-right: none; border-radius: 0; background: #fff; }
+  /* neutralize Bootstrap table-bordered borders inside the module; outer container will provide the single border */
+  .at-map-outer th, .at-map-outer td { border: none !important; }
+  /* left label: no full box, only right divider to match CIS modules (match ILO) */
+  .at-map-left { background: #fff; border: 0; border-right: none; vertical-align: middle; text-align: center; padding: 0.75rem; }
+  /* add a subtle bottom borderline under the left module title to match other CIS module headers */
+  #at-left-title { padding-bottom: 0.5rem; border-bottom: none; }
+  /* vertical module label on the left column */
+  .at-map-left .label-vertical {
+    display: block;
+    width: 1.75rem;
+    margin: 0 auto;
+    font-weight: 700;
+    font-family: Georgia, serif;
+    font-size: 0.95rem;
+    line-height: 1;
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    transform: rotate(180deg);
+    transform-origin: center;
+    white-space: nowrap;
+  }
+  /* Right detail area: inner table will provide the grid; match ILO inner-table style */
+  .at-map-right { padding: 0 !important; border: none; background: #fff; overflow-x: auto; margin: 0 !important; }
+  /* ensure the wrapper cell has no extra padding from table helpers */
+  .at-map-outer td.at-map-right { padding: 0 !important; }
+  .at-map-outer .cis-table { border-collapse: collapse; width: 100%; }
+  /* inner table: show only single vertical separators between columns (no double borders) */
+  .at-map-right > table { width: 100%; max-width: 100%; height: 100%; margin: 0; border-spacing: 0; border-collapse: collapse; min-width: 0; table-layout: fixed; font-family: Georgia, serif; font-size: 13px; line-height: 1.4; border: none; border-right: none !important; }
+  .at-map-right > table th, .at-map-right > table td { border: none; padding: 0.12rem 0.18rem; vertical-align: middle; }
+  /* tighter vertical fit for body rows so single-line textareas match their content height */
+  .at-map-right > table tbody th, .at-map-right > table tbody td { padding-top: 0; padding-bottom: 0; }
+  /* Tighten the Code (col 1) and I/R/D (col 3) columns so content fits cleanly */
+  .at-map-right > table thead tr:nth-child(2) th:nth-child(1),
+  .at-map-right > table thead tr:nth-child(2) th:nth-child(3) { font-size: 0.72rem; padding-left: 0.06rem; padding-right: 0.06rem; }
+  .at-map-right > table tbody td:nth-child(1) textarea.cis-textarea,
+  .at-map-right > table tbody td:nth-child(3) textarea.cis-textarea { font-size: 0.72rem; padding-left: 0.06rem; padding-right: 0.06rem; text-align: center; }
+  /* keep those inputs from overflowing visually */
+  .at-map-right > table tbody td:nth-child(1) textarea.cis-textarea,
+  .at-map-right > table tbody td:nth-child(3) textarea.cis-textarea { max-width: 100%; min-width: 0; }
+  /* single vertical separators: apply left border to every cell except the first so separators are clear */
+  /* remove per-cell borders and add single separators between columns */
+  .at-map-right > table th, .at-map-right > table td { border: none; }
+  /* Single vertical separators: first inner column now draws the divider since left title dropped its right border */
+  .at-map-right > table th + th, .at-map-right > table td + td { border-left: 1px solid #000 !important; }
+  .at-map-right > table th:first-child, .at-map-right > table td:first-child { border-left: 1px solid #000 !important; }
+  /* section header rows (LEC / LAB) — show top and bottom separators */
+  .at-map-right .section-header th, .at-map-right .section-header td {
+    border-top: 1px solid #000 !important;
+    border-bottom: 1px solid #000 !important;
+  }
+  /* also ensure section header rows (LEC/LAB) show separators */
+  .at-map-right .section-header th + th, .at-map-right .section-header td + td { border-left: 1px solid #000 !important; }
+  /* inner table right side edge removed to avoid duplicating the .at-map-right border */
+  /* .at-map-right > table { border-right: 1px solid #343a40; } */
+  /* keep a subtle header underline (both header rows) */
+  .at-map-right .cis-table thead tr:first-child th { border-bottom: 1px solid #000 !important; }
+  .at-map-right .cis-table thead tr:nth-child(2) th { border-bottom: 1px solid #000 !important; }
+  /* ensure header cells match the compact input cell sizing */
+  .at-map-right > table thead th {
+    padding: 0.08rem 0.12rem;
+    height: 24px;
+    line-height: 24px;
+    vertical-align: middle;
+    box-sizing: border-box;
+  }
+  /* ensure outer-most inner table cell borders are present */
+  /* ensure first/last column keep their outer vertical lines */
+  /* last-child doesn't need an extra right border when using single separators */
+  .at-map-right > table th:last-child, .at-map-right > table td:last-child { border-right: none; }
+  /* bottom of AT table — handled by .at-note top border to avoid duplicate lines */
+  /* removed duplicate bottom border on table rows so only one clean divider shows */
+  .at-map-right .at-header { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0.6rem; }
+  .at-map-right .at-title { font-family: Georgia, serif; font-weight: 700; font-size: 0.78rem; line-height: 24px; text-align: center; width:100%; display:block; }
+  .at-map-right .unsaved-pill { margin-left: 0.5rem; }
+  /* Inner table visual tweaks to match image */
+  /* Force white background across all cells and headers in AT */
+  .at-map-right .cis-table thead th { background: #fff; font-weight: 700; vertical-align: middle; color: #000; }
+  .at-map-right .cis-table th, .at-map-right .cis-table td { background: #fff !important; }
+  /* Bootstrap table-light overrides within AT */
+  .at-map-right .cis-table .table-light { background: #fff !important; --bs-table-bg: #fff; }
+  .at-map-right .cis-table .table-light > th,
+  .at-map-right .cis-table .table-light > td { background: #fff !important; }
+  /* make sure small header text centers horizontally for narrow columns */
+  .at-map-right .cis-table thead th { text-align: center; }
+  .at-map-right .cis-table thead th.text-start { text-align: left; }
+  /* match header label font-size to compact input size so labels align visually */
+  
+  .at-map-right .cis-table thead th,
+  .at-map-right .cis-table tbody .section-header th {
+    font-size: 0.78rem;
+  }
+  .at-map-right .cis-table tbody .section-header th { background: #fff; font-weight: 700; text-transform: uppercase; font-size: 0.92rem; }
+  /* smaller paddings for compact cells (match Course Title textarea look) */
+  .at-map-right .cis-table tbody textarea {
+    display: block;
+    width: 100%;
+    padding: 0 0.10rem;
+    border: none;
+    line-height: 1;
+    min-height: 0;
+    margin: 0;
+    transition: height 0.12s ease;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    overflow-y: hidden;
+    overflow-x: hidden;
+  }
+  /* When textareas grow, align content from the top like Course Title */
+  .at-map-right .cis-table tbody td, .at-map-right .cis-table tbody th { vertical-align: top; }
+  .at-map-right .cis-table .percent-total { text-align: center; font-weight: 700; }
+  /* make inputs fully responsive to their narrow columns */
+  .at-map-right input, .at-map-right textarea { width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; }
+  /* Keep header labels compact but allow body cells to wrap and grow with textarea content */
+  .at-map-right .cis-table thead th { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* Ensure all body cells can wrap and expand in height */
+  .at-map-right .cis-table tbody th, .at-map-right .cis-table tbody td {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    height: auto;
+    line-height: 1;
+  }
+  /* align the left title container to match ILO title container */
+  #at-left-title.cis-label {
+    /* Align with other label partials: Times New Roman 10pt and tighter padding */
+    font-weight: 700;
+    font-size: 10pt;
+    font-family: 'Times New Roman', Times, serif;
+    padding: 0.2rem 0.4rem;
+    vertical-align: top;
+    box-sizing: border-box;
+    line-height: 1.2;
+    /* Drop right border; let first inner table column render the divider */
+    border-left: none;
+    border-right: none;
+  }
+  @media print { .at-map-left .label-vertical { transform: rotate(180deg); } }
+  /* title row framing removed since outer border is disabled */
+  .at-map-outer > tbody > tr:first-child th, .at-map-outer > tbody > tr:first-child td {
+    border-top: none;
+    border-left: none;
+    border-right: none;
+  }
+  /* Container wrapping the entire module: apply single border (remove bottom to avoid double line with next module) */
+  /* removed wrapper .at-map-container; border now applied directly to .at-map-outer table */
+</style>
+
+<!-- Outer two-column map: left label column, right detail column -->
+<table class="table table-bordered mb-4 at-map-outer cis-table" style="table-layout:fixed; border-collapse:collapse; border-spacing:0;">
+  <colgroup>
+    <col style="width:16%">
+    <col style="width:84%">
+  </colgroup>
+  <tbody>
+    <tr>
+      <th id="at-left-title" class="align-top text-start cis-label">Assessment Method and Distribution Map</th>
+      <td class="at-map-right">
+  <table class="table table-bordered mb-0 cis-table" style="table-layout: fixed; margin:0;">
+          @php
+            // code: fixed 70px, task: 40%, small fixed widths for control columns; ILO columns left flexible to fill remaining space
+          @endphp
+          <colgroup>
+            <col style="width:70px;"> <!-- Code fixed -->
+            <col style="width:40%;"> <!-- Task large -->
+            <col style="width:48px;"> <!-- I/R/D -->
+            <col style="width:48px;"> <!-- Percent -->
+            @for ($c = 1; $c <= $iloColsCount; $c++)
+              <col> <!-- ILO flexible -->
+            @endfor
+            <col style="width:48px;"> <!-- C -->
+            <col style="width:48px;"> <!-- P -->
+            <col style="width:48px;"> <!-- A -->
+          </colgroup>
+  <thead class="table-light">
+    <tr>
+  <th colspan="4" class="text-start cis-label">Assessment Tasks (AT) Distribution</th>
+      <th class="text-center cis-label" colspan="{{ $iloColsCount }}">Intended Learning Outcomes</th>
+    <th class="text-center cis-label" colspan="3">Domains</th>
+    </tr>
+    <tr class="text-center align-middle">
+      <th>Code</th>
+      <th class="text-center">Assessment Tasks</th>
+  <th>I/R/D</th>
+  <th>%</th>
+      @for ($c = 1; $c <= $iloColsCount; $c++)
+        <th>{{ $c }}</th>
+      @endfor
+      <th>C</th>
+      <th>P</th>
+      <th>A</th>
+    </tr>
+  </thead>
+    <style>
+  /* Compact textareas (match Course Title style but single-line autosize) */
+  textarea.cis-textarea,
+  textarea.main-input.cis-textarea,
+  textarea.sub-input.cis-textarea { font-weight: 400; font-size: 0.78rem; line-height: 1; font-family: inherit; height: auto; min-height: 0; margin: 0; padding: 0 0.10rem; box-sizing: border-box; resize: none; overflow-y: hidden; overflow-x: hidden; display:block; width:100%; white-space: pre-wrap; overflow-wrap: break-word; word-wrap: break-word; word-break: break-word; border: none; }
+  /* Bold styling only for main input (initial row) including placeholder dash */
+  textarea.main-input.cis-textarea { font-weight: 700; }
+  textarea.main-input.cis-textarea::placeholder { font-weight: 700; }
+  textarea.main-input.cis-textarea::-webkit-input-placeholder { font-weight: 700; }
+  textarea.main-input.cis-textarea:-ms-input-placeholder { font-weight: 700; }
+  textarea.main-input.cis-textarea::-ms-input-placeholder { font-weight: 700; }
+  textarea.cis-textarea.text-center,
+  textarea.main-input.cis-textarea.text-center,
+  textarea.sub-input.cis-textarea.text-center { text-align: center; padding-left: 0.06rem; padding-right: 0.06rem; }
+    </style>
+    <tbody id="at-tbody">
+    {{-- Rows will be dynamically generated from criteria structure --}}
+    </tbody>
+    <tfoot>
+      <tr class="table-light footer-total">
+        <th colspan="3" class="text-end">Total</th>
+        <th id="at-percent-total" class="percent-total text-center">0%</th>
+        <th colspan="{{ $iloColsCount + 3 }}"></th>
+      </tr>
+    </tfoot>
+  </table>
+
+    {{-- Initialize AT rows from Criteria structure on page load --}}
+    <script>
+    document.addEventListener('DOMContentLoaded', function(){
+      const atTbody = document.getElementById('at-tbody');
+      
+      if (!atTbody) return;
+
+      function getCurrentIloCount() {
+        const iloList = document.getElementById('syllabus-ilo-sortable');
+        if (!iloList) return {{ $iloColsCount }};
+        
+        const iloRows = Array.from(iloList.querySelectorAll('tr')).filter(r => 
+          r.querySelector('textarea[name="ilos[]"]') || r.querySelector('.ilo-badge')
+        );
+        return iloRows.length;
+      }
+
+      function createMainRow(sectionNum) {
+        const tr = document.createElement('tr');
+        tr.className = 'at-main-row';
+        tr.dataset.section = sectionNum;
+        const iloCount = getCurrentIloCount();
+        
+        let html = `
+          <td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;">
+            <textarea class="cis-textarea main-input text-center autosize" placeholder="-" rows="1"></textarea>
+          </td>
+          <td style="padding:4px 0.15rem;border:1px solid #dee2e6;">
+            <textarea class="cis-textarea main-input autosize" placeholder="-" rows="1"></textarea>
+          </td>
+          <td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;"></td>
+          <td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;">
+            <textarea class="cis-textarea main-input text-center autosize percent-input" placeholder="-" rows="1"></textarea>
+          </td>`;
+        
+        for (let i = 0; i < iloCount; i++) {
+          html += '<td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;"><input type="checkbox" class="form-check-input" /></td>';
+        }
+        for (let i = 0; i < 3; i++) {
+          html += '<td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;"><input type="checkbox" class="form-check-input" /></td>';
+        }
+        
+        tr.innerHTML = html;
+        return tr;
+      }
+
+      function createSubRow(sectionNum) {
+        const tr = document.createElement('tr');
+        tr.className = 'at-sub-row';
+        tr.dataset.section = sectionNum;
+        const iloCount = getCurrentIloCount();
+        
+        let html = `
+          <td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;background:#fafafa;">
+            <textarea class="cis-textarea sub-input text-center autosize" placeholder="-" rows="1"></textarea>
+          </td>
+          <td style="padding:4px 0.15rem;border:1px solid #dee2e6;background:#fafafa;">
+            <textarea class="cis-textarea sub-input autosize" placeholder="-" rows="1"></textarea>
+          </td>
+          <td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;background:#fafafa;">
+            <textarea class="cis-textarea sub-input text-center autosize" placeholder="-" rows="1"></textarea>
+          </td>
+          <td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;background:#fafafa;"></td>`;
+        
+        for (let i = 0; i < iloCount; i++) {
+          html += '<td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;background:#fafafa;"><input type="checkbox" class="form-check-input" /></td>';
+        }
+        for (let i = 0; i < 3; i++) {
+          html += '<td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;background:#fafafa;"><input type="checkbox" class="form-check-input" /></td>';
+        }
+        
+        tr.innerHTML = html;
+        return tr;
+      }
+
+      // Read criteria structure and build AT rows
+      function initializeATFromCriteria() {
+        const criteriaContainer = document.getElementById('criteria-sections-container');
+        if (!criteriaContainer) {
+          // Fallback: create one default section
+          atTbody.appendChild(createMainRow(1));
+          atTbody.appendChild(createSubRow(1));
+          return;
+        }
+
+        const sections = criteriaContainer.querySelectorAll('.section');
+        sections.forEach((section, sectionIndex) => {
+          const sectionNum = sectionIndex + 1;
+          
+          // Add main row
+          atTbody.appendChild(createMainRow(sectionNum));
+          
+          // Count sub-lines in this section
+          const subLines = section.querySelectorAll('.sub-list .sub-line');
+          const subCount = Math.max(1, subLines.length);
+          
+          // Add sub-rows (at least 1)
+          for (let i = 0; i < subCount; i++) {
+            atTbody.appendChild(createSubRow(sectionNum));
+          }
+        });
+
+        // Initialize autosize if available
+        if (window.initAutosize) {
+          window.initAutosize();
+        }
+      }
+
+      // Initialize on load
+      initializeATFromCriteria();
+      
+      // Initialize ILO columns from ILO module
+      function syncIloColumns() {
+        setTimeout(function() {
+          const iloList = document.getElementById('syllabus-ilo-sortable');
+          if (!iloList) return;
+          
+          const iloRows = Array.from(iloList.querySelectorAll('tr')).filter(r => 
+            r.querySelector('textarea[name="ilos[]"]') || r.querySelector('.ilo-badge')
+          );
+          
+          const currentIloCount = iloRows.length;
+          
+          // Update header row ILO labels
+          const atTable = document.querySelector('.at-map-outer .cis-table');
+          if (!atTable) return;
+          
+          const headerRow = atTable.querySelector('thead tr:nth-child(2)');
+          if (!headerRow) return;
+          
+          const headerCells = Array.from(headerRow.children);
+          const iloHeaderStart = 4; // After Code, Task, I/R/D, %
+          const currentHeaderIloCount = headerCells.length - iloHeaderStart - 3; // Subtract 3 PO columns
+          
+          // If ILO count changed, rebuild table structure
+          if (currentIloCount !== currentHeaderIloCount) {
+            // Remove old ILO header cells
+            for (let i = 0; i < currentHeaderIloCount; i++) {
+              const cellToRemove = headerCells[iloHeaderStart];
+              if (cellToRemove) cellToRemove.remove();
+            }
+            
+            // Add new ILO header cells
+            iloRows.forEach((iloRow, idx) => {
+              const badge = iloRow.querySelector('.ilo-badge');
+              const code = badge ? badge.textContent.trim() : `ILO${idx + 1}`;
+              const th = document.createElement('th');
+              th.className = 'text-center';
+              th.style.cssText = 'padding:0.5rem 0.15rem;border:1px solid #dee2e6;white-space:nowrap;';
+              th.textContent = code.replace('ILO', '');
+              
+              // Insert before the C/P/A domain columns
+              const insertBeforeCell = headerRow.children[headerRow.children.length - 3];
+              headerRow.insertBefore(th, insertBeforeCell);
+            });
+            
+            // Rebuild all body rows
+            initializeATFromCriteria();
+          } else {
+            // Just update labels if count is same
+            iloRows.forEach((iloRow, idx) => {
+              const badge = iloRow.querySelector('.ilo-badge');
+              const code = badge ? badge.textContent.trim() : `ILO${idx + 1}`;
+              const headerIdx = iloHeaderStart + idx;
+              if (headerCells[headerIdx]) {
+                headerCells[headerIdx].textContent = code.replace('ILO', '');
+              }
+            });
+          }
+          
+        }, 50);
+      }
+      
+      // Sync ILO columns on initial load
+      syncIloColumns();
+      
+      // Listen for ILO changes
+      document.addEventListener('ilo:changed', function(ev) {
+        syncIloColumns();
+      });
+
+      // Re-sync when criteria changes
+      document.addEventListener('criteriaChanged', function() {
+        setTimeout(function() {
+          const criteriaContainer = document.getElementById('criteria-sections-container');
+          if (!criteriaContainer) return;
+
+          const sections = Array.from(criteriaContainer.querySelectorAll('.section'));
+          
+          // Ensure AT has the right number of sections
+          sections.forEach((section, sectionIndex) => {
+            const sectionNum = sectionIndex + 1;
+            const subLines = section.querySelectorAll('.sub-list .sub-line');
+            const desiredSubCount = Math.max(1, subLines.length);
+            
+            // Find existing rows for this section
+            const existingMain = atTbody.querySelector(`tr.at-main-row[data-section="${sectionNum}"]`);
+            const existingSubs = Array.from(atTbody.querySelectorAll(`tr.at-sub-row[data-section="${sectionNum}"]`));
+            
+            // Add main row if missing
+            if (!existingMain) {
+              const mainRow = createMainRow(sectionNum);
+              const insertBefore = atTbody.querySelector(`tr[data-section="${sectionNum + 1}"]`);
+              if (insertBefore) {
+                atTbody.insertBefore(mainRow, insertBefore);
+              } else {
+                atTbody.appendChild(mainRow);
+              }
+            }
+            
+            // Adjust sub-rows
+            if (existingSubs.length < desiredSubCount) {
+              const toAdd = desiredSubCount - existingSubs.length;
+              for (let i = 0; i < toAdd; i++) {
+                const subRow = createSubRow(sectionNum);
+                const lastSub = existingSubs[existingSubs.length - 1];
+                if (lastSub && lastSub.nextSibling) {
+                  atTbody.insertBefore(subRow, lastSub.nextSibling);
+                } else {
+                  const insertBefore = atTbody.querySelector(`tr[data-section="${sectionNum + 1}"]`);
+                  if (insertBefore) {
+                    atTbody.insertBefore(subRow, insertBefore);
+                  } else {
+                    atTbody.appendChild(subRow);
+                  }
+                }
+                existingSubs.push(subRow);
+              }
+            } else if (existingSubs.length > desiredSubCount) {
+              const toRemove = existingSubs.length - desiredSubCount;
+              for (let i = 0; i < toRemove; i++) {
+                const lastSub = existingSubs.pop();
+                if (lastSub) lastSub.remove();
+              }
+            }
+          });
+
+          // Remove extra sections
+          const allRows = Array.from(atTbody.querySelectorAll('tr[data-section]'));
+          allRows.forEach(row => {
+            const sec = parseInt(row.dataset.section);
+            if (sec > sections.length) {
+              row.remove();
+            }
+          });
+
+          if (window.initAutosize) {
+            window.initAutosize();
+          }
+        }, 100);
+      });
+
+    });
+    </script>
+
+    {{-- Sync AT Task column inputs (cis-input in second column) to mapping_name[] inputs in assessment-mapping --}}
+    <script>
+    document.addEventListener('DOMContentLoaded', function(){
+  const atRoot = document.querySelector('.at-map-outer');
+      if (!atRoot) return;
+      // delegate input events on AT Task column inputs (second column inside each tr, excluding section headers)
+      atRoot.addEventListener('input', function(e){
+       const target = e.target.closest('input, textarea');
+        if (!target) return;
+        const td = target.closest('td');
+        if (!td) return;
+        // Find the column index of this td within its row
+        const tr = td.closest('tr');
+        if (!tr) return;
+        // Exclude section header rows that contain section_name inputs
+        if (tr.classList.contains('section-header')) return;
+        // Find the task column input (we consider the second cell <td> in the row)
+        const cells = Array.from(tr.children).filter(n => n.tagName && n.tagName.toLowerCase() === 'td');
+        if (cells.length < 2) return;
+        const taskCell = cells[1];
+        if (!taskCell.contains(target)) return; // only respond to inputs inside the task column
+
+        // Determine the index among data rows (ignore section headers)
+        const tbody = tr.parentNode;
+        const dataRows = Array.from(tbody.querySelectorAll('tr')).filter(r => !r.classList.contains('section-header'));
+        const rowIndex = dataRows.indexOf(tr);
+        if (rowIndex === -1) return;
+
+        // Ensure mapping row exists for this AT row; create if needed
+        const mapRoot = document.querySelector('.assessment-mapping');
+        if (!mapRoot) return;
+        const atSubRows = rows.slice(startIdx, endIdx + 1);
+        const targetRow = atSubRows[subIndex - 1];
+        if (targetRow) {
+          const taskCell = targetRow.children[1];
+          const ta = taskCell ? taskCell.querySelector('textarea.sub-input') : null;
+          if (ta && (ta.value || '') !== value) {
+            ta.value = value;
+            try { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; } catch (e) { /* noop */ }
+            dispatchInputThrottled(ta, 120);
+            queueATSerialize(100);
+          }
+        }
+
+        function dataMapRows(){ return Array.from(mapRoot.querySelectorAll('tbody tr')).filter(r => r.querySelector('.week-cell')); }
+
+        function ensureMappingRowsAtLeast(n){
+          let mappingRows = dataMapRows();
+          while (mappingRows.length <= n){
+            // find template row from mapping module (last data row or first tbody tr)
+            const tplRows = Array.from(mapRoot.querySelectorAll('tbody tr'));
+            const templateRow = tplRows.length ? tplRows[tplRows.length - 1] : null;
+            if (!templateRow) break;
+            const newRow = templateRow.cloneNode(true);
+            const cloneMerge = newRow.querySelector('.merge-cell'); if (cloneMerge) cloneMerge.parentNode.removeChild(cloneMerge);
+            // Clear mapping_name[] in cloned first cell and clear week-cell marks
+            try {
+              const nameInput = newRow.querySelector('input[name="mapping_name[]"]');
+              if (nameInput){ nameInput.value = ''; nameInput.placeholder = (mapRoot.querySelector('input[name="mapping_name[]"]') || {}).placeholder || 'LE'; }
+            } catch (e) { /* noop */ }
+            newRow.querySelectorAll('.week-cell').forEach(function(c){ c.classList.remove('marked'); c.textContent = ''; });
+            templateRow.parentNode.insertBefore(newRow, templateRow.nextSibling);
+            // update merge-cell rowspan (create/move if necessary)
+            const dataRows = dataMapRows();
+            let merge = mapRoot.querySelector('.merge-cell');
+            if (!merge){
+              if (dataRows.length === 0) return;
+              const firstData = dataRows[0];
+              const insertRow = firstData.previousElementSibling || firstData;
+              const td = document.createElement('td');
+              td.className = 'merge-cell';
+              td.rowSpan = dataRows.length + 1;
+              td.setAttribute('style', 'border:1px solid #343a40; height:30px; width:10%;');
+              insertRow.insertBefore(td, insertRow.firstChild);
+            } else {
+              merge.rowSpan = dataRows.length + 1;
+            }
+            mappingRows = dataMapRows();
+          }
+        }
+
+        ensureMappingRowsAtLeast(rowIndex);
+
+        const mapRows = dataMapRows();
+        const mapRow = mapRows[rowIndex];
+        if (!mapRow) return;
+        const mapInput = mapRow.querySelector('input[name="mapping_name[]"]');
+        if (!mapInput) return;
+
+        const val = (target.value || '').trim();
+        if (!val){
+          // Remove mapping row when AT task input cleared. If only one data row remains, clear it instead.
+          const mappingRows = dataMapRows();
+          if (mappingRows.length <= 1){
+            // clear the single mapping row
+            const single = mappingRows[0];
+            if (single){
+              single.querySelectorAll('.week-cell').forEach(function(c){ c.classList.remove('marked'); c.textContent = ''; });
+              const inp = single.querySelector('input[name="mapping_name[]"]'); if (inp) inp.value = '';
+            }
+          } else {
+            // remove the row and maintain merge-cell
+            const toRemove = mappingRows[rowIndex];
+            if (toRemove){
+              const mergeCell = toRemove.querySelector('.merge-cell');
+              if (mergeCell){
+                // move merge cell to next data row
+                let next = toRemove.nextElementSibling;
+                while (next && !next.querySelector('.week-cell')) next = next.nextElementSibling;
+                if (next) next.insertBefore(mergeCell, next.firstChild);
+              }
+              toRemove.parentNode.removeChild(toRemove);
+              // update rowspan
+              const merge = mapRoot.querySelector('.merge-cell');
+              if (merge){
+                merge.rowSpan = dataMapRows().length + 1;
+              }
+            }
+          }
+          return;
+        }
+
+        // Normal sync when value present
+        mapInput.value = target.value;
+      });
+    });
+    </script>
+    {{-- LAB section header removed; only LEC renders by default. LAB will appear if present in saved data. --}}
+  </tbody>
+</table>
+
+        {{-- Hidden serialized payload so the main Save can persist the AT distribution as JSON --}}
+     {{-- Hidden serialized payload so the main Save can persist the AT distribution as JSON
+       The `form="syllabusForm"` attribute associates this textarea with the main
+       syllabus form even though the AT UI is rendered outside the <form> element.
+     --}}
+     <textarea id="assessment_tasks_data" name="assessment_tasks_data" form="syllabusForm" class="d-none">{{ old('assessment_tasks_data', $syllabus->assessment_tasks_data ?? '') }}</textarea>
+
+        {{-- Removed outdated feedback availability note per latest requirements --}}
+
+ 
+
+<script>
+  (function(){
+    function toNumber(v) { const n = parseFloat(String(v).replace('%','').trim()); return Number.isFinite(n) ? n : 0; }
+
+    function getATTable() {
+      try {
+        const root = document.querySelector('.at-map-outer');
+        if (root) {
+          const inner = root.querySelector('.at-map-right table.cis-table');
+          if (inner) return inner;
+        }
+      } catch (e) { /* noop */ }
+      // conservative fallback: first cis-table inside this module area
+      try {
+        const candidate = document.querySelector('.at-map-outer table.cis-table');
+        if (candidate) return candidate;
+      } catch (e) { /* noop */ }
+      return null;
+    }
+
+    window.serializeAT = function serializeAT() {
+      const table = getATTable();
+      if (!table) return;
+      const allRows = Array.from(table.querySelectorAll('tbody > tr'));
+      const out = [];
+      // New sectioning logic: a row that contains any textarea with class 'main-input'
+      // begins a new section. That row is serialized as the section's main item (position null)
+      // if it contains user-entered content. Following rows (without a main-input) become
+      // sub items for the current section with position like "section-subIndex".
+      let sectionIndex = 0;
+      let subCounter = 0;
+      for (let ri = 0; ri < allRows.length; ri++) {
+        const r = allRows[ri];
+        if (r.classList && r.classList.contains('footer-total')) continue; // legacy: skip any footer row if present
+        const cells = Array.from(r.children || []);
+        if (!cells.length) continue;
+        const ths = table.querySelectorAll('thead tr:nth-child(2) th');
+        const iloFlagCount = Math.max(0, ths.length - (4 + 3));
+        const cellValue = (cell) => {
+          if (!cell) return '';
+          const inp = cell.querySelector('input, textarea, select');
+          if (inp) {
+            if (inp.type === 'checkbox') return inp.checked ? '1' : '';
+            return inp.value || '';
+          }
+          return (cell.textContent || '').trim();
+        };
+        const isMainRow = !!r.querySelector('textarea.main-input');
+        const code = cellValue(cells[0]) || '';
+        const task = cellValue(cells[1]) || '';
+        const ird = cellValue(cells[2]) || '';
+        const pct = cellValue(cells[3]) || '';
+        const iloFlags = [];
+        const iloFlagsMeta = [];
+        for (let i = 0; i < iloFlagCount; i++) {
+          const idx = 4 + i;
+          const val = cellValue(cells[idx]) || '';
+          iloFlags.push(val);
+          iloFlagsMeta.push({ index: i + 1, value: val });
+        }
+        const trailingStart = 4 + iloFlagCount;
+        const trailing = [cellValue(cells[trailingStart]), cellValue(cells[trailingStart + 1]), cellValue(cells[trailingStart + 2])];
+        const hasContent = [code, task, ird, pct].some(v => (v || '').trim() !== '') || iloFlags.some(f => (f || '').trim() !== '') || trailing.some(v => (v || '').trim() !== '');
+        if (isMainRow) {
+          sectionIndex++;
+          subCounter = 0;
+          if (hasContent) {
+            out.push({ section: sectionIndex, position: null, code, task, ird, percent: pct, iloFlags, iloFlagsMeta, c: (trailing[0]||'').toString(), p: (trailing[1]||'').toString(), a: (trailing[2]||'').toString() });
+          }
+        } else if (hasContent) {
+          if (sectionIndex === 0) sectionIndex = 1; // default first section
+          subCounter++;
+          const position = sectionIndex + '-' + subCounter;
+          out.push({ section: sectionIndex, position, code, task, ird, percent: pct, iloFlags, iloFlagsMeta, c: (trailing[0]||'').toString(), p: (trailing[1]||'').toString(), a: (trailing[2]||'').toString() });
+          // Don't add sub-row percentages to total, only main rows
+        }
+      }
+
+      // write to hidden textarea and dispatch input so global bindUnsavedIndicator picks it up
+      const ta = document.querySelector('[name="assessment_tasks_data"]');
+      if (ta) {
+        try { ta.value = JSON.stringify(out); } catch (e) { ta.value = '[]'; }
+        try { ta.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) { /* noop */ }
+      }
+
+    }
+
+  document.addEventListener('DOMContentLoaded', function(){
+  // initialize: bind input listeners for all inputs inside the AT table
+  const table = getATTable();
+  if (!table) return;
+
+      // Debounced serializer to reduce work during rapid programmatic updates
+      let __atSerializeTimer = null;
+      function queueATSerialize(delay){
+        try {
+          const d = Number.isFinite(delay) ? delay : 80;
+          if (__atSerializeTimer) clearTimeout(__atSerializeTimer);
+          __atSerializeTimer = setTimeout(function(){
+            try { serializeAT(); } catch (e) { /* noop */ }
+            try { if (window.markAsUnsaved) window.markAsUnsaved('assessment_tasks'); } catch(e){}
+          }, d);
+        } catch (e) { /* noop */ }
+      }
+
+      // Throttled input dispatch to keep mapping sync responsive without firing on every keystroke
+      function dispatchInputThrottled(el, minInterval){
+        try {
+          if (!el) return;
+          const interval = Number.isFinite(minInterval) ? minInterval : 120;
+          const now = Date.now();
+          const last = Number(el.dataset && el.dataset.lastInputTs ? el.dataset.lastInputTs : 0);
+          if (!last || (now - last) >= interval){
+            try { el.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) { /* noop */ }
+            if (el.dataset) el.dataset.lastInputTs = String(now);
+          } else {
+            const wait = Math.max(10, interval - (now - last));
+            if (el.__inputTimer) clearTimeout(el.__inputTimer);
+            el.__inputTimer = setTimeout(function(){
+              try { el.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) { /* noop */ }
+              if (el.dataset) el.dataset.lastInputTs = String(Date.now());
+            }, wait);
+          }
+        } catch (e) { /* noop */ }
+      }
+
+      // helper: set caret at end of an input
+      function setCaretToEnd(input) {
+        try {
+          const len = (input.value || '').length;
+          input.focus();
+          if (typeof input.setSelectionRange === 'function') input.setSelectionRange(len, len);
+        } catch (e) { try { input.focus(); } catch (e) {} }
+      }
+
+      // helper: autosize all textareas in the AT table (useful on initial load and on resize)
+      function autosizeAllTextareas() {
+        try {
+          const areas = table.querySelectorAll('textarea');
+          areas.forEach((ta) => {
+            // enforce soft visual wrapping for all textareas
+            try { ta.setAttribute('wrap', 'soft'); } catch (e) {}
+            // normalize CSS in case other styles override
+            try {
+              ta.style.whiteSpace = 'pre-wrap';
+              ta.style.overflowWrap = 'break-word';
+              ta.style.wordBreak = 'break-word';
+              ta.style.overflowX = 'hidden';
+            } catch (e) {}
+            ta.style.height = 'auto';
+            ta.style.height = ta.scrollHeight + 'px';
+          });
+        } catch (e) { /* noop */ }
+      }
+
+      // helper: focus an input/textarea in a row by column index (falls back to first field)
+      function focusInputInRow(row, colIndex) {
+        if (!row) return false;
+        try {
+          const cells = row.cells || row.children;
+          if (cells && cells[colIndex]) {
+            const inp = cells[colIndex].querySelector('input, textarea');
+            if (inp) { setCaretToEnd(inp); inp.scrollIntoView({ block: 'nearest', inline: 'nearest' }); return true; }
+          }
+          // fallback: first field
+          const first = row.querySelector('input, textarea');
+          if (first) { setCaretToEnd(first); first.scrollIntoView({ block: 'nearest', inline: 'nearest' }); return true; }
+        } catch (e) { /* noop */ }
+        return false;
+      }
+
+      // helper: attach handlers to a single field (input/textarea) for both existing and newly created rows
+      function attachATHandlersToField(inp) {
+        if (!inp) return;
+        // ensure visual wrapping for any textarea field
+        try {
+          if (inp.tagName === 'TEXTAREA') {
+            inp.setAttribute('wrap', 'soft');
+            inp.style.whiteSpace = 'pre-wrap';
+            inp.style.overflowWrap = 'break-word';
+            inp.style.wordBreak = 'break-word';
+            inp.style.overflowX = 'hidden';
+          }
+        } catch (e) { /* noop */ }
+        // input -> reserialize and mark unsaved
+        inp.addEventListener('input', function(){
+          // autosize for textareas
+          try {
+            if (inp.tagName === 'TEXTAREA') {
+              inp.style.height = 'auto';
+              inp.style.height = inp.scrollHeight + 'px';
+            }
+          } catch (e) { /* noop */ }
+          serializeAT();
+          try {
+            // Removed unsaved tracking logic
+
+            // Propagation: if this input is in the Task column (colIndex 1), copy its value
+            // into the corresponding assessment mapping name input (by data-row index) when present.
+            try {
+              const cell = inp.closest('td,th');
+              const colIndex = cell ? (cell.cellIndex || 0) : 0;
+              if (colIndex === 1) {
+                const tr = inp.closest('tr');
+                if (tr) {
+                  // determine AT data rows (exclude section headers and footer)
+                  const atRows = Array.from(table.querySelectorAll('tbody > tr')).filter(r => !r.classList.contains('section-header') && !r.classList.contains('footer-total'));
+                  const idx = atRows.indexOf(tr);
+                  if (idx >= 0) {
+                    const mappingRoot = document.querySelector('.assessment-mapping');
+                    if (mappingRoot) {
+                      const mappingRows = Array.from(mappingRoot.querySelectorAll('tbody tr')).filter(r => r.querySelector('.week-cell'));
+                      if (idx < mappingRows.length) {
+                        const mapInp = mappingRows[idx].querySelector('input[name="mapping_name[]"]');
+                        if (mapInp) {
+                          mapInp.value = inp.value || '';
+                          // dispatch input event so mapping module can react (unsaved indicators, serialization)
+                          try { mapInp.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {}
+                          // mark mapping module unsaved if helper exists
+                          try { if (window.markAsUnsaved) window.markAsUnsaved('assessment_mappings'); } catch (e) {}
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            } catch (e) { /* noop propagation errors should not block user typing */ }
+
+          } catch (e) { /* noop */ }
+        });
+
+        // initial autosize on attach
+        try {
+          if (inp.tagName === 'TEXTAREA') {
+            inp.style.height = 'auto';
+            inp.style.height = inp.scrollHeight + 'px';
+          }
+        } catch (e) { /* noop */ }
+
+        // key handlers (row add/delete disabled per latest requirement)
+  inp.addEventListener('keydown', function(ev){
+          try {
+            const tr = inp.closest('tr');
+            if (!tr) return;
+            const isSectionHeader = tr.classList.contains('section-header');
+      // determine the column index of this input's cell (0-based)
+      const cell = inp.closest('td,th');
+      const colIndex = cell ? (cell.cellIndex || 0) : 0;
+            // Row add/remove shortcuts intentionally disabled.
+          } catch (e) { /* noop */ }
+        });
+      }
+
+      // helper: add an ILO column into the AT table at the given ILO index (0-based), inserting to the right of that index if desired
+  function addIloColumnInAT(atTable, iloIndex /* optional */, insertAfter = true) {
+        if (!atTable) return null;
+        try {
+          // Helper: tag each ILO cell in body rows with sequential data-ilo-index (1-based)
+          function updateBodyIloIndices(tbl){
+            try {
+              if (!tbl) return;
+              const headerThs = Array.from(tbl.querySelectorAll('thead tr:nth-child(2) th'));
+              const iloStart = 4; // Code, Task, I/R/D, %
+              const domainStart = headerThs.length - 3; // last 3 are C/P/A domain cols
+              const iloCount = Math.max(0, domainStart - iloStart);
+              const rows = Array.from(tbl.querySelectorAll('tbody > tr'));
+              rows.forEach(r => {
+                const cells = Array.from(r.children);
+                for (let i = 0; i < iloCount; i++) {
+                  const absoluteIdx = iloStart + i;
+                  const cell = cells[absoluteIdx];
+                  if (cell) {
+                    cell.setAttribute('data-ilo-index', String(i + 1));
+                    // improve accessibility label if checkbox present
+                    const cb = cell.querySelector('input[type="checkbox"]');
+                    if (cb && !cb.getAttribute('aria-label')) {
+                      cb.setAttribute('aria-label', 'ILO ' + (i + 1));
+                    }
+                  }
+                }
+              });
+            } catch (e) { /* noop */ }
+          }
+          function updateFooterColspan(tbl){
+            try {
+              const footer = tbl && tbl.querySelector('tfoot tr.footer-total');
+              if (!footer) return;
+              const ths = Array.from(tbl.querySelectorAll('thead tr:nth-child(2) th'));
+              const iloCount = Math.max(0, ths.length - 7); // total = 4 + ILO + 3
+              const lastTh = footer.querySelector('th:last-of-type');
+              if (lastTh) lastTh.setAttribute('colspan', String(iloCount + 3));
+            } catch (e) { /* noop */ }
+          }
+          const headerRow = atTable.querySelector('thead tr:nth-child(2)');
+          const ths = Array.from(headerRow.querySelectorAll('th'));
+          const totalTh = ths.length;
+          const iloStart = 4; // after Code, Task, I/R/D, %
+          const domainStart = totalTh - 3; // index where domain (C,P,A) starts
+
+          // compute insertion index within the ILO block
+          let insertAt;
+          if (typeof iloIndex === 'number') {
+            // clamp to existing ILO range
+            const iloCount = Math.max(0, domainStart - iloStart);
+            const clamped = Math.max(0, Math.min(iloIndex + (insertAfter ? 1 : 0), iloCount));
+            insertAt = iloStart + clamped;
+          } else {
+            // append at end of ILOs (i.e., right before domainStart)
+            insertAt = domainStart;
+          }
+
+          // create new TH header cell only in the second header row (numbered ILOs)
+          const newTh = document.createElement('th');
+          const currentIloCount = Math.max(0, domainStart - iloStart);
+          newTh.textContent = ''; // Will be renumbered below
+          const refTh = ths[insertAt] || null;
+          if (refTh) headerRow.insertBefore(newTh, refTh); else headerRow.appendChild(newTh);
+
+          // adjust first thead row Intended Learning Outcomes colspan only (don't add actual THs there)
+          const firstRow = atTable.querySelector('thead tr:first-child');
+          const iloLabelTh = Array.from(firstRow.querySelectorAll('th')).find(th => /Intended Learning Outcomes/i.test(th.textContent || ''));
+          if (iloLabelTh) {
+            const current = parseInt(iloLabelTh.getAttribute('colspan') || '0', 10) || 0;
+            iloLabelTh.setAttribute('colspan', current + 1);
+          }
+
+          // update colgroup: insert a col at the exact logical column index (aligned with second header)
+          const colgroup = atTable.querySelector('colgroup');
+          if (colgroup) {
+            const newCol = document.createElement('col');
+            newCol.style.width = '';
+            const refCol = colgroup.children[insertAt] || null;
+            if (refCol) colgroup.insertBefore(newCol, refCol); else colgroup.appendChild(newCol);
+          }
+
+          // insert cells into each tbody row at the same logical position
+          // If a row contains a cell with a colspan that covers the insertion point,
+          // increment that cell's colspan instead of inserting a new physical cell.
+          atTable.querySelectorAll('tbody > tr').forEach((r) => {
+            const cells = Array.from(r.children);
+            // compute cumulative column index and detect spanning cells
+            let cum = 0;
+            let handled = false;
+            for (let ci = 0; ci < cells.length; ci++) {
+              const cell = cells[ci];
+              const colspan = parseInt(cell.getAttribute('colspan') || '1', 10) || 1;
+              const start = cum;
+              const end = cum + colspan - 1;
+              if (insertAt >= start && insertAt <= end) {
+                // this cell spans the insertion point -> increase colspan
+                if (colspan > 1) {
+                  cell.setAttribute('colspan', colspan + 1);
+                  handled = true;
+                  break;
+                }
+                // colspan === 1: we'll insert before this cell
+                break;
+              }
+              cum += colspan;
+            }
+            if (handled) return; // nothing else to do for this row
+
+            // find reference cell position considering colspan values
+            cum = 0; let refCell = null;
+            for (let ci = 0; ci < cells.length; ci++) {
+              const cell = cells[ci];
+              const colspan = parseInt(cell.getAttribute('colspan') || '1', 10) || 1;
+              const start = cum;
+              const end = cum + colspan - 1;
+              if (insertAt <= end) { refCell = cell; break; }
+              cum += colspan;
+            }
+
+            const isHeader = r.classList && r.classList.contains('section-header');
+            const newCell = document.createElement(isHeader ? 'th' : 'td');
+            newCell.className = 'text-center';
+            newCell.style.cssText = 'padding:4px 0.15rem;border:1px solid #dee2e6;' + (r.classList.contains('at-sub-row') ? 'background:#fafafa;' : '');
+            if (!isHeader) {
+              // For AT main/sub data rows, new ILO cell is a checkbox like existing ones
+              const cb = document.createElement('input');
+              cb.type = 'checkbox';
+              cb.className = 'form-check-input';
+              newCell.appendChild(cb);
+            }
+            if (refCell) r.insertBefore(newCell, refCell); else r.appendChild(newCell);
+            if (!isHeader) {
+              // No textarea handlers needed for checkbox; still safe to ignore
+            }
+          });
+
+          // renumber ILO header labels to keep them sequential (only within ILO block)
+          (function(){
+            try {
+              const secondHeaderRow = atTable.querySelector('thead tr:nth-child(2)');
+              if (!secondHeaderRow) return;
+              const allHeaderCells = Array.from(secondHeaderRow.querySelectorAll('th'));
+              const domainStartIdx = allHeaderCells.length - 3;
+              // Only renumber cells from position 4 (after Code, Task, I/R/D, %) up to domain start
+              let counter = 1;
+              for (let i = iloStart; i < domainStartIdx; i++) {
+                if (allHeaderCells[i]) {
+                  allHeaderCells[i].textContent = String(counter++);
+                }
+              }
+            } catch (e) { /* noop */ }
+          })();
+
+          // normalize ILO col widths so they flex to fill remaining space
+          (function(){
+            try {
+              const headerThs = Array.from(atTable.querySelectorAll('thead tr:nth-child(2) th'));
+              const domainStartNow = headerThs.length - 3;
+              const iloCount = Math.max(0, domainStartNow - iloStart);
+              const cols = Array.from(atTable.querySelectorAll('colgroup col'));
+              for (let i = 0; i < cols.length; i++) {
+                if (i >= iloStart && i < iloStart + iloCount) {
+                  cols[i].style.width = '';
+                  cols[i].style.minWidth = '40px';
+                }
+              }
+              atTable.style.tableLayout = 'fixed';
+              atTable.style.width = '100%';
+              void atTable.offsetWidth;
+            } catch (e) { /* noop */ }
+          })();
+
+          // keep footer trailing colspan in sync
+          updateFooterColspan(atTable);
+          // retag body ILO cells with correct indices
+          updateBodyIloIndices(atTable);
+
+          
+
+          return insertAt;
+        } catch (e) { console.error('addIloColumnInAT error', e); return null; }
+      }
+
+      // helper: remove an ILO column (by ILO index 0-based) from the AT table
+      function removeIloColumnInAT(atTable, iloIndex) {
+        if (!atTable) return false;
+        try {
+          function updateBodyIloIndices(tbl){
+            try {
+              if (!tbl) return;
+              const headerThs = Array.from(tbl.querySelectorAll('thead tr:nth-child(2) th'));
+              const iloStart = 4;
+              const domainStart = headerThs.length - 3;
+              const iloCount = Math.max(0, domainStart - iloStart);
+              const rows = Array.from(tbl.querySelectorAll('tbody > tr'));
+              rows.forEach(r => {
+                const cells = Array.from(r.children);
+                for (let i = 0; i < iloCount; i++) {
+                  const absoluteIdx = iloStart + i;
+                  const cell = cells[absoluteIdx];
+                  if (cell) {
+                    cell.setAttribute('data-ilo-index', String(i + 1));
+                    const cb = cell.querySelector('input[type="checkbox"]');
+                    if (cb) cb.setAttribute('aria-label', 'ILO ' + (i + 1));
+                  }
+                }
+              });
+            } catch (e) { /* noop */ }
+          }
+          function updateFooterColspan(tbl){
+            try {
+              const footer = tbl && tbl.querySelector('tfoot tr.footer-total');
+              if (!footer) return;
+              const ths = Array.from(tbl.querySelectorAll('thead tr:nth-child(2) th'));
+              const iloCountNow = Math.max(0, ths.length - 7);
+              const lastTh = footer.querySelector('th:last-of-type');
+              if (lastTh) lastTh.setAttribute('colspan', String(iloCountNow + 3));
+            } catch (e) { /* noop */ }
+          }
+          const headerRow = atTable.querySelector('thead tr:nth-child(2)');
+          const ths = Array.from(headerRow.querySelectorAll('th'));
+          const totalTh = ths.length;
+          const iloStart = 4;
+          const domainStart = totalTh - 3;
+          const iloCount = Math.max(0, domainStart - iloStart);
+          if (iloCount <= 1) return false; // keep at least one ILO
+
+          const targetIlo = Math.max(0, Math.min(typeof iloIndex === 'number' ? iloIndex : (iloCount - 1), iloCount - 1));
+          const targetAbsolute = iloStart + targetIlo;
+
+          const targetTh = ths[targetAbsolute];
+          if (targetTh) headerRow.removeChild(targetTh);
+
+          // adjust first thead row colspan (only adjust the ILO label)
+          const firstRow = atTable.querySelector('thead tr:first-child');
+          const iloLabelTh = Array.from(firstRow.querySelectorAll('th')).find(th => /Intended Learning Outcomes/i.test(th.textContent || ''));
+          if (iloLabelTh) {
+            const current = parseInt(iloLabelTh.getAttribute('colspan') || '0', 10) || 0;
+            iloLabelTh.setAttribute('colspan', Math.max(1, current - 1));
+          }
+
+          // remove col from colgroup at exact index
+          const colgroup = atTable.querySelector('colgroup');
+          if (colgroup) {
+            const targetCol = colgroup.children[targetAbsolute] || null;
+            if (targetCol) colgroup.removeChild(targetCol);
+          }
+
+          // remove each tbody cell at that index
+          // If a row contains a colspan cell that covers the removal index, decrement its colspan
+          atTable.querySelectorAll('tbody > tr').forEach((r) => {
+            const cells = Array.from(r.children);
+            let cum = 0;
+            let handled = false;
+            for (let ci = 0; ci < cells.length; ci++) {
+              const cell = cells[ci];
+              const colspan = parseInt(cell.getAttribute('colspan') || '1', 10) || 1;
+              const start = cum;
+              const end = cum + colspan - 1;
+              if (targetAbsolute >= start && targetAbsolute <= end) {
+                if (colspan > 1) {
+                  cell.setAttribute('colspan', Math.max(1, colspan - 1));
+                  handled = true;
+                  break;
+                }
+                // colspan === 1 -> remove this cell
+                r.removeChild(cell);
+                handled = true;
+                break;
+              }
+              cum += colspan;
+            }
+            if (!handled) {
+              // fallback: naive index removal
+              const naive = cells[targetAbsolute];
+              if (naive) r.removeChild(naive);
+            }
+          });
+
+          // renumber ILO headers within the ILO block
+          (function(){
+            try {
+              const headerThs = Array.from(atTable.querySelectorAll('thead tr:nth-child(2) th'));
+              const domainStartNow = headerThs.length - 3;
+              let counter = 1;
+              for (let i = iloStart; i < domainStartNow; i++) { const nth = headerThs[i]; if (nth) nth.textContent = counter++; }
+            } catch (e) { /* noop */ }
+          })();
+
+          // keep footer trailing colspan in sync
+          updateFooterColspan(atTable);
+          // retag body ILO cells with correct indices
+          updateBodyIloIndices(atTable);
+
+          
+
+          return true;
+        } catch (e) { console.error('removeIloColumnInAT error', e); return false; }
+      }
+      // normalize ILO col widths to fill container (call after add/remove)
+      function normalizeIloCols(atTable) {
+        try {
+          const headerThs = Array.from(atTable.querySelectorAll('thead tr:nth-child(2) th'));
+          const totalTh = headerThs.length;
+          const iloStart = 4;
+          const iloCount = Math.max(0, totalTh - 7);
+          const cols = Array.from(atTable.querySelectorAll('colgroup col'));
+          for (let i = 0; i < cols.length; i++) {
+            if (i >= iloStart && i < iloStart + iloCount) cols[i].style.width = '';
+          }
+          atTable.style.width = '100%';
+          void atTable.offsetWidth; // force reflow
+        } catch (e) { /* noop */ }
+      }
+
+
+  // attach to existing fields (input/textarea) for input events
+  table.querySelectorAll('input, textarea').forEach((inp) => attachATHandlersToField(inp));
+  // also perform a pass to autosize any pre-existing textareas
+  autosizeAllTextareas();
+  
+  // Calculate initial total on page load
+  serializeAT();
+
+  // Lightweight total percent calculator: sums .percent-input values in main rows
+  window.calculatePercentTotal = function() {
+    try {
+      const tbl = getATTable();
+      if (!tbl) return;
+      const inputs = tbl.querySelectorAll('textarea.percent-input, input.percent-input');
+      let total = 0;
+      inputs.forEach((inp) => {
+        const raw = (inp && inp.value) ? String(inp.value) : '';
+        const n = parseFloat(raw.replace('%','').trim());
+        if (Number.isFinite(n)) total += n;
+      });
+      const cell = tbl.querySelector('tfoot #at-percent-total');
+      if (cell) cell.textContent = (Math.round(total * 100) / 100) + '%';
+    } catch (e) { /* noop */ }
+  };
+
+  // Update total on any input in table
+  table.addEventListener('input', function(ev){
+    const t = ev.target; if (!t) return;
+    const tag = (t.tagName || '').toUpperCase();
+    if (tag === 'INPUT' || tag === 'TEXTAREA') {
+      window.calculatePercentTotal();
+    }
+  }, true);
+  
+  // removed: total percent calculation logic and related listeners
+
+      // delegated keydown handler on the table to ensure shortcuts work for dynamic rows
+      table.addEventListener('keydown', function(ev){
+        try {
+          const target = ev.target;
+          if (!target || !(['INPUT','TEXTAREA'].includes(target.tagName))) return;
+          // determine col index
+          const cell = target.closest('td,th');
+          const colIndex = cell ? (cell.cellIndex || 0) : 0;
+          const tr = target.closest('tr');
+          const isSectionHeader = tr && tr.classList && tr.classList.contains('section-header');
+
+          // Ctrl+Enter on header disabled
+          if (isSectionHeader && ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { return; }
+
+          // Ctrl+Enter inside an ILO column -> insert a new ILO column to the right of the current ILO
+          // ILO columns are the columns after the first 4 and before the last 3
+          if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) {
+            const theadThs = Array.from(table.querySelectorAll('thead tr:nth-child(2) th'));
+            const totalTh = theadThs.length;
+            const iloStart = 4; // after Code, Task, I/R/D, %
+            const iloEnd = totalTh - 4; // index of last ILO
+            if (colIndex >= iloStart && colIndex <= iloEnd) {
+              ev.preventDefault();
+              const iloIndex = colIndex - iloStart;
+              const insertedAt = addIloColumnInAT(table, iloIndex, true);
+              if (insertedAt !== null) {
+                // focus the input in the same row and the new column
+                const rowCells = Array.from(tr.children || []);
+                const newCell = rowCells[insertedAt];
+                if (newCell) {
+                  const inp = newCell.querySelector('input, textarea');
+                  if (inp) { setCaretToEnd(inp); inp.scrollIntoView({ block: 'nearest', inline: 'nearest' }); }
+                }
+                serializeAT();
+                try { if (window.markAsUnsaved) window.markAsUnsaved('assessment_tasks'); } catch (e) {}
+                // This AT-initiated column is local to AT (unsynced). Do not notify ILO module.
+              }
+              return;
+            }
+          }
+
+          // Ctrl/Cmd+Enter on any data/sub row -> if inside an ILO column, add a new ILO column;
+          // otherwise clone the current row and insert after it.
+          if (!isSectionHeader && ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) {
+            // determine if focused column is an ILO column
+            const theadThsCheck = Array.from(table.querySelectorAll('thead tr:nth-child(2) th'));
+            const totalThCheck = theadThsCheck.length;
+            const iloStartCheck = 4;
+            const iloEndCheck = totalThCheck - 4;
+            if (colIndex >= iloStartCheck && colIndex <= iloEndCheck) {
+              ev.preventDefault();
+              // add a new ILO column to the right of the current ILO
+              const iloIndex = colIndex - iloStartCheck;
+              const insertedAt = addIloColumnInAT(table, iloIndex, true);
+              if (insertedAt !== null) {
+                // focus the input in the same row and the new column
+                const rowCells = Array.from(tr.children || []);
+                const newCell = rowCells[insertedAt];
+                if (newCell) {
+                  const inp = newCell.querySelector('input, textarea');
+                  if (inp) { setCaretToEnd(inp); inp.scrollIntoView({ block: 'nearest', inline: 'nearest' }); }
+                }
+                serializeAT();
+                try { if (window.markAsUnsaved) window.markAsUnsaved('assessment_tasks'); } catch (e) {}
+              }
+              return;
+            }
+
+            // row cloning disabled
+            return;
+          }
+
+          // Ctrl+Backspace inside an ILO column -> remove this ILO column
+          if (ev.key === 'Backspace' && (ev.ctrlKey || ev.metaKey)) {
+            const theadThs = Array.from(table.querySelectorAll('thead tr:nth-child(2) th'));
+            const totalTh = theadThs.length;
+            const iloStart = 4;
+            const iloEnd = totalTh - 4;
+            if (colIndex >= iloStart && colIndex <= iloEnd) {
+              // Only treat Ctrl+Backspace as a column removal when the field is empty
+              // and the caret is at the start. Otherwise allow normal Ctrl+Backspace.
+              const selStart = (typeof target.selectionStart === 'number') ? target.selectionStart : 0;
+              const selEnd = (typeof target.selectionEnd === 'number') ? target.selectionEnd : selStart;
+              const val = (target.value || '').trim();
+              if (!(val === '' && selStart === 0 && selEnd === 0)) {
+                // let browser handle Ctrl+Backspace normally (word delete)
+                return;
+              }
+              // Disallow removal of columns that are synced from the ILO module
+              const headerTh = theadThs[colIndex];
+              if (headerTh && headerTh.getAttribute('data-synced') === '1') {
+                // Inform user that synced ILO columns must be removed from the ILO module
+                try { alert('This ILO column is synced from the ILO module and cannot be removed here. Remove it from the ILO module instead.'); } catch (e) { /* noop */ }
+                return;
+              }
+              ev.preventDefault();
+              const iloIndex = colIndex - iloStart;
+              const removed = removeIloColumnInAT(table, iloIndex);
+              if (removed) {
+                // focus the nearest cell in the same row (clamped)
+                const newTotal = Array.from(table.querySelectorAll('thead tr:nth-child(2) th')).length;
+                const newColIndex = Math.max(0, Math.min(colIndex, newTotal - 1));
+                const rowCells = Array.from(tr.children || []);
+                const cell = rowCells[newColIndex];
+                if (cell) { const inp = cell.querySelector('input, textarea'); if (inp) { setCaretToEnd(inp); inp.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } }
+                serializeAT();
+                try { if (window.markAsUnsaved) window.markAsUnsaved('assessment_tasks'); } catch (e) {}
+                // Removal here affects only AT. Synced columns are blocked above.
+              }
+              return;
+            }
+          }
+
+          // Backspace row deletion disabled
+        } catch (e) { console.error(e); }
+      }, true);
+
+      // Populate table from persisted data if available, then serialize
+      function populateATFromData() {
+        try {
+          const table = getATTable();
+          if (!table) return;
+          const ta = document.querySelector('[name="assessment_tasks_data"]');
+          let rows = [];
+          if (ta) {
+            const raw = (ta.value && ta.value.trim()) ? ta.value.trim() : '';
+            if (raw) {
+              try { rows = JSON.parse(raw); } catch (e) { rows = []; }
+            }
+          }
+          const ths = table.querySelectorAll('thead tr:nth-child(2) th');
+          if (!rows || !rows.length) {
+            // Build initial blank section (main + sub) then footer
+            const tbody = table.querySelector('tbody');
+            if (!tbody) return;
+            while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+            const cols = ths.length;
+            const buildMain = () => {
+              const tr = document.createElement('tr');
+              for (let c=0;c<cols;c++) {
+                const td = document.createElement('td');
+                if (c===0||c===1||c===3) {
+                  const inp = document.createElement('textarea');
+                  inp.className = 'main-input cis-textarea cis-field autosize' + (c===1 ? '' : ' text-center') + (c===3 ? ' percent-input' : '');
+                  inp.placeholder='-'; inp.setAttribute('rows','1');
+                  td.appendChild(inp); attachATHandlersToField(inp);
+                } else if (c>=4 && c<cols-3) {
+                  const cb = document.createElement('input'); cb.type='checkbox'; cb.className='form-check-input'; td.appendChild(cb);
+                } else if (c>=cols-3) {
+                  const cb = document.createElement('input'); cb.type='checkbox'; cb.className='form-check-input'; td.appendChild(cb);
+                } else {
+                  td.className='non-inputable'; td.textContent='';
+                }
+                tr.appendChild(td);
+              }
+              return tr;
+            };
+            const buildSub = () => {
+              const tr = document.createElement('tr');
+              for (let c=0;c<cols;c++) {
+                const td = document.createElement('td');
+                if (c===0 || c===1 || c===2) {
+                  const inp = document.createElement('textarea');
+                  inp.className = 'sub-input cis-textarea cis-field autosize' + (c===1 ? '' : ' text-center');
+                  inp.placeholder='-'; inp.setAttribute('rows','1');
+                  td.appendChild(inp); attachATHandlersToField(inp);
+                } else if (c===3) {
+                  td.className='non-inputable'; td.textContent='';
+                } else if (c>=4 && c<cols-3) {
+                  const cb = document.createElement('input'); cb.type='checkbox'; cb.className='form-check-input'; td.appendChild(cb);
+                } else if (c>=cols-3) {
+                  const cb = document.createElement('input'); cb.type='checkbox'; cb.className='form-check-input'; td.appendChild(cb);
+                } else {
+                  td.className='non-inputable'; td.textContent='';
+                }
+                tr.appendChild(td);
+              }
+              return tr;
+            };
+            tbody.appendChild(buildMain());
+            tbody.appendChild(buildSub());
+            serializeAT();
+            try { if (window.calculatePercentTotal) window.calculatePercentTotal(); } catch (e) { /* noop */ }
+            return;
+          }
+          // rebuild from serialized rows (main items mark sections)
+          const tbody = table.querySelector('tbody'); if (!tbody) return; while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+          const iloStart = 4; const domainCount = 3; const iloCount = Math.max(0, ths.length - (iloStart + domainCount));
+          // group rows by section
+          const sections = {};
+          rows.forEach(r => { const sec = (typeof r.section==='number')?r.section:1; if(!sections[sec]) sections[sec]={ main:null, subs:[] }; if (r.position==null) sections[sec].main = r; else sections[sec].subs.push(r); });
+          const keys = Object.keys(sections).sort((a,b)=>Number(a)-Number(b));
+          const buildMainFrom = item => {
+            const tr = document.createElement('tr');
+            const cols = ths.length;
+            const iloStart = 4; const domainCount = 3; const iloCount = Math.max(0, cols - (iloStart + domainCount));
+            for (let c=0;c<cols;c++) {
+              const td = document.createElement('td');
+              if (c===0||c===1||c===3) {
+                const inp = document.createElement('textarea');
+                inp.className='main-input cis-textarea cis-field autosize'+(c===1?'':' text-center')+(c===3?' percent-input':'');
+                inp.placeholder='-'; inp.setAttribute('rows','1');
+                if(item){ if(c===0) inp.value=item.code||''; else if(c===1) inp.value=item.task||''; else if(c===3) inp.value=item.percent||''; }
+                td.appendChild(inp); attachATHandlersToField(inp);
+              } else if (c>=iloStart && c < iloStart + iloCount) {
+                const cb = document.createElement('input'); cb.type='checkbox'; cb.className='form-check-input';
+                if (item) {
+                  const sourceFlags = Array.isArray(item.iloFlagsMeta) ? item.iloFlagsMeta.map(f=>f.value) : Array.isArray(item.iloFlags)? item.iloFlags : [];
+                  const v = sourceFlags[c - iloStart];
+                  if (v && String(v).trim() !== '') cb.checked = true;
+                }
+                td.appendChild(cb);
+              } else if (c >= iloStart + iloCount) {
+                const cb = document.createElement('input'); cb.type='checkbox'; cb.className='form-check-input';
+                if (item) {
+                  const idx = c - (iloStart + iloCount); // 0,1,2 -> C,P,A
+                  const v = idx === 0 ? item.c : idx === 1 ? item.p : item.a;
+                  if (v && String(v).trim() !== '') cb.checked = true;
+                }
+                td.appendChild(cb);
+              } else {
+                td.className='non-inputable'; td.textContent='';
+              }
+              tr.appendChild(td);
+            }
+            return tr;
+          };
+          const buildSubFrom = item => {
+            const tr = document.createElement('tr');
+            const cols = ths.length;
+            const iloStart = 4; const domainCount = 3; const iloCount = Math.max(0, cols - (iloStart + domainCount));
+            for (let c=0;c<cols;c++) {
+              const td = document.createElement('td');
+              if (c===0 || c===1 || c===2) {
+                const inp = document.createElement('textarea'); inp.className='sub-input cis-textarea cis-field autosize'+(c===1?'':' text-center'); inp.placeholder='-'; inp.setAttribute('rows','1');
+                if (item) {
+                  if (c===0) inp.value=item.code||''; else if (c===1) inp.value=item.task||''; else if (c===2) inp.value=item.ird||'';
+                }
+                td.appendChild(inp); attachATHandlersToField(inp);
+              } else if (c===3) {
+                td.className='non-inputable'; td.textContent='';
+              } else if (c>=iloStart && c < iloStart + iloCount) {
+                const cb = document.createElement('input'); cb.type='checkbox'; cb.className='form-check-input';
+                if (item) {
+                  const sourceFlags = Array.isArray(item.iloFlagsMeta) ? item.iloFlagsMeta.map(f=>f.value) : Array.isArray(item.iloFlags)? item.iloFlags : [];
+                  const v = sourceFlags[c - iloStart];
+                  if (v && String(v).trim() !== '') cb.checked = true;
+                }
+                td.appendChild(cb);
+              } else if (c >= iloStart + iloCount) {
+                const cb = document.createElement('input'); cb.type='checkbox'; cb.className='form-check-input';
+                if (item) {
+                  const idx = c - (iloStart + iloCount);
+                  const v = idx === 0 ? item.c : idx === 1 ? item.p : item.a;
+                  if (v && String(v).trim() !== '') cb.checked = true;
+                }
+                td.appendChild(cb);
+              } else {
+                td.className='non-inputable'; td.textContent='';
+              }
+              tr.appendChild(td);
+            }
+            return tr;
+          };
+          keys.forEach(k => {
+            const info = sections[k];
+            tbody.appendChild(buildMainFrom(info.main));
+            info.subs.sort((a,b)=>{const na=Number(String(a.position).split('-')[1]||0); const nb=Number(String(b.position).split('-')[1]||0); return na-nb;});
+            info.subs.forEach(sub=> tbody.appendChild(buildSubFrom(sub)));
+            // append one blank sub row for new input
+            tbody.appendChild(buildSubFrom(null));
+          });
+          serializeAT();
+          try { if (window.calculatePercentTotal) window.calculatePercentTotal(); } catch (e) { /* noop */ }
+        } catch (e) { console.error('populateATFromData failed', e); }
+      }
+
+      // populate from existing saved data if any
+      populateATFromData();
+      // initial serialization
+      serializeAT();
+      // ensure textareas reflect their content height after population
+      autosizeAllTextareas();
+
+      // Public helper: add a new blank section (main row + sub row) before footer
+      function addAssessmentSection(suppressFocus) {
+        const table = getATTable(); if (!table) return;
+        const tbody = table.querySelector('tbody'); if (!tbody) return;
+        const footer = tbody.querySelector('tr.footer-total');
+        const ths = table.querySelectorAll('thead tr:nth-child(2) th');
+        const cols = ths.length;
+        const makeMain = () => { const tr=document.createElement('tr'); const iloStart=4; const domainCount=3; const iloCount=Math.max(0,cols-(iloStart+domainCount)); for (let c=0;c<cols;c++){ const td=document.createElement('td'); if (c===0||c===1||c===3){ const inp=document.createElement('textarea'); inp.className='main-input cis-textarea cis-field autosize'+(c===1?'':' text-center')+(c===3?' percent-input':''); inp.placeholder='-'; inp.setAttribute('rows','1'); td.appendChild(inp); attachATHandlersToField(inp); } else if (c>=iloStart && c < iloStart + iloCount){ const cb=document.createElement('input'); cb.type='checkbox'; cb.className='form-check-input'; td.appendChild(cb); } else if (c>=iloStart + iloCount){ const cb=document.createElement('input'); cb.type='checkbox'; cb.className='form-check-input'; td.appendChild(cb); } else { td.className='non-inputable'; td.textContent=''; } tr.appendChild(td);} return tr; };
+        const makeSub = () => { const tr=document.createElement('tr'); const iloStart=4; const domainCount=3; const iloCount=Math.max(0,cols-(iloStart+domainCount)); for (let c=0;c<cols;c++){ const td=document.createElement('td'); if (c===0||c===1||c===2){ const inp=document.createElement('textarea'); inp.className='sub-input cis-textarea cis-field autosize'+(c===1?'':' text-center'); inp.placeholder='-'; inp.setAttribute('rows','1'); td.appendChild(inp); attachATHandlersToField(inp);} else if (c===3){ td.className='non-inputable'; td.textContent=''; } else if (c>=iloStart && c < iloStart + iloCount){ const cb=document.createElement('input'); cb.type='checkbox'; cb.className='form-check-input'; td.appendChild(cb);} else if (c>=iloStart + iloCount){ const cb=document.createElement('input'); cb.type='checkbox'; cb.className='form-check-input'; td.appendChild(cb);} else { td.className='non-inputable'; td.textContent=''; } tr.appendChild(td);} return tr; };
+        const mainRow = makeMain(); const subRow = makeSub();
+        if (footer){ tbody.insertBefore(mainRow, footer); tbody.insertBefore(subRow, footer); } else { tbody.appendChild(mainRow); tbody.appendChild(subRow); }
+        serializeAT(); autosizeAllTextareas();
+        try { if (window.calculatePercentTotal) window.calculatePercentTotal(); } catch (e) { /* noop */ }
+        if (!suppressFocus) {
+          try { const task = mainRow.children[1].querySelector('textarea'); if (task) task.focus(); } catch(e){}
+        }
+      }
+      window.addAssessmentSection = addAssessmentSection;
+      document.addEventListener('assessment:addSection', () => addAssessmentSection(false));
+
+      // Public helper: add a new sub row inside a given section (1-based index)
+      function addATSubRow(sectionIndex, suppressFocus) {
+        try {
+          const table = getATTable(); if (!table) return;
+          const tbody = table.querySelector('tbody'); if (!tbody) return;
+          const ths = table.querySelectorAll('thead tr:nth-child(2) th');
+          const cols = ths.length;
+          const footer = tbody.querySelector('tr.footer-total');
+
+          // build a sub row matching current structure (Percent col non-editable)
+          const buildSub = () => {
+            const tr = document.createElement('tr');
+            for (let c = 0; c < cols; c++) {
+              const td = document.createElement('td');
+              if (c === 3) { td.className = 'non-inputable'; td.textContent = ''; }
+              else {
+                const inp = document.createElement('textarea');
+                inp.className = 'sub-input cis-textarea cis-field autosize' + (c === 1 ? '' : ' text-center');
+                inp.placeholder = '-';
+                inp.setAttribute('rows','1');
+                td.appendChild(inp);
+                attachATHandlersToField(inp);
+              }
+              tr.appendChild(td);
+            }
+            return tr;
+          };
+
+          // find insertion point: after the last sub row of the requested section
+          const rows = Array.from(tbody.querySelectorAll('tr'));
+          let currentSection = 0;
+          let insertBefore = footer || null;
+          for (let i = 0; i < rows.length; i++) {
+            const r = rows[i];
+            if (r.classList.contains('footer-total')) break;
+            if (r.querySelector('textarea.main-input')) {
+              currentSection++;
+              if (currentSection === (parseInt(sectionIndex,10) || 1)) {
+                // scan forward to find next main row or footer as boundary
+                insertBefore = footer || null;
+                for (let j = i + 1; j < rows.length; j++) {
+                  const rr = rows[j];
+                  if (rr.classList.contains('footer-total') || rr.querySelector('textarea.main-input')) { insertBefore = rr; break; }
+                }
+                break;
+              }
+            }
+          }
+
+          const newSub = buildSub();
+          if (insertBefore) tbody.insertBefore(newSub, insertBefore); else tbody.appendChild(newSub);
+          serializeAT();
+          try { autosizeAllTextareas(); } catch(e){}
+          if (!suppressFocus) {
+            try { const task = newSub.children[1]?.querySelector('textarea'); if (task) task.focus(); } catch(e){}
+          }
+        } catch (e) { /* noop */ }
+      }
+      window.addATSubRow = addATSubRow;
+
+      // Ensure a given section has exactly N sub rows (add/remove as needed)
+      function setATSubRowCount(sectionIndex, targetCount) {
+        try {
+          const table = getATTable(); if (!table) return;
+          const tbody = table.querySelector('tbody'); if (!tbody) return;
+          const rows = Array.from(tbody.querySelectorAll('tr'));
+          const footer = tbody.querySelector('tr.footer-total');
+          let currentSection = 0;
+          let startIdx = -1; let endIdx = -1; // sub-row range [startIdx, endIdx] inclusive
+          for (let i = 0; i < rows.length; i++) {
+            const r = rows[i];
+            if (r === footer) break;
+            if (r.querySelector && r.querySelector('textarea.main-input')) {
+              currentSection++;
+              if (currentSection === (parseInt(sectionIndex,10) || 1)) {
+                // sub-rows start after this until next main or footer
+                startIdx = i + 1;
+                // seek next boundary
+                endIdx = startIdx - 1;
+                for (let j = startIdx; j < rows.length; j++) {
+                  const rr = rows[j];
+                  if (rr === footer || (rr.querySelector && rr.querySelector('textarea.main-input'))) { break; }
+                  endIdx = j;
+                }
+                break;
+              }
+            }
+          }
+          if (startIdx === -1) return; // section not found
+          // compute current count of sub rows in this section
+          const currentCount = (endIdx >= startIdx) ? (endIdx - startIdx + 1) : 0;
+          const target = Math.max(0, parseInt(targetCount, 10) || 0);
+          // Add until match
+          for (let c = currentCount; c < target; c++) { addATSubRow(sectionIndex, true); }
+          // Remove extras from the end
+          if (target < currentCount) {
+            const toRemove = currentCount - target;
+            // recompute rows snapshot after potential additions
+            const rows2 = Array.from(tbody.querySelectorAll('tr'));
+            let curSec = 0; let sStart = -1; let sEnd = -1;
+            for (let i = 0; i < rows2.length; i++) {
+              const r = rows2[i];
+              if (r === footer) break;
+              if (r.querySelector && r.querySelector('textarea.main-input')) {
+                curSec++;
+                if (curSec === (parseInt(sectionIndex,10) || 1)) {
+                  sStart = i + 1; sEnd = sStart - 1;
+                  for (let j = sStart; j < rows2.length; j++) {
+                    const rr = rows2[j];
+                    if (rr === footer || (rr.querySelector && rr.querySelector('textarea.main-input'))) break;
+                    sEnd = j;
+                  }
+                  break;
+                }
+              }
+            }
+            let removed = 0;
+            for (let k = sEnd; k >= sStart && removed < toRemove; k--) {
+              const rr = rows2[k];
+              if (rr && !(rr.querySelector && rr.querySelector('textarea.main-input'))) {
+                tbody.removeChild(rr); removed++;
+              }
+            }
+          }
+          serializeAT();
+          try { autosizeAllTextareas(); } catch(e){}
+        } catch (e) { /* noop */ }
+      }
+      window.setATSubRowCount = setATSubRowCount;
+
+      // Expose a small helper so external modules (Criteria) can ensure AT has N sections
+      function ensureATSectionCount(n) {
+        try {
+          const table = getATTable(); if (!table) return;
+          const tbody = table.querySelector('tbody'); if (!tbody) return;
+          const current = Array.from(tbody.querySelectorAll('tr'))
+            .filter(r => !r.classList.contains('footer-total') && r.querySelector('textarea.main-input')).length;
+          const target = Math.max(0, parseInt(n, 10) || 0);
+          for (let i = current; i < target; i++) {
+            addAssessmentSection(true);
+          }
+        } catch (e) { /* noop */ }
+      }
+      window.ensureATSectionCount = ensureATSectionCount;
+
+      // Criteria module -> AT module: when Criteria adds a section, mirror it here
+      // Supported events:
+      //  - 'criteria:addSection' with detail: { section: <1-based index of new section> }
+      //  - 'criteria:sectionsChanged' with detail: { count: <total number of sections> }
+      document.addEventListener('criteria:addSection', function(ev){
+        try {
+          const section = ev && ev.detail && typeof ev.detail.section === 'number' ? ev.detail.section : null;
+          if (section && section > 0) {
+            ensureATSectionCount(section);
+          } else {
+            addAssessmentSection(true);
+          }
+        } catch (e) { console.error('criteria:addSection sync failed', e); }
+      });
+
+      document.addEventListener('criteria:sectionsChanged', function(ev){
+        try {
+          const count = ev && ev.detail && typeof ev.detail.count === 'number' ? ev.detail.count : null;
+          if (count && count > 0) ensureATSectionCount(count);
+        } catch (e) { console.error('criteria:sectionsChanged sync failed', e); }
+      });
+
+      // When Criteria adds a sub row to a section, mirror it in AT
+      // Event: 'criteria:addSubRow' with detail: { section: <1-based section index> }
+      document.addEventListener('criteria:addSubRow', function(ev){
+        try {
+          const section = ev && ev.detail && typeof ev.detail.section === 'number' ? ev.detail.section : null;
+          const target = (section && section > 0) ? section : (function(){
+            // default to last section if not specified
+            const tbody = (getATTable()||document).querySelector('tbody'); if (!tbody) return 1;
+            const mains = Array.from(tbody.querySelectorAll('tr')).filter(r => !r.classList.contains('footer-total') && r.querySelector('textarea.main-input'));
+            return Math.max(1, mains.length);
+          })();
+          ensureATSectionCount(target);
+          addATSubRow(target, true);
+          try { window.__at_recent_specific_sync = Date.now(); } catch (e) { /* noop */ }
+        } catch (e) { console.error('criteria:addSubRow sync failed', e); }
+      });
+
+      // Fast path: update a single AT sub row's Task from Criteria sub-line typing
+      // Event detail: { section: 1-based, subIndex: 1-based, value: string }
+      document.addEventListener('criteria:subChanged', function(ev){
+        try {
+          const d = ev && ev.detail ? ev.detail : {};
+          let section = parseInt(d.section, 10) || 1;
+          let subIndex = parseInt(d.subIndex, 10) || 1;
+          const value = (d.value || '').toString();
+          if (section < 1) section = 1; if (subIndex < 1) subIndex = 1;
+          ensureATSectionCount(section);
+          setATSubRowCount(section, subIndex);
+          const table = getATTable(); if (!table) return;
+          const tbody = table.querySelector('tbody'); if (!tbody) return;
+          const rows = Array.from(tbody.querySelectorAll('tr'));
+          const footer = tbody.querySelector('tr.footer-total');
+          // locate section slice
+          let currentSection = 0; let startIdx = -1; let endIdx = -1;
+          for (let i = 0; i < rows.length; i++) {
+            const r = rows[i];
+            if (r === footer) break;
+            if (r.querySelector && r.querySelector('textarea.main-input')) {
+              currentSection++;
+              if (currentSection === section) {
+                startIdx = i + 1; endIdx = startIdx - 1;
+                for (let j = startIdx; j < rows.length; j++) {
+                  const rr = rows[j];
+                  if (rr === footer || (rr.querySelector && rr.querySelector('textarea.main-input'))) break;
+                  endIdx = j;
+                }
+                break;
+              }
+            }
+          }
+          if (startIdx >= 0 && endIdx >= startIdx) {
+            const atSubRows = rows.slice(startIdx, endIdx + 1);
+            const targetRow = atSubRows[subIndex - 1];
+            if (targetRow) {
+              const taskCell = targetRow.children[1];
+              const ta = taskCell ? taskCell.querySelector('textarea.sub-input') : null;
+              if (ta && (ta.value || '') !== value) {
+                ta.value = value;
+                try { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; } catch (e) { /* noop */ }
+                dispatchInputThrottled(ta, 120);
+                queueATSerialize(100);
+              }
+            }
+          }
+          try { window.__at_recent_specific_sync = Date.now(); } catch (e) { /* noop */ }
+        } catch (e) { /* noop */ }
+      });
+
+      // Helper: show/hide AT main rows depending on Criteria section count
+      function updateATMainRowVisibilityByCriteriaCount(sectionCount){
+        try {
+          const table = getATTable(); if (!table) return;
+          const tbody = table.querySelector('tbody'); if (!tbody) return;
+          const mains = Array.from(tbody.querySelectorAll('tr')).filter(r => r.querySelector && r.querySelector('textarea.main-input'));
+          const visible = (parseInt(sectionCount,10) || 0) >= 2;
+          mains.forEach(function(row){
+            if (!row) return;
+            if (visible) row.classList.remove('d-none'); else row.classList.add('d-none');
+          });
+        } catch (e) { /* noop */ }
+      }
+
+      // Full alignment: respond to generic 'criteriaChanged' by syncing total section count
+      // This covers side-button adds/removes which emit 'criteriaChanged' but not specific events
+      function setATSectionCount(targetCount) {
+        try {
+          const table = getATTable(); if (!table) return;
+          const tbody = table.querySelector('tbody'); if (!tbody) return;
+          const countSections = () => Array.from(tbody.querySelectorAll('tr'))
+            .filter(r => !r.classList.contains('footer-total') && r.querySelector('textarea.main-input')).length;
+          let current = countSections();
+          const target = Math.max(0, parseInt(targetCount, 10) || 0);
+          // add until we reach target
+          while (current < target) { addAssessmentSection(true); current = countSections(); }
+          // remove from the end if we exceed target
+          while (current > target) {
+            // find last main row
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            const footer = tbody.querySelector('tr.footer-total');
+            let lastMainIdx = -1;
+            for (let i = rows.length - 1; i >= 0; i--) {
+              const r = rows[i];
+              if (footer && r === footer) continue;
+              if (r.querySelector && r.querySelector('textarea.main-input')) { lastMainIdx = i; break; }
+            }
+            if (lastMainIdx === -1) break;
+            // remove from lastMainIdx forward until next main row or footer
+            for (let i = rows.length - 1; i >= lastMainIdx; i--) {
+              const r = rows[i];
+              if (footer && r === footer) continue;
+              // stop if we hit another earlier main row (we remove down to but including the found main row)
+              if (i !== lastMainIdx && rows[i].querySelector && rows[i].querySelector('textarea.main-input')) break;
+              tbody.removeChild(r);
+            }
+            current = countSections();
+          }
+          serializeAT();
+          try { autosizeAllTextareas(); } catch(e){}
+        } catch (e) { /* noop */ }
+      }
+      window.setATSectionCount = setATSectionCount;
+
+  document.addEventListener('criteriaChanged', function(){
+    // Skip heavy reconciliation if a specific sync just ran very recently
+    try { if (window.__at_recent_specific_sync && (Date.now() - window.__at_recent_specific_sync) < 120) return; } catch (e) { /* noop */ }
+        try {
+          const container = document.getElementById('criteria-sections-container');
+          if (!container) return; // criteria module might not be on this page
+          const sections = Array.from(container.querySelectorAll('.section'));
+          if (sections.length > 0) setATSectionCount(sections.length);
+          // Show main rows only when there are 2 or more sections in Criteria
+          updateATMainRowVisibilityByCriteriaCount(sections.length);
+          // For each section, mirror its sub-line count into AT sub rows
+          sections.forEach(function(sec, idx){
+            try {
+              const subCount = sec.querySelectorAll('.sub-list .sub-line').length;
+              setATSubRowCount(idx + 1, subCount);
+              // Also mirror the main heading text from Criteria into AT Task main row
+              try {
+                const headingTa = sec.querySelector('.section-head .main-input, .main-input');
+                const value = (headingTa && headingTa.value) ? headingTa.value : '';
+                if (typeof value === 'string') {
+                  const table = getATTable(); if (!table) return;
+                  const tbody = table.querySelector('tbody'); if (!tbody) return;
+                  const mainRows = Array.from(tbody.querySelectorAll('tr')).filter(r => r.querySelector('textarea.main-input'));
+                  const targetRow = mainRows[idx];
+                  if (targetRow) {
+                    const taskCell = targetRow.children[1];
+                    const taskTa = taskCell ? taskCell.querySelector('textarea.main-input') : null;
+                    // Strip trailing number/parentheses for display in AT Task
+                    const displayValue = (function(s){
+                      try {
+                        let out = (s || '').toString();
+                        out = out.replace(/\(\s*[0-9]{1,3}(?:\.[0-9]+)?\s*%?\s*\)\s*$/, '').trim();
+                        out = out.replace(/\s*[0-9]{1,3}(?:\.[0-9]+)?\s*%?\s*$/, '').trim();
+                        return out;
+                      } catch (e) { return (s || '').toString(); }
+                    })(value);
+                    if (taskTa && (taskTa.value || '') !== displayValue) {
+                      taskTa.value = displayValue;
+                      try { taskTa.style.height = 'auto'; taskTa.style.height = taskTa.scrollHeight + 'px'; } catch (e) { /* noop */ }
+                      dispatchInputThrottled(taskTa, 140);
+                      queueATSerialize(100);
+                    }
+                    // Update percent main cell from heading trailing number (normalized to %)
+                    try {
+                      const pctMatchParen = value.match(/\(\s*([0-9]{1,3}(?:\.[0-9]+)?)\s*%?\s*\)\s*$/);
+                      const pctMatchTrail = pctMatchParen ? null : value.match(/(?:^|\s)([0-9]{1,3}(?:\.[0-9]+)?)\s*%?\s*$/);
+                      const pct = pctMatchParen && pctMatchParen[1] != null ? (pctMatchParen[1] + '%') : (pctMatchTrail && pctMatchTrail[1] != null ? (pctMatchTrail[1] + '%') : '');
+                      const pctCell = targetRow.children[3];
+                      const pctTa = pctCell ? pctCell.querySelector('textarea.main-input') : null;
+                      if (pctTa && (pctTa.value || '') !== pct) {
+                        pctTa.value = pct;
+                        try { pctTa.style.height='auto'; pctTa.style.height=pctTa.scrollHeight+'px'; } catch(e){}
+                        dispatchInputThrottled(pctTa, 160);
+                        queueATSerialize(120);
+                      }
+                    } catch (e) { /* noop */ }
+                  }
+                }
+              } catch (e2) { /* noop */ }
+
+              // Mirror sub-line descriptions into AT sub row Task inputs for this section
+              try {
+                const subLines = Array.from(sec.querySelectorAll('.sub-list .sub-line'));
+                if (subLines.length > 0) {
+                  const table = getATTable(); if (!table) return;
+                  const tbody = table.querySelector('tbody'); if (!tbody) return;
+                  const rows = Array.from(tbody.querySelectorAll('tr'));
+                  const footer = tbody.querySelector('tr.footer-total');
+                  // locate this section's sub-row slice in AT
+                  let currentSection = 0;
+                  let startIdx = -1; let endIdx = -1;
+                  for (let i = 0; i < rows.length; i++) {
+                    const r = rows[i];
+                    if (r === footer) break;
+                    if (r.querySelector && r.querySelector('textarea.main-input')) {
+                      currentSection++;
+                      if (currentSection === (idx + 1)) {
+                        startIdx = i + 1;
+                        endIdx = startIdx - 1;
+                        for (let j = startIdx; j < rows.length; j++) {
+                          const rr = rows[j];
+                          if (rr === footer || (rr.querySelector && rr.querySelector('textarea.main-input'))) { break; }
+                          endIdx = j;
+                        }
+                        break;
+                      }
+                    }
+                  }
+                  if (startIdx >= 0 && endIdx >= startIdx) {
+                    const atSubRows = rows.slice(startIdx, endIdx + 1);
+                    for (let s = 0; s < atSubRows.length && s < subLines.length; s++) {
+                      const descTa = subLines[s].querySelector('.sub-input');
+                      const desc = (descTa && typeof descTa.value === 'string') ? descTa.value : '';
+                      const atTaskCell = atSubRows[s].children[1];
+                      const atTaskTa = atTaskCell ? atTaskCell.querySelector('textarea.sub-input') : null;
+                      if (atTaskTa && (atTaskTa.value || '') !== desc) {
+                        atTaskTa.value = desc;
+                        try { atTaskTa.style.height = 'auto'; atTaskTa.style.height = atTaskTa.scrollHeight + 'px'; } catch (e) { /* noop */ }
+                        dispatchInputThrottled(atTaskTa, 120);
+                        queueATSerialize(100);
+                      }
+                    }
+                  }
+                }
+              } catch (e3) { /* noop */ }
+            } catch (e) { /* noop */ }
+          });
+        } catch (e) { /* noop */ }
+      });
+
+      // Initial pass on load: if Criteria is present, set visibility of AT main rows
+      (function(){
+        try {
+          const container = document.getElementById('criteria-sections-container');
+          if (!container) return;
+          const count = container.querySelectorAll('.section').length;
+          updateATMainRowVisibilityByCriteriaCount(count);
+        } catch (e) { /* noop */ }
+      })();
+
+      // Initial one-time sync of Criteria section headings and percents into AT main rows
+      // This ensures AT shows the criteria main inputs even before the user triggers edits (criteriaChanged event).
+      (function(){
+        try {
+          const container = document.getElementById('criteria-sections-container');
+          if (!container) return; // Criteria module might not be on this page
+          const sections = Array.from(container.querySelectorAll('.section'));
+          if (!sections.length) return;
+          // Ensure AT has at least the same number of sections
+          ensureATSectionCount(sections.length);
+          // Helper to strip trailing percent tokens
+          function stripTrailingPercentToken(s){
+            try {
+              let out = (s || '').toString();
+              out = out.replace(/\(\s*[0-9]{1,3}(?:\.[0-9]+)?\s*%?\s*\)\s*$/, '').trim();
+              out = out.replace(/\s*[0-9]{1,3}(?:\.[0-9]+)?\s*%?\s*$/, '').trim();
+              return out;
+            } catch (e) { return (s || '').toString(); }
+          }
+          function extractHeadingPercent(s){
+            try {
+              const str = (s || '').toString();
+              let m = str.match(/\(\s*([0-9]{1,3}(?:\.[0-9]+)?)\s*%?\s*\)\s*$/);
+              if (m && m[1] != null) return (m[1] + '%');
+              m = str.match(/(?:^|\s)([0-9]{1,3}(?:\.[0-9]+)?)\s*%?\s*$/);
+              if (m && m[1] != null) return (m[1] + '%');
+            } catch (e) { /* noop */ }
+            return '';
+          }
+          const table = getATTable(); if (!table) return; const tbody = table.querySelector('tbody'); if (!tbody) return;
+          const mainRows = Array.from(tbody.querySelectorAll('tr')).filter(r => r.querySelector('textarea.main-input'));
+          sections.forEach(function(sec, idx){
+            try {
+              const headingTa = sec.querySelector('.section-head .main-input, .main-input');
+              const rawVal = headingTa ? (headingTa.value || '') : '';
+              const displayVal = stripTrailingPercentToken(rawVal);
+              const percentVal = extractHeadingPercent(rawVal);
+              const targetRow = mainRows[idx];
+              if (!targetRow) return;
+              const taskCell = targetRow.children[1];
+              const pctCell = targetRow.children[3];
+              const taskTa = taskCell ? taskCell.querySelector('textarea.main-input') : null;
+              const pctTa = pctCell ? pctCell.querySelector('textarea.main-input.percent-input, textarea.main-input') : null;
+              if (taskTa && (taskTa.value || '') !== displayVal) {
+                taskTa.value = displayVal;
+                try { taskTa.style.height='auto'; taskTa.style.height=taskTa.scrollHeight+'px'; } catch(e){}
+                dispatchInputThrottled(taskTa, 140);
+              }
+              if (pctTa && percentVal && (pctTa.value || '') !== percentVal) {
+                pctTa.value = percentVal;
+                try { pctTa.style.height='auto'; pctTa.style.height=pctTa.scrollHeight+'px'; } catch(e){}
+                dispatchInputThrottled(pctTa, 160);
+              }
+            } catch (e2) { /* noop */ }
+          });
+          // Serialize & recompute totals after initial sync
+          try { serializeAT(); } catch (e) {}
+          try { if (window.calculatePercentTotal) window.calculatePercentTotal(); } catch(e){}
+        } catch (e) { /* noop */ }
+      })();
+
+      // recompute heights on window resize (column widths change -> wrapping changes -> scrollHeight changes)
+      try {
+        window.addEventListener('resize', function(){
+          // debounce slightly to wait for layout to settle
+          clearTimeout(window.__at_autosize_timer);
+          window.__at_autosize_timer = setTimeout(autosizeAllTextareas, 50);
+        });
+      } catch (e) { /* noop */ }
+
+      // If the ILO module is present on the page, observe it for structural changes
+      // and dispatch an ilo:renumber event so AT will sync even if the original
+      // custom events were missed (timing/order issues). Debounce to avoid
+      // noisy updates during bulk DOM work.
+      (function(){
+        try {
+          const ilolist = document.getElementById('syllabus-ilo-sortable');
+          if (!ilolist || !window.MutationObserver) return;
+          let timer = null;
+          const dispatchRenumber = () => {
+            try {
+              const rows = Array.from(ilolist.querySelectorAll('tr')).filter(r => r.querySelector('textarea[name="ilos[]"]') || r.querySelector('.ilo-badge'));
+              const codes = rows.map((r, i) => {
+                // Preferred: explicit badge value
+                const badge = r.querySelector('.ilo-badge');
+                const badgeText = (badge && badge.textContent ? badge.textContent.trim() : '');
+                if (badgeText) return badgeText;
+                // Fallback: parse leading numeric or token from textarea value
+                const ta = r.querySelector('textarea[name="ilos[]"]');
+                const raw = ta && ta.value ? ta.value.trim() : '';
+                if (raw) {
+                  // Try patterns: "ILO 3", "ILO3", "3", "3.2" etc.
+                  let m = raw.match(/^\s*(?:ILO\s*)?([0-9]{1,3}(?:\.[0-9]+)?)\b/i);
+                  if (m && m[1]) return m[1];
+                  // Else take first up-to-6-char token as code
+                  m = raw.match(/^[A-Za-z0-9]{1,6}/);
+                  if (m && m[0]) return m[0];
+                }
+                // Final fallback: sequential number
+                return String(i + 1);
+              });
+              // Normalize: ensure uniqueness (append letter if duplicate)
+              const seen = {};
+              const finalCodes = codes.map(c => {
+                let base = c || '';
+                if (!seen[base]) { seen[base] = 1; return base; }
+                let idx = seen[base]; seen[base] = idx + 1; return base + String.fromCharCode(64 + idx); // A,B,C...
+              });
+              document.dispatchEvent(new CustomEvent('ilo:renumber', { detail: { codes: finalCodes } }));
+            } catch (e) { /* noop */ }
+          };
+
+          const mo = new MutationObserver((mutations) => {
+            // debounce a small window to merge multiple mutations
+            if (timer) clearTimeout(timer);
+            timer = setTimeout(() => { dispatchRenumber(); timer = null; }, 40);
+          });
+          mo.observe(ilolist, { childList: true, subtree: false });
+        } catch (e) { /* noop */ }
+      })();
+
+      // Listen for ILO module requests to add/remove columns so AT performs the DOM update and normalization
+      document.addEventListener('ilo:addColumn', function(ev){
+        try {
+          const idx = ev && ev.detail && typeof ev.detail.index === 'number' ? ev.detail.index : undefined;
+          const at = getATTable();
+          const inserted = addIloColumnInAT(at, idx);
+          if (inserted !== null) {
+            // mark the added header and col as synced so AT cannot remove them
+            try {
+              const headerThs = Array.from(at.querySelectorAll('thead tr:nth-child(2) th'));
+              if (typeof inserted === 'number' && headerThs[inserted]) headerThs[inserted].setAttribute('data-synced','1');
+              const colgroup = at.querySelector('colgroup');
+              if (colgroup && colgroup.children[inserted]) colgroup.children[inserted].setAttribute('data-synced','1');
+            } catch (e) { /* noop */ }
+            normalizeIloCols(at);
+            serializeAT();
+            try { if (window.markAsUnsaved) window.markAsUnsaved('assessment_tasks'); } catch(e){}
+          }
+        } catch(e) { console.error(e); }
+      });
+
+      document.addEventListener('ilo:removeColumn', function(ev){
+        try {
+          const idx = ev && ev.detail && typeof ev.detail.index === 'number' ? ev.detail.index : undefined;
+          const at = getATTable();
+          const removed = removeIloColumnInAT(at, idx);
+          if (removed) {
+            normalizeIloCols(at);
+            serializeAT();
+            try { if (window.markAsUnsaved) window.markAsUnsaved('assessment_tasks'); } catch(e){}
+          }
+        } catch(e) { console.error(e); }
+      });
+
+      // Update header numbering when ILO ordering changes in ILO module
+      document.addEventListener('ilo:renumber', function(ev){
+        try {
+          const codes = ev && ev.detail && Array.isArray(ev.detail.codes) ? ev.detail.codes : null;
+          if (!codes) return;
+          const table = getATTable();
+          if (!table) return;
+          const thRow = table.querySelector('thead tr:nth-child(2)');
+          if (!thRow) return;
+          // Ensure the AT table has the same number of ILO columns as the ILO module.
+          // ILO headers live after first 4 th and before last 3 th.
+          const iloStart = 4;
+          let headerThs = Array.from(thRow.querySelectorAll('th'));
+          const domainStart = headerThs.length - 3;
+          // Count only the headers that are marked as synced (data-synced="1").
+          const iloHeaders = headerThs.slice(iloStart, domainStart);
+          const currentSyncedCount = iloHeaders.reduce((acc, th) => acc + ((th && th.getAttribute && th.getAttribute('data-synced') === '1') ? 1 : 0), 0);
+          const desiredSyncedCount = codes.length;
+
+          // Ensure the total number of ILO headers in AT matches the ILO module.
+          // ILO headers live between iloStart and domainStart (exclusive).
+          const totalIloCount = Math.max(0, domainStart - iloStart);
+          const desiredIloCount = desiredSyncedCount;
+
+          // Append columns until AT has desiredIloCount columns
+          if (totalIloCount < desiredIloCount) {
+            const toAdd = desiredIloCount - totalIloCount;
+            for (let k = 0; k < toAdd; k++) {
+              const insertedAt = addIloColumnInAT(table, undefined);
+              // mark newly appended column as synced
+              try {
+                headerThs = Array.from(thRow.querySelectorAll('th'));
+                const cols = table.querySelectorAll('colgroup col');
+                const newDomainStart = headerThs.length - 3;
+                const newIndex = iloStart + (newDomainStart - iloStart - 1); // last ILO header index
+                const newTh = headerThs[newIndex];
+                if (newTh) newTh.setAttribute('data-synced', '1');
+                if (cols && cols[newIndex]) cols[newIndex].setAttribute('data-synced', '1');
+              } catch (e) { /* noop */ }
+            }
+          }
+
+          // If AT has more ILO columns than desired, remove right-most columns.
+          if (totalIloCount > desiredIloCount) {
+            let toRemove = totalIloCount - desiredIloCount;
+            // Prefer removing synced columns first (right-most synced), otherwise remove right-most columns regardless.
+            while (toRemove > 0) {
+              headerThs = Array.from(thRow.querySelectorAll('th'));
+              const dsNow = headerThs.length - 3;
+              const ihNow = headerThs.slice(iloStart, dsNow);
+              // find last synced index within ihNow
+              let lastSynced = -1;
+              for (let i = ihNow.length - 1; i >= 0; i--) {
+                const th = ihNow[i];
+                if (th && th.getAttribute && th.getAttribute('data-synced') === '1') { lastSynced = i; break; }
+              }
+              if (lastSynced >= 0) {
+                removeIloColumnInAT(table, lastSynced);
+              } else {
+                // remove the right-most ILO column (index ihNow.length - 1)
+                const removeIndex = ihNow.length - 1;
+                if (removeIndex >= 0) removeIloColumnInAT(table, removeIndex);
+              }
+              toRemove--;
+            }
+          }
+
+          // Refresh headerThs and relabel the first desiredIloCount headers to the provided codes
+          headerThs = Array.from(thRow.querySelectorAll('th'));
+          const domainNow = headerThs.length - 3;
+          const iloNow = headerThs.slice(iloStart, domainNow);
+          // relabel synced headers from left-to-right using codes
+          for (let i = 0; i < iloNow.length; i++) {
+            const th = iloNow[i];
+            if (!th) continue;
+            if (i < desiredIloCount) {
+              th.textContent = (codes[i] !== undefined) ? codes[i] : String(i + 1);
+              th.setAttribute('data-synced', '1');
+              // mark colgroup
+              try { const cols = table.querySelectorAll('colgroup col'); if (cols && cols[iloStart + i]) cols[iloStart + i].setAttribute('data-synced','1'); } catch(e){}
+            } else {
+              // these are AT-local columns beyond the desired synced set
+              // leave their text as-is (or numeric) and remove synced flag
+              if (th.getAttribute && th.getAttribute('data-synced') === '1') th.removeAttribute('data-synced');
+              try { const cols = table.querySelectorAll('colgroup col'); if (cols && cols[iloStart + i]) cols[iloStart + i].removeAttribute('data-synced'); } catch(e){}
+            }
+          }
+
+          // Mark ILO headers/cols that are synced from the ILO module so AT can't remove them.
+          try {
+            const colgroup = table.querySelector('colgroup');
+            const cols = colgroup ? Array.from(colgroup.children) : [];
+            const iloCountNow = Math.max(0, domainStart - iloStart);
+            for (let i = 0; i < iloCountNow; i++) {
+              const thIndex = iloStart + i;
+              if (headerThs[thIndex]) {
+                if (i < desiredIloCount) headerThs[thIndex].setAttribute('data-synced', '1');
+                else headerThs[thIndex].removeAttribute('data-synced');
+              }
+              if (cols[thIndex]) {
+                if (i < desiredIloCount) cols[thIndex].setAttribute('data-synced', '1');
+                else cols[thIndex].removeAttribute('data-synced');
+              }
+            }
+          } catch (e) { /* noop */ }
+
+          // normalize widths and reserialize
+          normalizeIloCols(table);
+          serializeAT();
+        } catch (e) { console.error('ilo:renumber handler error', e); }
+      });
+
+      // Criteria module -> AT module sync: listen for main section name/task changes
+      // Event detail expected: { section: <number 1-based>, value: <string> }
+      document.addEventListener('criteria:sectionMainChanged', function(ev){
+        try {
+          const detail = ev && ev.detail ? ev.detail : {};
+          let section = Number(detail.section);
+          const value = (detail.value || '').toString();
+          if (!Number.isFinite(section) || section < 1) section = 1;
+          // helper: extract trailing percent from a heading like "Quiz 20%" or "Quiz (20)"
+          function extractHeadingPercent(s){
+            try {
+              const str = (s || '').toString();
+              // pattern 1: parentheses at end (e.g., "(20)" or "(20%)")
+              let m = str.match(/\(\s*([0-9]{1,3}(?:\.[0-9]+)?)\s*%?\s*\)\s*$/);
+              if (m && m[1] != null) return (m[1] + '%');
+              // pattern 2: trailing number with optional % at end of string
+              m = str.match(/(?:^|\s)([0-9]{1,3}(?:\.[0-9]+)?)\s*%?\s*$/);
+              if (m && m[1] != null) return (m[1] + '%');
+            } catch (e) { /* noop */ }
+            return '';
+          }
+          // helper: strip trailing numeric token and optional parentheses from the heading
+          function stripTrailingPercentToken(s){
+            try {
+              let out = (s || '').toString();
+              // remove trailing parenthetical number first
+              out = out.replace(/\(\s*[0-9]{1,3}(?:\.[0-9]+)?\s*%?\s*\)\s*$/, '').trim();
+              // then remove any trailing standalone number with optional %
+              out = out.replace(/\s*[0-9]{1,3}(?:\.[0-9]+)?\s*%?\s*$/, '').trim();
+              return out;
+            } catch (e) { return (s || '').toString(); }
+          }
+          // ensure we have enough main sections; each main section is a row having a textarea.main-input
+          const table = getATTable(); if (!table) return;
+          const tbody = table.querySelector('tbody'); if (!tbody) return;
+          const mainRows = Array.from(tbody.querySelectorAll('tr')).filter(r => r.querySelector('textarea.main-input'));
+          while (mainRows.length < section) { // create additional blank sections as needed
+            if (typeof window.addAssessmentSection === 'function') window.addAssessmentSection(true);
+            // refresh mainRows after creation
+            mainRows.splice(0, mainRows.length, ...Array.from(tbody.querySelectorAll('tr')).filter(r => r.querySelector('textarea.main-input')));
+          }
+          const targetRow = mainRows[section - 1];
+          if (!targetRow) return;
+          // Task cell is second column (index 1)
+            const taskCell = targetRow.children[1];
+            if (!taskCell) return;
+            const taskTa = taskCell.querySelector('textarea.main-input');
+            if (!taskTa) return;
+            // Update Task with the heading minus trailing number/parentheses
+            const displayValue = stripTrailingPercentToken(value);
+            if ((taskTa.value || '') !== displayValue) {
+              taskTa.value = displayValue;
+              // autosize update
+              try { taskTa.style.height='auto'; taskTa.style.height=taskTa.scrollHeight+'px'; } catch(e){}
+              // Throttled mapping/serialization update
+              dispatchInputThrottled(taskTa, 140);
+              queueATSerialize(100);
+            }
+            // Mirror trailing percent from Criteria heading into AT Percent main cell (col 3)
+            try {
+              const pct = extractHeadingPercent(value);
+              const pctCell = targetRow.children[3];
+              const pctTa = pctCell ? pctCell.querySelector('textarea.main-input') : null;
+              if (pctTa && (pctTa.value || '') !== pct) {
+                pctTa.value = pct;
+                try { pctTa.style.height='auto'; pctTa.style.height=pctTa.scrollHeight+'px'; } catch(e){}
+                dispatchInputThrottled(pctTa, 160);
+                queueATSerialize(120);
+              }
+            } catch (e) { /* noop */ }
+            try { window.__at_recent_specific_sync = Date.now(); } catch (e) { /* noop */ }
+        } catch(e){ console.error('criteria:sectionMainChanged sync failed', e); }
+      });
+
+      // Expose direct helper so Criteria module can call: window.syncATMain(sectionIndex, value)
+      window.syncATMain = function(section, value){
+        try { document.dispatchEvent(new CustomEvent('criteria:sectionMainChanged', { detail: { section, value } })); } catch(e){ /* noop */ }
+      };
+
+      // wire into global bindUnsavedIndicator if available
+  try { if (window.bindUnsavedIndicator) window.bindUnsavedIndicator('assessment_tasks_data','assessment_tasks_left'); } catch (e) { /* noop */ }
+      // Provide a lightweight global helper used by other modules to mark this module as unsaved
+      // Removed markAsUnsaved function
+
+        // Expose a lightweight save function so the top Save can call it before performing the main form save.
+        // This function ensures the serialized JSON is written into the hidden textarea.
+        window.saveAssessmentTasks = async function() {
+          try {
+            // ensure latest UI state is serialized
+            serializeAT();
+            // small async pause to ensure any pending input events settle
+            await new Promise(r => setTimeout(r, 10));
+            // if the main syllabus form contains an in-form textarea for assessment_tasks_data,
+            // copy the serialized value there so the browser includes it in the form submit.
+            try {
+              const taLegacy = document.getElementById('assessment_tasks_data');
+              const taInForm = document.getElementById('assessment_tasks_data_inform');
+              // prefer legacy ta (partial) for its value, but ensure both are synced
+              const val = (taLegacy && taLegacy.value) ? taLegacy.value : (taInForm && taInForm.value) ? taInForm.value : '';
+              if (taLegacy) taLegacy.value = val;
+              if (taInForm) taInForm.value = val;
+              // dispatch input so bindUnsavedIndicator picks it up
+              if (taInForm) taInForm.dispatchEvent(new Event('input', { bubbles: true }));
+              if (taLegacy) taLegacy.dispatchEvent(new Event('input', { bubbles: true }));
+            } catch (e) { /* noop */ }
+
+            return { success: true };
+          } catch (e) {
+            console.error('saveAssessmentTasks failed', e);
+            throw e;
+          }
+        };
+
+        // Optional helper: immediately persist AT payload to the server by calling the syllabus update route
+        // Usage: await window.saveAssessmentTasksToServer(syllabusId)
+        // Optional helper: immediately persist AT payload to the server by calling the syllabus update route
+        // Usage: await window.saveAssessmentTasksToServer(syllabusId)
+        window.saveAssessmentTasksToServer = async function(syllabusId) {
+          if (!syllabusId) throw new Error('syllabusId required');
+          // ensure serialized
+          serializeAT();
+            const ta = document.querySelector('[name="assessment_tasks_data"]');
+          const payload = new FormData();
+          payload.append('_method', 'PUT');
+          payload.append('_token', document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '');
+          payload.append('assessment_tasks_data', ta ? ta.value : '');
+
+          const url = (window.syllabusBasePath || '/faculty/syllabi') + '/' + encodeURIComponent(syllabusId);
+          const resp = await fetch(url, { method: 'POST', body: payload, credentials: 'same-origin' });
+          if (!resp.ok) {
+            const text = await resp.text().catch(()=>null);
+            throw new Error('saveAssessmentTasksToServer failed: ' + resp.status + ' ' + (text || resp.statusText));
+          }
+          return resp;
+        };
+
+        // POST normalized AT rows to the dedicated endpoint (/faculty/syllabi/{id}/assessment-tasks)
+        // Usage: await window.postAssessmentTasksRows(syllabusId)
+        // POST normalized AT rows to the dedicated endpoint (/faculty/syllabi/{id}/assessment-tasks)
+        // Usage: await window.postAssessmentTasksRows(syllabusId)
+        window.postAssessmentTasksRows = async function(syllabusId) {
+          if (!syllabusId) throw new Error('syllabusId required');
+          // ensure latest UI state is serialized
+          serializeAT();
+          const ta = document.querySelector('[name="assessment_tasks_data"]');
+          let rows = [];
+          try {
+            rows = ta && ta.value ? JSON.parse(ta.value) : [];
+          } catch (e) {
+            // fallback: try innerText or empty
+            try {
+              const raw = ta ? (ta.innerText || ta.value) : '';
+              rows = raw ? JSON.parse(raw) : [];
+            } catch (e2) { rows = []; }
+          }
+
+          // Normalize CPA fields to ensure they exist and are strings
+          try {
+            rows = Array.isArray(rows) ? rows.map(r => ({ ...r, c: (r.c ?? '')+'' , p: (r.p ?? '')+'' , a: (r.a ?? '')+'' })) : [];
+          } catch (e) { /* noop */ }
+
+          const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+          const url = (window.syllabusBasePath || '/faculty/syllabi') + '/' + encodeURIComponent(syllabusId) + '/assessment-tasks';
+
+          // Try fetch with keepalive to allow the browser to complete the request during navigation.
+          try {
+            const resp = await fetch(url, {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': token,
+              },
+              body: JSON.stringify({ rows }),
+              keepalive: true,
+            });
+
+            if (!resp.ok) {
+              const text = await resp.text().catch(()=>null);
+              throw new Error('postAssessmentTasksRows failed: ' + resp.status + ' ' + (text || resp.statusText));
+            }
+
+            try { return await resp.json(); } catch (e) { return { success: true }; }
+          } catch (fetchErr) {
+            // If fetch throws (network error or aborted by navigation), attempt to fallback to sendBeacon.
+            try {
+                if (navigator && typeof navigator.sendBeacon === 'function') {
+                try {
+                  // include CSRF token in the beacon payload so Laravel's VerifyCsrfToken accepts it
+                  const beaconPayload = JSON.stringify({ _token: token, rows });
+                  const blob = new Blob([beaconPayload], { type: 'application/json' });
+                  const beaconUrl = url;
+                  const ok = navigator.sendBeacon(beaconUrl, blob);
+                  // sendBeacon is fire-and-forget — treat as success when it returns true
+                  if (ok) {
+                    // suppress noisy console.error for the original fetch error since server likely processed it
+                    console.debug('postAssessmentTasksRows: fetch failed but beacon fallback succeeded', fetchErr);
+                    return { success: true, fallback: 'beacon' };
+                  }
+                } catch (be) { /* noop */ }
+              }
+            } catch (e) { /* noop */ }
+
+            // If we reach here, rethrow original fetch error so callers can decide what to do.
+            throw fetchErr;
+          }
+        };
+  // No inline module-level Save button; use the top syllabus Save button which calls
+  // window.saveAssessmentTasks() / window.postAssessmentTasksRows() before submitting.
+      } catch (e) { /* noop */ }
+    });
+  })();
+</script>
+
+<script>
+// ===== Assessment Tasks Section Management =====
+(function() {
+  'use strict';
+
+  const tbody = document.querySelector('.at-map-outer tbody');
+  const addBtn = document.getElementById('at-add-section');
+  const removeBtn = document.getElementById('at-remove-section');
+  function getIloCount() {
+    try {
+      const iloList = document.getElementById('syllabus-ilo-sortable');
+      if (iloList) {
+        const rows = Array.from(iloList.querySelectorAll('tr')).filter(r =>
+          r.querySelector('textarea[name="ilos[]"]') || r.querySelector('.ilo-badge')
+        );
+        return Math.max(1, rows.length);
+      }
+      const headerRow = document.querySelector('.at-map-right > table.cis-table thead tr:nth-child(2)');
+      if (headerRow) {
+        const totalCells = headerRow.children.length; // 4 fixed + ILO + 3 domains
+        return Math.max(1, totalCells - 7);
+      }
+    } catch (e) { /* noop */ }
+    return {{ $iloColsCount }};
+  }
+
+  // Initialize section counter based on existing sections (default starts with section 1)
+  let sectionCounter = 1;
+
+  // Helper: Create a section header row
+  function createSectionHeader(sectionNum) {
+    const tr = document.createElement('tr');
+    tr.className = 'section-header';
+    tr.dataset.section = sectionNum;
+    
+    // Section name cell (spans first 4 columns: Code, Task, I/R/D, %)
+    const td = document.createElement('td');
+    td.colSpan = 4;
+    td.style.cssText = 'background:#f8f9fa;font-weight:700;padding:0.25rem 0.5rem;border:1px solid #dee2e6;';
+    
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'form-control form-control-sm section-name';
+    input.placeholder = `Section ${sectionNum}`;
+    input.style.cssText = 'font-weight:700;font-size:0.85rem;';
+    td.appendChild(input);
+    tr.appendChild(td);
+    
+    // Empty cells for ILO columns + domains (3)
+    for (let i = 0; i < getIloCount() + 3; i++) {
+      const emptyTd = document.createElement('td');
+      emptyTd.style.cssText = 'background:#f8f9fa;border:1px solid #dee2e6;';
+      tr.appendChild(emptyTd);
+    }
+    
+    return tr;
+  }
+
+  // Helper: Create a main row (first row in section)
+  function createMainRow(sectionNum) {
+    const tr = document.createElement('tr');
+    tr.className = 'at-main-row';
+    tr.dataset.section = sectionNum;
+    
+    // Code cell
+    const codeCell = document.createElement('td');
+    codeCell.className = 'text-center';
+    codeCell.style.cssText = 'padding:4px 0.15rem;border:1px solid #dee2e6;';
+    const codeArea = document.createElement('textarea');
+    codeArea.className = 'cis-textarea main-input text-center autosize';
+    codeArea.placeholder = '-';
+    codeArea.rows = 1;
+    codeCell.appendChild(codeArea);
+    tr.appendChild(codeCell);
+    
+    // Task cell
+    const taskCell = document.createElement('td');
+    taskCell.style.cssText = 'padding:4px 0.15rem;border:1px solid #dee2e6;';
+    const taskArea = document.createElement('textarea');
+    taskArea.className = 'cis-textarea main-input autosize';
+    taskArea.placeholder = '-';
+    taskArea.rows = 1;
+    taskCell.appendChild(taskArea);
+    tr.appendChild(taskCell);
+    
+    // I/R/D cell
+    const irdCell = document.createElement('td');
+    irdCell.className = 'text-center';
+    irdCell.style.cssText = 'padding:4px 0.15rem;border:1px solid #dee2e6;';
+    const irdArea = document.createElement('textarea');
+    irdArea.className = 'cis-textarea main-input text-center autosize';
+    irdArea.placeholder = '-';
+    irdArea.rows = 1;
+    irdCell.appendChild(irdArea);
+    tr.appendChild(irdCell);
+    
+    // % cell
+    const pctCell = document.createElement('td');
+    pctCell.className = 'text-center';
+    pctCell.style.cssText = 'padding:4px 0.15rem;border:1px solid #dee2e6;';
+    const pctArea = document.createElement('textarea');
+    pctArea.className = 'cis-textarea main-input text-center autosize percent-input';
+    pctArea.placeholder = '-';
+    pctArea.rows = 1;
+    pctCell.appendChild(pctArea);
+    tr.appendChild(pctCell);
+    
+    // ILO checkboxes
+    for (let i = 0; i < getIloCount(); i++) {
+      const iloCell = document.createElement('td');
+      iloCell.className = 'text-center';
+      iloCell.style.cssText = 'padding:4px 0.15rem;border:1px solid #dee2e6;';
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.className = 'form-check-input';
+      iloCell.appendChild(checkbox);
+      tr.appendChild(iloCell);
+    }
+    
+    // Domain checkboxes (C, P, A)
+    for (let i = 0; i < 3; i++) {
+      const domainCell = document.createElement('td');
+      domainCell.className = 'text-center';
+      domainCell.style.cssText = 'padding:4px 0.15rem;border:1px solid #dee2e6;';
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.className = 'form-check-input';
+      domainCell.appendChild(checkbox);
+      tr.appendChild(domainCell);
+    }
+    
+    return tr;
+  }
+
+  // Helper: Create a sub row
+  function createSubRow(sectionNum) {
+    const tr = document.createElement('tr');
+    tr.className = 'at-sub-row';
+    tr.dataset.section = sectionNum;
+    
+    // Code cell (empty for sub-row)
+    const codeCell = document.createElement('td');
+    codeCell.className = 'text-center';
+    codeCell.style.cssText = 'padding:4px 0.15rem;border:1px solid #dee2e6;background:#fafafa;';
+    tr.appendChild(codeCell);
+    
+    // Task cell
+    const taskCell = document.createElement('td');
+    taskCell.style.cssText = 'padding:4px 0.15rem 4px 1.5rem;border:1px solid #dee2e6;background:#fafafa;';
+    const taskArea = document.createElement('textarea');
+    taskArea.className = 'cis-textarea sub-input autosize';
+    taskArea.placeholder = '-';
+    taskArea.rows = 1;
+    taskCell.appendChild(taskArea);
+    tr.appendChild(taskCell);
+    
+    // I/R/D cell
+    const irdCell = document.createElement('td');
+    irdCell.className = 'text-center';
+    irdCell.style.cssText = 'padding:4px 0.15rem;border:1px solid #dee2e6;background:#fafafa;';
+    const irdArea = document.createElement('textarea');
+    irdArea.className = 'cis-textarea sub-input text-center autosize';
+    irdArea.placeholder = '-';
+    irdArea.rows = 1;
+    irdCell.appendChild(irdArea);
+    tr.appendChild(irdCell);
+    
+    // % cell (no input for sub-rows to avoid confusion; percent belongs to main row)
+    const pctCell = document.createElement('td');
+    pctCell.className = 'text-center';
+    pctCell.style.cssText = 'padding:4px 0.15rem;border:1px solid #dee2e6;background:#fafafa;';
+    tr.appendChild(pctCell);
+    
+    // ILO checkboxes
+    for (let i = 0; i < getIloCount(); i++) {
+      const iloCell = document.createElement('td');
+      iloCell.className = 'text-center';
+      iloCell.style.cssText = 'padding:4px 0.15rem;border:1px solid #dee2e6;background:#fafafa;';
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.className = 'form-check-input';
+      iloCell.appendChild(checkbox);
+      tr.appendChild(iloCell);
+    }
+    
+    // Domain checkboxes (C, P, A)
+    for (let i = 0; i < 3; i++) {
+      const domainCell = document.createElement('td');
+      domainCell.className = 'text-center';
+      domainCell.style.cssText = 'padding:4px 0.15rem;border:1px solid #dee2e6;background:#fafafa;';
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.className = 'form-check-input';
+      domainCell.appendChild(checkbox);
+      tr.appendChild(domainCell);
+    }
+    
+    return tr;
+  }
+
+  // Add a complete section (header + main row + sub row)
+  function addSection() {
+    sectionCounter++;
+    
+    const header = createSectionHeader(sectionCounter);
+    const mainRow = createMainRow(sectionCounter);
+    const subRow = createSubRow(sectionCounter);
+    
+    tbody.appendChild(header);
+    tbody.appendChild(mainRow);
+    tbody.appendChild(subRow);
+    
+    // Initialize autosize on new textareas
+    if (window.initAutosize) {
+      window.initAutosize(tbody);
+    }
+    // Update percent total after adding a new section
+    try { if (typeof window.calculatePercentTotal === 'function') window.calculatePercentTotal(); } catch (e) { /* noop */ }
+    
+    // Focus on section name input
+    const sectionInput = header.querySelector('.section-name');
+    if (sectionInput) {
+      sectionInput.focus();
+    }
+  }
+
+})();
+</script>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+
+

@@ -18,6 +18,7 @@
   <link rel="icon" href="{{ asset('images/favicon.png') }}" type="image/png" />
   <meta name="theme-color" content="#EE6F57" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <meta name="csrf-token" content="{{ csrf_token() }}">
   {{-- ░░░ END: Meta & Core Setup ░░░ --}}
 

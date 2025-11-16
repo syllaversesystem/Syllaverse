@@ -548,86 +548,63 @@ document.addEventListener('DOMContentLoaded', () => {
       const visionEl = document.querySelector('[name="vision"]');
       if (!missionEl || !visionEl) return;
 
-      // --- New: attempt to save ILOs (order + content) before the main minimal save ---
+      // --- Save ILOs before the main form submission ---
       try {
         if (window.saveIlo && typeof window.saveIlo === 'function') {
           await window.saveIlo();
         }
       } catch (iloErr) {
         console.error('Failed to save ILO data before syllabus save:', iloErr);
-        // Abort the main save so the user can retry and we don't leave inconsistent state
         alert('Failed to save ILOs: ' + (iloErr && iloErr.message ? iloErr.message : 'See console for details.'));
-        // restore button UI
         try { saveBtn.disabled = false; saveBtn.innerHTML = originalHtml; } catch (e) { /* noop */ }
-        return; // stop the save flow
+        return;
       }
 
-      // Attempt to save Assessment Tasks rows before continuing with the main save.
-      // Do not abort the main save if this fails — swallow errors and proceed so
-      // other syllabus fields persist. This avoids user-facing alerts and
-      // prevents fetch abortion noise when multiple listeners exist.
+      // --- Save Assessment Tasks data before main form submission ---
       try {
-        // --- New: attempt to save IGAs (order + content) before the main minimal save ---
+        if (window.saveAssessmentTasks && typeof window.saveAssessmentTasks === 'function') {
+          await window.saveAssessmentTasks();
+          console.log('Assessment Tasks saved to database');
+        } else if (window.saveATData && typeof window.saveATData === 'function') {
+          window.saveATData();
+          console.log('Assessment Tasks data serialized for form submission');
+        }
+      } catch (atErr) {
+        console.error('Failed to save Assessment Tasks:', atErr);
+        alert('Failed to save Assessment Tasks: ' + (atErr && atErr.message ? atErr.message : 'See console for details.'));
+        try { saveBtn.disabled = false; saveBtn.innerHTML = originalHtml; window._syllabusSaveLock = false; } catch (e) { /* noop */ }
+        return;
+      }
+
+      // IGAs only: attempt to save IGA data before main minimal save (Assessment Tasks module removed)
+      try {
         if (window.saveIga && typeof window.saveIga === 'function') {
           try { await window.saveIga(); } catch (igaErr) { console.error('Failed to save IGA data before syllabus save:', igaErr); alert('Failed to save IGAs: ' + (igaErr && igaErr.message ? igaErr.message : 'See console for details.')); try { saveBtn.disabled = false; saveBtn.innerHTML = originalHtml; } catch (e) {} return; }
         }
-
-        if ((window.postAssessmentMappings && typeof window.postAssessmentMappings === 'function') || (window.postAssessmentTasksRows && typeof window.postAssessmentTasksRows === 'function')) {
-          // derive syllabus id from form action (/faculty/syllabi/{id}) or hidden input
+        // Persist assessment mappings only (tasks distribution removed)
+        if (window.postAssessmentMappings && typeof window.postAssessmentMappings === 'function') {
           let syllabusId = '';
           try {
             const idInput = form.querySelector('[name="id"], input[name="syllabus_id"], input[name="syllabus"]');
             if (idInput) syllabusId = idInput.value || '';
           } catch (e) { /* noop */ }
           if (!syllabusId) {
-            try {
-              const m = action.match(/\/faculty\/syllabi\/([^\/\?]+)/);
-              if (m) syllabusId = decodeURIComponent(m[1]);
-            } catch (e) { /* noop */ }
+            try { const m = action.match(/\/faculty\/syllabi\/([^\/\?]+)/); if (m) syllabusId = decodeURIComponent(m[1]); } catch (e) { /* noop */ }
           }
-          if (!syllabusId) {
-            // fallback to data attributes on the AT textarea
-            try {
-              const ta = document.getElementById('assessment_tasks_data');
-              syllabusId = ta?.dataset?.syllabusId || ta?.getAttribute('data-syllabus-id') || '';
-              // also check assessment mappings hidden textarea
-              if (!syllabusId) {
-                const ma = document.getElementById('assessment_mappings_data');
-                syllabusId = ma?.dataset?.syllabusId || ma?.getAttribute('data-syllabus-id') || '';
-              }
-            } catch (e) { /* noop */ }
-          }
-
           if (syllabusId) {
+            try { window._syllabusSaveLock = true; } catch (e) { /* noop */ }
             try {
-              // set save lock so beforeunload won't prompt while this background request is in progress
-              try { window._syllabusSaveLock = true; } catch (e) { /* noop */ }
-              // Attempt to persist mappings first (if helper exists)
-              // Ensure mappings are serialized into hidden fields if the module exposes a save helper
               if (window.saveAssessmentMappings && typeof window.saveAssessmentMappings === 'function') {
                 try { await window.saveAssessmentMappings(); } catch (serr) { console.warn('saveAssessmentMappings failed (ignored) during save flow', serr); }
               }
-              if (window.postAssessmentMappings && typeof window.postAssessmentMappings === 'function') {
-                await window.postAssessmentMappings(syllabusId).catch((err) => {
-                  console.warn('postAssessmentMappings failed (ignored) during save flow', err);
-                });
-              }
-
-              // Then attempt to persist assessment tasks rows (if helper exists)
-              if (window.postAssessmentTasksRows && typeof window.postAssessmentTasksRows === 'function') {
-                await window.postAssessmentTasksRows(syllabusId).catch((err) => {
-                  console.warn('postAssessmentTasksRows failed (ignored) during save flow', err);
-                });
-              }
+              await window.postAssessmentMappings(syllabusId).catch((err) => { console.warn('postAssessmentMappings failed (ignored) during save flow', err); });
             } finally {
-              // release the save lock shortly after so UI can resume marking changes
               setTimeout(() => { try { window._syllabusSaveLock = false; } catch (e) { /* noop */ } }, 400);
             }
           }
         }
       } catch (e) {
-        // Non-fatal: log and continue
-        console.warn('Unexpected error while attempting to save Assessment Tasks (ignored)', e);
+        console.warn('Unexpected error while attempting to save assessment mappings (ignored)', e);
       }
 
   const originalHtml = saveBtn.innerHTML;

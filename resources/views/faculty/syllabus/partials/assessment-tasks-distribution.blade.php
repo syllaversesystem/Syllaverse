@@ -1,22 +1,21 @@
 {{-- 
 -------------------------------------------------------------------------------
-* File: reAssessment Method and Distribution Mapources/views/faculty/syllabus/partials/assessment-tasks-distribution.blade.php
-* Description: Assessment Tasks Distribution — placeholder table (Blade only)
+* File: resources/views/faculty/syllabus/partials/assessment-tasks-distribution.blade.php
+* Description: Assessment Tasks Distribution — Static table (server-rendered only)
 -------------------------------------------------------------------------------
 --}}
 
-@php $iloCols = range(1,8); @endphp
+@php
+  // Static ILO column count based on available ILOs (fallback to 5)
+  $iloColsCount = max(5, ($ilos ?? collect([]))->count());
+@endphp
+
 <style>
   /* Outer wrapper to mimic CIS two-column map: left label + right detail grid */
-  /* outer wrapper: no outer border, only internal separators */
   .at-map-outer { width: 100%; margin-bottom: 0; border: 1px solid #000; border-bottom: none; border-left: 1px solid #000; border-right: none; border-radius: 0; background: #fff; }
-  /* neutralize Bootstrap table-bordered borders inside the module; outer container will provide the single border */
   .at-map-outer th, .at-map-outer td { border: none !important; }
-  /* left label: no full box, only right divider to match CIS modules (match ILO) */
   .at-map-left { background: #fff; border: 0; border-right: none; vertical-align: middle; text-align: center; padding: 0.75rem; }
-  /* add a subtle bottom borderline under the left module title to match other CIS module headers */
   #at-left-title { padding-bottom: 0.5rem; border-bottom: none; }
-  /* vertical module label on the left column */
   .at-map-left .label-vertical {
     display: block;
     width: 1.75rem;
@@ -31,43 +30,23 @@
     transform-origin: center;
     white-space: nowrap;
   }
-  /* Right detail area: inner table will provide the grid; match ILO inner-table style */
   .at-map-right { padding: 0 !important; border: none; background: #fff; overflow-x: auto; margin: 0 !important; }
-  /* ensure the wrapper cell has no extra padding from table helpers */
   .at-map-outer td.at-map-right { padding: 0 !important; }
   .at-map-outer .cis-table { border-collapse: collapse; width: 100%; }
-  /* inner table: show only single vertical separators between columns (no double borders) */
-  .at-map-right > table { width: 100%; max-width: 100%; height: 100%; margin: 0; border-spacing: 0; border-collapse: collapse; min-width: 0; table-layout: fixed; font-family: Georgia, serif; font-size: 13px; line-height: 1.4; border: none; border-right: none !important; }
+  .at-map-right > table { width: 100%; max-width: 100%; height: 100%; margin: 0; border-spacing: 0; border-collapse: collapse; min-width: 0; table-layout: fixed; font-family: Georgia, serif; font-size: 0.78rem; line-height: 1.4; border: none; border-right: none !important; }
   .at-map-right > table th, .at-map-right > table td { border: none; padding: 0.12rem 0.18rem; vertical-align: middle; }
-  /* tighter vertical fit for body rows so single-line textareas match their content height */
   .at-map-right > table tbody th, .at-map-right > table tbody td { padding-top: 0; padding-bottom: 0; }
-  /* Tighten the Code (col 1) and I/R/D (col 3) columns so content fits cleanly */
   .at-map-right > table thead tr:nth-child(2) th:nth-child(1),
-  .at-map-right > table thead tr:nth-child(2) th:nth-child(3) { font-size: 0.72rem; padding-left: 0.06rem; padding-right: 0.06rem; }
+  .at-map-right > table thead tr:nth-child(2) th:nth-child(3) { padding-left: 0.06rem; padding-right: 0.06rem; }
   .at-map-right > table tbody td:nth-child(1) textarea.cis-textarea,
-  .at-map-right > table tbody td:nth-child(3) textarea.cis-textarea { font-size: 0.72rem; padding-left: 0.06rem; padding-right: 0.06rem; text-align: center; }
-  /* keep those inputs from overflowing visually */
+  .at-map-right > table tbody td:nth-child(3) textarea.cis-textarea { padding-left: 0.06rem; padding-right: 0.06rem; text-align: center; }
   .at-map-right > table tbody td:nth-child(1) textarea.cis-textarea,
   .at-map-right > table tbody td:nth-child(3) textarea.cis-textarea { max-width: 100%; min-width: 0; }
-  /* single vertical separators: apply left border to every cell except the first so separators are clear */
-  /* remove per-cell borders and add single separators between columns */
   .at-map-right > table th, .at-map-right > table td { border: none; }
-  /* Single vertical separators: first inner column now draws the divider since left title dropped its right border */
   .at-map-right > table th + th, .at-map-right > table td + td { border-left: 1px solid #000 !important; }
   .at-map-right > table th:first-child, .at-map-right > table td:first-child { border-left: 1px solid #000 !important; }
-  /* section header rows (LEC / LAB) — show top and bottom separators */
-  .at-map-right .section-header th, .at-map-right .section-header td {
-    border-top: 1px solid #000 !important;
-    border-bottom: 1px solid #000 !important;
-  }
-  /* also ensure section header rows (LEC/LAB) show separators */
-  .at-map-right .section-header th + th, .at-map-right .section-header td + td { border-left: 1px solid #000 !important; }
-  /* inner table right side edge removed to avoid duplicating the .at-map-right border */
-  /* .at-map-right > table { border-right: 1px solid #343a40; } */
-  /* keep a subtle header underline (both header rows) */
   .at-map-right .cis-table thead tr:first-child th { border-bottom: 1px solid #000 !important; }
   .at-map-right .cis-table thead tr:nth-child(2) th { border-bottom: 1px solid #000 !important; }
-  /* ensure header cells match the compact input cell sizing */
   .at-map-right > table thead th {
     padding: 0.08rem 0.12rem;
     height: 24px;
@@ -75,34 +54,17 @@
     vertical-align: middle;
     box-sizing: border-box;
   }
-  /* ensure outer-most inner table cell borders are present */
-  /* ensure first/last column keep their outer vertical lines */
-  /* last-child doesn't need an extra right border when using single separators */
   .at-map-right > table th:last-child, .at-map-right > table td:last-child { border-right: none; }
-  /* bottom of AT table — handled by .at-note top border to avoid duplicate lines */
-  /* removed duplicate bottom border on table rows so only one clean divider shows */
   .at-map-right .at-header { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0.6rem; }
   .at-map-right .at-title { font-family: Georgia, serif; font-weight: 700; font-size: 0.78rem; line-height: 24px; text-align: center; width:100%; display:block; }
-  .at-map-right .unsaved-pill { margin-left: 0.5rem; }
-  /* Inner table visual tweaks to match image */
-  /* Force white background across all cells and headers in AT */
   .at-map-right .cis-table thead th { background: #fff; font-weight: 700; vertical-align: middle; color: #000; }
   .at-map-right .cis-table th, .at-map-right .cis-table td { background: #fff !important; }
-  /* Bootstrap table-light overrides within AT */
   .at-map-right .cis-table .table-light { background: #fff !important; --bs-table-bg: #fff; }
   .at-map-right .cis-table .table-light > th,
   .at-map-right .cis-table .table-light > td { background: #fff !important; }
-  /* make sure small header text centers horizontally for narrow columns */
   .at-map-right .cis-table thead th { text-align: center; }
   .at-map-right .cis-table thead th.text-start { text-align: left; }
-  /* match header label font-size to compact input size so labels align visually */
-  
-  .at-map-right .cis-table thead th,
-  .at-map-right .cis-table tbody .section-header th {
-    font-size: 0.78rem;
-  }
-  .at-map-right .cis-table tbody .section-header th { background: #fff; font-weight: 700; text-transform: uppercase; font-size: 0.92rem; }
-  /* smaller paddings for compact cells (match Course Title textarea look) */
+  .at-map-right .cis-table thead th { font-size: 0.78rem; }
   .at-map-right .cis-table tbody textarea {
     display: block;
     width: 100%;
@@ -118,14 +80,10 @@
     overflow-y: hidden;
     overflow-x: hidden;
   }
-  /* When textareas grow, align content from the top like Course Title */
   .at-map-right .cis-table tbody td, .at-map-right .cis-table tbody th { vertical-align: top; }
   .at-map-right .cis-table .percent-total { text-align: center; font-weight: 700; }
-  /* make inputs fully responsive to their narrow columns */
   .at-map-right input, .at-map-right textarea { width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; }
-  /* Keep header labels compact but allow body cells to wrap and grow with textarea content */
   .at-map-right .cis-table thead th { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  /* Ensure all body cells can wrap and expand in height */
   .at-map-right .cis-table tbody th, .at-map-right .cis-table tbody td {
     white-space: normal;
     overflow: visible;
@@ -135,9 +93,7 @@
     height: auto;
     line-height: 1;
   }
-  /* align the left title container to match ILO title container */
   #at-left-title.cis-label {
-    /* Align with other label partials: Times New Roman 10pt and tighter padding */
     font-weight: 700;
     font-size: 10pt;
     font-family: 'Times New Roman', Times, serif;
@@ -145,19 +101,24 @@
     vertical-align: top;
     box-sizing: border-box;
     line-height: 1.2;
-    /* Drop right border; let first inner table column render the divider */
     border-left: none;
     border-right: none;
   }
   @media print { .at-map-left .label-vertical { transform: rotate(180deg); } }
-  /* title row framing removed since outer border is disabled */
   .at-map-outer > tbody > tr:first-child th, .at-map-outer > tbody > tr:first-child td {
     border-top: none;
     border-left: none;
     border-right: none;
   }
-  /* Container wrapping the entire module: apply single border (remove bottom to avoid double line with next module) */
-  /* removed wrapper .at-map-container; border now applied directly to .at-map-outer table */
+  textarea.cis-textarea { font-weight: 400; font-size: 0.78rem; line-height: 1; font-family: inherit; height: auto; min-height: 0; margin: 0; padding: 0 0.10rem; box-sizing: border-box; resize: none; overflow-y: hidden; overflow-x: hidden; display:block; width:100%; white-space: pre-wrap; overflow-wrap: break-word; word-wrap: break-word; word-break: break-word; border: none; }
+  textarea.main-input.cis-textarea { font-weight: 700; }
+  textarea.main-input.cis-textarea::placeholder { font-weight: 700; }
+  textarea.main-input.cis-textarea::-webkit-input-placeholder { font-weight: 700; }
+  textarea.main-input.cis-textarea:-ms-input-placeholder { font-weight: 700; }
+  textarea.main-input.cis-textarea::-ms-input-placeholder { font-weight: 700; }
+  textarea.sub-input.cis-textarea { font-weight: 400; }
+  textarea.cis-textarea.text-center { text-align: center; padding-left: 0.06rem; padding-right: 0.06rem; }
+  .at-sub-row td { background: #fafafa !important; }
 </style>
 
 <!-- Outer two-column map: left label column, right detail column -->
@@ -170,1752 +131,1073 @@
     <tr>
       <th id="at-left-title" class="align-top text-start cis-label">Assessment Method and Distribution Map</th>
       <td class="at-map-right">
-  <table class="table table-bordered mb-0 cis-table" style="table-layout: fixed; margin:0;">
-          @php
-            // code: fixed 70px, task: 40%, small fixed widths for control columns; ILO columns left flexible to fill remaining space
-          @endphp
+        <table class="table table-bordered mb-0 cis-table" style="table-layout: fixed; margin:0;">
           <colgroup>
-            <col style="width:70px;"> <!-- Code fixed -->
-            <col style="width:40%;"> <!-- Task large -->
+            <col style="width:70px;"> <!-- Code -->
+            <col style="width:40%;"> <!-- Task -->
             <col style="width:48px;"> <!-- I/R/D -->
             <col style="width:48px;"> <!-- Percent -->
-            @foreach ($iloCols as $c)
+            @for ($c = 1; $c <= $iloColsCount; $c++)
               <col> <!-- ILO flexible -->
-            @endforeach
+            @endfor
             <col style="width:48px;"> <!-- C -->
             <col style="width:48px;"> <!-- P -->
             <col style="width:48px;"> <!-- A -->
           </colgroup>
-  <thead class="table-light">
-    <tr>
-  <th colspan="4" class="text-start cis-label">
-  <div class="at-title fw-bold">Assessment Tasks (AT) Distribution
-  </div>
-      </th>
-      <th class="text-center cis-label" colspan="{{ count($iloCols) }}">Intended Learning Outcomes</th>
-    <th class="text-center cis-label" colspan="3">Domains</th>
-    </tr>
-    <tr class="text-center align-middle">
-      <th>Code</th>
-      <th class="text-center">Assessment Tasks</th>
-  <th>I/R/D</th>
-  <th>%</th>
-      @foreach ($iloCols as $c)
-        <th>{{ $c }}</th>
-      @endforeach
-      <th>C</th>
-      <th>P</th>
-      <th>A</th>
-    </tr>
-  </thead>
-    <style>
-  /* Compact textareas (match Course Title style but single-line autosize) */
-  textarea.cis-textarea,
-  textarea.main-input.cis-textarea,
-  textarea.sub-input.cis-textarea { font-weight: 400; font-size: 0.78rem; line-height: 1; font-family: inherit; height: auto; min-height: 0; margin: 0; padding: 0 0.10rem; box-sizing: border-box; resize: none; overflow-y: hidden; overflow-x: hidden; display:block; width:100%; white-space: pre-wrap; overflow-wrap: break-word; word-wrap: break-word; word-break: break-word; border: none; }
-  /* Bold styling only for main input (initial row) including placeholder dash */
-  textarea.main-input.cis-textarea { font-weight: 700; }
-  textarea.main-input.cis-textarea::placeholder { font-weight: 700; }
-  textarea.main-input.cis-textarea::-webkit-input-placeholder { font-weight: 700; }
-  textarea.main-input.cis-textarea:-ms-input-placeholder { font-weight: 700; }
-  textarea.main-input.cis-textarea::-ms-input-placeholder { font-weight: 700; }
-  textarea.cis-textarea.text-center,
-  textarea.main-input.cis-textarea.text-center,
-  textarea.sub-input.cis-textarea.text-center { text-align: center; padding-left: 0.06rem; padding-right: 0.06rem; }
-    </style>
-    <tbody>
-    {{-- No static rows; a default section header will be created on load if needed. --}}
-
-    {{-- Sync AT Task column inputs (cis-input in second column) to mapping_name[] inputs in assessment-mapping --}}
-    <script>
-    document.addEventListener('DOMContentLoaded', function(){
-  const atRoot = document.querySelector('.at-map-outer');
-      if (!atRoot) return;
-      // delegate input events on AT Task column inputs (second column inside each tr, excluding section headers)
-      atRoot.addEventListener('input', function(e){
-       const target = e.target.closest('input, textarea');
-        if (!target) return;
-        const td = target.closest('td');
-        if (!td) return;
-        // Find the column index of this td within its row
-        const tr = td.closest('tr');
-        if (!tr) return;
-        // Exclude section header rows that contain section_name inputs
-        if (tr.classList.contains('section-header')) return;
-        // Find the task column input (we consider the second cell <td> in the row)
-        const cells = Array.from(tr.children).filter(n => n.tagName && n.tagName.toLowerCase() === 'td');
-        if (cells.length < 2) return;
-        const taskCell = cells[1];
-        if (!taskCell.contains(target)) return; // only respond to inputs inside the task column
-
-        // Determine the index among data rows (ignore section headers)
-        const tbody = tr.parentNode;
-        const dataRows = Array.from(tbody.querySelectorAll('tr')).filter(r => !r.classList.contains('section-header'));
-        const rowIndex = dataRows.indexOf(tr);
-        if (rowIndex === -1) return;
-
-        // Ensure mapping row exists for this AT row; create if needed
-        const mapRoot = document.querySelector('.assessment-mapping');
-        if (!mapRoot) return;
-
-        function dataMapRows(){ return Array.from(mapRoot.querySelectorAll('tbody tr')).filter(r => r.querySelector('.week-cell')); }
-
-        function ensureMappingRowsAtLeast(n){
-          let mappingRows = dataMapRows();
-          while (mappingRows.length <= n){
-            // find template row from mapping module (last data row or first tbody tr)
-            const tplRows = Array.from(mapRoot.querySelectorAll('tbody tr'));
-            const templateRow = tplRows.length ? tplRows[tplRows.length - 1] : null;
-            if (!templateRow) break;
-            const newRow = templateRow.cloneNode(true);
-            const cloneMerge = newRow.querySelector('.merge-cell'); if (cloneMerge) cloneMerge.parentNode.removeChild(cloneMerge);
-            // Clear mapping_name[] in cloned first cell and clear week-cell marks
-            try {
-              const nameInput = newRow.querySelector('input[name="mapping_name[]"]');
-              if (nameInput){ nameInput.value = ''; nameInput.placeholder = (mapRoot.querySelector('input[name="mapping_name[]"]') || {}).placeholder || 'LE'; }
-            } catch (e) { /* noop */ }
-            newRow.querySelectorAll('.week-cell').forEach(function(c){ c.classList.remove('marked'); c.textContent = ''; });
-            templateRow.parentNode.insertBefore(newRow, templateRow.nextSibling);
-            // update merge-cell rowspan (create/move if necessary)
-            const dataRows = dataMapRows();
-            let merge = mapRoot.querySelector('.merge-cell');
-            if (!merge){
-              if (dataRows.length === 0) return;
-              const firstData = dataRows[0];
-              const insertRow = firstData.previousElementSibling || firstData;
-              const td = document.createElement('td');
-              td.className = 'merge-cell';
-              td.rowSpan = dataRows.length + 1;
-              td.setAttribute('style', 'border:1px solid #343a40; height:30px; width:10%;');
-              insertRow.insertBefore(td, insertRow.firstChild);
-            } else {
-              merge.rowSpan = dataRows.length + 1;
-            }
-            mappingRows = dataMapRows();
-          }
-        }
-
-        ensureMappingRowsAtLeast(rowIndex);
-
-        const mapRows = dataMapRows();
-        const mapRow = mapRows[rowIndex];
-        if (!mapRow) return;
-        const mapInput = mapRow.querySelector('input[name="mapping_name[]"]');
-        if (!mapInput) return;
-
-        const val = (target.value || '').trim();
-        if (!val){
-          // Remove mapping row when AT task input cleared. If only one data row remains, clear it instead.
-          const mappingRows = dataMapRows();
-          if (mappingRows.length <= 1){
-            // clear the single mapping row
-            const single = mappingRows[0];
-            if (single){
-              single.querySelectorAll('.week-cell').forEach(function(c){ c.classList.remove('marked'); c.textContent = ''; });
-              const inp = single.querySelector('input[name="mapping_name[]"]'); if (inp) inp.value = '';
-            }
-          } else {
-            // remove the row and maintain merge-cell
-            const toRemove = mappingRows[rowIndex];
-            if (toRemove){
-              const mergeCell = toRemove.querySelector('.merge-cell');
-              if (mergeCell){
-                // move merge cell to next data row
-                let next = toRemove.nextElementSibling;
-                while (next && !next.querySelector('.week-cell')) next = next.nextElementSibling;
-                if (next) next.insertBefore(mergeCell, next.firstChild);
-              }
-              toRemove.parentNode.removeChild(toRemove);
-              // update rowspan
-              const merge = mapRoot.querySelector('.merge-cell');
-              if (merge){
-                merge.rowSpan = dataMapRows().length + 1;
-              }
-            }
-          }
-          return;
-        }
-
-        // Normal sync when value present
-        mapInput.value = target.value;
-      });
-    });
-    </script>
-
-    {{-- LAB section header removed; only LEC renders by default. LAB will appear if present in saved data. --}}
-
-    <tr class="table-light footer-total">
-      <th colspan="{{ 3 }}" class="text-end">Total</th>
-      <th id="at-percent-total" class="percent-total text-center">100%</th>
-  <th colspan="{{ count($iloCols) + 3 }}"></th>
+          <thead class="table-light">
+            <tr>
+              <th colspan="4" class="text-start cis-label">Assessment Tasks (AT) Distribution</th>
+              <th class="text-center cis-label" colspan="{{ $iloColsCount }}">Intended Learning Outcomes</th>
+              <th class="text-center cis-label" colspan="3">Domains</th>
+            </tr>
+            <tr class="text-center align-middle">
+              <th>Code</th>
+              <th class="text-center">Assessment Tasks</th>
+              <th>I/R/D</th>
+              <th>%</th>
+              @for ($c = 1; $c <= $iloColsCount; $c++)
+                <th>{{ $c }}</th>
+              @endfor
+              <th>C</th>
+              <th>P</th>
+              <th>A</th>
+            </tr>
+          </thead>
+          <tbody id="at-tbody">
+            {{-- Sections with main rows and sub rows --}}
+            @for ($section = 1; $section <= 1; $section++)
+              {{-- Main Row --}}
+              <tr class="at-main-row" data-section="{{ $section }}">
+                <td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;">
+                  <textarea class="cis-textarea main-input text-center" placeholder="-" rows="1"></textarea>
+                </td>
+                <td style="padding:4px 0.15rem;border:1px solid #dee2e6;background:#f8f9fa;">
+                  <textarea class="cis-textarea main-input" rows="1" readonly style="cursor:not-allowed;"></textarea>
+                </td>
+                <td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;"></td>
+                <td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;background:#f8f9fa;">
+                  <textarea class="cis-textarea main-input text-center percent-input" rows="1" readonly style="cursor:not-allowed;"></textarea>
+                </td>
+                @for ($c = 1; $c <= $iloColsCount; $c++)
+                <td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;"></td>
+                @endfor
+                <td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;"></td>
+                <td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;"></td>
+                <td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;"></td>
+              </tr>
+              
+              {{-- Sub Rows (1 per section) --}}
+              @for ($sub = 1; $sub <= 1; $sub++)
+              <tr class="at-sub-row" data-section="{{ $section }}">
+                <td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;background:#fafafa;">
+                  <textarea class="cis-textarea sub-input text-center" placeholder="-" rows="1"></textarea>
+                </td>
+                <td style="padding:4px 0.15rem;border:1px solid #dee2e6;background:#f8f9fa;">
+                  <textarea class="cis-textarea sub-input" rows="1" readonly style="cursor:not-allowed;"></textarea>
+                </td>
+                <td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;background:#fafafa;">
+                  <textarea class="cis-textarea sub-input text-center" placeholder="-" rows="1"></textarea>
+                </td>
+                <td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;background:#f8f9fa;">
+                  <textarea class="cis-textarea sub-input text-center percent-input" rows="1" readonly style="cursor:not-allowed;"></textarea>
+                </td>
+                @for ($c = 1; $c <= $iloColsCount; $c++)
+                <td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;background:#fafafa;">
+                  <textarea class="cis-textarea sub-input text-center" placeholder="-" rows="1"></textarea>
+                </td>
+                @endfor
+                <td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;background:#fafafa;">
+                  <textarea class="cis-textarea sub-input text-center" placeholder="-" rows="1"></textarea>
+                </td>
+                <td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;background:#fafafa;">
+                  <textarea class="cis-textarea sub-input text-center" placeholder="-" rows="1"></textarea>
+                </td>
+                <td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;background:#fafafa;">
+                  <textarea class="cis-textarea sub-input text-center" placeholder="-" rows="1"></textarea>
+                </td>
+              </tr>
+              @endfor
+            @endfor
+          </tbody>
+          <tfoot>
+            <tr class="table-light footer-total">
+              <th colspan="3" class="text-end">Total</th>
+              <th id="at-percent-total" class="percent-total text-center">0%</th>
+              <th colspan="{{ $iloColsCount + 3 }}"></th>
+            </tr>
+          </tfoot>
+        </table>
+      </td>
     </tr>
   </tbody>
 </table>
 
-        {{-- Hidden serialized payload so the main Save can persist the AT distribution as JSON --}}
-     {{-- Hidden serialized payload so the main Save can persist the AT distribution as JSON
-       The `form="syllabusForm"` attribute associates this textarea with the main
-       syllabus form even though the AT UI is rendered outside the <form> element.
-     --}}
-     <textarea id="assessment_tasks_data" name="assessment_tasks_data" form="syllabusForm" class="d-none">{{ old('assessment_tasks_data', $syllabus->assessment_tasks_data ?? '') }}</textarea>
-
-        {{-- Removed outdated feedback availability note per latest requirements --}}
-
- 
+{{-- Hidden serialized payload --}}
+<textarea id="assessment_tasks_data" name="assessment_tasks_data" form="syllabusForm" class="d-none">{{ old('assessment_tasks_data', $syllabus->assessment_tasks_data ?? '') }}</textarea>
 
 <script>
-  (function(){
-    function toNumber(v) { const n = parseFloat(String(v).replace('%','').trim()); return Number.isFinite(n) ? n : 0; }
-
-    function getATTable() {
-      return document.querySelector('.at-map-right > table.cis-table') || document.querySelector('table.cis-table');
-    }
-
-    function serializeAT() {
-      const table = getATTable();
-      if (!table) return;
-      const allRows = Array.from(table.querySelectorAll('tbody > tr'));
-      const out = [];
-      let percentTotal = 0;
-      // New sectioning logic: a row that contains any textarea with class 'main-input'
-      // begins a new section. That row is serialized as the section's main item (position null)
-      // if it contains user-entered content. Following rows (without a main-input) become
-      // sub items for the current section with position like "section-subIndex".
-      let sectionIndex = 0;
-      let subCounter = 0;
-      for (let ri = 0; ri < allRows.length; ri++) {
-        const r = allRows[ri];
-        if (r.classList && r.classList.contains('footer-total')) continue; // skip footer row
-        const cells = Array.from(r.children || []);
-        if (!cells.length) continue;
-        const ths = table.querySelectorAll('thead tr:nth-child(2) th');
-        const iloFlagCount = Math.max(0, ths.length - (4 + 3));
-        const cellValue = (cell) => {
-          if (!cell) return '';
-          const inp = cell.querySelector('input, textarea, select');
-          return inp ? (inp.value || '') : (cell.textContent || '').trim();
-        };
-        const isMainRow = !!r.querySelector('textarea.main-input');
-        const code = cellValue(cells[0]) || '';
-        const task = cellValue(cells[1]) || '';
-        const ird = cellValue(cells[2]) || '';
-        const pct = cellValue(cells[3]) || '';
-        const iloFlags = [];
-        for (let i = 0; i < iloFlagCount; i++) {
-          const idx = 4 + i;
-          iloFlags.push(cellValue(cells[idx]) || '');
-        }
-        const trailingStart = 4 + iloFlagCount;
-        const trailing = [cellValue(cells[trailingStart]), cellValue(cells[trailingStart + 1]), cellValue(cells[trailingStart + 2])];
-        const hasContent = [code, task, ird, pct].some(v => (v || '').trim() !== '') || iloFlags.some(f => (f || '').trim() !== '') || trailing.some(v => (v || '').trim() !== '');
-        if (isMainRow) {
-          sectionIndex++;
-          subCounter = 0;
-          if (hasContent) {
-            out.push({ section: sectionIndex, position: null, code, task, ird, percent: pct, iloFlags, c: (trailing[0]||'').toString(), p: (trailing[1]||'').toString(), a: (trailing[2]||'').toString() });
-            percentTotal += toNumber(pct);
-          }
-        } else if (hasContent) {
-          if (sectionIndex === 0) sectionIndex = 1; // default first section
-          subCounter++;
-          const position = sectionIndex + '-' + subCounter;
-          out.push({ section: sectionIndex, position, code, task, ird, percent: pct, iloFlags, c: (trailing[0]||'').toString(), p: (trailing[1]||'').toString(), a: (trailing[2]||'').toString() });
-          percentTotal += toNumber(pct);
-        }
-      }
-
-      // write to hidden textarea and dispatch input so global bindUnsavedIndicator picks it up
-      const ta = document.querySelector('[name="assessment_tasks_data"]');
-      if (ta) {
-        try { ta.value = JSON.stringify(out); } catch (e) { ta.value = '[]'; }
-        try { ta.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) { /* noop */ }
-      }
-
-      // update total percent cell in the footer row if present
-      try {
-        const footerPctCell = document.getElementById('at-percent-total');
-        if (footerPctCell) footerPctCell.textContent = (Math.round(percentTotal*100)/100) + '%';
-      } catch (e) { /* noop */ }
-    }
-
-  document.addEventListener('DOMContentLoaded', function(){
-  // initialize: bind input listeners for all inputs inside the AT table
-  const table = getATTable();
+document.addEventListener('DOMContentLoaded', function() {
+  const table = document.querySelector('.at-map-outer .cis-table');
   if (!table) return;
+  
+  const tbody = table.querySelector('#at-tbody');
+  const iloColsCount = {{ $iloColsCount }};
 
-      // Debounced serializer to reduce work during rapid programmatic updates
-      let __atSerializeTimer = null;
-      function queueATSerialize(delay){
-        try {
-          const d = Number.isFinite(delay) ? delay : 80;
-          if (__atSerializeTimer) clearTimeout(__atSerializeTimer);
-          __atSerializeTimer = setTimeout(function(){
-            try { serializeAT(); } catch (e) { /* noop */ }
-            try { if (window.markAsUnsaved) window.markAsUnsaved('assessment_tasks'); } catch(e){}
-          }, d);
-        } catch (e) { /* noop */ }
-      }
+  // Storage for removed row data
+  const removedDataStore = {
+    sections: [], // Stack of removed sections with all their data
+    subRows: {} // Key: sectionNum, Value: stack of removed sub rows
+  };
 
-      // Throttled input dispatch to keep mapping sync responsive without firing on every keystroke
-      function dispatchInputThrottled(el, minInterval){
-        try {
-          if (!el) return;
-          const interval = Number.isFinite(minInterval) ? minInterval : 120;
-          const now = Date.now();
-          const last = Number(el.dataset && el.dataset.lastInputTs ? el.dataset.lastInputTs : 0);
-          if (!last || (now - last) >= interval){
-            try { el.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) { /* noop */ }
-            if (el.dataset) el.dataset.lastInputTs = String(now);
-          } else {
-            const wait = Math.max(10, interval - (now - last));
-            if (el.__inputTimer) clearTimeout(el.__inputTimer);
-            el.__inputTimer = setTimeout(function(){
-              try { el.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) { /* noop */ }
-              if (el.dataset) el.dataset.lastInputTs = String(Date.now());
-            }, wait);
-          }
-        } catch (e) { /* noop */ }
-      }
+  // Helper to extract all data from a row
+  function extractRowData(row) {
+    if (!row) return null;
+    
+    const data = {
+      cells: []
+    };
+    
+    Array.from(row.children).forEach(cell => {
+      const textarea = cell.querySelector('textarea');
+      data.cells.push(textarea ? textarea.value : '');
+    });
+    
+    return data;
+  }
 
-      // helper: set caret at end of an input
-      function setCaretToEnd(input) {
-        try {
-          const len = (input.value || '').length;
-          input.focus();
-          if (typeof input.setSelectionRange === 'function') input.setSelectionRange(len, len);
-        } catch (e) { try { input.focus(); } catch (e) {} }
-      }
-
-      // helper: autosize all textareas in the AT table (useful on initial load and on resize)
-      function autosizeAllTextareas() {
-        try {
-          const areas = table.querySelectorAll('textarea');
-          areas.forEach((ta) => {
-            // enforce soft visual wrapping for all textareas
-            try { ta.setAttribute('wrap', 'soft'); } catch (e) {}
-            // normalize CSS in case other styles override
-            try {
-              ta.style.whiteSpace = 'pre-wrap';
-              ta.style.overflowWrap = 'break-word';
-              ta.style.wordBreak = 'break-word';
-              ta.style.overflowX = 'hidden';
-            } catch (e) {}
-            ta.style.height = 'auto';
-            ta.style.height = ta.scrollHeight + 'px';
-          });
-        } catch (e) { /* noop */ }
-      }
-
-      // helper: focus an input/textarea in a row by column index (falls back to first field)
-      function focusInputInRow(row, colIndex) {
-        if (!row) return false;
-        try {
-          const cells = row.cells || row.children;
-          if (cells && cells[colIndex]) {
-            const inp = cells[colIndex].querySelector('input, textarea');
-            if (inp) { setCaretToEnd(inp); inp.scrollIntoView({ block: 'nearest', inline: 'nearest' }); return true; }
-          }
-          // fallback: first field
-          const first = row.querySelector('input, textarea');
-          if (first) { setCaretToEnd(first); first.scrollIntoView({ block: 'nearest', inline: 'nearest' }); return true; }
-        } catch (e) { /* noop */ }
-        return false;
-      }
-
-      // helper: attach handlers to a single field (input/textarea) for both existing and newly created rows
-      function attachATHandlersToField(inp) {
-        if (!inp) return;
-        // ensure visual wrapping for any textarea field
-        try {
-          if (inp.tagName === 'TEXTAREA') {
-            inp.setAttribute('wrap', 'soft');
-            inp.style.whiteSpace = 'pre-wrap';
-            inp.style.overflowWrap = 'break-word';
-            inp.style.wordBreak = 'break-word';
-            inp.style.overflowX = 'hidden';
-          }
-        } catch (e) { /* noop */ }
-        // input -> reserialize and mark unsaved
-        inp.addEventListener('input', function(){
-          // autosize for textareas
-          try {
-            if (inp.tagName === 'TEXTAREA') {
-              inp.style.height = 'auto';
-              inp.style.height = inp.scrollHeight + 'px';
-            }
-          } catch (e) { /* noop */ }
-          serializeAT();
-          try {
-            // Removed unsaved tracking logic
-
-            // Propagation: if this input is in the Task column (colIndex 1), copy its value
-            // into the corresponding assessment mapping name input (by data-row index) when present.
-            try {
-              const cell = inp.closest('td,th');
-              const colIndex = cell ? (cell.cellIndex || 0) : 0;
-              if (colIndex === 1) {
-                const tr = inp.closest('tr');
-                if (tr) {
-                  // determine AT data rows (exclude section headers and footer)
-                  const atRows = Array.from(table.querySelectorAll('tbody > tr')).filter(r => !r.classList.contains('section-header') && !r.classList.contains('footer-total'));
-                  const idx = atRows.indexOf(tr);
-                  if (idx >= 0) {
-                    const mappingRoot = document.querySelector('.assessment-mapping');
-                    if (mappingRoot) {
-                      const mappingRows = Array.from(mappingRoot.querySelectorAll('tbody tr')).filter(r => r.querySelector('.week-cell'));
-                      if (idx < mappingRows.length) {
-                        const mapInp = mappingRows[idx].querySelector('input[name="mapping_name[]"]');
-                        if (mapInp) {
-                          mapInp.value = inp.value || '';
-                          // dispatch input event so mapping module can react (unsaved indicators, serialization)
-                          try { mapInp.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) {}
-                          // mark mapping module unsaved if helper exists
-                          try { if (window.markAsUnsaved) window.markAsUnsaved('assessment_mappings'); } catch (e) {}
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            } catch (e) { /* noop propagation errors should not block user typing */ }
-
-          } catch (e) { /* noop */ }
-        });
-
-        // initial autosize on attach
-        try {
-          if (inp.tagName === 'TEXTAREA') {
-            inp.style.height = 'auto';
-            inp.style.height = inp.scrollHeight + 'px';
-          }
-        } catch (e) { /* noop */ }
-
-        // key handlers (row add/delete disabled per latest requirement)
-  inp.addEventListener('keydown', function(ev){
-          try {
-            const tr = inp.closest('tr');
-            if (!tr) return;
-            const isSectionHeader = tr.classList.contains('section-header');
-      // determine the column index of this input's cell (0-based)
-      const cell = inp.closest('td,th');
-      const colIndex = cell ? (cell.cellIndex || 0) : 0;
-            // Row add/remove shortcuts intentionally disabled.
-          } catch (e) { /* noop */ }
-        });
-      }
-
-      // helper: add an ILO column into the AT table at the given ILO index (0-based), inserting to the right of that index if desired
-  function addIloColumnInAT(atTable, iloIndex /* optional */, insertAfter = true) {
-        if (!atTable) return null;
-        try {
-          const headerRow = atTable.querySelector('thead tr:nth-child(2)');
-          const ths = Array.from(headerRow.querySelectorAll('th'));
-          const totalTh = ths.length;
-          const iloStart = 4; // after Code, Task, I/R/D, %
-          const domainStart = totalTh - 3; // index where domain (C,P,A) starts
-
-          // compute insertion index within the ILO block
-          let insertAt;
-          if (typeof iloIndex === 'number') {
-            // clamp to existing ILO range
-            const iloCount = Math.max(0, domainStart - iloStart);
-            const clamped = Math.max(0, Math.min(iloIndex + (insertAfter ? 1 : 0), iloCount));
-            insertAt = iloStart + clamped;
-          } else {
-            // append at end of ILOs (i.e., right before domainStart)
-            insertAt = domainStart;
-          }
-
-          // create new TH header cell only in the second header row (numbered ILOs)
-          const newTh = document.createElement('th');
-          const currentIloCount = Math.max(0, domainStart - iloStart);
-          newTh.textContent = (currentIloCount + 1);
-          const refTh = ths[insertAt] || null;
-          if (refTh) headerRow.insertBefore(newTh, refTh); else headerRow.appendChild(newTh);
-
-          // adjust first thead row Intended Learning Outcomes colspan only (don't add actual THs there)
-          const firstRow = atTable.querySelector('thead tr:first-child');
-          const iloLabelTh = Array.from(firstRow.querySelectorAll('th')).find(th => /Intended Learning Outcomes/i.test(th.textContent || ''));
-          if (iloLabelTh) {
-            const current = parseInt(iloLabelTh.getAttribute('colspan') || '0', 10) || 0;
-            iloLabelTh.setAttribute('colspan', current + 1);
-          }
-
-          // update colgroup: insert a col at the exact logical column index (aligned with second header)
-          const colgroup = atTable.querySelector('colgroup');
-          if (colgroup) {
-            const newCol = document.createElement('col');
-            newCol.style.width = '';
-            const refCol = colgroup.children[insertAt] || null;
-            if (refCol) colgroup.insertBefore(newCol, refCol); else colgroup.appendChild(newCol);
-          }
-
-          // insert cells into each tbody row at the same logical position
-          // If a row contains a cell with a colspan that covers the insertion point,
-          // increment that cell's colspan instead of inserting a new physical cell.
-          atTable.querySelectorAll('tbody > tr').forEach((r) => {
-            const cells = Array.from(r.children);
-            // compute cumulative column index and detect spanning cells
-            let cum = 0;
-            let handled = false;
-            for (let ci = 0; ci < cells.length; ci++) {
-              const cell = cells[ci];
-              const colspan = parseInt(cell.getAttribute('colspan') || '1', 10) || 1;
-              const start = cum;
-              const end = cum + colspan - 1;
-              if (insertAt >= start && insertAt <= end) {
-                // this cell spans the insertion point -> increase colspan
-                if (colspan > 1) {
-                  cell.setAttribute('colspan', colspan + 1);
-                  handled = true;
-                  break;
-                }
-                // colspan === 1: we'll insert before this cell
-                break;
-              }
-              cum += colspan;
-            }
-            if (handled) return; // nothing else to do for this row
-
-            // find reference cell position considering colspan values
-            cum = 0; let refCell = null;
-            for (let ci = 0; ci < cells.length; ci++) {
-              const cell = cells[ci];
-              const colspan = parseInt(cell.getAttribute('colspan') || '1', 10) || 1;
-              const start = cum;
-              const end = cum + colspan - 1;
-              if (insertAt <= end) { refCell = cell; break; }
-              cum += colspan;
-            }
-
-            const isHeader = r.classList && r.classList.contains('section-header');
-            const newCell = document.createElement(isHeader ? 'th' : 'td');
-            if (!isHeader) {
-              const input = document.createElement('textarea'); input.className = 'cis-textarea cis-field autosize text-center'; try { input.setAttribute('rows','1'); } catch(e){} try { input.setAttribute('placeholder','-'); } catch(e){}
-              newCell.className = 'text-center';
-              newCell.appendChild(input);
-            }
-            if (refCell) r.insertBefore(newCell, refCell); else r.appendChild(newCell);
-            if (!isHeader) {
-              const newInput = newCell.querySelector('input, textarea');
-              if (newInput && typeof attachATHandlersToField === 'function') attachATHandlersToField(newInput);
-            }
-          });
-
-          // renumber ILO header labels to keep them sequential (only within ILO block)
-          (function(){
-            try {
-              const headerThs = Array.from(atTable.querySelectorAll('thead tr:nth-child(2) th'));
-              const domainStartNow = headerThs.length - 3;
-              let counter = 1;
-              for (let i = iloStart; i < domainStartNow; i++) {
-                const nth = headerThs[i]; if (nth) nth.textContent = counter++;
-              }
-            } catch (e) { /* noop */ }
-          })();
-
-          // normalize ILO col widths so they flex to fill remaining space
-          (function(){
-            try {
-              const headerThs = Array.from(atTable.querySelectorAll('thead tr:nth-child(2) th'));
-              const domainStartNow = headerThs.length - 3;
-              const iloCount = Math.max(0, domainStartNow - iloStart);
-              const cols = Array.from(atTable.querySelectorAll('colgroup col'));
-              for (let i = 0; i < cols.length; i++) {
-                if (i >= iloStart && i < iloStart + iloCount) {
-                  cols[i].style.width = '';
-                  cols[i].style.minWidth = '40px';
-                }
-              }
-              atTable.style.tableLayout = 'fixed';
-              atTable.style.width = '100%';
-              void atTable.offsetWidth;
-            } catch (e) { /* noop */ }
-          })();
-
-          // update footer colspan
-          (function(){
-            try {
-              const footer = atTable.querySelector('tbody tr.footer-total');
-              if (footer) {
-                const iloCount = Math.max(0, atTable.querySelectorAll('thead tr:nth-child(2) th').length - 7);
-                const lastTh = footer.querySelector('th:last-of-type');
-                if (lastTh) lastTh.setAttribute('colspan', iloCount + 3);
-              }
-            } catch (e) { /* noop */ }
-          })();
-
-          return insertAt;
-        } catch (e) { console.error('addIloColumnInAT error', e); return null; }
-      }
-
-      // helper: remove an ILO column (by ILO index 0-based) from the AT table
-      function removeIloColumnInAT(atTable, iloIndex) {
-        if (!atTable) return false;
-        try {
-          const headerRow = atTable.querySelector('thead tr:nth-child(2)');
-          const ths = Array.from(headerRow.querySelectorAll('th'));
-          const totalTh = ths.length;
-          const iloStart = 4;
-          const domainStart = totalTh - 3;
-          const iloCount = Math.max(0, domainStart - iloStart);
-          if (iloCount <= 1) return false; // keep at least one ILO
-
-          const targetIlo = Math.max(0, Math.min(typeof iloIndex === 'number' ? iloIndex : (iloCount - 1), iloCount - 1));
-          const targetAbsolute = iloStart + targetIlo;
-
-          const targetTh = ths[targetAbsolute];
-          if (targetTh) headerRow.removeChild(targetTh);
-
-          // adjust first thead row colspan (only adjust the ILO label)
-          const firstRow = atTable.querySelector('thead tr:first-child');
-          const iloLabelTh = Array.from(firstRow.querySelectorAll('th')).find(th => /Intended Learning Outcomes/i.test(th.textContent || ''));
-          if (iloLabelTh) {
-            const current = parseInt(iloLabelTh.getAttribute('colspan') || '0', 10) || 0;
-            iloLabelTh.setAttribute('colspan', Math.max(1, current - 1));
-          }
-
-          // remove col from colgroup at exact index
-          const colgroup = atTable.querySelector('colgroup');
-          if (colgroup) {
-            const targetCol = colgroup.children[targetAbsolute] || null;
-            if (targetCol) colgroup.removeChild(targetCol);
-          }
-
-          // remove each tbody cell at that index
-          // If a row contains a colspan cell that covers the removal index, decrement its colspan
-          atTable.querySelectorAll('tbody > tr').forEach((r) => {
-            const cells = Array.from(r.children);
-            let cum = 0;
-            let handled = false;
-            for (let ci = 0; ci < cells.length; ci++) {
-              const cell = cells[ci];
-              const colspan = parseInt(cell.getAttribute('colspan') || '1', 10) || 1;
-              const start = cum;
-              const end = cum + colspan - 1;
-              if (targetAbsolute >= start && targetAbsolute <= end) {
-                if (colspan > 1) {
-                  cell.setAttribute('colspan', Math.max(1, colspan - 1));
-                  handled = true;
-                  break;
-                }
-                // colspan === 1 -> remove this cell
-                r.removeChild(cell);
-                handled = true;
-                break;
-              }
-              cum += colspan;
-            }
-            if (!handled) {
-              // fallback: naive index removal
-              const naive = cells[targetAbsolute];
-              if (naive) r.removeChild(naive);
-            }
-          });
-
-          // renumber ILO headers within the ILO block
-          (function(){
-            try {
-              const headerThs = Array.from(atTable.querySelectorAll('thead tr:nth-child(2) th'));
-              const domainStartNow = headerThs.length - 3;
-              let counter = 1;
-              for (let i = iloStart; i < domainStartNow; i++) { const nth = headerThs[i]; if (nth) nth.textContent = counter++; }
-            } catch (e) { /* noop */ }
-          })();
-
-          // update footer colspan
-          (function(){
-            try {
-              const footer = atTable.querySelector('tbody tr.footer-total');
-              if (footer) {
-                const iloCountNow = Math.max(0, atTable.querySelectorAll('thead tr:nth-child(2) th').length - 7);
-                const lastTh = footer.querySelector('th:last-of-type');
-                if (lastTh) lastTh.setAttribute('colspan', iloCountNow + 3);
-              }
-            } catch (e) { /* noop */ }
-          })();
-
-          return true;
-        } catch (e) { console.error('removeIloColumnInAT error', e); return false; }
-      }
-      // normalize ILO col widths to fill container (call after add/remove)
-      function normalizeIloCols(atTable) {
-        try {
-          const headerThs = Array.from(atTable.querySelectorAll('thead tr:nth-child(2) th'));
-          const totalTh = headerThs.length;
-          const iloStart = 4;
-          const iloCount = Math.max(0, totalTh - 7);
-          const cols = Array.from(atTable.querySelectorAll('colgroup col'));
-          for (let i = 0; i < cols.length; i++) {
-            if (i >= iloStart && i < iloStart + iloCount) cols[i].style.width = '';
-          }
-          atTable.style.width = '100%';
-          void atTable.offsetWidth; // force reflow
-        } catch (e) { /* noop */ }
-      }
-
-
-  // attach to existing fields (input/textarea) for input events
-  table.querySelectorAll('input, textarea').forEach((inp) => attachATHandlersToField(inp));
-  // also perform a pass to autosize any pre-existing textareas
-  autosizeAllTextareas();
-
-      // delegated keydown handler on the table to ensure shortcuts work for dynamic rows
-      table.addEventListener('keydown', function(ev){
-        try {
-          const target = ev.target;
-          if (!target || !(['INPUT','TEXTAREA'].includes(target.tagName))) return;
-          // determine col index
-          const cell = target.closest('td,th');
-          const colIndex = cell ? (cell.cellIndex || 0) : 0;
-          const tr = target.closest('tr');
-          const isSectionHeader = tr && tr.classList && tr.classList.contains('section-header');
-
-          // Ctrl+Enter on header disabled
-          if (isSectionHeader && ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { return; }
-
-          // Ctrl+Enter inside an ILO column -> insert a new ILO column to the right of the current ILO
-          // ILO columns are the columns after the first 4 and before the last 3
-          if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) {
-            const theadThs = Array.from(table.querySelectorAll('thead tr:nth-child(2) th'));
-            const totalTh = theadThs.length;
-            const iloStart = 4; // after Code, Task, I/R/D, %
-            const iloEnd = totalTh - 4; // index of last ILO
-            if (colIndex >= iloStart && colIndex <= iloEnd) {
-              ev.preventDefault();
-              const iloIndex = colIndex - iloStart;
-              const insertedAt = addIloColumnInAT(table, iloIndex, true);
-              if (insertedAt !== null) {
-                // focus the input in the same row and the new column
-                const rowCells = Array.from(tr.children || []);
-                const newCell = rowCells[insertedAt];
-                if (newCell) {
-                  const inp = newCell.querySelector('input, textarea');
-                  if (inp) { setCaretToEnd(inp); inp.scrollIntoView({ block: 'nearest', inline: 'nearest' }); }
-                }
-                serializeAT();
-                try { if (window.markAsUnsaved) window.markAsUnsaved('assessment_tasks'); } catch (e) {}
-                // This AT-initiated column is local to AT (unsynced). Do not notify ILO module.
-              }
-              return;
-            }
-          }
-
-          // Ctrl/Cmd+Enter on any data/sub row -> if inside an ILO column, add a new ILO column;
-          // otherwise clone the current row and insert after it.
-          if (!isSectionHeader && ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) {
-            // determine if focused column is an ILO column
-            const theadThsCheck = Array.from(table.querySelectorAll('thead tr:nth-child(2) th'));
-            const totalThCheck = theadThsCheck.length;
-            const iloStartCheck = 4;
-            const iloEndCheck = totalThCheck - 4;
-            if (colIndex >= iloStartCheck && colIndex <= iloEndCheck) {
-              ev.preventDefault();
-              // add a new ILO column to the right of the current ILO
-              const iloIndex = colIndex - iloStartCheck;
-              const insertedAt = addIloColumnInAT(table, iloIndex, true);
-              if (insertedAt !== null) {
-                // focus the input in the same row and the new column
-                const rowCells = Array.from(tr.children || []);
-                const newCell = rowCells[insertedAt];
-                if (newCell) {
-                  const inp = newCell.querySelector('input, textarea');
-                  if (inp) { setCaretToEnd(inp); inp.scrollIntoView({ block: 'nearest', inline: 'nearest' }); }
-                }
-                serializeAT();
-                try { if (window.markAsUnsaved) window.markAsUnsaved('assessment_tasks'); } catch (e) {}
-              }
-              return;
-            }
-
-            // row cloning disabled
-            return;
-          }
-
-          // Ctrl+Backspace inside an ILO column -> remove this ILO column
-          if (ev.key === 'Backspace' && (ev.ctrlKey || ev.metaKey)) {
-            const theadThs = Array.from(table.querySelectorAll('thead tr:nth-child(2) th'));
-            const totalTh = theadThs.length;
-            const iloStart = 4;
-            const iloEnd = totalTh - 4;
-            if (colIndex >= iloStart && colIndex <= iloEnd) {
-              // Only treat Ctrl+Backspace as a column removal when the field is empty
-              // and the caret is at the start. Otherwise allow normal Ctrl+Backspace.
-              const selStart = (typeof target.selectionStart === 'number') ? target.selectionStart : 0;
-              const selEnd = (typeof target.selectionEnd === 'number') ? target.selectionEnd : selStart;
-              const val = (target.value || '').trim();
-              if (!(val === '' && selStart === 0 && selEnd === 0)) {
-                // let browser handle Ctrl+Backspace normally (word delete)
-                return;
-              }
-              // Disallow removal of columns that are synced from the ILO module
-              const headerTh = theadThs[colIndex];
-              if (headerTh && headerTh.getAttribute('data-synced') === '1') {
-                // Inform user that synced ILO columns must be removed from the ILO module
-                try { alert('This ILO column is synced from the ILO module and cannot be removed here. Remove it from the ILO module instead.'); } catch (e) { /* noop */ }
-                return;
-              }
-              ev.preventDefault();
-              const iloIndex = colIndex - iloStart;
-              const removed = removeIloColumnInAT(table, iloIndex);
-              if (removed) {
-                // focus the nearest cell in the same row (clamped)
-                const newTotal = Array.from(table.querySelectorAll('thead tr:nth-child(2) th')).length;
-                const newColIndex = Math.max(0, Math.min(colIndex, newTotal - 1));
-                const rowCells = Array.from(tr.children || []);
-                const cell = rowCells[newColIndex];
-                if (cell) { const inp = cell.querySelector('input, textarea'); if (inp) { setCaretToEnd(inp); inp.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } }
-                serializeAT();
-                try { if (window.markAsUnsaved) window.markAsUnsaved('assessment_tasks'); } catch (e) {}
-                // Removal here affects only AT. Synced columns are blocked above.
-              }
-              return;
-            }
-          }
-
-          // Backspace row deletion disabled
-        } catch (e) { console.error(e); }
-      }, true);
-
-      // Populate table from persisted data if available, then serialize
-      function populateATFromData() {
-        try {
-          const table = getATTable();
-          if (!table) return;
-          const ta = document.querySelector('[name="assessment_tasks_data"]');
-          let rows = [];
-          if (ta) {
-            const raw = (ta.value && ta.value.trim()) ? ta.value.trim() : '';
-            if (raw) {
-              try { rows = JSON.parse(raw); } catch (e) { rows = []; }
-            }
-          }
-          const ths = table.querySelectorAll('thead tr:nth-child(2) th');
-          if (!rows || !rows.length) {
-            // Build initial blank section (main + sub) then footer
-            const tbody = table.querySelector('tbody');
-            if (!tbody) return;
-            while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
-            const cols = ths.length;
-            const buildMain = () => {
-              const tr = document.createElement('tr');
-              for (let c=0;c<cols;c++) {
-                const td = document.createElement('td');
-                if (c===0||c===1||c===3) {
-                  const inp = document.createElement('textarea'); inp.className='main-input cis-textarea cis-field autosize'+(c===1?'':' text-center'); inp.placeholder='-'; inp.setAttribute('rows','1'); td.appendChild(inp); attachATHandlersToField(inp);
-                } else { td.className='non-inputable'; td.textContent=''; }
-                tr.appendChild(td);
-              }
-              return tr;
-            };
-            const buildSub = () => {
-              const tr = document.createElement('tr');
-              for (let c=0;c<cols;c++) {
-                const td = document.createElement('td');
-                if (c===3) { td.className='non-inputable'; td.textContent=''; }
-                else { const inp = document.createElement('textarea'); inp.className='sub-input cis-textarea cis-field autosize'+(c===1?'':' text-center'); inp.placeholder='-'; inp.setAttribute('rows','1'); td.appendChild(inp); attachATHandlersToField(inp); }
-                tr.appendChild(td);
-              }
-              return tr;
-            };
-            tbody.appendChild(buildMain());
-            tbody.appendChild(buildSub());
-            const footerTr = document.createElement('tr'); footerTr.className='table-light footer-total';
-            const thTotal = document.createElement('th'); thTotal.colSpan=3; thTotal.className='text-end'; thTotal.textContent='Total';
-            const thPct = document.createElement('th'); thPct.id='at-percent-total'; thPct.className='percent-total text-center'; thPct.textContent='0%';
-            footerTr.appendChild(thTotal); footerTr.appendChild(thPct);
-            const lastTh = document.createElement('th'); lastTh.colSpan = Math.max(0, cols - 4); footerTr.appendChild(lastTh);
-            tbody.appendChild(footerTr);
-            serializeAT();
-            return;
-          }
-          // rebuild from serialized rows (main items mark sections)
-          const tbody = table.querySelector('tbody'); if (!tbody) return; while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
-          const iloStart = 4; const domainCount = 3; const iloCount = Math.max(0, ths.length - (iloStart + domainCount));
-          // group rows by section
-          const sections = {};
-          rows.forEach(r => { const sec = (typeof r.section==='number')?r.section:1; if(!sections[sec]) sections[sec]={ main:null, subs:[] }; if (r.position==null) sections[sec].main = r; else sections[sec].subs.push(r); });
-          const keys = Object.keys(sections).sort((a,b)=>Number(a)-Number(b));
-          const buildMainFrom = item => {
-            const tr = document.createElement('tr');
-            for (let c=0;c<ths.length;c++) {
-              const td = document.createElement('td');
-              if (c===0||c===1||c===3) {
-                const inp = document.createElement('textarea'); inp.className='main-input cis-textarea cis-field autosize'+(c===1?'':' text-center'); inp.placeholder='-'; inp.setAttribute('rows','1'); if(item){ if(c===0) inp.value=item.code||''; else if(c===1) inp.value=item.task||''; else if(c===3) inp.value=item.percent||''; } td.appendChild(inp); attachATHandlersToField(inp);
-              } else { td.className='non-inputable'; td.textContent=''; }
-              tr.appendChild(td);
-            }
-            return tr;
-          };
-          const buildSubFrom = item => {
-            const tr = document.createElement('tr');
-            for (let c=0;c<ths.length;c++) {
-              const td = document.createElement('td');
-              if (c===3) { td.className='non-inputable'; td.textContent=''; }
-              else {
-                const inp = document.createElement('textarea'); inp.className='sub-input cis-textarea cis-field autosize'+(c===1?'':' text-center'); inp.placeholder='-'; inp.setAttribute('rows','1');
-                if (item) {
-                  if (c===0) inp.value=item.code||''; else if (c===1) inp.value=item.task||''; else if (c===2) inp.value=item.ird||''; else if (c>=4 && c < 4+iloCount) { const flags = Array.isArray(item.iloFlags)?item.iloFlags:[]; inp.value=flags[c-4]||''; } else if (c===4+iloCount) inp.value=item.c||''; else if (c===5+iloCount) inp.value=item.p||''; else if (c===6+iloCount) inp.value=item.a||'';
-                }
-                td.appendChild(inp); attachATHandlersToField(inp);
-              }
-              tr.appendChild(td);
-            }
-            return tr;
-          };
-          keys.forEach(k => {
-            const info = sections[k];
-            tbody.appendChild(buildMainFrom(info.main));
-            info.subs.sort((a,b)=>{const na=Number(String(a.position).split('-')[1]||0); const nb=Number(String(b.position).split('-')[1]||0); return na-nb;});
-            info.subs.forEach(sub=> tbody.appendChild(buildSubFrom(sub)));
-            // append one blank sub row for new input
-            tbody.appendChild(buildSubFrom(null));
-          });
-          // footer row with recalculated percent
-          let savedPercent = 0; try { savedPercent = rows.reduce((acc,r)=>{ const raw = (r && r.percent)?String(r.percent).replace('%','').trim():''; const n=parseFloat(raw); return acc + (Number.isFinite(n)?n:0); },0); } catch(e){ savedPercent=0; }
-          const footerTr = document.createElement('tr'); footerTr.className='table-light footer-total';
-          const thTotal = document.createElement('th'); thTotal.colSpan=3; thTotal.className='text-end'; thTotal.textContent='Total';
-          const thPct = document.createElement('th'); thPct.id='at-percent-total'; thPct.className='percent-total text-center'; thPct.textContent=(Math.round(savedPercent*100)/100)+'%';
-          footerTr.appendChild(thTotal); footerTr.appendChild(thPct);
-          const lastTh = document.createElement('th'); lastTh.colSpan = Math.max(0, ths.length - 4); footerTr.appendChild(lastTh);
-          tbody.appendChild(footerTr);
-          serializeAT();
-        } catch (e) { console.error('populateATFromData failed', e); }
-      }
-
-      // populate from existing saved data if any
-      populateATFromData();
-      // initial serialization
-      serializeAT();
-      // ensure textareas reflect their content height after population
-      autosizeAllTextareas();
-
-      // Public helper: add a new blank section (main row + sub row) before footer
-      function addAssessmentSection(suppressFocus) {
-        const table = getATTable(); if (!table) return;
-        const tbody = table.querySelector('tbody'); if (!tbody) return;
-        const footer = tbody.querySelector('tr.footer-total');
-        const ths = table.querySelectorAll('thead tr:nth-child(2) th');
-        const cols = ths.length;
-        const makeMain = () => { const tr=document.createElement('tr'); for (let c=0;c<cols;c++){ const td=document.createElement('td'); if (c===0||c===1||c===3){ const inp=document.createElement('textarea'); inp.className='main-input cis-textarea cis-field autosize'+(c===1?'':' text-center'); inp.placeholder='-'; inp.setAttribute('rows','1'); td.appendChild(inp); attachATHandlersToField(inp); } else { td.className='non-inputable'; td.textContent=''; } tr.appendChild(td);} return tr; };
-        const makeSub = () => { const tr=document.createElement('tr'); for (let c=0;c<cols;c++){ const td=document.createElement('td'); if (c===3){ td.className='non-inputable'; td.textContent=''; } else { const inp=document.createElement('textarea'); inp.className='sub-input cis-textarea cis-field autosize'+(c===1?'':' text-center'); inp.placeholder='-'; inp.setAttribute('rows','1'); td.appendChild(inp); attachATHandlersToField(inp);} tr.appendChild(td);} return tr; };
-        const mainRow = makeMain(); const subRow = makeSub();
-        if (footer){ tbody.insertBefore(mainRow, footer); tbody.insertBefore(subRow, footer); } else { tbody.appendChild(mainRow); tbody.appendChild(subRow); }
-        serializeAT(); autosizeAllTextareas();
-        if (!suppressFocus) {
-          try { const task = mainRow.children[1].querySelector('textarea'); if (task) task.focus(); } catch(e){}
+  // Helper to restore data to a row
+  function restoreRowData(row, data) {
+    if (!row || !data || !data.cells) return;
+    
+    Array.from(row.children).forEach((cell, index) => {
+      if (index < data.cells.length) {
+        const textarea = cell.querySelector('textarea');
+        if (textarea) {
+          textarea.value = data.cells[index];
         }
       }
-      window.addAssessmentSection = addAssessmentSection;
-  document.addEventListener('assessment:addSection', () => addAssessmentSection(false));
-
-      // Public helper: add a new sub row inside a given section (1-based index)
-      function addATSubRow(sectionIndex, suppressFocus) {
-        try {
-          const table = getATTable(); if (!table) return;
-          const tbody = table.querySelector('tbody'); if (!tbody) return;
-          const ths = table.querySelectorAll('thead tr:nth-child(2) th');
-          const cols = ths.length;
-          const footer = tbody.querySelector('tr.footer-total');
-
-          // build a sub row matching current structure (Percent col non-editable)
-          const buildSub = () => {
-            const tr = document.createElement('tr');
-            for (let c = 0; c < cols; c++) {
-              const td = document.createElement('td');
-              if (c === 3) { td.className = 'non-inputable'; td.textContent = ''; }
-              else {
-                const inp = document.createElement('textarea');
-                inp.className = 'sub-input cis-textarea cis-field autosize' + (c === 1 ? '' : ' text-center');
-                inp.placeholder = '-';
-                inp.setAttribute('rows','1');
-                td.appendChild(inp);
-                attachATHandlersToField(inp);
-              }
-              tr.appendChild(td);
-            }
-            return tr;
-          };
-
-          // find insertion point: after the last sub row of the requested section
-          const rows = Array.from(tbody.querySelectorAll('tr'));
-          let currentSection = 0;
-          let insertBefore = footer || null;
-          for (let i = 0; i < rows.length; i++) {
-            const r = rows[i];
-            if (r.classList.contains('footer-total')) break;
-            if (r.querySelector('textarea.main-input')) {
-              currentSection++;
-              if (currentSection === (parseInt(sectionIndex,10) || 1)) {
-                // scan forward to find next main row or footer as boundary
-                insertBefore = footer || null;
-                for (let j = i + 1; j < rows.length; j++) {
-                  const rr = rows[j];
-                  if (rr.classList.contains('footer-total') || rr.querySelector('textarea.main-input')) { insertBefore = rr; break; }
-                }
-                break;
-              }
-            }
-          }
-
-          const newSub = buildSub();
-          if (insertBefore) tbody.insertBefore(newSub, insertBefore); else tbody.appendChild(newSub);
-          serializeAT();
-          try { autosizeAllTextareas(); } catch(e){}
-          if (!suppressFocus) {
-            try { const task = newSub.children[1]?.querySelector('textarea'); if (task) task.focus(); } catch(e){}
-          }
-        } catch (e) { /* noop */ }
-      }
-      window.addATSubRow = addATSubRow;
-
-      // Ensure a given section has exactly N sub rows (add/remove as needed)
-      function setATSubRowCount(sectionIndex, targetCount) {
-        try {
-          const table = getATTable(); if (!table) return;
-          const tbody = table.querySelector('tbody'); if (!tbody) return;
-          const rows = Array.from(tbody.querySelectorAll('tr'));
-          const footer = tbody.querySelector('tr.footer-total');
-          let currentSection = 0;
-          let startIdx = -1; let endIdx = -1; // sub-row range [startIdx, endIdx] inclusive
-          for (let i = 0; i < rows.length; i++) {
-            const r = rows[i];
-            if (r === footer) break;
-            if (r.querySelector && r.querySelector('textarea.main-input')) {
-              currentSection++;
-              if (currentSection === (parseInt(sectionIndex,10) || 1)) {
-                // sub-rows start after this until next main or footer
-                startIdx = i + 1;
-                // seek next boundary
-                endIdx = startIdx - 1;
-                for (let j = startIdx; j < rows.length; j++) {
-                  const rr = rows[j];
-                  if (rr === footer || (rr.querySelector && rr.querySelector('textarea.main-input'))) { break; }
-                  endIdx = j;
-                }
-                break;
-              }
-            }
-          }
-          if (startIdx === -1) return; // section not found
-          // compute current count of sub rows in this section
-          const currentCount = (endIdx >= startIdx) ? (endIdx - startIdx + 1) : 0;
-          const target = Math.max(0, parseInt(targetCount, 10) || 0);
-          // Add until match
-          for (let c = currentCount; c < target; c++) { addATSubRow(sectionIndex, true); }
-          // Remove extras from the end
-          if (target < currentCount) {
-            const toRemove = currentCount - target;
-            // recompute rows snapshot after potential additions
-            const rows2 = Array.from(tbody.querySelectorAll('tr'));
-            let curSec = 0; let sStart = -1; let sEnd = -1;
-            for (let i = 0; i < rows2.length; i++) {
-              const r = rows2[i];
-              if (r === footer) break;
-              if (r.querySelector && r.querySelector('textarea.main-input')) {
-                curSec++;
-                if (curSec === (parseInt(sectionIndex,10) || 1)) {
-                  sStart = i + 1; sEnd = sStart - 1;
-                  for (let j = sStart; j < rows2.length; j++) {
-                    const rr = rows2[j];
-                    if (rr === footer || (rr.querySelector && rr.querySelector('textarea.main-input'))) break;
-                    sEnd = j;
-                  }
-                  break;
-                }
-              }
-            }
-            let removed = 0;
-            for (let k = sEnd; k >= sStart && removed < toRemove; k--) {
-              const rr = rows2[k];
-              if (rr && !(rr.querySelector && rr.querySelector('textarea.main-input'))) {
-                tbody.removeChild(rr); removed++;
-              }
-            }
-          }
-          serializeAT();
-          try { autosizeAllTextareas(); } catch(e){}
-        } catch (e) { /* noop */ }
-      }
-      window.setATSubRowCount = setATSubRowCount;
-
-      // Expose a small helper so external modules (Criteria) can ensure AT has N sections
-      function ensureATSectionCount(n) {
-        try {
-          const table = getATTable(); if (!table) return;
-          const tbody = table.querySelector('tbody'); if (!tbody) return;
-          const current = Array.from(tbody.querySelectorAll('tr'))
-            .filter(r => !r.classList.contains('footer-total') && r.querySelector('textarea.main-input')).length;
-          const target = Math.max(0, parseInt(n, 10) || 0);
-          for (let i = current; i < target; i++) {
-            addAssessmentSection(true);
-          }
-        } catch (e) { /* noop */ }
-      }
-      window.ensureATSectionCount = ensureATSectionCount;
-
-      // Criteria module -> AT module: when Criteria adds a section, mirror it here
-      // Supported events:
-      //  - 'criteria:addSection' with detail: { section: <1-based index of new section> }
-      //  - 'criteria:sectionsChanged' with detail: { count: <total number of sections> }
-      document.addEventListener('criteria:addSection', function(ev){
-        try {
-          const section = ev && ev.detail && typeof ev.detail.section === 'number' ? ev.detail.section : null;
-          if (section && section > 0) {
-            ensureATSectionCount(section);
-          } else {
-            addAssessmentSection(true);
-          }
-        } catch (e) { console.error('criteria:addSection sync failed', e); }
-      });
-
-      document.addEventListener('criteria:sectionsChanged', function(ev){
-        try {
-          const count = ev && ev.detail && typeof ev.detail.count === 'number' ? ev.detail.count : null;
-          if (count && count > 0) ensureATSectionCount(count);
-        } catch (e) { console.error('criteria:sectionsChanged sync failed', e); }
-      });
-
-      // When Criteria adds a sub row to a section, mirror it in AT
-      // Event: 'criteria:addSubRow' with detail: { section: <1-based section index> }
-      document.addEventListener('criteria:addSubRow', function(ev){
-        try {
-          const section = ev && ev.detail && typeof ev.detail.section === 'number' ? ev.detail.section : null;
-          const target = (section && section > 0) ? section : (function(){
-            // default to last section if not specified
-            const tbody = (getATTable()||document).querySelector('tbody'); if (!tbody) return 1;
-            const mains = Array.from(tbody.querySelectorAll('tr')).filter(r => !r.classList.contains('footer-total') && r.querySelector('textarea.main-input'));
-            return Math.max(1, mains.length);
-          })();
-          ensureATSectionCount(target);
-          addATSubRow(target, true);
-          try { window.__at_recent_specific_sync = Date.now(); } catch (e) { /* noop */ }
-        } catch (e) { console.error('criteria:addSubRow sync failed', e); }
-      });
-
-      // Fast path: update a single AT sub row's Task from Criteria sub-line typing
-      // Event detail: { section: 1-based, subIndex: 1-based, value: string }
-      document.addEventListener('criteria:subChanged', function(ev){
-        try {
-          const d = ev && ev.detail ? ev.detail : {};
-          let section = parseInt(d.section, 10) || 1;
-          let subIndex = parseInt(d.subIndex, 10) || 1;
-          const value = (d.value || '').toString();
-          if (section < 1) section = 1; if (subIndex < 1) subIndex = 1;
-          ensureATSectionCount(section);
-          setATSubRowCount(section, subIndex);
-          const table = getATTable(); if (!table) return;
-          const tbody = table.querySelector('tbody'); if (!tbody) return;
-          const rows = Array.from(tbody.querySelectorAll('tr'));
-          const footer = tbody.querySelector('tr.footer-total');
-          // locate section slice
-          let currentSection = 0; let startIdx = -1; let endIdx = -1;
-          for (let i = 0; i < rows.length; i++) {
-            const r = rows[i];
-            if (r === footer) break;
-            if (r.querySelector && r.querySelector('textarea.main-input')) {
-              currentSection++;
-              if (currentSection === section) {
-                startIdx = i + 1; endIdx = startIdx - 1;
-                for (let j = startIdx; j < rows.length; j++) {
-                  const rr = rows[j];
-                  if (rr === footer || (rr.querySelector && rr.querySelector('textarea.main-input'))) break;
-                  endIdx = j;
-                }
-                break;
-              }
-            }
-          }
-          if (startIdx >= 0 && endIdx >= startIdx) {
-            const atSubRows = rows.slice(startIdx, endIdx + 1);
-            const targetRow = atSubRows[subIndex - 1];
-            if (targetRow) {
-              const taskCell = targetRow.children[1];
-              const ta = taskCell ? taskCell.querySelector('textarea.sub-input') : null;
-              if (ta && (ta.value || '') !== value) {
-                ta.value = value;
-                try { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; } catch (e) { /* noop */ }
-                dispatchInputThrottled(ta, 120);
-                queueATSerialize(100);
-              }
-            }
-          }
-          try { window.__at_recent_specific_sync = Date.now(); } catch (e) { /* noop */ }
-        } catch (e) { /* noop */ }
-      });
-
-      // Helper: show/hide AT main rows depending on Criteria section count
-      function updateATMainRowVisibilityByCriteriaCount(sectionCount){
-        try {
-          const table = getATTable(); if (!table) return;
-          const tbody = table.querySelector('tbody'); if (!tbody) return;
-          const mains = Array.from(tbody.querySelectorAll('tr')).filter(r => r.querySelector && r.querySelector('textarea.main-input'));
-          const visible = (parseInt(sectionCount,10) || 0) >= 2;
-          mains.forEach(function(row){
-            if (!row) return;
-            if (visible) row.classList.remove('d-none'); else row.classList.add('d-none');
-          });
-        } catch (e) { /* noop */ }
-      }
-
-      // Full alignment: respond to generic 'criteriaChanged' by syncing total section count
-      // This covers side-button adds/removes which emit 'criteriaChanged' but not specific events
-      function setATSectionCount(targetCount) {
-        try {
-          const table = getATTable(); if (!table) return;
-          const tbody = table.querySelector('tbody'); if (!tbody) return;
-          const countSections = () => Array.from(tbody.querySelectorAll('tr'))
-            .filter(r => !r.classList.contains('footer-total') && r.querySelector('textarea.main-input')).length;
-          let current = countSections();
-          const target = Math.max(0, parseInt(targetCount, 10) || 0);
-          // add until we reach target
-          while (current < target) { addAssessmentSection(true); current = countSections(); }
-          // remove from the end if we exceed target
-          while (current > target) {
-            // find last main row
-            const rows = Array.from(tbody.querySelectorAll('tr'));
-            const footer = tbody.querySelector('tr.footer-total');
-            let lastMainIdx = -1;
-            for (let i = rows.length - 1; i >= 0; i--) {
-              const r = rows[i];
-              if (footer && r === footer) continue;
-              if (r.querySelector && r.querySelector('textarea.main-input')) { lastMainIdx = i; break; }
-            }
-            if (lastMainIdx === -1) break;
-            // remove from lastMainIdx forward until next main row or footer
-            for (let i = rows.length - 1; i >= lastMainIdx; i--) {
-              const r = rows[i];
-              if (footer && r === footer) continue;
-              // stop if we hit another earlier main row (we remove down to but including the found main row)
-              if (i !== lastMainIdx && rows[i].querySelector && rows[i].querySelector('textarea.main-input')) break;
-              tbody.removeChild(r);
-            }
-            current = countSections();
-          }
-          serializeAT();
-          try { autosizeAllTextareas(); } catch(e){}
-        } catch (e) { /* noop */ }
-      }
-      window.setATSectionCount = setATSectionCount;
-
-  document.addEventListener('criteriaChanged', function(){
-    // Skip heavy reconciliation if a specific sync just ran very recently
-    try { if (window.__at_recent_specific_sync && (Date.now() - window.__at_recent_specific_sync) < 120) return; } catch (e) { /* noop */ }
-        try {
-          const container = document.getElementById('criteria-sections-container');
-          if (!container) return; // criteria module might not be on this page
-          const sections = Array.from(container.querySelectorAll('.section'));
-          if (sections.length > 0) setATSectionCount(sections.length);
-          // Show main rows only when there are 2 or more sections in Criteria
-          updateATMainRowVisibilityByCriteriaCount(sections.length);
-          // For each section, mirror its sub-line count into AT sub rows
-          sections.forEach(function(sec, idx){
-            try {
-              const subCount = sec.querySelectorAll('.sub-list .sub-line').length;
-              setATSubRowCount(idx + 1, subCount);
-              // Also mirror the main heading text from Criteria into AT Task main row
-              try {
-                const headingTa = sec.querySelector('.section-head .main-input, .main-input');
-                const value = (headingTa && headingTa.value) ? headingTa.value : '';
-                if (typeof value === 'string') {
-                  const table = getATTable(); if (!table) return;
-                  const tbody = table.querySelector('tbody'); if (!tbody) return;
-                  const mainRows = Array.from(tbody.querySelectorAll('tr')).filter(r => r.querySelector('textarea.main-input'));
-                  const targetRow = mainRows[idx];
-                  if (targetRow) {
-                    const taskCell = targetRow.children[1];
-                    const taskTa = taskCell ? taskCell.querySelector('textarea.main-input') : null;
-                    // Strip trailing number/parentheses for display in AT Task
-                    const displayValue = (function(s){
-                      try {
-                        let out = (s || '').toString();
-                        out = out.replace(/\(\s*[0-9]{1,3}(?:\.[0-9]+)?\s*%?\s*\)\s*$/, '').trim();
-                        out = out.replace(/\s*[0-9]{1,3}(?:\.[0-9]+)?\s*%?\s*$/, '').trim();
-                        return out;
-                      } catch (e) { return (s || '').toString(); }
-                    })(value);
-                    if (taskTa && (taskTa.value || '') !== displayValue) {
-                      taskTa.value = displayValue;
-                      try { taskTa.style.height = 'auto'; taskTa.style.height = taskTa.scrollHeight + 'px'; } catch (e) { /* noop */ }
-                      dispatchInputThrottled(taskTa, 140);
-                      queueATSerialize(100);
-                    }
-                    // Update percent main cell from heading trailing number (normalized to %)
-                    try {
-                      const pctMatchParen = value.match(/\(\s*([0-9]{1,3}(?:\.[0-9]+)?)\s*%?\s*\)\s*$/);
-                      const pctMatchTrail = pctMatchParen ? null : value.match(/(?:^|\s)([0-9]{1,3}(?:\.[0-9]+)?)\s*%?\s*$/);
-                      const pct = pctMatchParen && pctMatchParen[1] != null ? (pctMatchParen[1] + '%') : (pctMatchTrail && pctMatchTrail[1] != null ? (pctMatchTrail[1] + '%') : '');
-                      const pctCell = targetRow.children[3];
-                      const pctTa = pctCell ? pctCell.querySelector('textarea.main-input') : null;
-                      if (pctTa && (pctTa.value || '') !== pct) {
-                        pctTa.value = pct;
-                        try { pctTa.style.height='auto'; pctTa.style.height=pctTa.scrollHeight+'px'; } catch(e){}
-                        dispatchInputThrottled(pctTa, 160);
-                        queueATSerialize(120);
-                      }
-                    } catch (e) { /* noop */ }
-                  }
-                }
-              } catch (e2) { /* noop */ }
-
-              // Mirror sub-line descriptions into AT sub row Task inputs for this section
-              try {
-                const subLines = Array.from(sec.querySelectorAll('.sub-list .sub-line'));
-                if (subLines.length > 0) {
-                  const table = getATTable(); if (!table) return;
-                  const tbody = table.querySelector('tbody'); if (!tbody) return;
-                  const rows = Array.from(tbody.querySelectorAll('tr'));
-                  const footer = tbody.querySelector('tr.footer-total');
-                  // locate this section's sub-row slice in AT
-                  let currentSection = 0;
-                  let startIdx = -1; let endIdx = -1;
-                  for (let i = 0; i < rows.length; i++) {
-                    const r = rows[i];
-                    if (r === footer) break;
-                    if (r.querySelector && r.querySelector('textarea.main-input')) {
-                      currentSection++;
-                      if (currentSection === (idx + 1)) {
-                        startIdx = i + 1;
-                        endIdx = startIdx - 1;
-                        for (let j = startIdx; j < rows.length; j++) {
-                          const rr = rows[j];
-                          if (rr === footer || (rr.querySelector && rr.querySelector('textarea.main-input'))) { break; }
-                          endIdx = j;
-                        }
-                        break;
-                      }
-                    }
-                  }
-                  if (startIdx >= 0 && endIdx >= startIdx) {
-                    const atSubRows = rows.slice(startIdx, endIdx + 1);
-                    for (let s = 0; s < atSubRows.length && s < subLines.length; s++) {
-                      const descTa = subLines[s].querySelector('.sub-input');
-                      const desc = (descTa && typeof descTa.value === 'string') ? descTa.value : '';
-                      const atTaskCell = atSubRows[s].children[1];
-                      const atTaskTa = atTaskCell ? atTaskCell.querySelector('textarea.sub-input') : null;
-                      if (atTaskTa && (atTaskTa.value || '') !== desc) {
-                        atTaskTa.value = desc;
-                        try { atTaskTa.style.height = 'auto'; atTaskTa.style.height = atTaskTa.scrollHeight + 'px'; } catch (e) { /* noop */ }
-                        dispatchInputThrottled(atTaskTa, 120);
-                        queueATSerialize(100);
-                      }
-                    }
-                  }
-                }
-              } catch (e3) { /* noop */ }
-            } catch (e) { /* noop */ }
-          });
-        } catch (e) { /* noop */ }
-      });
-
-      // Initial pass on load: if Criteria is present, set visibility of AT main rows
-      (function(){
-        try {
-          const container = document.getElementById('criteria-sections-container');
-          if (!container) return;
-          const count = container.querySelectorAll('.section').length;
-          updateATMainRowVisibilityByCriteriaCount(count);
-        } catch (e) { /* noop */ }
-      })();
-
-      // recompute heights on window resize (column widths change -> wrapping changes -> scrollHeight changes)
-      try {
-        window.addEventListener('resize', function(){
-          // debounce slightly to wait for layout to settle
-          clearTimeout(window.__at_autosize_timer);
-          window.__at_autosize_timer = setTimeout(autosizeAllTextareas, 50);
-        });
-      } catch (e) { /* noop */ }
-
-      // If the ILO module is present on the page, observe it for structural changes
-      // and dispatch an ilo:renumber event so AT will sync even if the original
-      // custom events were missed (timing/order issues). Debounce to avoid
-      // noisy updates during bulk DOM work.
-      (function(){
-        try {
-          const ilolist = document.getElementById('syllabus-ilo-sortable');
-          if (!ilolist || !window.MutationObserver) return;
-          let timer = null;
-          const dispatchRenumber = () => {
-            try {
-              // compute simple numeric codes 1..N based on current ILO rows
-              const rows = Array.from(ilolist.querySelectorAll('tr')).filter(r => r.querySelector('textarea[name="ilos[]"]') || r.querySelector('.ilo-badge'));
-              const codes = rows.map((r, i) => String(i + 1));
-              document.dispatchEvent(new CustomEvent('ilo:renumber', { detail: { codes } }));
-            } catch (e) { /* noop */ }
-          };
-
-          const mo = new MutationObserver((mutations) => {
-            // debounce a small window to merge multiple mutations
-            if (timer) clearTimeout(timer);
-            timer = setTimeout(() => { dispatchRenumber(); timer = null; }, 40);
-          });
-          mo.observe(ilolist, { childList: true, subtree: false });
-        } catch (e) { /* noop */ }
-      })();
-
-      // Listen for ILO module requests to add/remove columns so AT performs the DOM update and normalization
-      document.addEventListener('ilo:addColumn', function(ev){
-        try {
-          const idx = ev && ev.detail && typeof ev.detail.index === 'number' ? ev.detail.index : undefined;
-          const at = getATTable();
-          const inserted = addIloColumnInAT(at, idx);
-          if (inserted !== null) {
-            // mark the added header and col as synced so AT cannot remove them
-            try {
-              const headerThs = Array.from(at.querySelectorAll('thead tr:nth-child(2) th'));
-              if (typeof inserted === 'number' && headerThs[inserted]) headerThs[inserted].setAttribute('data-synced','1');
-              const colgroup = at.querySelector('colgroup');
-              if (colgroup && colgroup.children[inserted]) colgroup.children[inserted].setAttribute('data-synced','1');
-            } catch (e) { /* noop */ }
-            normalizeIloCols(at);
-            serializeAT();
-            try { if (window.markAsUnsaved) window.markAsUnsaved('assessment_tasks'); } catch(e){}
-          }
-        } catch(e) { console.error(e); }
-      });
-
-      document.addEventListener('ilo:removeColumn', function(ev){
-        try {
-          const idx = ev && ev.detail && typeof ev.detail.index === 'number' ? ev.detail.index : undefined;
-          const at = getATTable();
-          const removed = removeIloColumnInAT(at, idx);
-          if (removed) {
-            normalizeIloCols(at);
-            serializeAT();
-            try { if (window.markAsUnsaved) window.markAsUnsaved('assessment_tasks'); } catch(e){}
-          }
-        } catch(e) { console.error(e); }
-      });
-
-      // Update header numbering when ILO ordering changes in ILO module
-      document.addEventListener('ilo:renumber', function(ev){
-        try {
-          const codes = ev && ev.detail && Array.isArray(ev.detail.codes) ? ev.detail.codes : null;
-          if (!codes) return;
-          const table = getATTable();
-          if (!table) return;
-          const thRow = table.querySelector('thead tr:nth-child(2)');
-          if (!thRow) return;
-          // Ensure the AT table has the same number of ILO columns as the ILO module.
-          // ILO headers live after first 4 th and before last 3 th.
-          const iloStart = 4;
-          let headerThs = Array.from(thRow.querySelectorAll('th'));
-          const domainStart = headerThs.length - 3;
-          // Count only the headers that are marked as synced (data-synced="1").
-          const iloHeaders = headerThs.slice(iloStart, domainStart);
-          const currentSyncedCount = iloHeaders.reduce((acc, th) => acc + ((th && th.getAttribute && th.getAttribute('data-synced') === '1') ? 1 : 0), 0);
-          const desiredSyncedCount = codes.length;
-
-          // Ensure the total number of ILO headers in AT matches the ILO module.
-          // ILO headers live between iloStart and domainStart (exclusive).
-          const totalIloCount = Math.max(0, domainStart - iloStart);
-          const desiredIloCount = desiredSyncedCount;
-
-          // Append columns until AT has desiredIloCount columns
-          if (totalIloCount < desiredIloCount) {
-            const toAdd = desiredIloCount - totalIloCount;
-            for (let k = 0; k < toAdd; k++) {
-              const insertedAt = addIloColumnInAT(table, undefined);
-              // mark newly appended column as synced
-              try {
-                headerThs = Array.from(thRow.querySelectorAll('th'));
-                const cols = table.querySelectorAll('colgroup col');
-                const newDomainStart = headerThs.length - 3;
-                const newIndex = iloStart + (newDomainStart - iloStart - 1); // last ILO header index
-                const newTh = headerThs[newIndex];
-                if (newTh) newTh.setAttribute('data-synced', '1');
-                if (cols && cols[newIndex]) cols[newIndex].setAttribute('data-synced', '1');
-              } catch (e) { /* noop */ }
-            }
-          }
-
-          // If AT has more ILO columns than desired, remove right-most columns.
-          if (totalIloCount > desiredIloCount) {
-            let toRemove = totalIloCount - desiredIloCount;
-            // Prefer removing synced columns first (right-most synced), otherwise remove right-most columns regardless.
-            while (toRemove > 0) {
-              headerThs = Array.from(thRow.querySelectorAll('th'));
-              const dsNow = headerThs.length - 3;
-              const ihNow = headerThs.slice(iloStart, dsNow);
-              // find last synced index within ihNow
-              let lastSynced = -1;
-              for (let i = ihNow.length - 1; i >= 0; i--) {
-                const th = ihNow[i];
-                if (th && th.getAttribute && th.getAttribute('data-synced') === '1') { lastSynced = i; break; }
-              }
-              if (lastSynced >= 0) {
-                removeIloColumnInAT(table, lastSynced);
-              } else {
-                // remove the right-most ILO column (index ihNow.length - 1)
-                const removeIndex = ihNow.length - 1;
-                if (removeIndex >= 0) removeIloColumnInAT(table, removeIndex);
-              }
-              toRemove--;
-            }
-          }
-
-          // Refresh headerThs and relabel the first desiredIloCount headers to the provided codes
-          headerThs = Array.from(thRow.querySelectorAll('th'));
-          const domainNow = headerThs.length - 3;
-          const iloNow = headerThs.slice(iloStart, domainNow);
-          // relabel synced headers from left-to-right using codes
-          for (let i = 0; i < iloNow.length; i++) {
-            const th = iloNow[i];
-            if (!th) continue;
-            if (i < desiredIloCount) {
-              th.textContent = (codes[i] !== undefined) ? codes[i] : String(i + 1);
-              th.setAttribute('data-synced', '1');
-              // mark colgroup
-              try { const cols = table.querySelectorAll('colgroup col'); if (cols && cols[iloStart + i]) cols[iloStart + i].setAttribute('data-synced','1'); } catch(e){}
-            } else {
-              // these are AT-local columns beyond the desired synced set
-              // leave their text as-is (or numeric) and remove synced flag
-              if (th.getAttribute && th.getAttribute('data-synced') === '1') th.removeAttribute('data-synced');
-              try { const cols = table.querySelectorAll('colgroup col'); if (cols && cols[iloStart + i]) cols[iloStart + i].removeAttribute('data-synced'); } catch(e){}
-            }
-          }
-
-          // Mark ILO headers/cols that are synced from the ILO module so AT can't remove them.
-          try {
-            const colgroup = table.querySelector('colgroup');
-            const cols = colgroup ? Array.from(colgroup.children) : [];
-            const iloCountNow = Math.max(0, domainStart - iloStart);
-            for (let i = 0; i < iloCountNow; i++) {
-              const thIndex = iloStart + i;
-              if (headerThs[thIndex]) {
-                if (i < desiredIloCount) headerThs[thIndex].setAttribute('data-synced', '1');
-                else headerThs[thIndex].removeAttribute('data-synced');
-              }
-              if (cols[thIndex]) {
-                if (i < desiredIloCount) cols[thIndex].setAttribute('data-synced', '1');
-                else cols[thIndex].removeAttribute('data-synced');
-              }
-            }
-          } catch (e) { /* noop */ }
-
-          // normalize widths and reserialize
-          normalizeIloCols(table);
-          serializeAT();
-        } catch (e) { console.error('ilo:renumber handler error', e); }
-      });
-
-      // Criteria module -> AT module sync: listen for main section name/task changes
-      // Event detail expected: { section: <number 1-based>, value: <string> }
-      document.addEventListener('criteria:sectionMainChanged', function(ev){
-        try {
-          const detail = ev && ev.detail ? ev.detail : {};
-          let section = Number(detail.section);
-          const value = (detail.value || '').toString();
-          if (!Number.isFinite(section) || section < 1) section = 1;
-          // helper: extract trailing percent from a heading like "Quiz 20%" or "Quiz (20)"
-          function extractHeadingPercent(s){
-            try {
-              const str = (s || '').toString();
-              // pattern 1: parentheses at end (e.g., "(20)" or "(20%)")
-              let m = str.match(/\(\s*([0-9]{1,3}(?:\.[0-9]+)?)\s*%?\s*\)\s*$/);
-              if (m && m[1] != null) return (m[1] + '%');
-              // pattern 2: trailing number with optional % at end of string
-              m = str.match(/(?:^|\s)([0-9]{1,3}(?:\.[0-9]+)?)\s*%?\s*$/);
-              if (m && m[1] != null) return (m[1] + '%');
-            } catch (e) { /* noop */ }
-            return '';
-          }
-          // helper: strip trailing numeric token and optional parentheses from the heading
-          function stripTrailingPercentToken(s){
-            try {
-              let out = (s || '').toString();
-              // remove trailing parenthetical number first
-              out = out.replace(/\(\s*[0-9]{1,3}(?:\.[0-9]+)?\s*%?\s*\)\s*$/, '').trim();
-              // then remove any trailing standalone number with optional %
-              out = out.replace(/\s*[0-9]{1,3}(?:\.[0-9]+)?\s*%?\s*$/, '').trim();
-              return out;
-            } catch (e) { return (s || '').toString(); }
-          }
-          // ensure we have enough main sections; each main section is a row having a textarea.main-input
-          const table = getATTable(); if (!table) return;
-          const tbody = table.querySelector('tbody'); if (!tbody) return;
-          const mainRows = Array.from(tbody.querySelectorAll('tr')).filter(r => r.querySelector('textarea.main-input'));
-          while (mainRows.length < section) { // create additional blank sections as needed
-            if (typeof window.addAssessmentSection === 'function') window.addAssessmentSection(true);
-            // refresh mainRows after creation
-            mainRows.splice(0, mainRows.length, ...Array.from(tbody.querySelectorAll('tr')).filter(r => r.querySelector('textarea.main-input')));
-          }
-          const targetRow = mainRows[section - 1];
-          if (!targetRow) return;
-          // Task cell is second column (index 1)
-            const taskCell = targetRow.children[1];
-            if (!taskCell) return;
-            const taskTa = taskCell.querySelector('textarea.main-input');
-            if (!taskTa) return;
-            // Update Task with the heading minus trailing number/parentheses
-            const displayValue = stripTrailingPercentToken(value);
-            if ((taskTa.value || '') !== displayValue) {
-              taskTa.value = displayValue;
-              // autosize update
-              try { taskTa.style.height='auto'; taskTa.style.height=taskTa.scrollHeight+'px'; } catch(e){}
-              // Throttled mapping/serialization update
-              dispatchInputThrottled(taskTa, 140);
-              queueATSerialize(100);
-            }
-            // Mirror trailing percent from Criteria heading into AT Percent main cell (col 3)
-            try {
-              const pct = extractHeadingPercent(value);
-              const pctCell = targetRow.children[3];
-              const pctTa = pctCell ? pctCell.querySelector('textarea.main-input') : null;
-              if (pctTa && (pctTa.value || '') !== pct) {
-                pctTa.value = pct;
-                try { pctTa.style.height='auto'; pctTa.style.height=pctTa.scrollHeight+'px'; } catch(e){}
-                dispatchInputThrottled(pctTa, 160);
-                queueATSerialize(120);
-              }
-            } catch (e) { /* noop */ }
-            try { window.__at_recent_specific_sync = Date.now(); } catch (e) { /* noop */ }
-        } catch(e){ console.error('criteria:sectionMainChanged sync failed', e); }
-      });
-
-      // Expose direct helper so Criteria module can call: window.syncATMain(sectionIndex, value)
-      window.syncATMain = function(section, value){
-        try { document.dispatchEvent(new CustomEvent('criteria:sectionMainChanged', { detail: { section, value } })); } catch(e){ /* noop */ }
-      };
-
-      // wire into global bindUnsavedIndicator if available
-  try { if (window.bindUnsavedIndicator) window.bindUnsavedIndicator('assessment_tasks_data','assessment_tasks_left'); } catch (e) { /* noop */ }
-      // Provide a lightweight global helper used by other modules to mark this module as unsaved
-      try {
-        // Removed markAsUnsaved function
-        };
-
-        // Expose a lightweight save function so the top Save can call it before performing the main form save.
-        // This function ensures the serialized JSON is written into the hidden textarea.
-        window.saveAssessmentTasks = async function() {
-          try {
-            // ensure latest UI state is serialized
-            serializeAT();
-            // small async pause to ensure any pending input events settle
-            await new Promise(r => setTimeout(r, 10));
-            // if the main syllabus form contains an in-form textarea for assessment_tasks_data,
-            // copy the serialized value there so the browser includes it in the form submit.
-            try {
-              const taLegacy = document.getElementById('assessment_tasks_data');
-              const taInForm = document.getElementById('assessment_tasks_data_inform');
-              // prefer legacy ta (partial) for its value, but ensure both are synced
-              const val = (taLegacy && taLegacy.value) ? taLegacy.value : (taInForm && taInForm.value) ? taInForm.value : '';
-              if (taLegacy) taLegacy.value = val;
-              if (taInForm) taInForm.value = val;
-              // dispatch input so bindUnsavedIndicator picks it up
-              if (taInForm) taInForm.dispatchEvent(new Event('input', { bubbles: true }));
-              if (taLegacy) taLegacy.dispatchEvent(new Event('input', { bubbles: true }));
-            } catch (e) { /* noop */ }
-
-            return { success: true };
-          } catch (e) {
-            console.error('saveAssessmentTasks failed', e);
-            throw e;
-          }
-        };
-
-        // Optional helper: immediately persist AT payload to the server by calling the syllabus update route
-        // Usage: await window.saveAssessmentTasksToServer(syllabusId)
-        // Optional helper: immediately persist AT payload to the server by calling the syllabus update route
-        // Usage: await window.saveAssessmentTasksToServer(syllabusId)
-        window.saveAssessmentTasksToServer = async function(syllabusId) {
-          if (!syllabusId) throw new Error('syllabusId required');
-          // ensure serialized
-          serializeAT();
-            const ta = document.querySelector('[name="assessment_tasks_data"]');
-          const payload = new FormData();
-          payload.append('_method', 'PUT');
-          payload.append('_token', document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '');
-          payload.append('assessment_tasks_data', ta ? ta.value : '');
-
-          const url = (window.syllabusBasePath || '/faculty/syllabi') + '/' + encodeURIComponent(syllabusId);
-          const resp = await fetch(url, { method: 'POST', body: payload, credentials: 'same-origin' });
-          if (!resp.ok) {
-            const text = await resp.text().catch(()=>null);
-            throw new Error('saveAssessmentTasksToServer failed: ' + resp.status + ' ' + (text || resp.statusText));
-          }
-          return resp;
-        };
-
-        // POST normalized AT rows to the dedicated endpoint (/faculty/syllabi/{id}/assessment-tasks)
-        // Usage: await window.postAssessmentTasksRows(syllabusId)
-        // POST normalized AT rows to the dedicated endpoint (/faculty/syllabi/{id}/assessment-tasks)
-        // Usage: await window.postAssessmentTasksRows(syllabusId)
-        window.postAssessmentTasksRows = async function(syllabusId) {
-          if (!syllabusId) throw new Error('syllabusId required');
-          // ensure latest UI state is serialized
-          serializeAT();
-          const ta = document.querySelector('[name="assessment_tasks_data"]');
-          let rows = [];
-          try {
-            rows = ta && ta.value ? JSON.parse(ta.value) : [];
-          } catch (e) {
-            // fallback: try innerText or empty
-            try {
-              const raw = ta ? (ta.innerText || ta.value) : '';
-              rows = raw ? JSON.parse(raw) : [];
-            } catch (e2) { rows = []; }
-          }
-
-          // Normalize CPA fields to ensure they exist and are strings
-          try {
-            rows = Array.isArray(rows) ? rows.map(r => ({ ...r, c: (r.c ?? '')+'' , p: (r.p ?? '')+'' , a: (r.a ?? '')+'' })) : [];
-          } catch (e) { /* noop */ }
-
-          const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-          const url = (window.syllabusBasePath || '/faculty/syllabi') + '/' + encodeURIComponent(syllabusId) + '/assessment-tasks';
-
-          // Try fetch with keepalive to allow the browser to complete the request during navigation.
-          try {
-            const resp = await fetch(url, {
-              method: 'POST',
-              credentials: 'same-origin',
-              headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': token,
-              },
-              body: JSON.stringify({ rows }),
-              keepalive: true,
-            });
-
-            if (!resp.ok) {
-              const text = await resp.text().catch(()=>null);
-              throw new Error('postAssessmentTasksRows failed: ' + resp.status + ' ' + (text || resp.statusText));
-            }
-
-            try { return await resp.json(); } catch (e) { return { success: true }; }
-          } catch (fetchErr) {
-            // If fetch throws (network error or aborted by navigation), attempt to fallback to sendBeacon.
-            try {
-                if (navigator && typeof navigator.sendBeacon === 'function') {
-                try {
-                  // include CSRF token in the beacon payload so Laravel's VerifyCsrfToken accepts it
-                  const beaconPayload = JSON.stringify({ _token: token, rows });
-                  const blob = new Blob([beaconPayload], { type: 'application/json' });
-                  const beaconUrl = url;
-                  const ok = navigator.sendBeacon(beaconUrl, blob);
-                  // sendBeacon is fire-and-forget — treat as success when it returns true
-                  if (ok) {
-                    // suppress noisy console.error for the original fetch error since server likely processed it
-                    console.debug('postAssessmentTasksRows: fetch failed but beacon fallback succeeded', fetchErr);
-                    return { success: true, fallback: 'beacon' };
-                  }
-                } catch (be) { /* noop */ }
-              }
-            } catch (e) { /* noop */ }
-
-            // If we reach here, rethrow original fetch error so callers can decide what to do.
-            throw fetchErr;
-          }
-        };
-  // No inline module-level Save button; use the top syllabus Save button which calls
-  // window.saveAssessmentTasks() / window.postAssessmentTasksRows() before submitting.
-      } catch (e) { /* noop */ }
     });
-  })();
+  }
+
+  function calculatePercentTotal() {
+    const inputs = table.querySelectorAll('textarea.percent-input');
+    let total = 0;
+    
+    // Get section count
+    const criteriaContainer = document.getElementById('criteria-sections-container');
+    const sectionCount = criteriaContainer ? criteriaContainer.querySelectorAll('.section').length : 0;
+    
+    inputs.forEach(input => {
+      // Skip hidden rows
+      const row = input.closest('tr');
+      if (row && row.style.display === 'none') return;
+      
+      // Skip sub row percents when 2+ sections
+      if (sectionCount >= 2 && row && row.classList.contains('at-sub-row')) return;
+      
+      const value = input.value.trim().replace('%', '');
+      const num = parseFloat(value);
+      if (!isNaN(num)) {
+        total += num;
+      }
+    });
+    
+    const totalCell = document.getElementById('at-percent-total');
+    if (totalCell) {
+      totalCell.textContent = Math.round(total) + '%';
+    }
+  }
+
+  // Toggle main row visibility and sub row percent visibility based on section count
+  function updateMainRowVisibility() {
+    const criteriaContainer = document.getElementById('criteria-sections-container');
+    if (!criteriaContainer) return;
+    
+    const criteriaSections = criteriaContainer.querySelectorAll('.section');
+    const sectionCount = criteriaSections.length;
+    
+    const allMainRows = tbody.querySelectorAll('.at-main-row');
+    const allSubRows = tbody.querySelectorAll('.at-sub-row');
+    
+    // Toggle main row visibility
+    allMainRows.forEach((mainRow) => {
+      if (sectionCount === 1) {
+        mainRow.style.display = 'none';
+      } else {
+        mainRow.style.display = '';
+      }
+    });
+    
+    // Toggle sub row percent visibility (clear/restore values)
+    allSubRows.forEach((subRow) => {
+      const percentCell = subRow.querySelector('.percent-input');
+      if (percentCell) {
+        if (sectionCount >= 2) {
+          // Store original value if not already stored
+          if (!percentCell.dataset.hiddenValue) {
+            percentCell.dataset.hiddenValue = percentCell.value;
+          }
+          percentCell.value = '';
+        } else {
+          // Restore value when going back to 1 section
+          if (percentCell.dataset.hiddenValue) {
+            percentCell.value = percentCell.dataset.hiddenValue;
+            delete percentCell.dataset.hiddenValue;
+          }
+        }
+      }
+    });
+    
+    calculatePercentTotal();
+  }
+
+  // Get current ILO column count by counting columns in header
+  function getCurrentIloCount() {
+    const headerRow = table.querySelector('thead tr:nth-child(2)');
+    if (!headerRow) return iloColsCount;
+    // Total columns - (Code, Task, I/R/D, %, C, P, A) = ILO count
+    return headerRow.children.length - 7;
+  }
+
+  // Get next section number
+  function getNextSectionNumber() {
+    const sections = tbody.querySelectorAll('.at-main-row');
+    return sections.length + 1;
+  }
+
+  // Add a new section (main row + 1 sub row)
+  window.addATSection = function() {
+    const sectionNum = getNextSectionNumber();
+    const currentIloCount = getCurrentIloCount();
+    
+    // Check if we have removed section data to restore
+    const restoredSection = removedDataStore.sections.pop();
+    
+    // Create main row
+    const mainRow = document.createElement('tr');
+    mainRow.className = 'at-main-row';
+    mainRow.dataset.section = sectionNum;
+    
+    mainRow.innerHTML = `
+      <td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;">
+        <textarea class="cis-textarea main-input text-center" placeholder="-" rows="1"></textarea>
+      </td>
+      <td style="padding:4px 0.15rem;border:1px solid #dee2e6;background:#f8f9fa;">
+        <textarea class="cis-textarea main-input" rows="1" readonly style="cursor:not-allowed;"></textarea>
+      </td>
+      <td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;"></td>
+      <td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;background:#f8f9fa;">
+        <textarea class="cis-textarea main-input text-center percent-input" rows="1" readonly style="cursor:not-allowed;"></textarea>
+      </td>
+      ${Array(currentIloCount).fill(0).map(() => '<td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;"></td>').join('')}
+      <td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;"></td>
+      <td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;"></td>
+      <td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;"></td>
+    `;
+    
+    // Create sub row
+    const subRow = document.createElement('tr');
+    subRow.className = 'at-sub-row';
+    subRow.dataset.section = sectionNum;
+    
+    subRow.innerHTML = `
+      <td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;background:#fafafa;">
+        <textarea class="cis-textarea sub-input text-center" placeholder="-" rows="1"></textarea>
+      </td>
+      <td style="padding:4px 0.15rem;border:1px solid #dee2e6;background:#f8f9fa;">
+        <textarea class="cis-textarea sub-input" rows="1" readonly style="cursor:not-allowed;"></textarea>
+      </td>
+      <td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;background:#fafafa;">
+        <textarea class="cis-textarea sub-input text-center" placeholder="-" rows="1"></textarea>
+      </td>
+      <td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;background:#f8f9fa;">
+        <textarea class="cis-textarea sub-input text-center percent-input" rows="1" readonly style="cursor:not-allowed;"></textarea>
+      </td>
+      ${Array(currentIloCount).fill(0).map(() => '<td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;background:#fafafa;"><textarea class="cis-textarea sub-input text-center" placeholder="-" rows="1"></textarea></td>').join('')}
+      <td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;background:#fafafa;">
+        <textarea class="cis-textarea sub-input text-center" placeholder="-" rows="1"></textarea>
+      </td>
+      <td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;background:#fafafa;">
+        <textarea class="cis-textarea sub-input text-center" placeholder="-" rows="1"></textarea>
+      </td>
+      <td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;background:#fafafa;">
+        <textarea class="cis-textarea sub-input text-center" placeholder="-" rows="1"></textarea>
+      </td>
+    `;
+    
+    tbody.appendChild(mainRow);
+    tbody.appendChild(subRow);
+    
+    // Restore data if available
+    if (restoredSection) {
+      if (restoredSection.mainRow) {
+        restoreRowData(mainRow, restoredSection.mainRow);
+      }
+      if (restoredSection.subRows && restoredSection.subRows.length > 0) {
+        restoreRowData(subRow, restoredSection.subRows[0]);
+        
+        // Add additional sub rows if there were more
+        for (let i = 1; i < restoredSection.subRows.length; i++) {
+          window.addATSubRow(sectionNum);
+          const allSubRows = tbody.querySelectorAll(`.at-sub-row[data-section="${sectionNum}"]`);
+          const newSubRow = allSubRows[allSubRows.length - 1];
+          restoreRowData(newSubRow, restoredSection.subRows[i]);
+        }
+      }
+    }
+    
+    calculatePercentTotal();
+  };
+
+  // Remove last section
+  window.removeATSection = function() {
+    const sections = tbody.querySelectorAll('.at-main-row');
+    if (sections.length <= 1) {
+      alert('Cannot remove the last section');
+      return;
+    }
+    
+    const lastSection = sections[sections.length - 1];
+    const sectionNum = lastSection.dataset.section;
+    
+    // Save section data before removing
+    const mainRow = tbody.querySelector(`.at-main-row[data-section="${sectionNum}"]`);
+    const subRows = tbody.querySelectorAll(`.at-sub-row[data-section="${sectionNum}"]`);
+    
+    const sectionData = {
+      sectionNum: sectionNum,
+      mainRow: extractRowData(mainRow),
+      subRows: Array.from(subRows).map(row => extractRowData(row))
+    };
+    
+    removedDataStore.sections.push(sectionData);
+    
+    // Remove all rows with this section number
+    const rowsToRemove = tbody.querySelectorAll(`[data-section="${sectionNum}"]`);
+    rowsToRemove.forEach(row => row.remove());
+    calculatePercentTotal();
+  };
+
+  // Add sub row to a specific section (defaults to last section)
+  window.addATSubRow = function(sectionNum) {
+    if (!sectionNum) {
+      const sections = tbody.querySelectorAll('.at-main-row');
+      if (sections.length === 0) return;
+      sectionNum = sections[sections.length - 1].dataset.section;
+    }
+    
+    // Check if we have removed sub row data to restore
+    if (!removedDataStore.subRows[sectionNum]) {
+      removedDataStore.subRows[sectionNum] = [];
+    }
+    const restoredSubRow = removedDataStore.subRows[sectionNum].pop();
+    
+    const currentIloCount = getCurrentIloCount();
+    const subRow = document.createElement('tr');
+    subRow.className = 'at-sub-row';
+    subRow.dataset.section = sectionNum;
+    
+    subRow.innerHTML = `
+      <td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;background:#fafafa;">
+        <textarea class="cis-textarea sub-input text-center" placeholder="-" rows="1"></textarea>
+      </td>
+      <td style="padding:4px 0.15rem;border:1px solid #dee2e6;background:#f8f9fa;">
+        <textarea class="cis-textarea sub-input" rows="1" readonly style="cursor:not-allowed;"></textarea>
+      </td>
+      <td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;background:#fafafa;">
+        <textarea class="cis-textarea sub-input text-center" placeholder="-" rows="1"></textarea>
+      </td>
+      <td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;background:#f8f9fa;">
+        <textarea class="cis-textarea sub-input text-center percent-input" rows="1" readonly style="cursor:not-allowed;"></textarea>
+      </td>
+      ${Array(currentIloCount).fill(0).map(() => '<td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;background:#fafafa;"><textarea class="cis-textarea sub-input text-center" placeholder="-" rows="1"></textarea></td>').join('')}
+      <td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;background:#fafafa;">
+        <textarea class="cis-textarea sub-input text-center" placeholder="-" rows="1"></textarea>
+      </td>
+      <td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;background:#fafafa;">
+        <textarea class="cis-textarea sub-input text-center" placeholder="-" rows="1"></textarea>
+      </td>
+      <td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;background:#fafafa;">
+        <textarea class="cis-textarea sub-input text-center" placeholder="-" rows="1"></textarea>
+      </td>
+    `;
+    
+    // Find last row of this section and insert after
+    const allRows = Array.from(tbody.querySelectorAll(`[data-section="${sectionNum}"]`));
+    if (allRows.length > 0) {
+      const lastRow = allRows[allRows.length - 1];
+      lastRow.after(subRow);
+    }
+    
+    // Restore data if available
+    if (restoredSubRow) {
+      restoreRowData(subRow, restoredSubRow);
+    }
+    
+    calculatePercentTotal();
+  };
+
+  // Remove last sub row from a section (defaults to last section)
+  window.removeATSubRow = function(sectionNum) {
+    if (!sectionNum) {
+      const sections = tbody.querySelectorAll('.at-main-row');
+      if (sections.length === 0) return;
+      sectionNum = sections[sections.length - 1].dataset.section;
+    }
+    
+    const subRows = tbody.querySelectorAll(`.at-sub-row[data-section="${sectionNum}"]`);
+    if (subRows.length <= 1) {
+      alert('Cannot remove the last sub row from a section');
+      return;
+    }
+    
+    // Save sub row data before removing
+    const lastSubRow = subRows[subRows.length - 1];
+    const subRowData = extractRowData(lastSubRow);
+    
+    if (!removedDataStore.subRows[sectionNum]) {
+      removedDataStore.subRows[sectionNum] = [];
+    }
+    removedDataStore.subRows[sectionNum].push(subRowData);
+    
+    lastSubRow.remove();
+    calculatePercentTotal();
+  };
+
+  // Add ILO column
+  window.addATIloColumn = function() {
+    const headerRow1 = table.querySelector('thead tr:nth-child(1)');
+    const headerRow2 = table.querySelector('thead tr:nth-child(2)');
+    const colgroup = table.querySelector('colgroup');
+    
+    // Update colspan in first header row
+    const iloHeaderCell = headerRow1.children[1];
+    const currentColspan = parseInt(iloHeaderCell.getAttribute('colspan')) || 0;
+    iloHeaderCell.setAttribute('colspan', currentColspan + 1);
+    
+    // Add numbered header in second row (insert before C column)
+    const newIloCount = getCurrentIloCount() + 1;
+    const newTh = document.createElement('th');
+    newTh.textContent = newIloCount;
+    headerRow2.insertBefore(newTh, headerRow2.children[headerRow2.children.length - 3]);
+    
+    // Add col to colgroup (insert before C column)
+    const newCol = document.createElement('col');
+    colgroup.insertBefore(newCol, colgroup.children[colgroup.children.length - 3]);
+    
+    // Add cells to all rows (insert before C column which is 3rd from end)
+    tbody.querySelectorAll('tr').forEach(row => {
+      const newCell = document.createElement('td');
+      newCell.className = 'text-center';
+      const isSubRow = row.classList.contains('at-sub-row');
+      newCell.style.cssText = `padding:4px 0.15rem;border:1px solid #dee2e6;${isSubRow ? 'background:#fafafa;' : ''}`;
+      
+      if (isSubRow) {
+        newCell.innerHTML = '<textarea class="cis-textarea sub-input text-center" placeholder="-" rows="1"></textarea>';
+      }
+      
+      row.insertBefore(newCell, row.children[row.children.length - 3]);
+    });
+    
+    // Update footer colspan
+    const footerLastCell = table.querySelector('tfoot th:last-child');
+    if (footerLastCell) {
+      const currentFooterColspan = parseInt(footerLastCell.getAttribute('colspan')) || 0;
+      footerLastCell.setAttribute('colspan', currentFooterColspan + 1);
+    }
+  };
+
+  // Remove ILO column
+  window.removeATIloColumn = function() {
+    const currentIloCount = getCurrentIloCount();
+    if (currentIloCount <= 1) {
+      alert('Cannot remove the last ILO column');
+      return;
+    }
+    
+    const headerRow1 = table.querySelector('thead tr:nth-child(1)');
+    const headerRow2 = table.querySelector('thead tr:nth-child(2)');
+    const colgroup = table.querySelector('colgroup');
+    
+    // Update colspan in first header row
+    const iloHeaderCell = headerRow1.children[1];
+    const currentColspan = parseInt(iloHeaderCell.getAttribute('colspan')) || 0;
+    iloHeaderCell.setAttribute('colspan', currentColspan - 1);
+    
+    // Remove last ILO header (4th from end: ILO, C, P, A)
+    headerRow2.children[headerRow2.children.length - 4].remove();
+    
+    // Remove col from colgroup (4th from end)
+    colgroup.children[colgroup.children.length - 4].remove();
+    
+    // Remove cells from all rows (4th from end)
+    tbody.querySelectorAll('tr').forEach(row => {
+      if (row.children.length > 4) {
+        row.children[row.children.length - 4].remove();
+      }
+    });
+    
+    // Update footer colspan
+    const footerLastCell = table.querySelector('tfoot th:last-child');
+    if (footerLastCell) {
+      const currentFooterColspan = parseInt(footerLastCell.getAttribute('colspan')) || 0;
+      footerLastCell.setAttribute('colspan', currentFooterColspan - 1);
+    }
+  };
+
+  // Calculate on input
+  table.addEventListener('input', function(e) {
+    if (e.target && e.target.classList.contains('percent-input')) {
+      calculatePercentTotal();
+    }
+  });
+
+  // Sync ILO columns with ILO partial
+  window.syncATWithILO = function() {
+    const iloList = document.getElementById('syllabus-ilo-sortable');
+    if (!iloList) {
+      console.warn('ILO list not found');
+      return;
+    }
+    
+    const iloRows = Array.from(iloList.querySelectorAll('tr')).filter(r => 
+      r.querySelector('textarea[name="ilos[]"]') || r.querySelector('.ilo-badge')
+    );
+    
+    const targetIloCount = iloRows.length;
+    const currentIloCount = getCurrentIloCount();
+    
+    if (targetIloCount > currentIloCount) {
+      // Add columns
+      const toAdd = targetIloCount - currentIloCount;
+      for (let i = 0; i < toAdd; i++) {
+        window.addATIloColumn();
+      }
+      console.log(`Added ${toAdd} ILO column(s)`);
+    } else if (targetIloCount < currentIloCount) {
+      // Remove columns
+      const toRemove = currentIloCount - targetIloCount;
+      for (let i = 0; i < toRemove; i++) {
+        window.removeATIloColumn();
+      }
+      console.log(`Removed ${toRemove} ILO column(s)`);
+    } else {
+      console.log('ILO columns already synced');
+    }
+  };
+
+  // Listen for ILO changes and auto-sync
+  const iloList = document.getElementById('syllabus-ilo-sortable');
+  if (iloList && window.MutationObserver) {
+    const iloObserver = new MutationObserver(function() {
+      // Debounce to avoid multiple rapid syncs
+      clearTimeout(window._iloSyncTimeout);
+      window._iloSyncTimeout = setTimeout(() => {
+        window.syncATWithILO();
+      }, 300);
+    });
+    
+    iloObserver.observe(iloList, { childList: true, subtree: false });
+  }
+
+  // Load saved assessment tasks from database
+  window.loadAssessmentTasks = function() {
+    const syllabusId = {{ $syllabus->id }};
+    const url = `/faculty/syllabi/${syllabusId}/assessment-tasks`;
+    
+    fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+      },
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success && data.sections && data.sections.length > 0) {
+        console.log('Loading assessment tasks:', data.sections);
+        
+        // Clear existing rows first
+        tbody.querySelectorAll('tr').forEach(row => row.remove());
+        
+        // Rebuild table from loaded data
+        data.sections.forEach((section, index) => {
+          const sectionNum = section.section_num || (index + 1);
+          
+          // Create main row
+          const mainRow = document.createElement('tr');
+          mainRow.className = 'at-main-row';
+          mainRow.dataset.section = sectionNum;
+          
+          const currentIloCount = getCurrentIloCount();
+          mainRow.innerHTML = `
+            <td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;">
+              <textarea class="cis-textarea main-input text-center" placeholder="-" rows="1">${section.main_row?.code || ''}</textarea>
+            </td>
+            <td style="padding:4px 0.15rem;border:1px solid #dee2e6;background:#f8f9fa;">
+              <textarea class="cis-textarea main-input" rows="1" readonly style="cursor:not-allowed;">${section.main_row?.task || ''}</textarea>
+            </td>
+            <td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;"></td>
+            <td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;background:#f8f9fa;">
+              <textarea class="cis-textarea main-input text-center percent-input" rows="1" readonly style="cursor:not-allowed;">${section.main_row?.percent ? Math.round(section.main_row.percent) : ''}</textarea>
+            </td>
+            ${Array(currentIloCount).fill(0).map((_, i) => {
+              const val = section.main_ilo_columns?.[i] || '';
+              return `<td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;"><textarea class="cis-textarea main-input text-center" placeholder="-" rows="1">${val}</textarea></td>`;
+            }).join('')}
+            <td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;"></td>
+            <td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;"></td>
+            <td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;"></td>
+          `;
+          tbody.appendChild(mainRow);
+          
+          // Create sub rows
+          const subRows = section.sub_rows || [];
+          subRows.forEach((subRow) => {
+            const subRowEl = document.createElement('tr');
+            subRowEl.className = 'at-sub-row';
+            subRowEl.dataset.section = sectionNum;
+            
+            subRowEl.innerHTML = `
+              <td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;background:#fafafa;">
+                <textarea class="cis-textarea sub-input text-center" placeholder="-" rows="1">${subRow.code || ''}</textarea>
+              </td>
+              <td style="padding:4px 0.15rem;border:1px solid #dee2e6;background:#f8f9fa;">
+                <textarea class="cis-textarea sub-input" rows="1" readonly style="cursor:not-allowed;">${subRow.task || ''}</textarea>
+              </td>
+              <td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;background:#fafafa;">
+                <textarea class="cis-textarea sub-input text-center" placeholder="-" rows="1">${subRow.ird || ''}</textarea>
+              </td>
+              <td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;background:#f8f9fa;">
+                <textarea class="cis-textarea sub-input text-center percent-input" rows="1" readonly style="cursor:not-allowed;">${subRow.percent ? Math.round(subRow.percent) : ''}</textarea>
+              </td>
+              ${Array(currentIloCount).fill(0).map((_, i) => {
+                const val = subRow.ilo_columns?.[i] || '';
+                return `<td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;background:#fafafa;"><textarea class="cis-textarea sub-input text-center" placeholder="-" rows="1">${val}</textarea></td>`;
+              }).join('')}
+              <td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;background:#fafafa;">
+                <textarea class="cis-textarea sub-input text-center" placeholder="-" rows="1">${subRow.cpa_columns?.[0] || ''}</textarea>
+              </td>
+              <td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;background:#fafafa;">
+                <textarea class="cis-textarea sub-input text-center" placeholder="-" rows="1">${subRow.cpa_columns?.[1] || ''}</textarea>
+              </td>
+              <td class="text-center" style="padding:4px 0.15rem;border:1px solid #dee2e6;background:#fafafa;">
+                <textarea class="cis-textarea sub-input text-center" placeholder="-" rows="1">${subRow.cpa_columns?.[2] || ''}</textarea>
+              </td>
+            `;
+            tbody.appendChild(subRowEl);
+          });
+        });
+        
+        // Apply visibility logic after loading
+        updateMainRowVisibility();
+        
+        // Recalculate total after loading
+        calculatePercentTotal();
+        
+        console.log('Assessment tasks loaded successfully');
+      } else {
+        console.log('No saved assessment tasks found, keeping default structure');
+      }
+    })
+    .catch(error => {
+      console.error('Error loading assessment tasks:', error);
+    });
+  };
+
+  // Load saved data first, then do initial syncs
+  setTimeout(() => {
+    window.loadAssessmentTasks();
+  }, 300);
+
+  // Initial sync on page load
+  setTimeout(() => {
+    window.syncATWithILO();
+  }, 500);
+
+  // Sync sections and sub rows with Criteria for Assessment
+  window.syncATWithCriteria = function() {
+    const criteriaContainer = document.getElementById('criteria-sections-container');
+    if (!criteriaContainer) {
+      console.warn('Criteria container not found');
+      return;
+    }
+    
+    const criteriaSections = criteriaContainer.querySelectorAll('.section');
+    const targetSectionCount = criteriaSections.length;
+    const currentSections = tbody.querySelectorAll('.at-main-row');
+    const currentSectionCount = currentSections.length;
+    
+    // Sync section count
+    if (targetSectionCount > currentSectionCount) {
+      const toAdd = targetSectionCount - currentSectionCount;
+      for (let i = 0; i < toAdd; i++) {
+        window.addATSection();
+      }
+      console.log(`Added ${toAdd} section(s)`);
+    } else if (targetSectionCount < currentSectionCount) {
+      const toRemove = currentSectionCount - targetSectionCount;
+      for (let i = 0; i < toRemove; i++) {
+        window.removeATSection();
+      }
+      console.log(`Removed ${toRemove} section(s)`);
+    }
+    
+    // Sync sub rows for each section
+    criteriaSections.forEach((criteriaSection, index) => {
+      const subLines = criteriaSection.querySelectorAll('.sub-list .sub-line');
+      const targetSubCount = Math.max(1, subLines.length); // At least 1 sub row
+      
+      const sectionNum = index + 1;
+      const atSubRows = tbody.querySelectorAll(`.at-sub-row[data-section="${sectionNum}"]`);
+      const currentSubCount = atSubRows.length;
+      
+      if (targetSubCount > currentSubCount) {
+        const toAdd = targetSubCount - currentSubCount;
+        for (let i = 0; i < toAdd; i++) {
+          window.addATSubRow(sectionNum);
+        }
+        console.log(`Section ${sectionNum}: Added ${toAdd} sub row(s)`);
+      } else if (targetSubCount < currentSubCount) {
+        const toRemove = currentSubCount - targetSubCount;
+        for (let i = 0; i < toRemove; i++) {
+          window.removeATSubRow(sectionNum);
+        }
+        console.log(`Section ${sectionNum}: Removed ${toRemove} sub row(s)`);
+      }
+    });
+    
+    console.log('AT synced with Criteria');
+    
+    // Update main row visibility after sync
+    updateMainRowVisibility();
+  };
+
+  // Listen for Criteria changes and auto-sync
+  const criteriaContainer = document.getElementById('criteria-sections-container');
+  if (criteriaContainer && window.MutationObserver) {
+    const criteriaObserver = new MutationObserver(function() {
+      // Debounce to avoid multiple rapid syncs
+      clearTimeout(window._criteriaSyncTimeout);
+      window._criteriaSyncTimeout = setTimeout(() => {
+        window.syncATWithCriteria();
+        updateMainRowVisibility();
+      }, 300);
+    });
+    
+    criteriaObserver.observe(criteriaContainer, { 
+      childList: true, 
+      subtree: true,
+      attributes: false 
+    });
+  }
+
+  // Initial criteria sync on page load
+  setTimeout(() => {
+    window.syncATWithCriteria();
+  }, 600);
+
+  // Sync Criteria main input values to AT main row Task column
+  window.syncCriteriaValuesToAT = function() {
+    const criteriaContainer = document.getElementById('criteria-sections-container');
+    if (!criteriaContainer) return;
+    
+    const criteriaSections = criteriaContainer.querySelectorAll('.section');
+    
+    criteriaSections.forEach((criteriaSection, index) => {
+      const sectionNum = index + 1;
+      const mainInput = criteriaSection.querySelector('.section-head .main-input');
+      if (!mainInput) return;
+      
+      let mainValue = mainInput.value || '';
+      
+      // Remove numbers, %, and parentheses from the text (numbers will go to percent column instead)
+      mainValue = mainValue.replace(/\d+|%|\(|\)/g, '').trim();
+      
+      // Find corresponding AT main row
+      const atMainRow = tbody.querySelector(`.at-main-row[data-section="${sectionNum}"]`);
+      if (!atMainRow) return;
+      
+      // Update Task column (2nd column, index 1)
+      const taskCell = atMainRow.children[1];
+      if (!taskCell) return;
+      
+      const taskTextarea = taskCell.querySelector('textarea.main-input');
+      if (taskTextarea && taskTextarea.value !== mainValue) {
+        taskTextarea.value = mainValue;
+      }
+    });
+  };
+
+  // Sync sub-line values to AT sub rows
+  window.syncCriteriaSubLinesToAT = function() {
+    const criteriaContainer = document.getElementById('criteria-sections-container');
+    if (!criteriaContainer) return;
+    
+    const criteriaSections = criteriaContainer.querySelectorAll('.section');
+    
+    criteriaSections.forEach((criteriaSection, index) => {
+      const sectionNum = index + 1;
+      const subLines = criteriaSection.querySelectorAll('.sub-list .sub-line');
+      
+      subLines.forEach((subLine, subIndex) => {
+        const subInput = subLine.querySelector('.sub-input');
+        if (!subInput) return;
+        
+        const subValue = subInput.value || '';
+        
+        // Find corresponding AT sub row
+        const atSubRows = tbody.querySelectorAll(`.at-sub-row[data-section="${sectionNum}"]`);
+        const atSubRow = atSubRows[subIndex];
+        if (!atSubRow) return;
+        
+        // Update Task column (2nd column, index 1)
+        const taskCell = atSubRow.children[1];
+        if (!taskCell) return;
+        
+        const taskTextarea = taskCell.querySelector('textarea.sub-input');
+        if (taskTextarea && taskTextarea.value !== subValue) {
+          taskTextarea.value = subValue;
+        }
+      });
+    });
+  };
+
+  // Sync numeric values from Criteria to AT percent columns
+  window.syncCriteriaPercentsToAT = function() {
+    const criteriaContainer = document.getElementById('criteria-sections-container');
+    if (!criteriaContainer) return;
+    
+    const criteriaSections = criteriaContainer.querySelectorAll('.section');
+    
+    criteriaSections.forEach((criteriaSection, index) => {
+      const sectionNum = index + 1;
+      
+      // Sync main input numbers to main row percent (extract numbers only)
+      const mainInput = criteriaSection.querySelector('.section-head .main-input');
+      if (mainInput) {
+        const mainValue = mainInput.value || '';
+        const numberMatch = mainValue.match(/\d+/);
+        const numberOnly = numberMatch ? numberMatch[0] : '';
+        
+        const atMainRow = tbody.querySelector(`.at-main-row[data-section="${sectionNum}"]`);
+        if (atMainRow) {
+          const percentCell = atMainRow.children[3]; // 4th column (percent)
+          if (percentCell) {
+            const percentTextarea = percentCell.querySelector('textarea.percent-input');
+            if (percentTextarea && percentTextarea.value !== numberOnly) {
+              percentTextarea.value = numberOnly;
+              calculatePercentTotal();
+            }
+          }
+        }
+      }
+      
+      // Sync sub percent inputs to sub row percents
+      const subLines = criteriaSection.querySelectorAll('.sub-list .sub-line');
+      subLines.forEach((subLine, subIndex) => {
+        const subPercent = subLine.querySelector('.sub-percent');
+        if (subPercent) {
+          let percentValue = (subPercent.value || '').replace('%', '').trim();
+          
+          const atSubRows = tbody.querySelectorAll(`.at-sub-row[data-section="${sectionNum}"]`);
+          const atSubRow = atSubRows[subIndex];
+          if (atSubRow) {
+            const percentCell = atSubRow.children[3]; // 4th column (percent)
+            if (percentCell) {
+              const percentTextarea = percentCell.querySelector('textarea.percent-input');
+              if (percentTextarea && percentTextarea.value !== percentValue) {
+                percentTextarea.value = percentValue;
+                calculatePercentTotal();
+              }
+            }
+          }
+        }
+      });
+    });
+  };
+
+  // Listen for input changes in Criteria and sync to AT
+  if (criteriaContainer) {
+    criteriaContainer.addEventListener('input', function(e) {
+      if (e.target && (e.target.classList.contains('main-input') || e.target.classList.contains('sub-input'))) {
+        clearTimeout(window._criteriaValueSyncTimeout);
+        window._criteriaValueSyncTimeout = setTimeout(() => {
+          window.syncCriteriaValuesToAT();
+          window.syncCriteriaSubLinesToAT();
+          updateMainRowVisibility();
+        }, 150);
+      }
+      
+      // Also sync percents when main-input or sub-percent changes
+      if (e.target && (e.target.classList.contains('main-input') || e.target.classList.contains('sub-percent'))) {
+        clearTimeout(window._criteriaPercentSyncTimeout);
+        window._criteriaPercentSyncTimeout = setTimeout(() => {
+          window.syncCriteriaPercentsToAT();
+          updateMainRowVisibility();
+        }, 150);
+      }
+    });
+  }
+
+  // Initial sync of Criteria values
+  setTimeout(() => {
+    window.syncCriteriaValuesToAT();
+    window.syncCriteriaSubLinesToAT();
+    window.syncCriteriaPercentsToAT();
+    updateMainRowVisibility();
+  }, 700);
+
+  // Initial calculation
+  calculatePercentTotal();
+
+
+
+  // Save Assessment Tasks function
+  window.saveAssessmentTasks = function() {
+    return new Promise((resolve, reject) => {
+      const statusEl = document.getElementById('at-save-status');
+      if (statusEl) {
+        statusEl.textContent = 'Saving...';
+        statusEl.className = 'ms-2 text-primary';
+      }
+
+    const cleanText = (value) => (value || '').toString().trim();
+    const numericOrNull = (value) => {
+      const num = parseFloat((value || '').toString().replace(/[^0-9.\-]/g, ''));
+      return Number.isFinite(num) ? num : null;
+    };
+
+    // Serialize table data
+    const sections = [];
+    const allMainRows = tbody.querySelectorAll('.at-main-row');
+    
+    allMainRows.forEach((mainRow) => {
+      const sectionNum = mainRow.dataset.section;
+      const mainCells = Array.from(mainRow.children);
+      
+      // Extract main row data
+      const mainRowData = {
+        code: cleanText(mainCells[0]?.querySelector('textarea')?.value),
+        task: cleanText(mainCells[1]?.querySelector('textarea')?.value),
+        percent: numericOrNull(mainCells[3]?.querySelector('textarea.percent-input')?.value),
+      };
+      
+      // Extract main row ILO columns (starting from column 4, before C/P/A which are last 3)
+      const mainIloColumns = [];
+      const totalCols = mainCells.length;
+      const iloStartIdx = 4;
+      const iloEndIdx = totalCols - 3;
+      
+      for (let i = iloStartIdx; i < iloEndIdx; i++) {
+        const val = mainCells[i]?.querySelector('textarea')?.value || '';
+        mainIloColumns.push(val);
+      }
+      
+      // Extract sub rows for this section
+      const subRows = [];
+      const allSubRows = tbody.querySelectorAll(`.at-sub-row[data-section="${sectionNum}"]`);
+      
+      allSubRows.forEach((subRow) => {
+        const subCells = Array.from(subRow.children);
+        
+        const iloColumns = [];
+        for (let i = iloStartIdx; i < iloEndIdx; i++) {
+          const val = subCells[i]?.querySelector('textarea')?.value || '';
+          iloColumns.push(val);
+        }
+        
+        // Extract C, P, A from the last 3 columns
+        const cTextarea = subCells[totalCols - 3]?.querySelector('textarea');
+        const pTextarea = subCells[totalCols - 2]?.querySelector('textarea');
+        const aTextarea = subCells[totalCols - 1]?.querySelector('textarea');
+        
+        const cValue = cTextarea ? (cTextarea.value || '').trim() : '';
+        const pValue = pTextarea ? (pTextarea.value || '').trim() : '';
+        const aValue = aTextarea ? (aTextarea.value || '').trim() : '';
+        
+        // Parse as integers, but only if the value is numeric
+        const parseIntSafe = (val) => {
+          if (!val) return null;
+          const parsed = parseInt(val, 10);
+          return isNaN(parsed) ? null : parsed;
+        };
+        
+        const cpaColumns = [
+          parseIntSafe(cValue),
+          parseIntSafe(pValue),
+          parseIntSafe(aValue),
+        ];
+        
+        subRows.push({
+          code: cleanText(subCells[0]?.querySelector('textarea')?.value),
+          task: cleanText(subCells[1]?.querySelector('textarea')?.value),
+          ird: cleanText(subCells[2]?.querySelector('textarea')?.value),
+          percent: numericOrNull(subCells[3]?.querySelector('textarea.percent-input')?.value),
+          ilo_columns: iloColumns,
+          cpa_columns: cpaColumns,
+        });
+      });
+      
+      sections.push({
+        section_num: sectionNum ? parseInt(sectionNum, 10) : null,
+        section_label: mainRowData.task || null,
+        main_row: mainRowData,
+        main_ilo_columns: mainIloColumns,
+        sub_rows: subRows,
+      });
+    });
+    
+    const payload = { sections: sections };
+    const hiddenInput = document.getElementById('assessment_tasks_data');
+    if (hiddenInput) {
+      hiddenInput.value = JSON.stringify(payload);
+      hiddenInput.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    
+    // Send to server
+    const syllabusId = {{ $syllabus->id }};
+    const url = `/faculty/syllabi/${syllabusId}/assessment-tasks`;
+    
+    fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          if (statusEl) {
+            statusEl.textContent = '✓ Saved successfully!';
+            statusEl.className = 'ms-2 text-success';
+            setTimeout(() => {
+              statusEl.textContent = '';
+            }, 3000);
+          }
+          console.log('Assessment tasks saved:', data);
+          resolve(data);
+        } else {
+          if (statusEl) {
+            statusEl.textContent = '✗ Save failed: ' + (data.message || 'Unknown error');
+            statusEl.className = 'ms-2 text-danger';
+          }
+          console.error('Save failed:', data);
+          reject(new Error(data.message || 'Save failed'));
+        }
+      })
+      .catch(error => {
+        if (statusEl) {
+          statusEl.textContent = '✗ Error: ' + error.message;
+          statusEl.className = 'ms-2 text-danger';
+        }
+        console.error('Error saving assessment tasks:', error);
+        reject(error);
+      });
+    });
+  };
+});
 </script>
-        </td>
-      </tr>
-    </tbody>
-  </table>

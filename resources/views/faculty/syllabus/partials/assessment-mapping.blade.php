@@ -32,9 +32,7 @@
 	</tbody>
 </table>
 
-<!-- Hidden textarea is present elsewhere, but ensure a local hidden field is available for serialization fallback -->
-<textarea id="assessment_tasks_data_inform" name="assessment_tasks_data_inform" form="syllabusForm" class="d-none" aria-hidden="true"></textarea>
-<!-- Hidden textarea to hold serialized assessment mappings as a fallback so main form can include it if needed -->
+<!-- Hidden textarea to hold serialized assessment mappings (Assessment Tasks distribution removed) -->
 <textarea id="assessment_mappings_data" name="assessment_mappings_data" form="syllabusForm" class="d-none" aria-hidden="true"></textarea>
 
 <style>
@@ -202,25 +200,15 @@ document.addEventListener('DOMContentLoaded', function(){
 		return rows;
 	}
 
-	// On syllabus form submit, populate the hidden textarea with JSON payload under the proper name
+	// On syllabus form submit, serialize only assessment mappings (Assessment Tasks integration removed)
 	const mainForm = document.getElementById('syllabusForm');
 	if (mainForm) {
-		mainForm.addEventListener('submit', function(e){
+		mainForm.addEventListener('submit', function(){
 			try {
 				const rows = serializeRows();
-				// the controller accepts 'assessment_tasks_data' in update flow; populate that field if present
-				const legacyTa = document.querySelector('[name="assessment_tasks_data"]');
-				if (legacyTa) {
-					legacyTa.value = JSON.stringify(rows);
-				} else {
-					// fallback: populate local inform textarea which is part of the form
-					const taInform = document.getElementById('assessment_tasks_data_inform');
-					if (taInform) taInform.value = JSON.stringify(rows);
-				}
-			} catch (err) {
-				// noop - don't block form submission on serialization errors
-				console.warn('Failed to serialize assessment mapping rows', err);
-			}
+				const ta = document.getElementById('assessment_mappings_data');
+				if (ta) ta.value = JSON.stringify(rows);
+			} catch (err) { console.warn('Failed to serialize assessment mappings', err); }
 		}, {capture: true});
 	}
 
