@@ -84,4 +84,56 @@ class SyllabusIgaController extends Controller
 
         return response()->json(['message' => 'IGA order updated successfully.']);
     }
+
+    // 📥 Load predefined IGAs from master data (replaces existing IGAs)
+    public function loadPredefinedIgas(Request $request, $syllabusId)
+    {
+        $syllabus = \App\Models\Syllabus::where('faculty_id', Auth::id())->findOrFail($syllabusId);
+
+        // Validate that iga_ids is provided and is an array
+        $request->validate([
+            'iga_ids' => 'required|array',
+            'iga_ids.*' => 'integer|exists:igas,id',
+        ]);
+
+        $selectedIds = $request->iga_ids;
+
+        if (empty($selectedIds)) {
+            return response()->json(['message' => 'Please select at least one IGA to load.'], 400);
+        }
+
+        // Get selected predefined IGAs from master data
+        $predefinedIgas = \App\Models\Iga::whereIn('id', $selectedIds)->orderBy('id')->get();
+
+        if ($predefinedIgas->isEmpty()) {
+            return response()->json(['message' => 'No predefined IGAs found.'], 404);
+        }
+
+        // Delete existing IGAs for this syllabus
+        SyllabusIga::where('syllabus_id', $syllabus->id)->delete();
+
+        // Create new IGAs from predefined data
+        $newIgas = [];
+        foreach ($predefinedIgas as $index => $predefined) {
+            $iga = SyllabusIga::create([
+                'syllabus_id' => $syllabus->id,
+                'code' => 'IGA' . ($index + 1),
+                'title' => $predefined->title,
+                'description' => $predefined->description,
+                'position' => $index + 1,
+            ]);
+            $newIgas[] = [
+                'id' => $iga->id,
+                'code' => $iga->code,
+                'title' => $iga->title,
+                'description' => $iga->description,
+                'position' => $iga->position,
+            ];
+        }
+
+        return response()->json([
+            'message' => count($newIgas) . ' IGA' . (count($newIgas) !== 1 ? 's' : '') . ' loaded successfully.',
+            'igas' => $newIgas,
+        ]);
+    }
 }

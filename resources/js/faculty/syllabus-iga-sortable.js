@@ -19,7 +19,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const newCode = `IGA${index + 1}`;
       const badge = row.querySelector('.iga-badge'); if (badge) badge.textContent = newCode;
       const codeInput = row.querySelector('input[name="code[]"]'); if (codeInput) codeInput.value = newCode;
-      const btn = row.querySelector('.btn-delete-iga'); if (btn) btn.style.display = index === 0 ? 'none' : '';
+      const btn = row.querySelector('.btn-delete-iga');
+      const rowId = row.getAttribute('data-id');
+      if (btn) btn.style.display = (rowId && rowId.startsWith('new-')) ? 'none' : '';
     });
 
     // detect adds/removes/reorders and dispatch events if needed
@@ -109,6 +111,19 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await res.json();
       const top = document.getElementById('unsaved-igas'); if (top) top.classList.add('d-none');
       list.querySelectorAll('textarea.autosize').forEach((ta) => ta.setAttribute('data-original', ta.value || ''));
+      
+      // Update data-id for newly saved rows and show delete buttons
+      if (data.ids && Array.isArray(data.ids)) {
+        rows.forEach((row, index) => {
+          const rawId = row.getAttribute('data-id');
+          if (rawId && rawId.startsWith('new-') && data.ids[index]) {
+            row.setAttribute('data-id', data.ids[index]);
+            const deleteBtn = row.querySelector('.btn-delete-iga');
+            if (deleteBtn) deleteBtn.style.display = '';
+          }
+        });
+      }
+      
       return data;
     } catch (err) {
       console.error('saveIga failed', err);
@@ -136,7 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <textarea name="igas[]" class="cis-textarea cis-field autosize" placeholder="Description" rows="1" style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;" required></textarea>
           </div>
           <input type="hidden" name="code[]" value="">
-          <button type="button" class="btn btn-sm btn-outline-danger btn-delete-iga ms-2" title="Delete IGA"><i class="bi bi-trash"></i></button>
+          <button type="button" class="btn btn-sm btn-outline-danger btn-delete-iga ms-2" title="Delete IGA" style="display: none;"><i class="bi bi-trash"></i></button>
         </div>
       </td>
     `;
@@ -166,9 +181,6 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault(); e.stopPropagation();
         const row = el.closest('tr.iga-row');
         const allRows = Array.from(list.querySelectorAll('tr.iga-row'));
-        const rowIndex = allRows.indexOf(row);
-        if (rowIndex === 0) { el.value = ''; try { initAutosize(); } catch (e) {} return; }
-        if (allRows.length === 1) { el.value = ''; try { initAutosize(); } catch (e) {} return; }
         const id = row.getAttribute('data-id');
         if (!id || id.startsWith('new-')) {
           const prev = row.previousElementSibling;
@@ -187,8 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Click delete button
   list.addEventListener('click', (e) => {
     const btn = e.target.closest('.btn-delete-iga'); if (!btn) return;
-    const row = btn.closest('tr.iga-row'); const allRows = Array.from(list.querySelectorAll('tr.iga-row'));
-    const rowIndex = allRows.indexOf(row); if (rowIndex === 0) { alert('At least one IGA must be present.'); return; }
+    const row = btn.closest('tr.iga-row');
     const id = row.getAttribute('data-id'); if (!id || id.startsWith('new-')) { try { row.remove(); } catch (e) { row.remove(); } updateVisibleCodes(); return; }
     if (!confirm('Are you sure you want to delete this IGA?')) return;
   fetch((window.syllabusBasePath || '/faculty/syllabi') + `/igas/${id}`, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' } })

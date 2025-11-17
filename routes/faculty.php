@@ -133,6 +133,7 @@ Route::middleware([FacultyAuth::class])->group(function () {
 
     // ---------- IGA (Institutional Graduate Attributes) — managed by dedicated controller ----------
     Route::put('/faculty/syllabi/{syllabus}/igas', [\App\Http\Controllers\Faculty\Syllabus\SyllabusIgaController::class, 'update'])->name('faculty.syllabi.iga.update');
+    Route::post('/faculty/syllabi/{syllabus}/load-predefined-igas', [\App\Http\Controllers\Faculty\Syllabus\SyllabusIgaController::class, 'loadPredefinedIgas'])->name('faculty.syllabi.igas.load-predefined');
     Route::post('/faculty/syllabi/igas/reorder', [\App\Http\Controllers\Faculty\Syllabus\SyllabusIgaController::class, 'reorder'])->name('faculty.syllabi.iga.reorder');
     Route::delete('/faculty/syllabi/igas/{id}', [\App\Http\Controllers\Faculty\Syllabus\SyllabusIgaController::class, 'destroy'])->name('faculty.syllabi.iga.destroy');
 
