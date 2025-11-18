@@ -106,10 +106,6 @@
                         <i data-feather="plus"></i>
                         <span class="visually-hidden">Add SO</span>
                       </button>
-                      <button type="button" class="btn btn-sm" id="so-remove-header" title="Remove last SO" aria-label="Remove last SO" style="background:transparent;">
-                        <i data-feather="minus"></i>
-                        <span class="visually-hidden">Remove last SO</span>
-                      </button>
                     </span>
                   </div>
                 </th>
@@ -124,9 +120,13 @@
                       <div class="so-badge fw-semibold">{{ $seqCode }}</div>
                     </td>
                     <td>
-                      <div class="w-100">
-                        <textarea
-                          name="so_titles[]"
+                      <div class="d-flex align-items-center gap-2">
+                        <span class="drag-handle text-muted" title="Drag to reorder" style="cursor: grab;">
+                          <i class="bi bi-grip-vertical"></i>
+                        </span>
+                        <div class="flex-grow-1 w-100">
+                          <textarea
+                            name="so_titles[]"
                             class="cis-textarea cis-field autosize"
                             placeholder="-"
                             rows="1"
@@ -139,7 +139,9 @@
                             rows="1"
                             style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;"
                             required>{{ old("sos.$index", $so->description) }}</textarea>
-                        <input type="hidden" name="code[]" value="{{ $seqCode }}">
+                          <input type="hidden" name="code[]" value="{{ $seqCode }}">
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-so ms-2" title="Delete SO"><i class="bi bi-trash"></i></button>
                       </div>
                   </tr>
                 @endforeach
@@ -147,9 +149,13 @@
                 <tr>
                   <td class="text-center align-middle"><div class="so-badge fw-semibold">SO1</div></td>
                   <td>
-                    <div class="w-100">
-                      <textarea
-                        name="so_titles[]"
+                    <div class="d-flex align-items-center gap-2">
+                      <span class="drag-handle text-muted" title="Drag to reorder" style="cursor: grab;">
+                        <i class="bi bi-grip-vertical"></i>
+                      </span>
+                      <div class="flex-grow-1 w-100">
+                        <textarea
+                          name="so_titles[]"
                           class="cis-textarea cis-field autosize"
                           placeholder="-"
                           rows="1"
@@ -162,7 +168,9 @@
                           rows="1"
                           style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;"
                           required></textarea>
-                      <input type="hidden" name="code[]" value="SO1">
+                        <input type="hidden" name="code[]" value="SO1">
+                      </div>
+                      <button type="button" class="btn btn-sm btn-outline-danger btn-delete-so ms-2" title="Delete SO"><i class="bi bi-trash"></i></button>
                     </div>
                   </td>
                 </tr>
@@ -179,8 +187,7 @@
 
 @push('scripts')
   @vite([
-    'resources/js/faculty/syllabus-so.js',
-    'resources/js/faculty/syllabus-so-sortable.js'
+    'resources/js/faculty/syllabus-so.js'
   ])
 @endpush
 

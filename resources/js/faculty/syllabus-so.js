@@ -1,6 +1,8 @@
 // File: resources/js/faculty/syllabus-so.js
 // Description: Handles AJAX save for Student Outcomes (SO) – Syllaverse
 
+import Sortable from 'sortablejs';
+
 document.addEventListener('DOMContentLoaded', () => {
   const soForm = document.querySelector('#soForm');
   if (!soForm) return;
@@ -107,10 +109,89 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
+  // Helper function to renumber SO codes
+  function renumberSOs() {
+    const list = document.getElementById('syllabus-so-sortable');
+    if (!list) return;
+    
+    const rows = Array.from(list.querySelectorAll('tr'));
+    rows.forEach((row, index) => {
+      const newCode = `SO${index + 1}`;
+      const badge = row.querySelector('.so-badge');
+      if (badge) badge.textContent = newCode;
+      const codeInput = row.querySelector('input[name="code[]"]');
+      if (codeInput) codeInput.value = newCode;
+    });
+  }
+
+  // Add SO button handler
+  const addBtn = document.getElementById('so-add-header');
+  if (addBtn) {
+    addBtn.addEventListener('click', () => {
+      const list = document.getElementById('syllabus-so-sortable');
+      if (!list) return;
+      
+      const currentCount = list.querySelectorAll('tr').length;
+      const newCode = `SO${currentCount + 1}`;
+      
+      const newRow = document.createElement('tr');
+      newRow.setAttribute('data-id', `new-${Date.now()}`);
+      newRow.innerHTML = `
+        <td class="text-center align-middle">
+          <div class="so-badge fw-semibold">${newCode}</div>
+        </td>
+        <td>
+          <div class="d-flex align-items-center gap-2">
+            <span class="drag-handle text-muted" title="Drag to reorder" style="cursor: grab;">
+              <i class="bi bi-grip-vertical"></i>
+            </span>
+            <div class="flex-grow-1 w-100">
+              <textarea
+                name="so_titles[]"
+                class="cis-textarea cis-field autosize"
+                placeholder="-"
+                rows="1"
+                style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;font-weight:700;"
+                required></textarea>
+              <textarea
+                name="sos[]"
+                class="cis-textarea cis-field autosize"
+                placeholder="Description"
+                rows="1"
+                style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;"
+                required></textarea>
+              <input type="hidden" name="code[]" value="${newCode}">
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-danger btn-delete-so ms-2" title="Delete SO"><i class="bi bi-trash"></i></button>
+          </div>
+        </td>
+      `;
+      
+      list.appendChild(newRow);
+      
+      // Initialize autosize for new textareas if initAutosize is available
+      if (window.initAutosize) {
+        newRow.querySelectorAll('textarea.autosize').forEach(ta => window.initAutosize(ta));
+      }
+    });
+  }
+
+  // Initialize Sortable for drag and drop
+  const soList = document.getElementById('syllabus-so-sortable');
+  if (soList && typeof Sortable !== 'undefined') {
+    Sortable.create(soList, {
+      handle: '.drag-handle',
+      animation: 150,
+      draggable: 'tr',
+      onEnd: function(evt) {
+        renumberSOs();
+      }
+    });
+  }
+
   // Delete button handler
-  const list = document.getElementById('syllabus-so-sortable');
-  if (list) {
-    list.addEventListener('click', async (e) => {
+  if (soList) {
+    soList.addEventListener('click', async (e) => {
       const btn = e.target.closest('.btn-delete-so');
       if (!btn) return;
       
@@ -120,11 +201,12 @@ document.addEventListener('DOMContentLoaded', () => {
       // If unsaved row, just remove it
       if (!id || id.startsWith('new-')) {
         row.remove();
+        renumberSOs();
         return;
       }
       
-      // For saved rows, confirm and call backend
-      if (!confirm('Are you sure you want to delete this SO?')) return;
+      // For saved rows, call backend to delete immediately
+      btn.disabled = true;
       
       try {
         const tokenMeta = document.querySelector('meta[name="csrf-token"]');
@@ -136,14 +218,23 @@ document.addEventListener('DOMContentLoaded', () => {
           headers: headers
         });
         
-        if (!response.ok) throw new Error('Failed to delete SO');
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data.message || 'Failed to delete SO');
+        }
         
-        const data = await response.json();
-        alert(data.message || 'SO deleted successfully');
-        location.reload();
+        // Remove row from UI after successful deletion
+        row.remove();
+        renumberSOs();
+        
       } catch (error) {
         console.error('Error deleting SO:', error);
-        alert('Failed to delete SO: ' + error.message);
+        if (window.showAlertOverlay) {
+          window.showAlertOverlay('danger', error.message || 'Failed to delete SO.');
+        } else {
+          alert('Failed to delete SO: ' + error.message);
+        }
+        btn.disabled = false;
       }
     });
   }

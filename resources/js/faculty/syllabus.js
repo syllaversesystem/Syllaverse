@@ -560,6 +560,18 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
+      // --- Save SOs before the main form submission ---
+      try {
+        if (window.saveSo && typeof window.saveSo === 'function') {
+          await window.saveSo();
+        }
+      } catch (soErr) {
+        console.error('Failed to save SO data before syllabus save:', soErr);
+        alert('Failed to save SOs: ' + (soErr && soErr.message ? soErr.message : 'See console for details.'));
+        try { saveBtn.disabled = false; saveBtn.innerHTML = originalHtml; } catch (e) { /* noop */ }
+        return;
+      }
+
       // --- Save Assessment Tasks data before main form submission ---
       try {
         if (window.saveAssessmentTasks && typeof window.saveAssessmentTasks === 'function') {
