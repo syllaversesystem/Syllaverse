@@ -64,9 +64,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (hasServerId) {
       try {
         await requestBackendDeletion(rawId);
+        if (window.showAlertOverlay) {
+          window.showAlertOverlay('success', 'ILO deleted successfully');
+        }
       } catch (err) {
         console.error('Failed to delete ILO on server', err);
-        alert(err?.message || 'Failed to delete ILO.');
+        if (window.showAlertOverlay) {
+          window.showAlertOverlay('error', err?.message || 'Failed to delete ILO');
+        } else {
+          alert(err?.message || 'Failed to delete ILO.');
+        }
         return false;
       }
     }
@@ -114,7 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
           </span>
           <textarea name="ilos[]" class="cis-textarea cis-field autosize flex-grow-1" placeholder="-" rows="1" style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;"></textarea>
           <input type="hidden" name="code[]" value="">
-          <button type="button" class="btn btn-sm btn-outline-danger btn-delete-ilo ms-2" title="Delete ILO" style="display:none;">
+          <button type="button" class="btn btn-sm btn-outline-danger btn-delete-ilo ms-2" title="Delete ILO">
             <i class="bi bi-trash"></i>
           </button>
         </div>
@@ -141,25 +148,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const addBtn = document.getElementById('ilo-add-header');
   if (addBtn) addBtn.addEventListener('click', () => addRow(null));
 
-  const removeBtn = document.getElementById('ilo-remove-header');
-  if (removeBtn) removeBtn.addEventListener('click', async () => {
-    const rows = getIloRows();
-    if (!rows.length) return;
-    // Restrict: only remove unsaved rows (non-numeric data-id). Find the last unsaved one.
-    let target = null;
-    for (let i = rows.length - 1; i >= 0; i--) {
-      const id = rows[i].getAttribute('data-id');
-      if (!id || !/^\d+$/.test(id)) { target = rows[i]; break; }
-    }
-    if (!target) {
-      // No unsaved row to remove; ignore.
-      return;
-    }
-    // Just remove the DOM row without calling backend (it's not saved yet)
-    target.remove();
-    renumber();
-  });
-
   // Delegated delete button handling
   list.addEventListener('click', async (ev) => {
     const btn = ev.target && ev.target.closest && ev.target.closest('.btn-delete-ilo');
@@ -168,18 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
     await deleteRowAndPersist(row);
   });
 
-  // After a successful save, reveal delete buttons on rows that now have numeric ids
-  document.addEventListener('syllabusSaved', () => {
-    try {
-      getIloRows().forEach((r, i) => {
-        const id = r.getAttribute('data-id');
-        const del = r.querySelector('.btn-delete-ilo');
-        if (!del) return;
-        // Show delete for saved rows (numeric id); hide for unsaved rows
-        del.style.display = (id && /^\d+$/.test(id)) ? '' : 'none';
-      });
-    } catch (e) { /* noop */ }
-  });
+
 
   // Keyboard: Backspace on empty textarea at caret 0 removes row (not first, and keep >= 1)
   list.addEventListener('keydown', async (e) => {
@@ -264,9 +241,7 @@ window.saveIlo = async function saveIlo() {
     return { row, entry: { id, code, description, position: index + 1 }, hasContent };
   });
 
-  const payloadIlos = descriptors
-    .filter(d => d.entry.id || d.hasContent)
-    .map(d => d.entry);
+  const payloadIlos = descriptors.map(d => d.entry);
 
   // If there is nothing to save, short-circuit
   if (!payloadIlos.length) return { message: 'No ILO changes' };
@@ -281,7 +256,7 @@ window.saveIlo = async function saveIlo() {
 
   const url = (window.syllabusBasePath || '/faculty/syllabi') + `/${encodeURIComponent(syllabusId)}/ilos`;
 
-  const pendingNew = descriptors.filter(d => !d.entry.id && d.hasContent).map(d => d.row);
+  const pendingNew = descriptors.filter(d => !d.entry.id).map(d => d.row);
 
   const res = await fetch(url, {
     method: 'PUT',
@@ -308,9 +283,6 @@ window.saveIlo = async function saveIlo() {
       const nid = data.created_ids[i];
       if (row && nid) {
         row.setAttribute('data-id', String(nid));
-        // Immediately reveal the delete button for newly saved rows
-        const delBtn = row.querySelector('.btn-delete-ilo');
-        if (delBtn) delBtn.style.display = '';
       }
     });
   }

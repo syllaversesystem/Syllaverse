@@ -126,10 +126,6 @@
                           <i data-feather="plus"></i>
                           <span class="visually-hidden">Add ILO</span>
                         </button>
-                        <button type="button" class="btn btn-sm" id="ilo-remove-header" title="Remove last ILO" aria-label="Remove last ILO" style="background:transparent;">
-                          <i data-feather="minus"></i>
-                          <span class="visually-hidden">Remove last ILO</span>
-                        </button>
                     </span>
                   </div>
                 </th>
@@ -156,7 +152,7 @@
                           style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;"
                           required>{{ old("ilos.$index", $ilo->description) }}</textarea>
                         <input type="hidden" name="code[]" value="{{ $seqCode }}">
-                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-ilo ms-2" title="Delete ILO" @if(!is_numeric($ilo->id ?? null)) style="display:none;" @endif>
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-ilo ms-2" title="Delete ILO">
                           <i class="bi bi-trash"></i>
                         </button>
                       </div>
@@ -181,7 +177,7 @@
                         style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;"
                         required></textarea>
                       <input type="hidden" name="code[]" value="ILO1">
-                      <button type="button" class="btn btn-sm btn-outline-danger btn-delete-ilo ms-2" title="Delete ILO" style="display:none;">
+                      <button type="button" class="btn btn-sm btn-outline-danger btn-delete-ilo ms-2" title="Delete ILO">
                         <i class="bi bi-trash"></i>
                       </button>
                     </div>
@@ -347,7 +343,11 @@
         confirmLoadBtn.addEventListener('click', async function() {
           const syllabusId = listRef.dataset.syllabusId;
           if (!syllabusId) {
-            alert('Syllabus ID not found');
+            if (window.showAlertOverlay) {
+              window.showAlertOverlay('error', 'Syllabus ID not found');
+            } else {
+              alert('Syllabus ID not found');
+            }
             return;
           }
 
@@ -369,7 +369,11 @@
             const data = await response.json();
             
             if (!data.ilos || data.ilos.length === 0) {
-              alert('No predefined ILOs found for this course.');
+              if (window.showAlertOverlay) {
+                window.showAlertOverlay('error', 'No predefined ILOs found for this course.');
+              } else {
+                alert('No predefined ILOs found for this course.');
+              }
               return;
             }
 
@@ -420,15 +424,17 @@
             const modal = bootstrap.Modal.getInstance(loadPredefinedModal);
             if (modal) modal.hide();
             
-            // Show success toast/notification
-            if (window.showToast) {
-              window.showToast(`Successfully loaded ${data.ilos.length} predefined ILO(s)`, 'success');
+            // Show success notification
+            if (window.showAlertOverlay) {
+              window.showAlertOverlay('success', `Successfully loaded ${data.ilos.length} predefined ILO(s)`);
             }
             
           } catch (error) {
             console.error('Error loading predefined ILOs:', error);
-            if (window.showToast) {
-              window.showToast(error.message || 'An error occurred while loading predefined ILOs', 'error');
+            if (window.showAlertOverlay) {
+              window.showAlertOverlay('error', error.message || 'An error occurred while loading predefined ILOs');
+            } else {
+              alert(error.message || 'An error occurred while loading predefined ILOs');
             }
           } finally {
             confirmLoadBtn.disabled = false;
