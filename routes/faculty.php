@@ -140,6 +140,7 @@ Route::middleware([FacultyAuth::class])->group(function () {
     // ---------- CDIO (Conceive–Design–Implement–Operate) — per-syllabus CDIO CRUD + Sortable ----------
     Route::put('/faculty/syllabi/{syllabus}/cdios', [\App\Http\Controllers\Faculty\Syllabus\SyllabusCdioController::class, 'update'])->name('faculty.syllabi.cdios.update');
     Route::post('/faculty/syllabi/{syllabus}/cdios/reorder', [\App\Http\Controllers\Faculty\Syllabus\SyllabusCdioController::class, 'reorder'])->name('faculty.syllabi.cdios.reorder');
+    Route::post('/faculty/syllabi/{syllabus}/load-predefined-cdios', [\App\Http\Controllers\Faculty\Syllabus\SyllabusCdioController::class, 'loadPredefinedCdios'])->name('faculty.syllabi.cdios.load-predefined');
     Route::post('/faculty/syllabi/cdios', [\App\Http\Controllers\Faculty\Syllabus\SyllabusCdioController::class, 'store'])->name('faculty.syllabi.cdios.store');
     Route::put('/faculty/syllabi/{syllabus}/cdios/{cdio}', [\App\Http\Controllers\Faculty\Syllabus\SyllabusCdioController::class, 'inlineUpdate'])->name('faculty.syllabi.cdios.inline');
     Route::delete('/faculty/syllabi/cdios/{id}', [\App\Http\Controllers\Faculty\Syllabus\SyllabusCdioController::class, 'destroy'])->name('faculty.syllabi.cdios.destroy');

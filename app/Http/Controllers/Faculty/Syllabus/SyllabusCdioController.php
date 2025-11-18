@@ -65,12 +65,60 @@ class SyllabusCdioController extends Controller
     public function destroy($id)
     {
         $cdio = SyllabusCdio::findOrFail($id);
-        $syllabus = $cdio->syllabus;
-        if (! $syllabus || ($syllabus->faculty_id !== Auth::id() && ! Auth::guard('admin')->check())) {
-            return response()->json(['ok' => false, 'message' => 'Unauthorized'], 403);
-        }
         $cdio->delete();
-        return response()->json(['ok' => true]);
+        return response()->json(['ok' => true, 'message' => 'CDIO deleted successfully']);
+    }
+
+    public function loadPredefinedCdios(Request $request, $syllabus)
+    {
+        // Authorization check - faculty only
+        $syllabus = Syllabus::where('faculty_id', Auth::id())->findOrFail($syllabus);
+
+        // Validate that cdio_ids is provided and is an array
+        $request->validate([
+            'cdio_ids' => 'required|array',
+            'cdio_ids.*' => 'integer|exists:cdios,id',
+        ]);
+
+        $selectedIds = $request->cdio_ids;
+
+        if (empty($selectedIds)) {
+            return response()->json(['message' => 'Please select at least one CDIO to load.'], 400);
+        }
+
+        // Get selected predefined CDIOs from master data
+        $predefinedCdios = \App\Models\Cdio::whereIn('id', $selectedIds)->orderBy('id')->get();
+
+        if ($predefinedCdios->isEmpty()) {
+            return response()->json(['message' => 'No predefined CDIOs found.'], 404);
+        }
+
+        // Delete existing CDIOs for this syllabus
+        SyllabusCdio::where('syllabus_id', $syllabus->id)->delete();
+
+        // Create new CDIOs from predefined data
+        $newCdios = [];
+        foreach ($predefinedCdios as $index => $predefined) {
+            $cdio = SyllabusCdio::create([
+                'syllabus_id' => $syllabus->id,
+                'code' => 'CDIO' . ($index + 1),
+                'title' => $predefined->title,
+                'description' => $predefined->description,
+                'position' => $index + 1,
+            ]);
+            $newCdios[] = [
+                'id' => $cdio->id,
+                'code' => $cdio->code,
+                'title' => $cdio->title,
+                'description' => $cdio->description,
+                'position' => $cdio->position,
+            ];
+        }
+
+        return response()->json([
+            'message' => count($newCdios) . ' CDIO' . (count($newCdios) !== 1 ? 's' : '') . ' loaded successfully.',
+            'cdios' => $newCdios,
+        ]);
     }
 
     // Add single CDIO (used by inline add flows)
@@ -112,14 +160,10 @@ class SyllabusCdioController extends Controller
     }
 
     /**
-     * Resolve syllabus by id with admin-aware scoping.
-     * Admin users may access any syllabus; faculty may only access their own.
+     * Resolve syllabus by id - faculty can only access their own syllabi.
      */
     protected function getSyllabusForAction($syllabusId)
     {
-        if (Auth::guard('admin')->check()) {
-            return Syllabus::findOrFail($syllabusId);
-        }
         return Syllabus::where('faculty_id', Auth::id())->findOrFail($syllabusId);
     }
 }

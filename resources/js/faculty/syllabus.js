@@ -572,6 +572,18 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
+      // --- Save CDIOs before the main form submission ---
+      try {
+        if (window.saveCdio && typeof window.saveCdio === 'function') {
+          await window.saveCdio();
+        }
+      } catch (cdioErr) {
+        console.error('Failed to save CDIO data before syllabus save:', cdioErr);
+        alert('Failed to save CDIOs: ' + (cdioErr && cdioErr.message ? cdioErr.message : 'See console for details.'));
+        try { saveBtn.disabled = false; saveBtn.innerHTML = originalHtml; } catch (e) { /* noop */ }
+        return;
+      }
+
       // --- Save Assessment Tasks data before main form submission ---
       try {
         if (window.saveAssessmentTasks && typeof window.saveAssessmentTasks === 'function') {

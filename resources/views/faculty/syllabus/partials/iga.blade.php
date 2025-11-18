@@ -134,7 +134,7 @@
                         <textarea
                           name="iga_titles[]"
                           class="cis-textarea cis-field autosize"
-                          placeholder="-"
+                          placeholder="Title"
                           rows="1"
                           style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;font-weight:700;"
                           required>{{ old("iga_titles.$index", $iga->title ?? '') }}</textarea>

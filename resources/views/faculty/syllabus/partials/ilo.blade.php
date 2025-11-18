@@ -146,7 +146,7 @@
                       <textarea
                         name="ilos[]"
                         class="cis-textarea cis-field autosize flex-grow-1"
-                        placeholder="-"
+                        placeholder="Title"
                         rows="1"
                         style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;"
                         required>{{ old("ilos.$index", $ilo->description) }}</textarea>
