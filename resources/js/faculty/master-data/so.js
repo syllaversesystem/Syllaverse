@@ -11,12 +11,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const addErrors = document.getElementById('addSoErrors');
   const addSubmitBtn = document.getElementById('addSoSubmit');
   const roleCanSeeDeptCol = (soTable?.dataset?.roleCanSeeDeptCol === '1');
-  let hasDeptCol = roleCanSeeDeptCol && (!deptFilter || deptFilter.value === 'all');
+  let hasDeptCol = roleCanSeeDeptCol;
 
   function rebuildHeaderAndColgroup() {
     if (!soTable) return;
     // Determine based on current filter
-    hasDeptCol = roleCanSeeDeptCol && (!deptFilter || deptFilter.value === 'all');
+    hasDeptCol = roleCanSeeDeptCol;
 
     const colgroup = soTable.querySelector('colgroup');
     if (colgroup) {

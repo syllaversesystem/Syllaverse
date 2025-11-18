@@ -1,9 +1,9 @@
 // -----------------------------------------------------------------------------
 // File: resources/js/faculty/syllabus-so-sortable.js
-// Description: Enables drag-reorder, auto-code update, and inline add/delete for CIS-style SO layout – Syllaverse
+// Description: Enables drag-reorder and auto-code update for CIS-style SO layout – Syllaverse
 // -----------------------------------------------------------------------------
 // 📜 Log:
-// [2025-07-29] Adapted from ILO sortable – added auto-code, add/delete, and save order.
+// [2025-07-29] Adapted from ILO sortable – added auto-code and save order.
 // -----------------------------------------------------------------------------
 
 import Sortable from 'sortablejs';
@@ -11,8 +11,6 @@ import { initAutosize, markDirty, updateUnsavedCount } from './syllabus';
 
 document.addEventListener('DOMContentLoaded', () => {
   const list = document.getElementById('syllabus-so-sortable');
-  const saveBtn = document.getElementById('save-syllabus-so-order');
-  const addBtn = document.getElementById('add-so-row');
 
   if (!list) return;
 
@@ -25,11 +23,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const newCode = `SO${index + 1}`;
       const badge = row.querySelector('.so-badge'); if (badge) badge.textContent = newCode;
       const codeInput = row.querySelector('input[name="code[]"]'); if (codeInput) codeInput.value = newCode;
-    });
-
-    // show/hide delete buttons
-    rows.forEach((row, index) => {
-      const btn = row.querySelector('.btn-delete-so'); if (!btn) return; btn.style.display = index === 0 ? 'none' : '';
+      const btn = row.querySelector('.btn-delete-so');
+      const rowId = row.getAttribute('data-id');
+      if (btn) btn.style.display = (rowId && rowId.startsWith('new-')) ? 'none' : '';
     });
 
     try {
@@ -82,44 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   } catch (e) { /* noop */ }
 
-  // Keyboard behavior: match ILO/IGA — Ctrl/Cmd+Backspace deletes empty row; remove Ctrl+Enter add
-  list.addEventListener('keydown', (e) => {
-    const el = e.target; if (!el || el.tagName !== 'TEXTAREA') return;
-    if (e.key === 'Backspace' && (e.ctrlKey || e.metaKey)) {
-      const val = el.value || ''; const selStart = (typeof el.selectionStart === 'number') ? el.selectionStart : 0;
-      if (val.trim() === '' && selStart === 0) {
-        e.preventDefault(); e.stopPropagation();
-        const row = el.closest('tr');
-        const allRows = Array.from(list.querySelectorAll('tr')).filter(r => r.querySelector('textarea[name="sos[]"]') || r.querySelector('.so-badge'));
-        const rowIndex = allRows.indexOf(row);
-        if (rowIndex === 0) { el.value = ''; try { initAutosize(); } catch (e) {} return; }
-        if (allRows.length === 1) { el.value = ''; try { initAutosize(); } catch (e) {} return; }
-        const id = row.getAttribute('data-id');
-        if (!id || id.startsWith('new-')) {
-          const prev = row.previousElementSibling;
-          try { row.remove(); } catch (e) { row.remove(); }
-          updateVisibleCodes();
-          if (prev) { const prevTa = prev.querySelector('textarea.autosize'); if (prevTa) { prevTa.focus(); prevTa.selectionStart = prevTa.value.length; } }
-          return;
-        }
-        if (!confirm('This SO exists on the server. Press OK to delete it.')) return;
-  fetch((window.syllabusBasePath || '/faculty/syllabi') + `/sos/${id}`, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' } })
-        .then(res => res.json()).then(data => { alert(data.message || 'SO deleted.'); location.reload(); }).catch(err => { console.error(err); alert('Failed to delete SO.'); });
-      }
-    }
-  });
-
-  // Click delete button
-  list.addEventListener('click', (e) => {
-    const btn = e.target.closest('.btn-delete-so'); if (!btn) return;
-    const row = btn.closest('tr'); const allRows = Array.from(list.querySelectorAll('tr')).filter(r => r.querySelector('textarea[name="sos[]"]') || r.querySelector('.so-badge'));
-    const rowIndex = allRows.indexOf(row); if (rowIndex === 0) { alert('At least one SO must be present.'); return; }
-    const id = row.getAttribute('data-id'); if (!id || id.startsWith('new-')) { try { row.remove(); } catch (e) { row.remove(); } updateVisibleCodes(); return; }
-    if (!confirm('Are you sure you want to delete this SO?')) return;
-  fetch((window.syllabusBasePath || '/faculty/syllabi') + `/sos/${id}`, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' } })
-    .then(res => res.json()).then(data => { alert(data.message || 'SO deleted.'); location.reload(); }).catch(err => { console.error(err); alert('Failed to delete SO.'); });
-  });
-
+  // Create new row helper
   function createNewRow() {
     const timestamp = Date.now();
     const newRow = document.createElement('tr');
@@ -128,60 +87,63 @@ document.addEventListener('DOMContentLoaded', () => {
       <td class="text-center align-middle"><div class="so-badge fw-semibold"></div></td>
       <td>
         <div class="d-flex align-items-center gap-2">
-          <span class="drag-handle text-muted" title="Drag to reorder" style="cursor: grab; display:flex; align-items:center;"><i class="bi bi-grip-vertical"></i></span>
+          <span class="drag-handle text-muted" title="Drag to reorder" style="cursor: grab; display:flex; align-items:center;">
+            <i class="bi bi-grip-vertical"></i>
+          </span>
           <div class="flex-grow-1 w-100">
             <textarea name="so_titles[]" class="cis-textarea cis-field autosize" placeholder="-" rows="1" style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;font-weight:700;" required></textarea>
             <textarea name="sos[]" class="cis-textarea cis-field autosize" placeholder="Description" rows="1" style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;" required></textarea>
           </div>
           <input type="hidden" name="code[]" value="">
-          <button type="button" class="btn btn-sm btn-outline-danger btn-delete-so ms-2" title="Delete SO"><i class="bi bi-trash"></i></button>
+          <button type="button" class="btn btn-sm btn-outline-danger btn-delete-so ms-2" title="Delete SO" style="display: none;"><i class="bi bi-trash"></i></button>
         </div>
       </td>
     `;
     return newRow;
   }
 
-  function addRow(afterRow = null) {
+  // Add row function
+  function addRow() {
     const newRow = createNewRow();
-    if (afterRow && afterRow.parentElement) {
-      if (afterRow.nextSibling) afterRow.parentElement.insertBefore(newRow, afterRow.nextSibling);
-      else afterRow.parentElement.appendChild(newRow);
-    } else {
-      list.appendChild(newRow);
-    }
+    list.appendChild(newRow);
     try { initAutosize(); } catch (e) {}
     updateVisibleCodes();
-    const ta = newRow.querySelector('textarea.autosize'); if (ta) ta.focus();
+    const ta = newRow.querySelector('textarea.autosize');
+    if (ta) ta.focus();
     return newRow;
   }
 
-
-  // expose add/remove helpers (programmatic)
-  try {
-    window.addSoRow = function(afterRowSelector = null) {
-      const after = afterRowSelector ? document.querySelector(afterRowSelector) : null;
-      return addRow(after);
-    };
-  } catch (e) {}
-
-  // Header buttons for add/remove
-  document.getElementById('so-add-header')?.addEventListener('click', () => addRow(null));
-  document.getElementById('so-remove-header')?.addEventListener('click', () => {
-    const rows = Array.from(list.querySelectorAll('tr')).filter(r => r.querySelector('textarea[name="sos[]"]') || r.querySelector('.so-badge'));
-    if (rows.length > 0) { rows[rows.length - 1].remove(); updateVisibleCodes(); }
-  });
-
-  try {
-    window.removeSoRow = function(rowSelector) {
-      const row = (typeof rowSelector === 'string') ? document.querySelector(rowSelector) : rowSelector;
-      if (!row) return false;
-      const id = row.getAttribute && row.getAttribute('data-id');
-      if (!id || id.startsWith('new-')) {
-        row.remove(); updateVisibleCodes(); return Promise.resolve({ message: 'row removed' });
+  // Remove last row function - only removes unsaved rows
+  function removeLastRow() {
+    const rows = Array.from(list.querySelectorAll('tr'));
+    if (!rows.length) return;
+    
+    let target = null;
+    for (let i = rows.length - 1; i >= 0; i--) {
+      const id = rows[i].getAttribute('data-id');
+      if (id && id.startsWith('new-')) {
+        target = rows[i];
+        break;
       }
-      return fetch(`/faculty/syllabi/sos/${id}`, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content, 'Accept': 'application/json' } }).then(res => res.json()).then(data => { location.reload(); });
-    };
-  } catch (e) {}
+    }
+    
+    if (!target) return;
+    
+    target.remove();
+    updateVisibleCodes();
+  }
+
+  // Header button listeners
+  const addBtn = document.getElementById('so-add-header');
+  const removeBtn = document.getElementById('so-remove-header');
+  
+  if (addBtn) {
+    addBtn.addEventListener('click', () => addRow());
+  }
+  
+  if (removeBtn) {
+    removeBtn.addEventListener('click', () => removeLastRow());
+  }
 
   // initialize
   updateVisibleCodes();

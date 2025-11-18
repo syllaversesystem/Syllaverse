@@ -10,7 +10,7 @@
       <input type="search" class="form-control" id="soSearch" placeholder="Search SO..." aria-label="Search SO" />
     </div>
 
-    @if(!empty($showDepartmentFilter))
+    @if($showDepartmentFilter ?? false)
       <div class="department-filter-wrapper" id="soDepartmentFilterWrapper">
         <select class="form-select form-select-sm" id="soDepartmentFilter" aria-label="Filter by department">
           <option value="all">All Departments</option>
@@ -30,11 +30,11 @@
 
   <div class="so-table-wrapper" id="soTableWrapper">
     <div class="table-responsive">
-      <table class="table mb-0 align-middle so-table" id="soTable" data-role-can-see-dept-col="{{ !empty($showDepartmentFilter) ? '1' : '0' }}">
+      <table class="table mb-0 align-middle so-table" id="soTable" data-role-can-see-dept-col="{{ ($showDepartmentFilter ?? false) ? '1' : '0' }}">
         <colgroup>
-          @if(!empty($showDepartmentFilter))
-            <col style="width:24%;" />
-            <col style="width:1%;" />
+          @if($showDepartmentFilter ?? false)
+            <col style="width:20%;" />
+            <col style="width:15%;" />
             <col />
             <col style="width:1%;" />
           @else
@@ -46,7 +46,7 @@
         <thead>
           <tr>
             <th scope="col"><i data-feather="type"></i> Title</th>
-            @if(!empty($showDepartmentFilter))
+            @if($showDepartmentFilter ?? false)
               <th scope="col" class="th-dept"><i class="bi bi-building"></i> Department</th>
             @endif
             <th scope="col"><i data-feather="file-text"></i> Description</th>
@@ -55,7 +55,7 @@
         </thead>
         <tbody id="soTableBody">
           <tr class="superadmin-manage-department-empty-row">
-            <td colspan="{{ !empty($showDepartmentFilter) ? 4 : 3 }}">
+            <td colspan="{{ ($showDepartmentFilter ?? false) ? 4 : 3 }}">
               <div class="empty-table">
                 <h6>No student outcomes found</h6>
                 <p>Click the <i data-feather="plus"></i> button to add one.</p>

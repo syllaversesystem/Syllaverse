@@ -19,35 +19,49 @@ use App\Models\SyllabusSo;
 
 class SyllabusSoController extends Controller
 {
-    // ✅ Save updated SO list (code + description)
+    // Batch update SOs (accepts array of {id, code, title, description, position})
     public function update(Request $request, $syllabusId)
     {
-        $syllabus = $this->getSyllabusForAction($syllabusId);
-
         $request->validate([
             'sos' => 'required|array',
-            'sos.*' => 'required|string|max:1000',
-            'so_titles' => 'nullable|array',
-            'so_titles.*' => 'nullable|string|max:255',
-            'code' => 'required|array',
-            'code.*' => 'required|string|max:20',
+            'sos.*.id' => 'nullable|integer|exists:syllabus_sos,id',
+            'sos.*.code' => 'required|string',
+            'sos.*.title' => 'nullable|string|max:255',
+            'sos.*.description' => 'nullable|string|max:2000',
+            'sos.*.position' => 'required|integer',
         ]);
 
-        // Delete old SOs
-        $syllabus->sos()->delete();
+        $incomingIds = collect($request->sos)->pluck('id')->filter();
+        $existingIds = SyllabusSo::where('syllabus_id', $syllabusId)->pluck('id');
 
-        // Insert updated SOs
-        foreach ($request->sos as $index => $description) {
-            SyllabusSo::create([
-                'syllabus_id' => $syllabus->id,
-                'code' => $request->code[$index] ?? 'SO' . ($index + 1),
-                'title' => $request->input('so_titles.' . $index),
-                'description' => $description,
-                'position' => $index + 1,
-            ]);
+        // Delete removed SOs
+        $toDelete = $existingIds->diff($incomingIds);
+        if ($toDelete->isNotEmpty()) {
+            SyllabusSo::whereIn('id', $toDelete)->delete();
         }
 
-        return response()->json(['message' => 'Student Outcomes updated successfully.']);
+        $createdIds = [];
+        \DB::transaction(function() use ($request, &$createdIds, $syllabusId) {
+            foreach ($request->sos as $soData) {
+                $attrs = [
+                    'syllabus_id' => $syllabusId,
+                    'code' => $soData['code'] ?? null,
+                    'title' => $soData['title'] ?? '',
+                    'description' => $soData['description'] ?? '',
+                    'position' => $soData['position'] ?? 0,
+                ];
+
+                if (!empty($soData['id'])) {
+                    SyllabusSo::where('id', $soData['id'])->update($attrs);
+                    $createdIds[] = (int)$soData['id'];
+                } else {
+                    $new = SyllabusSo::create($attrs);
+                    if ($new) $createdIds[] = $new->id;
+                }
+            }
+        });
+
+        return response()->json(['success' => true, 'message' => 'SOs updated successfully.', 'ids' => $createdIds]);
     }
 
     // ✅ Save reordered SOs via drag-and-drop
@@ -86,6 +100,63 @@ class SyllabusSoController extends Controller
         $so->delete();
 
         return response()->json(['message' => 'SO deleted successfully.']);
+    }
+
+    // 📥 Load predefined SOs from master data (replaces existing SOs)
+    public function loadPredefinedSos(Request $request, $syllabus)
+    {
+        // Authorization check
+        if (Auth::guard('admin')->check()) {
+            $syllabus = Syllabus::findOrFail($syllabus);
+        } else {
+            $syllabus = Syllabus::where('faculty_id', Auth::id())->findOrFail($syllabus);
+        }
+
+        // Validate that so_ids is provided and is an array
+        $request->validate([
+            'so_ids' => 'required|array',
+            'so_ids.*' => 'integer|exists:student_outcomes,id',
+        ]);
+
+        $selectedIds = $request->so_ids;
+
+        if (empty($selectedIds)) {
+            return response()->json(['message' => 'Please select at least one SO to load.'], 400);
+        }
+
+        // Get selected predefined SOs from master data
+        $predefinedSos = \App\Models\StudentOutcome::whereIn('id', $selectedIds)->orderBy('id')->get();
+
+        if ($predefinedSos->isEmpty()) {
+            return response()->json(['message' => 'No predefined SOs found.'], 404);
+        }
+
+        // Delete existing SOs for this syllabus
+        SyllabusSo::where('syllabus_id', $syllabus->id)->delete();
+
+        // Create new SOs from predefined data
+        $newSos = [];
+        foreach ($predefinedSos as $index => $predefined) {
+            $so = SyllabusSo::create([
+                'syllabus_id' => $syllabus->id,
+                'code' => 'SO' . ($index + 1),
+                'title' => $predefined->title,
+                'description' => $predefined->description,
+                'position' => $index + 1,
+            ]);
+            $newSos[] = [
+                'id' => $so->id,
+                'code' => $so->code,
+                'title' => $so->title,
+                'description' => $so->description,
+                'position' => $so->position,
+            ];
+        }
+
+        return response()->json([
+            'message' => count($newSos) . ' SO' . (count($newSos) !== 1 ? 's' : '') . ' loaded successfully.',
+            'sos' => $newSos,
+        ]);
     }
 
     protected function getSyllabusForAction($syllabusId)
