@@ -55,11 +55,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function deleteRowAndPersist(row) {
     if (!row) return false;
-    const rows = getIloRows();
-    if (rows.length <= 1) return false; // keep at least one row visible
 
     const rawId = row.getAttribute('data-id');
     const hasServerId = rawId && /^\d+$/.test(rawId);
+
+    // Check if this is a blank saved ILO
+    const textarea = row.querySelector('textarea[name="ilos[]"]');
+    const isBlank = textarea && textarea.value.trim() === '';
 
     if (hasServerId) {
       try {
@@ -79,7 +81,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     row.remove();
-    renumber();
+    
+    // Check if any rows remain, if not show placeholder
+    const rows = getIloRows();
+    if (rows.length === 0) {
+      const placeholder = document.createElement('tr');
+      placeholder.id = 'ilo-placeholder';
+      placeholder.innerHTML = `
+        <td colspan="2" class="text-center text-muted py-4">
+          <p class="mb-2">No ILOs added yet.</p>
+          <p class="mb-0"><small>Click the <strong>+</strong> button above to add an ILO or <strong>Load Predefined</strong> to import ILOs.</small></p>
+        </td>
+      `;
+      list.appendChild(placeholder);
+    } else {
+      renumber();
+    }
+    
     return true;
   }
 
@@ -130,6 +148,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function addRow(afterRow = null) {
+    // Remove placeholder if it exists
+    const placeholder = document.getElementById('ilo-placeholder');
+    if (placeholder) placeholder.remove();
+    
     const row = createRow();
     if (afterRow && afterRow.parentElement) {
       if (afterRow.nextSibling) afterRow.parentElement.insertBefore(row, afterRow.nextSibling);
@@ -169,14 +191,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const row = el.closest('tr');
     const rows = getIloRows();
     const idx = rows.indexOf(row);
-    if (rows.length <= 1) return;
     e.preventDefault();
     const prev = rows[idx - 1] || rows[idx + 1] || null;
     const deleted = await deleteRowAndPersist(row);
     if (!deleted) return;
-    const targetRow = prev || getIloRows()[0];
-    const pta = targetRow ? targetRow.querySelector('textarea') : null;
-    if (pta) setTimeout(() => pta.focus(), 10);
+    const remainingRows = getIloRows();
+    if (remainingRows.length > 0) {
+      const targetRow = prev || remainingRows[0];
+      const pta = targetRow ? targetRow.querySelector('textarea') : null;
+      if (pta) setTimeout(() => pta.focus(), 10);
+    }
   });
 
   // Initialize Sortable for drag-and-drop reordering

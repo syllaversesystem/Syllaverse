@@ -86,6 +86,11 @@ document.addEventListener('DOMContentLoaded', () => {
     addBtn.addEventListener('click', () => {
       const tbody = document.getElementById('syllabus-iga-sortable');
       if (!tbody) return;
+      
+      // Remove placeholder if it exists
+      const placeholder = document.getElementById('iga-placeholder');
+      if (placeholder) placeholder.remove();
+      
       const currentCount = tbody.querySelectorAll('.iga-row').length;
       const newIndex = currentCount + 1;
       const newCode = 'IGA' + newIndex;
@@ -234,7 +239,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const id = row.getAttribute('data-id'); 
     if (!id || id.startsWith('new-')) { 
       try { row.remove(); } catch (e) { row.remove(); } 
-      updateVisibleCodes(); 
+      
+      // Check if any rows remain, if not show placeholder
+      const rows = list.querySelectorAll('tr.iga-row');
+      if (rows.length === 0) {
+        const placeholder = document.createElement('tr');
+        placeholder.id = 'iga-placeholder';
+        placeholder.innerHTML = `
+          <td colspan="2" class="text-center text-muted py-4">
+            <p class="mb-2">No IGAs added yet.</p>
+            <p class="mb-0"><small>Click the <strong>+</strong> button above to add an IGA or <strong>Load Predefined</strong> to import IGAs.</small></p>
+          </td>
+        `;
+        list.appendChild(placeholder);
+      } else {
+        updateVisibleCodes();
+      }
       return; 
     }
     
@@ -254,8 +274,22 @@ document.addEventListener('DOMContentLoaded', () => {
       // Remove the row from DOM
       row.remove();
       
-      // Update remaining IGAs with new positions and codes
-      await updateIgaPositions();
+      // Check if any rows remain, if not show placeholder
+      const remainingRows = list.querySelectorAll('tr.iga-row');
+      if (remainingRows.length === 0) {
+        const placeholder = document.createElement('tr');
+        placeholder.id = 'iga-placeholder';
+        placeholder.innerHTML = `
+          <td colspan="2" class="text-center text-muted py-4">
+            <p class="mb-2">No IGAs added yet.</p>
+            <p class="mb-0"><small>Click the <strong>+</strong> button above to add an IGA or <strong>Load Predefined</strong> to import IGAs.</small></p>
+          </td>
+        `;
+        list.appendChild(placeholder);
+      } else {
+        // Update remaining IGAs with new positions and codes
+        await updateIgaPositions();
+      }
       
       if (window.showAlertOverlay) {
         window.showAlertOverlay('success', data.message || 'IGA deleted successfully');

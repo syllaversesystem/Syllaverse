@@ -121,44 +121,11 @@
               </tr>
             </thead>
             <tbody id="syllabus-iga-sortable" data-syllabus-id="{{ $default['id'] }}">
-              @if($igasSorted->count())
-                @foreach ($igasSorted as $index => $iga)
-                  @php $seqCode = 'IGA' . ($index + 1); @endphp
-                  <tr data-id="{{ $iga->id }}" class="iga-row">
-                    <td class="text-center align-middle">
-                      <div class="iga-badge fw-semibold">{{ $seqCode }}</div>
-                    </td>
-                    <td>
-                      <div class="d-flex align-items-center gap-2">
-                        <span class="drag-handle text-muted" title="Drag to reorder"><i class="bi bi-grip-vertical"></i></span>
-                        <div class="flex-grow-1 w-100">
-                          <textarea
-                            name="iga_titles[]"
-                            class="cis-textarea cis-field autosize"
-                            placeholder="-"
-                            rows="1"
-                            style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;font-weight:700;"
-                            required>{{ old("iga_titles.$index", $iga->title ?? '') }}</textarea>
-                          <textarea
-                            name="igas[]"
-                            class="cis-textarea cis-field autosize"
-                            placeholder="Description"
-                            rows="1"
-                            style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;"
-                            required>{{ old("igas.$index", $iga->description) }}</textarea>
-                        </div>
-                        <input type="hidden" name="code[]" value="{{ $seqCode }}">
-                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-iga ms-2" title="Delete IGA">
-                          <i class="bi bi-trash"></i>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                @endforeach
-              @else
-                <tr class="iga-row">
+              @forelse($igasSorted as $index => $iga)
+                @php $seqCode = 'IGA' . ($index + 1); @endphp
+                <tr data-id="{{ $iga->id }}" class="iga-row">
                   <td class="text-center align-middle">
-                    <div class="iga-badge fw-semibold">IGA1</div>
+                    <div class="iga-badge fw-semibold">{{ $seqCode }}</div>
                   </td>
                   <td>
                     <div class="d-flex align-items-center gap-2">
@@ -170,23 +137,30 @@
                           placeholder="-"
                           rows="1"
                           style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;font-weight:700;"
-                          required></textarea>
+                          required>{{ old("iga_titles.$index", $iga->title ?? '') }}</textarea>
                         <textarea
                           name="igas[]"
                           class="cis-textarea cis-field autosize"
                           placeholder="Description"
                           rows="1"
                           style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;"
-                          required></textarea>
+                          required>{{ old("igas.$index", $iga->description) }}</textarea>
                       </div>
-                      <input type="hidden" name="code[]" value="IGA1">
+                      <input type="hidden" name="code[]" value="{{ $seqCode }}">
                       <button type="button" class="btn btn-sm btn-outline-danger btn-delete-iga ms-2" title="Delete IGA">
                         <i class="bi bi-trash"></i>
                       </button>
                     </div>
                   </td>
                 </tr>
-              @endif
+              @empty
+                <tr id="iga-placeholder">
+                  <td colspan="2" class="text-center text-muted py-4">
+                    <p class="mb-2">No IGAs added yet.</p>
+                    <p class="mb-0"><small>Click the <strong>+</strong> button above to add an IGA or <strong>Load Predefined</strong> to import IGAs.</small></p>
+                  </td>
+                </tr>
+              @endforelse
             </tbody>
           </table>
         </td>

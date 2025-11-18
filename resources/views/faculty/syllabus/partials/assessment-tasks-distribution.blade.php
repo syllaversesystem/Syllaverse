@@ -611,7 +611,7 @@ document.addEventListener('DOMContentLoaded', function() {
   window.removeATIloColumn = function() {
     const currentIloCount = getCurrentIloCount();
     if (currentIloCount <= 1) {
-      alert('Cannot remove the last ILO column');
+      console.log('Cannot remove the last ILO column');
       return;
     }
     

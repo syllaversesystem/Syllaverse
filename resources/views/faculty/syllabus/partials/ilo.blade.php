@@ -132,37 +132,11 @@
               </tr>
             </thead>
             <tbody id="syllabus-ilo-sortable" data-syllabus-id="{{ $default['id'] }}">
-              @if($ilosSorted->count())
-                @foreach ($ilosSorted as $index => $ilo)
-                  @php $seqCode = 'ILO' . ($index + 1); @endphp
-                  <tr data-id="{{ $ilo->id }}">
-                    <td class="text-center align-middle">
-                      <div class="ilo-badge fw-semibold">{{ $seqCode }}</div>
-                    </td>
-                    <td>
-                      <div class="d-flex align-items-center gap-2">
-                        <span class="drag-handle text-muted" title="Drag to reorder" style="cursor: grab;">
-                          <i class="bi bi-grip-vertical"></i>
-                        </span>
-                        <textarea
-                          name="ilos[]"
-                          class="cis-textarea cis-field autosize flex-grow-1"
-                          placeholder="-"
-                          rows="1"
-                          style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;"
-                          required>{{ old("ilos.$index", $ilo->description) }}</textarea>
-                        <input type="hidden" name="code[]" value="{{ $seqCode }}">
-                        <button type="button" class="btn btn-sm btn-outline-danger btn-delete-ilo ms-2" title="Delete ILO">
-                          <i class="bi bi-trash"></i>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                @endforeach
-              @else
-                <tr>
+              @forelse($ilosSorted as $index => $ilo)
+                @php $seqCode = 'ILO' . ($index + 1); @endphp
+                <tr data-id="{{ $ilo->id }}">
                   <td class="text-center align-middle">
-                    <div class="ilo-badge fw-semibold">ILO1</div>
+                    <div class="ilo-badge fw-semibold">{{ $seqCode }}</div>
                   </td>
                   <td>
                     <div class="d-flex align-items-center gap-2">
@@ -175,15 +149,22 @@
                         placeholder="-"
                         rows="1"
                         style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;"
-                        required></textarea>
-                      <input type="hidden" name="code[]" value="ILO1">
+                        required>{{ old("ilos.$index", $ilo->description) }}</textarea>
+                      <input type="hidden" name="code[]" value="{{ $seqCode }}">
                       <button type="button" class="btn btn-sm btn-outline-danger btn-delete-ilo ms-2" title="Delete ILO">
                         <i class="bi bi-trash"></i>
                       </button>
                     </div>
                   </td>
                 </tr>
-              @endif
+              @empty
+                <tr id="ilo-placeholder">
+                  <td colspan="2" class="text-center text-muted py-4">
+                    <p class="mb-2">No ILOs added yet.</p>
+                    <p class="mb-0"><small>Click the <strong>+</strong> button above to add an ILO or <strong>Load Predefined</strong> to import ILOs.</small></p>
+                  </td>
+                </tr>
+              @endforelse
             </tbody>
           </table>
         </td>

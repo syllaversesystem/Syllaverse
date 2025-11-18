@@ -147,6 +147,7 @@ Route::middleware([FacultyAuth::class])->group(function () {
     // ---------- ✅ SO CRUD + Sortable ----------
     Route::put('/faculty/syllabi/{syllabus}/sos', [SyllabusSoController::class, 'update'])->name('faculty.syllabi.sos.update');
     Route::post('/faculty/syllabi/{syllabus}/sos/reorder', [SyllabusSoController::class, 'reorder'])->name('faculty.syllabi.sos.reorder');
+    Route::post('/faculty/syllabi/{syllabus}/load-predefined-sos', [SyllabusSoController::class, 'loadPredefinedSos'])->name('faculty.syllabi.sos.load-predefined');
     Route::delete('/faculty/syllabi/sos/{id}', [SyllabusSoController::class, 'destroy'])->name('faculty.syllabi.sos.destroy');
 
     // ---------- ✅ SDG Mapping ----------

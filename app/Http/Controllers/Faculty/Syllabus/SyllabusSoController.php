@@ -93,7 +93,7 @@ class SyllabusSoController extends Controller
         $so = SyllabusSo::findOrFail($id);
 
         // Only allow delete if owned by current faculty
-        if ($so->syllabus->faculty_id !== Auth::id() && ! Auth::guard('admin')->check()) {
+        if ($so->syllabus->faculty_id !== Auth::id()) {
             return response()->json(['message' => 'Unauthorized.'], 403);
         }
 
@@ -105,12 +105,8 @@ class SyllabusSoController extends Controller
     // 📥 Load predefined SOs from master data (replaces existing SOs)
     public function loadPredefinedSos(Request $request, $syllabus)
     {
-        // Authorization check
-        if (Auth::guard('admin')->check()) {
-            $syllabus = Syllabus::findOrFail($syllabus);
-        } else {
-            $syllabus = Syllabus::where('faculty_id', Auth::id())->findOrFail($syllabus);
-        }
+        // Authorization check - faculty only
+        $syllabus = Syllabus::where('faculty_id', Auth::id())->findOrFail($syllabus);
 
         // Validate that so_ids is provided and is an array
         $request->validate([
@@ -161,9 +157,6 @@ class SyllabusSoController extends Controller
 
     protected function getSyllabusForAction($syllabusId)
     {
-        if (Auth::guard('admin')->check()) {
-            return Syllabus::findOrFail($syllabusId);
-        }
         return Syllabus::where('faculty_id', Auth::id())->findOrFail($syllabusId);
     }
 }
