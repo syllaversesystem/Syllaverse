@@ -588,12 +588,8 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      // IGAs only: attempt to save IGA data before main minimal save (Assessment Tasks module removed)
+      // Persist assessment mappings only (tasks distribution removed)
       try {
-        if (window.saveIga && typeof window.saveIga === 'function') {
-          try { await window.saveIga(); } catch (igaErr) { console.error('Failed to save IGA data before syllabus save:', igaErr); alert('Failed to save IGAs: ' + (igaErr && igaErr.message ? igaErr.message : 'See console for details.')); try { saveBtn.disabled = false; saveBtn.innerHTML = originalHtml; } catch (e) {} return; }
-        }
-        // Persist assessment mappings only (tasks distribution removed)
         if (window.postAssessmentMappings && typeof window.postAssessmentMappings === 'function') {
           let syllabusId = '';
           try {
