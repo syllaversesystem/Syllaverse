@@ -112,7 +112,7 @@ Route::middleware([FacultyAuth::class])->group(function () {
     Route::get('/faculty/syllabi/{id}', [SyllabusController::class, 'show'])->name('faculty.syllabi.show');
     Route::put('/faculty/syllabi/{id}', [SyllabusController::class, 'update'])->name('faculty.syllabi.update');
     Route::delete('/faculty/syllabi/{id}', [SyllabusController::class, 'destroy'])->name('faculty.syllabi.destroy');
-    Route::get('/faculty/syllabi/{id}/predefined-policies', [SyllabusController::class, 'getPredefinedPolicies'])->name('faculty.syllabi.predefined-policies');
+    Route::get('/faculty/syllabi/{id}/predefined-policies', [\App\Http\Controllers\Faculty\Syllabus\SyllabusCoursePolicyController::class, 'getPredefinedPolicies'])->name('faculty.syllabi.predefined-policies');
     
     // (Removed live save endpoints: mission-vision, course-info, tlas, criteria, ilo-save)
     // ---------- ILO CRUD & Batch Operations (replacing deprecated IloSaveController) ----------

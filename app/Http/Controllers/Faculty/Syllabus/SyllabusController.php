@@ -38,6 +38,7 @@ class SyllabusController extends Controller
         protected SyllabusCriteriaController $criteria,
         protected SyllabusIloController $ilos,
         protected SyllabusAssessmentTasksController $assessmentTasks,
+        protected SyllabusCoursePolicyController $coursePolicy,
     ) {
     }
     public function index()
@@ -105,32 +106,8 @@ class SyllabusController extends Controller
             \Log::warning('Failed to copy master IGAs into syllabus', ['error' => $e->getMessage()]);
         }
 
-        // Copy General Academic Information (master) into per-syllabus course policies
-        // This ensures course-policies textareas are pre-filled from department-specific or university defaults.
-        // Lookup hierarchy: Department-specific → University default
-        try {
-            if (Schema::hasTable('general_information') && Schema::hasTable('syllabus_course_policies')) {
-                // Get department ID from the course
-                $departmentId = $syllabus->course->department_id ?? null;
-                
-                // master sections: note we merged disability+advising into 'other'
-                $sections = ['policy', 'exams', 'dishonesty', 'dropping', 'other'];
-                $pos = 1;
-                foreach ($sections as $sec) {
-                    // Use department-aware lookup with fallback
-                    $content = GeneralInformation::getContent($sec, $departmentId);
-                    
-                    // use updateOrCreate to avoid accidental duplicates and to be idempotent
-                    SyllabusCoursePolicy::updateOrCreate(
-                        ['syllabus_id' => $syllabus->id, 'section' => $sec],
-                        ['content' => $content, 'position' => $pos++]
-                    );
-                }
-            }
-        } catch (\Throwable $e) {
-            // Log a warning but don't block syllabus creation
-            \Log::warning('Syllabus::store failed to copy GeneralInformation policies', ['error' => $e->getMessage(), 'syllabus_id' => $syllabus->id]);
-        }
+        // Seed course policies from general_information via dedicated controller
+        $this->coursePolicy->seedFromGeneralInformation($syllabus);
 
         // Copy master Student Outcomes into per-syllabus SOs if master table exists
         try {
@@ -284,32 +261,8 @@ class SyllabusController extends Controller
 
     $this->ilos->syncFromRequest($request, $syllabus);
 
-        // Persist Course Policies from course_policies[] inputs into syllabus_course_policies
-        if ($request->has('course_policies') && is_array($request->input('course_policies'))) {
-            try { 
-                \Log::info('Syllabus::update received course_policies', ['count' => count($request->input('course_policies')), 'syllabus_id' => $syllabus->id]);
-            } catch (\Throwable $__e) { /* noop */ }
-            try {
-                if (Schema::hasTable('syllabus_course_policies')) {
-                    $incoming = $request->input('course_policies');
-                    // canonical mapping of textarea index -> section key (last row uses merged 'other')
-                    $sections = ['policy', 'exams', 'dishonesty', 'dropping', 'other'];
-                    foreach ($incoming as $idx => $val) {
-                        $section = $sections[$idx] ?? null;
-                        if (! $section) continue;
-                        $content = is_string($val) ? trim($val) : null;
-                        // store null for empty content to keep DB tidy
-                        if ($content === '') $content = null;
-                        SyllabusCoursePolicy::updateOrCreate(
-                            ['syllabus_id' => $syllabus->id, 'section' => $section],
-                            ['content' => $content, 'position' => ($idx + 1)]
-                        );
-                    }
-                }
-            } catch (\Throwable $e) {
-                \Log::warning('Syllabus::update failed to persist course_policies', ['error' => $e->getMessage(), 'syllabus_id' => $syllabus->id]);
-            }
-        }
+        // Persist course policies via dedicated controller
+        $this->coursePolicy->syncFromRequest($request, $syllabus);
 
         // ILO persistence primarily flows through the live-save endpoint; syncFromRequest keeps
         // this method compatible when the full payload includes an `ilos` array.
@@ -497,50 +450,6 @@ class SyllabusController extends Controller
         $phpWord->save($tempPath, 'Word2007');
 
         return response()->download($tempPath)->deleteFileAfterSend(true);
-    }
-
-    /**
-     * Get all predefined course policies from general_information table based on department.
-     * Uses department-aware lookup: department-specific policy → university default.
-     * Returns: policy, exams, dishonesty, dropping, other (excludes mission and vision).
-     */
-    public function getPredefinedPolicies($id)
-    {
-        $syllabus = Syllabus::with('course.department')->findOrFail($id);
-        
-        // Get department ID from syllabus course
-        $departmentId = $syllabus->course->department_id ?? null;
-        
-        // Define policy sections to fetch (excluding mission and vision)
-        $sections = ['policy', 'exams', 'dishonesty', 'dropping', 'other'];
-        $policies = [];
-        $foundAny = false;
-        
-        // Fetch each section using department-aware lookup
-        foreach ($sections as $section) {
-            $content = GeneralInformation::getContent($section, $departmentId);
-            if ($content) {
-                $policies[$section] = $content;
-                $foundAny = true;
-            } else {
-                $policies[$section] = '';
-            }
-        }
-        
-        if ($foundAny) {
-            return response()->json([
-                'success' => true,
-                'policies' => $policies,
-                'department_id' => $departmentId,
-                'source' => $departmentId ? 'department' : 'university'
-            ]);
-        }
-        
-        return response()->json([
-            'success' => false,
-            'message' => 'No predefined course policies found for this department or university-wide.',
-            'policies' => $policies
-        ], 404);
     }
 
 }
