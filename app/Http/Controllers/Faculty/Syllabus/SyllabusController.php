@@ -228,7 +228,6 @@ class SyllabusController extends Controller
         // Debug: log incoming keys and specific fields to help diagnose why some partials aren't persisting
         try {
             \Log::info('Syllabus::update called', ['syllabus_id' => $id, 'incoming_keys' => array_keys($request->all())]);
-            \Log::info('Syllabus::update tla_strategies', ['tla_strategies' => $request->input('tla_strategies')]);
             \Log::info('Syllabus::update criteria_data', ['criteria_data' => $request->input('criteria_data')]);
             \Log::info('Syllabus::update criteria_lecture', ['criteria_lecture' => $request->input('criteria_lecture')]);
             \Log::info('Syllabus::update criteria_laboratory', ['criteria_laboratory' => $request->input('criteria_laboratory')]);
