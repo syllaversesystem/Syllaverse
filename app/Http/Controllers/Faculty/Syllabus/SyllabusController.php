@@ -21,7 +21,6 @@ use App\Models\StudentOutcome;
 use App\Models\Course;
 use App\Models\Program;
 use App\Models\GeneralInformation;
-use App\Models\Sdg;
 use App\Models\Iga;
 use App\Models\SyllabusIga;
 use App\Models\Cdio;
@@ -203,7 +202,6 @@ class SyllabusController extends Controller
 
         $programs = Program::all();
         $courses = Course::all();
-        $sdgs = Sdg::all();
 
         // load mission/vision defaults through the dedicated partial controller helper
         $missionVisionDefaults = $this->missionVision->defaults($syllabus);
@@ -238,7 +236,6 @@ class SyllabusController extends Controller
             'igas' => $syllabus->igas ?? collect(),
             'cdios' => $syllabus->cdios ?? collect(),
             'coursePolicies' => $coursePolicies,
-            'sdgs' => $sdgs,
         ]);
     }
 

@@ -31,13 +31,14 @@ class SyllabusSdgController extends Controller
                 'sdg_ids.*' => 'required|integer|exists:sdgs,id',
             ]);
 
+            // Delete all existing SDGs first to replace with selected ones
+            SyllabusSdg::where('syllabus_id', $syllabus->id)->delete();
+            
             $created = [];
-            $nextOrder = ($syllabus->sdgs()->max('sort_order') ?? 0) + 1;
+            $nextOrder = 1;
             foreach ($data['sdg_ids'] as $sid) {
                 $sdg = Sdg::find($sid);
                 if (!$sdg) continue;
-                // skip duplicates by title
-                if ($syllabus->sdgs()->where('title', $sdg->title)->exists()) continue;
 
                 $entry = SyllabusSdg::create([
                     'syllabus_id' => $syllabus->id,
@@ -58,7 +59,15 @@ class SyllabusSdgController extends Controller
                 $nextOrder++;
             }
 
-            return response()->json(['created' => $created]);
+            // Return fresh SDG data for AJAX update
+            $freshSdgs = SyllabusSdg::where('syllabus_id', $syllabus->id)
+                ->orderBy('sort_order')
+                ->get(['id', 'code', 'title', 'description', 'sort_order']);
+
+            return response()->json([
+                'created' => $created,
+                'sdgs' => $freshSdgs
+            ]);
         }
 
         // Backwards-compatible single attach
@@ -135,7 +144,6 @@ class SyllabusSdgController extends Controller
     try { Log::debug('SyllabusSdgController::bulkUpdate payload', $request->all()); } catch (\Throwable $e) {}
         $data = $request->validate([
             'sdgs' => 'required|array',
-            'sdgs.*.id' => 'nullable|integer',
             'sdgs.*.title' => 'nullable|string|max:255',
             'sdgs.*.code' => 'nullable|string|max:50',
             'sdgs.*.description' => 'nullable|string|max:1000',
@@ -146,17 +154,18 @@ class SyllabusSdgController extends Controller
         // descriptions and sort_order, call resequence() to recompute codes deterministically.
         \DB::beginTransaction();
         try {
+            // Delete all existing SDGs for this syllabus first to avoid duplicate key conflicts
+            SyllabusSdg::where('syllabus_id', $syllabus->id)->delete();
+
+            // Then create all SDGs from the payload
             foreach ($data['sdgs'] as $item) {
-                if (!empty($item['id'])) {
-                    $entry = SyllabusSdg::where('id', $item['id'])->where('syllabus_id', $syllabus->id)->first();
-                    if ($entry) {
-                        $updates = [];
-                        if (array_key_exists('description', $item)) $updates['description'] = $item['description'];
-                        if (array_key_exists('position', $item)) $updates['sort_order'] = $item['position'];
-                        if (array_key_exists('title', $item)) $updates['title'] = $item['title'];
-                        if (!empty($updates)) $entry->update($updates);
-                    }
-                }
+                SyllabusSdg::create([
+                    'syllabus_id' => $syllabus->id,
+                    'code' => $item['code'] ?? 'SDG' . ($item['position'] ?? 1),
+                    'sort_order' => $item['position'] ?? 0,
+                    'title' => $item['title'] ?? '',
+                    'description' => $item['description'] ?? '',
+                ]);
             }
 
             // Recompute codes and ensure contiguous ordering
@@ -202,7 +211,16 @@ class SyllabusSdgController extends Controller
             }
 
             \DB::commit();
-            return response()->json(['ok' => true]);
+            
+            // Return fresh SDG data for AJAX update
+            $freshSdgs = SyllabusSdg::where('syllabus_id', $syllabus->id)
+                ->orderBy('sort_order')
+                ->get(['id', 'code', 'title', 'description', 'sort_order']);
+            
+            return response()->json([
+                'ok' => true,
+                'sdgs' => $freshSdgs
+            ]);
         } catch (\Throwable $e) {
             \DB::rollBack();
             return response()->json(['error' => 'Failed to update SDGs', 'message' => $e->getMessage()], 500);

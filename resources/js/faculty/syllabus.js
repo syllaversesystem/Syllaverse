@@ -938,36 +938,3 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Optional exports
 export { trackFormChanges, setupExitConfirmation, bindUnsavedIndicator, recalcCreditHours, initAutosize, markDirty, updateUnsavedCount };
-
-// After the main syllabus save completes, ensure SDG order/code changes are persisted
-// and the SDG module's unsaved UI is cleared. This listener runs non-blocking but
-// will attempt to await `window.saveSdgOrder()` when available so DB codes/positions
-// are updated immediately after the main form save.
-try {
-  document.addEventListener('syllabusSaved', async function() {
-    try {
-      // Prefer ordered-save which updates pivot sort_order on server
-      if (window.saveSdgOrder && typeof window.saveSdgOrder === 'function') {
-        try { await window.saveSdgOrder(); } catch (err) { console.warn('saveSdgOrder after syllabusSaved failed', err); }
-      } else if (window.saveSdg && typeof window.saveSdg === 'function') {
-        // fallback: bulk-save SDG content (may also persist order via existing code paths)
-        try { await Promise.resolve(window.saveSdg()); } catch (err) { console.warn('saveSdg after syllabusSaved failed', err); }
-      }
-
-      // Clear SDG unsaved UI and update per-row original snapshots so fields are not re-marked
-      try {
-        const list = document.getElementById('syllabus-sdg-sortable');
-        if (list) {
-          const pill = document.getElementById('unsaved-sdgs'); if (pill) pill.classList.add('d-none');
-          const rows = Array.from(list.querySelectorAll('tr')).filter(r => { const id = r.getAttribute && r.getAttribute('data-id'); return id && !id.startsWith('new-'); });
-          rows.forEach(r => {
-            const ta = r.querySelector('textarea.autosize, textarea[name="sdgs[]"]'); if (ta) ta.setAttribute('data-original', ta.value || '');
-            const ti = r.querySelector('input.sdg-title-input'); if (ti) ti.setAttribute('data-original', ti.value || '');
-          });
-          try { if (window.updateVisibleCodes) window.updateVisibleCodes(); } catch (e) {}
-          try { if (window.updateUnsavedCount) window.updateUnsavedCount(); } catch (e) {}
-        }
-      } catch (e) { console.warn('Failed to clear SDG unsaved UI after syllabusSaved', e); }
-    } catch (e) { /* noop */ }
-  });
-} catch (e) { /* noop */ }
