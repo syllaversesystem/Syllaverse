@@ -11,12 +11,14 @@ use Illuminate\Support\Facades\Log;
 class SyllabusMissionVisionController extends Controller
 {
     /**
-     * Populate the syllabus mission & vision record using the system-wide defaults.
+     * Populate the syllabus mission & vision record using university-wide defaults.
+     * Mission and vision are the same across all departments.
      */
     public function seedFromGeneralInformation(Syllabus $syllabus): void
     {
-        $mission = GeneralInformation::where('section', 'mission')->first()?->content ?? '';
-        $vision  = GeneralInformation::where('section', 'vision')->first()?->content ?? '';
+        // Mission and vision are university-wide (no department-specific overrides)
+        $mission = GeneralInformation::where('section', 'mission')->whereNull('department_id')->first()?->content ?? '';
+        $vision  = GeneralInformation::where('section', 'vision')->whereNull('department_id')->first()?->content ?? '';
 
         try {
             $syllabus->missionVision()->updateOrCreate([], [
@@ -65,6 +67,7 @@ class SyllabusMissionVisionController extends Controller
 
     /**
      * Build the mission & vision defaults for the syllabus view payload.
+     * Mission and vision are university-wide (same for all departments).
      */
     public function defaults(Syllabus $syllabus): array
     {
@@ -73,12 +76,13 @@ class SyllabusMissionVisionController extends Controller
         $mission = $missionVision?->mission;
         $vision = $missionVision?->vision;
 
+        // Mission and vision are university-wide (no department-specific overrides)
         if ($mission === null || $mission === '') {
-            $mission = GeneralInformation::where('section', 'mission')->first()?->content ?? '';
+            $mission = GeneralInformation::where('section', 'mission')->whereNull('department_id')->first()?->content ?? '';
         }
 
         if ($vision === null || $vision === '') {
-            $vision = GeneralInformation::where('section', 'vision')->first()?->content ?? '';
+            $vision = GeneralInformation::where('section', 'vision')->whereNull('department_id')->first()?->content ?? '';
         }
 
         return [

@@ -106,15 +106,20 @@ class SyllabusController extends Controller
         }
 
         // Copy General Academic Information (master) into per-syllabus course policies
-        // This ensures course-policies textareas are pre-filled from superadmin master-data.
+        // This ensures course-policies textareas are pre-filled from department-specific or university defaults.
+        // Lookup hierarchy: Department-specific → University default
         try {
             if (Schema::hasTable('general_information') && Schema::hasTable('syllabus_course_policies')) {
-                $master = GeneralInformation::all()->keyBy('section');
+                // Get department ID from the course
+                $departmentId = $syllabus->course->department_id ?? null;
+                
                 // master sections: note we merged disability+advising into 'other'
                 $sections = ['policy', 'exams', 'dishonesty', 'dropping', 'other'];
                 $pos = 1;
                 foreach ($sections as $sec) {
-                    $content = $master->has($sec) ? ($master[$sec]->content ?? null) : null;
+                    // Use department-aware lookup with fallback
+                    $content = GeneralInformation::getContent($sec, $departmentId);
+                    
                     // use updateOrCreate to avoid accidental duplicates and to be idempotent
                     SyllabusCoursePolicy::updateOrCreate(
                         ['syllabus_id' => $syllabus->id, 'section' => $sec],
@@ -492,6 +497,50 @@ class SyllabusController extends Controller
         $phpWord->save($tempPath, 'Word2007');
 
         return response()->download($tempPath)->deleteFileAfterSend(true);
+    }
+
+    /**
+     * Get all predefined course policies from general_information table based on department.
+     * Uses department-aware lookup: department-specific policy → university default.
+     * Returns: policy, exams, dishonesty, dropping, other (excludes mission and vision).
+     */
+    public function getPredefinedPolicies($id)
+    {
+        $syllabus = Syllabus::with('course.department')->findOrFail($id);
+        
+        // Get department ID from syllabus course
+        $departmentId = $syllabus->course->department_id ?? null;
+        
+        // Define policy sections to fetch (excluding mission and vision)
+        $sections = ['policy', 'exams', 'dishonesty', 'dropping', 'other'];
+        $policies = [];
+        $foundAny = false;
+        
+        // Fetch each section using department-aware lookup
+        foreach ($sections as $section) {
+            $content = GeneralInformation::getContent($section, $departmentId);
+            if ($content) {
+                $policies[$section] = $content;
+                $foundAny = true;
+            } else {
+                $policies[$section] = '';
+            }
+        }
+        
+        if ($foundAny) {
+            return response()->json([
+                'success' => true,
+                'policies' => $policies,
+                'department_id' => $departmentId,
+                'source' => $departmentId ? 'department' : 'university'
+            ]);
+        }
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'No predefined course policies found for this department or university-wide.',
+            'policies' => $policies
+        ], 404);
     }
 
 }
