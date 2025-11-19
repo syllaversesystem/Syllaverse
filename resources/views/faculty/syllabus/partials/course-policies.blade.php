@@ -191,7 +191,7 @@
               <td class="grade-label-noleft" style="padding:0 .5rem; height:28px; line-height:28px; vertical-align:middle; border-top:1px solid #343a40; border-right:1px solid #343a40;">Excellent</td>
               <td style="padding:0 .5rem; height:28px; line-height:28px; vertical-align:middle; border-top:1px solid #343a40; border-right:1px solid #343a40;">1.00</td>
               <td style="padding:0 .5rem; height:28px; line-height:28px; vertical-align:middle; border-top:1px solid #343a40;">98 - 100</td>
-              <td rowspan="11" style="padding:0; height:28px; line-height:28px; vertical-align:middle; border-left:1px solid #343a40; text-align:center"></td>
+              <td rowspan="11" style="padding:0; height:28px; line-height:28px; vertical-align:middle; border-left:1px solid #343a40; border-right:0; text-align:center"></td>
             </tr>
             <tr>
               <td class="grade-label-noleft" style="padding:0 .5rem; height:28px; line-height:28px; vertical-align:middle; border-top:1px solid #343a40; border-right:1px solid #343a40;">Superior</td>
