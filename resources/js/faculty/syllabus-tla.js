@@ -17,68 +17,101 @@ document.addEventListener('DOMContentLoaded', () => {
   // require at least the form and the TLA table body; csrfToken and add button are optional
   if (!form || !tlaBody) return;
 
-  // ➕ Add row + insert into DB immediately
-  async function addTlaRow() {
-    const syllabusId = form.action.split('/').pop();
+  // ➕ Add row (frontend only - no DB call)
+  function addTlaRow() {
+    // Remove placeholder if it exists
+    const placeholder = tlaBody.querySelector('#tla-placeholder');
+    if (placeholder) {
+      placeholder.remove();
+    }
 
-    try {
-  const base = window.syllabusBasePath || '/faculty/syllabi';
-  const res = await fetch(`${base}/${syllabusId}/tla/append`, {
-        method: 'POST',
-        headers: {
-          'X-CSRF-TOKEN': csrfToken,
-          'Accept': 'application/json',
-        },
-      });
+    let firstRow = tlaBody.querySelector('tr:not(#tla-placeholder)');
+    
+    // If no rows exist, create a template row
+    if (!firstRow) {
+      const templateRow = document.createElement('tr');
+      templateRow.className = 'text-center align-middle';
+      templateRow.innerHTML = `
+        <td><input name="tla[][ch]" form="syllabusForm" class="form-control cis-input text-center" value="" placeholder="-"></td>
+        <td class="text-start"><textarea name="tla[][topic]" form="syllabusForm" class="form-control cis-textarea autosize cis-field" rows="2" placeholder="-"></textarea></td>
+        <td><input name="tla[][wks]" form="syllabusForm" class="form-control cis-input text-center" value="" placeholder="-"></td>
+        <td class="text-start"><textarea name="tla[][outcomes]" form="syllabusForm" class="form-control cis-textarea autosize cis-field" rows="2" placeholder="-"></textarea></td>
+        <td><input name="tla[][ilo]" form="syllabusForm" class="form-control cis-input text-center" value="" placeholder="-"></td>
+        <td><input name="tla[][so]" form="syllabusForm" class="form-control cis-input text-center" value="" placeholder="-"></td>
+        <td><input name="tla[][delivery]" form="syllabusForm" class="form-control cis-input" value="" placeholder="-"></td>
+        <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger remove-tla-row" data-id="" title="Delete Row"><i class="bi bi-trash"></i></button></td>
+        <input type="hidden" class="tla-id-field" name="tla[][id]" value="">
+        <input type="hidden" class="tla-position-field" name="tla[][position]" value="0">
+      `;
+      tlaBody.appendChild(templateRow);
+      
+      // Re-render feather icons for the new row
+      if (window.feather) window.feather.replace();
+      
+      updateTlaIndices();
+      
+      // Focus first input
+      const firstInput = templateRow.querySelector('input, textarea');
+      if (firstInput) setTimeout(() => firstInput.focus(), 100);
+      
+      // Trigger unsaved changes counter
+      try {
+        window.updateUnsavedCount && window.updateUnsavedCount();
+      } catch (e) {}
+      
+      return;
+    }
 
-      const result = await res.json();
-
-      if (result.success) {
-        const firstRow = tlaBody.querySelector('tr');
-        if (!firstRow) return;
-
-        const newRow = firstRow.cloneNode(true);
-        newRow.querySelectorAll('input').forEach(input => input.value = '');
-
-        // Clear any hidden TLA ID for new rows
-        const idInput = newRow.querySelector('.tla-id-field');
-        if (idInput) idInput.value = '';
-
-        // Clear ILO/SO visual displays
-        const iloDisplay = newRow.querySelector('.ilo-mapped-codes');
-        if (iloDisplay) iloDisplay.textContent = '';
-
-        const soDisplay = newRow.querySelector('.so-mapped-codes');
-        if (soDisplay) soDisplay.textContent = '';
-
-        // Clear modal button data-tlaid
-        newRow.querySelectorAll('.map-ilo-btn, .map-so-btn').forEach(btn => {
-          btn.dataset.tlaid = '';
-        });
-
-        // 🔗 Assign actual new TLA ID from backend so it can be deleted later
-        if (result.row?.id) {
-          if (idInput) idInput.setAttribute('value', result.row.id);
-          const deleteBtn = newRow.querySelector('.remove-tla-row');
-          if (deleteBtn) deleteBtn.setAttribute('data-id', result.row.id);
-
-          newRow.querySelectorAll('.map-ilo-btn, .map-so-btn').forEach(btn => {
-            btn.dataset.tlaid = result.row.id;
-          });
-        }
-
-        tlaBody.appendChild(newRow);
-        updateTlaIndices();
-
-        newRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        newRow.classList.add('tla-new-row');
-        setTimeout(() => newRow.classList.remove('tla-new-row'), 1000);
+    const newRow = firstRow.cloneNode(true);
+    
+    // Clear all inputs and textareas
+    newRow.querySelectorAll('input, textarea').forEach(el => {
+      if (el.type === 'hidden') {
+        el.value = '';
+      } else if (el.tagName === 'TEXTAREA') {
+        el.value = '';
       } else {
-        alert('❌ Failed to add TLA row.');
+        el.value = '';
       }
-    } catch (err) {
-      console.error('TLA row add error:', err);
-      alert('❌ Error adding TLA row to database.');
+    });
+
+    // Clear any hidden TLA ID for new rows
+    const idInput = newRow.querySelector('.tla-id-field');
+    if (idInput) idInput.value = '';
+
+    // Clear ILO/SO visual displays if they exist
+    const iloDisplay = newRow.querySelector('.ilo-mapped-codes');
+    if (iloDisplay) iloDisplay.textContent = '';
+
+    const soDisplay = newRow.querySelector('.so-mapped-codes');
+    if (soDisplay) soDisplay.textContent = '';
+
+    // Clear modal button data-tlaid if they exist
+    newRow.querySelectorAll('.map-ilo-btn, .map-so-btn').forEach(btn => {
+      btn.dataset.tlaid = '';
+    });
+
+    // Clear delete button data-id
+    const deleteBtn = newRow.querySelector('.remove-tla-row');
+    if (deleteBtn) {
+      deleteBtn.setAttribute('data-id', '');
+    }
+
+    tlaBody.appendChild(newRow);
+    updateTlaIndices();
+
+    newRow.classList.add('tla-new-row');
+    setTimeout(() => newRow.classList.remove('tla-new-row'), 1000);
+
+    // Focus first input in new row
+    const firstInput = newRow.querySelector('input, textarea');
+    if (firstInput) setTimeout(() => firstInput.focus(), 100);
+
+    // Trigger unsaved changes counter if available
+    try {
+      window.updateUnsavedCount && window.updateUnsavedCount();
+    } catch (e) {
+      // Silently fail
     }
   }
 
@@ -159,10 +192,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
 
-  const deleteBtn = row.querySelector('.remove-tla-row');
-      if (deleteBtn) {
-        deleteBtn.style.display = index === 0 ? 'none' : 'inline-block';
-      }
     });
   }
 
@@ -202,57 +231,115 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 50);
   }
 
-  // 🗑️ Handle delete button click (frontend + DB)
-  tlaBody.addEventListener('click', async function (e) {
+  // 🗑️ Handle delete button click - show modal confirmation
+  let rowToDelete = null;
+  let deleteColIndex = -1;
+  
+  tlaBody.addEventListener('click', function (e) {
     const deleteBtn = e.target.closest('.remove-tla-row');
     if (!deleteBtn) return;
 
     const row = deleteBtn.closest('tr');
-    const index = [...tlaBody.children].indexOf(row);
-    if (index === 0) return; // Never delete the first row
-
     const tlaId = deleteBtn.dataset.id;
 
+    // Store row reference for deletion after confirmation
+    rowToDelete = row;
+
     // Determine focused column index if any (to preserve focus after removal)
-    let colIndex = -1;
+    deleteColIndex = -1;
     const active = document.activeElement;
     if (active && row.contains(active) && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
       const els = Array.from(row.querySelectorAll('input,textarea'));
-      colIndex = Math.max(0, els.indexOf(active));
+      deleteColIndex = Math.max(0, els.indexOf(active));
     }
 
+    // If no ID, it's a new unsaved row - just remove from frontend without modal
     if (!tlaId) {
-      // No DB record yet — just remove it (use helper to restore focus)
-      removeTlaRowClient(row, colIndex);
+      removeTlaRowClient(row, deleteColIndex);
       return;
     }
 
-    // Confirm delete
-    if (!confirm('Are you sure you want to delete this row?')) return;
-
-    try {
-  const res = await fetch((window.syllabusBasePath || '/faculty/syllabi') + `/tla/${tlaId}`, {
-        method: 'DELETE',
-        headers: {
-          'X-CSRF-TOKEN': csrfToken,
-          'Accept': 'application/json',
-        },
-      });
-
-      const result = await res.json();
-
-      if (result.success) {
-        // Use remove helper to restore focus appropriately
-        removeTlaRowClient(row, colIndex);
-        alert('🗑️ TLA row deleted.');
-      } else {
-        alert('❌ Could not delete TLA row.');
-      }
-    } catch (err) {
-      console.error('TLA delete error:', err);
-      alert('❌ Error deleting TLA row.');
+    // Show confirmation modal for saved rows
+    const deleteModal = document.getElementById('deleteTlaModal');
+    if (deleteModal) {
+      const modal = new bootstrap.Modal(deleteModal);
+      modal.show();
     }
   });
+
+  // Handle confirm delete button in modal
+  const confirmDeleteBtn = document.getElementById('confirmDeleteTla');
+  if (confirmDeleteBtn) {
+    confirmDeleteBtn.addEventListener('click', async function() {
+      if (!rowToDelete) return;
+
+      const tlaId = rowToDelete.querySelector('.remove-tla-row')?.dataset.id;
+      if (!tlaId) return;
+
+      const deleteModalElement = document.getElementById('deleteTlaModal');
+      const deleteModal = deleteModalElement ? bootstrap.Modal.getInstance(deleteModalElement) : null;
+      
+      try {
+        confirmDeleteBtn.disabled = true;
+        confirmDeleteBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Deleting...';
+        
+        const res = await fetch(`/faculty/syllabi/tla/${tlaId}`, {
+          method: 'DELETE',
+          headers: {
+            'X-CSRF-TOKEN': csrfToken,
+            'Accept': 'application/json',
+          },
+        });
+
+        const result = await res.json();
+
+        if (result.success) {
+          // Close modal first
+          if (deleteModal) {
+            deleteModal.hide();
+          }
+          
+          // Small delay to ensure modal closes before manipulating DOM
+          setTimeout(() => {
+            // Remove from frontend after successful DB deletion
+            removeTlaRowClient(rowToDelete, deleteColIndex);
+            
+            if (window.showAlertOverlay) {
+              window.showAlertOverlay('success', 'TLA row deleted successfully');
+            } else {
+              alert('TLA row deleted successfully');
+            }
+            
+            // Trigger unsaved changes counter
+            try {
+              window.updateUnsavedCount && window.updateUnsavedCount();
+            } catch (e) {}
+            
+            // Reset state
+            rowToDelete = null;
+            deleteColIndex = -1;
+          }, 150);
+        } else {
+          throw new Error(result.message || 'Could not delete TLA row');
+        }
+      } catch (err) {
+        console.error('TLA delete error:', err);
+        
+        if (window.showAlertOverlay) {
+          window.showAlertOverlay('error', 'Error deleting TLA row: ' + err.message);
+        } else {
+          alert('Error deleting TLA row: ' + err.message);
+        }
+        
+        // Reset state on error
+        rowToDelete = null;
+        deleteColIndex = -1;
+      } finally {
+        confirmDeleteBtn.disabled = false;
+        confirmDeleteBtn.innerHTML = '<i class="bi bi-trash"></i> Delete';
+      }
+    });
+  }
 
   if (addRowBtn) addRowBtn.addEventListener('click', addTlaRow);
   form.addEventListener('submit', saveTlaRows);
@@ -287,14 +374,26 @@ document.addEventListener('DOMContentLoaded', () => {
   // Remove a TLA row client-side and restore focus to a logical cell
   function removeTlaRowClient(row, colIndex) {
     if (!row) return;
-    // Never remove the first row
-    const rowsBefore = Array.from(tlaBody.querySelectorAll('tr'));
-    const index = rowsBefore.indexOf(row);
-    if (index <= 0) return;
+    const rowsBefore = Array.from(tlaBody.querySelectorAll('tr:not(#tla-placeholder)'));
 
     // Remove row from DOM
     row.remove();
     updateTlaIndices();
+
+    // If no rows left, show placeholder
+    const remainingRows = Array.from(tlaBody.querySelectorAll('tr:not(#tla-placeholder)'));
+    if (remainingRows.length === 0) {
+      const placeholder = document.createElement('tr');
+      placeholder.id = 'tla-placeholder';
+      placeholder.innerHTML = `
+        <td colspan="8" class="text-center text-muted py-4">
+          <p class="mb-2">No TLA activities added yet.</p>
+          <p class="mb-0"><small>Click the <strong>+</strong> button above to add a TLA row.</small></p>
+        </td>
+      `;
+      tlaBody.appendChild(placeholder);
+      return;
+    }
 
     // Determine target row to focus: try the row that now occupies the same index
     const rows = Array.from(tlaBody.querySelectorAll('tr'));

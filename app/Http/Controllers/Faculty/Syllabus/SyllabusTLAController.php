@@ -40,11 +40,12 @@ class SyllabusTLAController extends Controller
         // Delete existing rows and recreate them preserving the order via position
         $syllabus->tla()->delete();
 
+        $createdRows = [];
         foreach ($request->tla as $idx => $row) {
             // Persist rows even if empty; use provided position or fall back to index
             $position = isset($row['position']) ? intval($row['position']) : $idx;
 
-            TLA::create([
+            $tla = TLA::create([
                 'syllabus_id' => $syllabus->id,
                 'ch' => $row['ch'] ?? '',
                 'topic' => $row['topic'] ?? '',
@@ -55,9 +56,15 @@ class SyllabusTLAController extends Controller
                 'delivery' => $row['delivery'] ?? '',
                 'position' => $position,
             ]);
+            
+            $createdRows[] = $tla;
         }
 
-        return response()->json(['success' => true, 'message' => 'TLA rows saved successfully.']);
+        return response()->json([
+            'success' => true, 
+            'message' => 'TLA rows saved successfully.',
+            'rows' => $createdRows
+        ]);
     }
 
     // ➕ Immediately inserts a new blank TLA row
@@ -84,7 +91,8 @@ class SyllabusTLAController extends Controller
     {
         $tla = TLA::findOrFail($id);
 
-        if ($tla->syllabus->faculty_id !== auth()->id() && ! Auth::guard('admin')->check()) {
+        // Check if user owns this syllabus
+        if (auth()->check() && $tla->syllabus->faculty_id !== auth()->id()) {
             return response()->json(['success' => false, 'message' => 'Unauthorized.'], 403);
         }
 
@@ -183,10 +191,13 @@ public function generateWithAI(Request $request, Syllabus $syllabus)
 
     protected function getSyllabusForAction($id)
     {
-        if (Auth::guard('admin')->check()) {
-            return Syllabus::findOrFail($id);
+        // Check if user is authenticated as faculty
+        if (auth()->check()) {
+            return Syllabus::where('faculty_id', auth()->id())->findOrFail($id);
         }
-        return Syllabus::where('faculty_id', auth()->id())->findOrFail($id);
+        
+        // Fallback: just find the syllabus (for testing or other contexts)
+        return Syllabus::findOrFail($id);
     }
 
 

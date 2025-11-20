@@ -572,6 +572,18 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
+      // --- Save TLA rows before the main form submission ---
+      try {
+        if (window.saveTla && typeof window.saveTla === 'function') {
+          await window.saveTla();
+        }
+      } catch (tlaErr) {
+        console.error('Failed to save TLA data before syllabus save:', tlaErr);
+        alert('Failed to save TLA rows: ' + (tlaErr && tlaErr.message ? tlaErr.message : 'See console for details.'));
+        try { saveBtn.disabled = false; saveBtn.innerHTML = originalHtml; } catch (e) { /* noop */ }
+        return;
+      }
+
       // --- Save CDIOs before the main form submission ---
       try {
         if (window.saveCdio && typeof window.saveCdio === 'function') {
