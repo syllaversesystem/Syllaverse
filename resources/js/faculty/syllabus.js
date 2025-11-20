@@ -612,27 +612,16 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      // Persist assessment mappings only (tasks distribution removed)
+      // Persist assessment mappings
       try {
-        if (window.postAssessmentMappings && typeof window.postAssessmentMappings === 'function') {
-          let syllabusId = '';
+        if (window.saveAssessmentMappingsForToolbar && typeof window.saveAssessmentMappingsForToolbar === 'function') {
+          try { window._syllabusSaveLock = true; } catch (e) { /* noop */ }
           try {
-            const idInput = form.querySelector('[name="id"], input[name="syllabus_id"], input[name="syllabus"]');
-            if (idInput) syllabusId = idInput.value || '';
-          } catch (e) { /* noop */ }
-          if (!syllabusId) {
-            try { const m = action.match(/\/faculty\/syllabi\/([^\/\?]+)/); if (m) syllabusId = decodeURIComponent(m[1]); } catch (e) { /* noop */ }
-          }
-          if (syllabusId) {
-            try { window._syllabusSaveLock = true; } catch (e) { /* noop */ }
-            try {
-              if (window.saveAssessmentMappings && typeof window.saveAssessmentMappings === 'function') {
-                try { await window.saveAssessmentMappings(); } catch (serr) { console.warn('saveAssessmentMappings failed (ignored) during save flow', serr); }
-              }
-              await window.postAssessmentMappings(syllabusId).catch((err) => { console.warn('postAssessmentMappings failed (ignored) during save flow', err); });
-            } finally {
-              setTimeout(() => { try { window._syllabusSaveLock = false; } catch (e) { /* noop */ } }, 400);
-            }
+            await window.saveAssessmentMappingsForToolbar();
+          } catch (err) {
+            console.warn('saveAssessmentMappingsForToolbar failed (ignored) during save flow', err);
+          } finally {
+            setTimeout(() => { try { window._syllabusSaveLock = false; } catch (e) { /* noop */ } }, 400);
           }
         }
       } catch (e) {

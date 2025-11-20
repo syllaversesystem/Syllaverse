@@ -132,6 +132,10 @@ Route::middleware([FacultyAuth::class])->group(function () {
     Route::get('/faculty/syllabi/{syllabus}/assessment-tasks', [\App\Http\Controllers\Faculty\Syllabus\SyllabusAssessmentTasksController::class, 'index'])->name('faculty.syllabi.assessment-tasks.index');
     Route::post('/faculty/syllabi/{syllabus}/assessment-tasks', [\App\Http\Controllers\Faculty\Syllabus\SyllabusAssessmentTasksController::class, 'store'])->name('faculty.syllabi.assessment-tasks.store');
 
+    // ---------- Assessment Mappings (Weekly Distribution) ----------
+    Route::get('/faculty/syllabi/{id}/assessment-mappings', [\App\Http\Controllers\Faculty\Syllabus\SyllabusAssessmentMappingController::class, 'index'])->name('faculty.syllabi.assessment-mappings.index');
+    Route::post('/faculty/syllabi/{id}/assessment-mappings', [\App\Http\Controllers\Faculty\Syllabus\SyllabusAssessmentMappingController::class, 'update'])->name('faculty.syllabi.assessment-mappings.update');
+
     // ---------- IGA (Institutional Graduate Attributes) — managed by dedicated controller ----------
     Route::put('/faculty/syllabi/{syllabus}/igas', [\App\Http\Controllers\Faculty\Syllabus\SyllabusIgaController::class, 'update'])->name('faculty.syllabi.iga.update');
     Route::post('/faculty/syllabi/{syllabus}/load-predefined-igas', [\App\Http\Controllers\Faculty\Syllabus\SyllabusIgaController::class, 'loadPredefinedIgas'])->name('faculty.syllabi.igas.load-predefined');

@@ -81,6 +81,7 @@
   @vite('resources/js/faculty/syllabus-textbook.js')
   @vite('resources/js/faculty/syllabus-tla.js')
   @vite('resources/js/faculty/syllabus-tla-ai.js')
+  @vite('resources/js/faculty/syllabus-assessment-mapping.js')
   {{-- ░░░ END: Vite JS ░░░ --}}
 </body>
 </html>
