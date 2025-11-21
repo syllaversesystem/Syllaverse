@@ -32,14 +32,14 @@ document.addEventListener('DOMContentLoaded', () => {
       const templateRow = document.createElement('tr');
       templateRow.className = 'text-center align-middle';
       templateRow.innerHTML = `
-        <td><input name="tla[][ch]" form="syllabusForm" class="form-control cis-input text-center" value="" placeholder="-"></td>
-        <td class="text-start"><textarea name="tla[][topic]" form="syllabusForm" class="form-control cis-textarea autosize cis-field" rows="2" placeholder="-"></textarea></td>
-        <td><input name="tla[][wks]" form="syllabusForm" class="form-control cis-input text-center" value="" placeholder="-"></td>
-        <td class="text-start"><textarea name="tla[][outcomes]" form="syllabusForm" class="form-control cis-textarea autosize cis-field" rows="2" placeholder="-"></textarea></td>
-        <td><input name="tla[][ilo]" form="syllabusForm" class="form-control cis-input text-center" value="" placeholder="-"></td>
-        <td><input name="tla[][so]" form="syllabusForm" class="form-control cis-input text-center" value="" placeholder="-"></td>
-        <td><input name="tla[][delivery]" form="syllabusForm" class="form-control cis-input" value="" placeholder="-"></td>
-        <td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger remove-tla-row" data-id="" title="Delete Row"><i class="bi bi-trash"></i></button></td>
+        <td class="tla-ch"><input name="tla[][ch]" form="syllabusForm" class="form-control cis-input text-center" value="" placeholder="-"></td>
+        <td class="tla-topic text-start"><textarea name="tla[][topic]" form="syllabusForm" class="form-control cis-textarea autosize cis-field" rows="2" placeholder="-"></textarea></td>
+        <td class="tla-wks"><input name="tla[][wks]" form="syllabusForm" class="form-control cis-input text-center" value="" placeholder="-"></td>
+        <td class="tla-outcomes text-start"><textarea name="tla[][outcomes]" form="syllabusForm" class="form-control cis-textarea autosize cis-field" rows="2" placeholder="-"></textarea></td>
+        <td class="tla-ilo"><input name="tla[][ilo]" form="syllabusForm" class="form-control cis-input text-center" value="" placeholder="-"></td>
+        <td class="tla-so"><input name="tla[][so]" form="syllabusForm" class="form-control cis-input text-center" value="" placeholder="-"></td>
+        <td class="tla-delivery"><input name="tla[][delivery]" form="syllabusForm" class="form-control cis-input" value="" placeholder="-"></td>
+        <td class="tla-actions text-center"><button type="button" class="btn btn-sm btn-outline-danger remove-tla-row" data-id="" title="Delete Row"><i class="bi bi-trash"></i></button></td>
         <input type="hidden" class="tla-id-field" name="tla[][id]" value="">
         <input type="hidden" class="tla-position-field" name="tla[][position]" value="0">
       `;

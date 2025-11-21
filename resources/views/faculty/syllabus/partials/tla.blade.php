@@ -111,28 +111,28 @@
             $id = is_object($r) ? ($r->id ?? '') : ($r['id'] ?? '');
           @endphp
           <tr class="text-center align-middle" data-tla-id="{{ $id }}">
-            <td>
+            <td class="tla-ch">
               <input name="tla[{{ $i }}][ch]" form="syllabusForm" class="form-control cis-input text-center" value="{{ $ch }}" placeholder="-">
             </td>
-            <td class="text-start">
+            <td class="tla-topic text-start">
               <textarea name="tla[{{ $i }}][topic]" form="syllabusForm" class="form-control cis-textarea autosize cis-field" rows="2" placeholder="-">{{ $topic }}</textarea>
             </td>
-            <td>
+            <td class="tla-wks">
               <input name="tla[{{ $i }}][wks]" form="syllabusForm" class="form-control cis-input text-center" value="{{ $wks }}" placeholder="-">
             </td>
-            <td class="text-start">
+            <td class="tla-outcomes text-start">
               <textarea name="tla[{{ $i }}][outcomes]" form="syllabusForm" class="form-control cis-textarea autosize cis-field" rows="2" placeholder="-">{{ $outcomes }}</textarea>
             </td>
-            <td>
+            <td class="tla-ilo">
               <input name="tla[{{ $i }}][ilo]" form="syllabusForm" class="form-control cis-input text-center" value="{{ $ilo }}" placeholder="-">
             </td>
-            <td>
+            <td class="tla-so">
               <input name="tla[{{ $i }}][so]" form="syllabusForm" class="form-control cis-input text-center" value="{{ $so }}" placeholder="-">
             </td>
-            <td>
+            <td class="tla-delivery">
               <input name="tla[{{ $i }}][delivery]" form="syllabusForm" class="form-control cis-input" value="{{ $delivery }}" placeholder="-">
             </td>
-            <td class="text-center">
+            <td class="tla-actions text-center">
               <button type="button" class="btn btn-sm btn-outline-danger remove-tla-row" data-id="{{ $id }}" title="Delete Row">
                 <i class="bi bi-trash"></i>
               </button>

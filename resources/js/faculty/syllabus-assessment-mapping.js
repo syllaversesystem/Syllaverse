@@ -2,6 +2,132 @@ document.addEventListener('DOMContentLoaded', function() {
 	const addColumnBtn = document.getElementById('add-week-column');
 	const removeColumnBtn = document.getElementById('remove-week-column');
 
+	// Function to sync week columns with TLA week numbers
+	function syncWeekColumnsWithTLA() {
+		const tlaRows = document.querySelectorAll('#tlaTable tbody tr:not(#tla-placeholder)');
+		const weekTable = document.querySelector('.assessment-mapping table.week');
+		
+		if (!weekTable || tlaRows.length === 0) return;
+
+		// Collect all week numbers from TLA rows
+		const weekNumbers = new Set();
+		tlaRows.forEach(function(row) {
+			const wksInput = row.querySelector('.tla-wks input');
+			if (wksInput && wksInput.value.trim()) {
+				// Parse week numbers (handle ranges like "1-3" or comma-separated like "1,2,3")
+				const wksValue = wksInput.value.trim();
+				
+				// Handle ranges (e.g., "1-3")
+				if (wksValue.includes('-')) {
+					const parts = wksValue.split('-');
+					const start = parseInt(parts[0]);
+					const end = parseInt(parts[1]);
+					if (!isNaN(start) && !isNaN(end)) {
+						for (let i = start; i <= end; i++) {
+							weekNumbers.add(i);
+						}
+					}
+				}
+				// Handle comma-separated (e.g., "1,2,3")
+				else if (wksValue.includes(',')) {
+					wksValue.split(',').forEach(function(num) {
+						const parsed = parseInt(num.trim());
+						if (!isNaN(parsed)) {
+							weekNumbers.add(parsed);
+						}
+					});
+				}
+				// Handle single number
+				else {
+					const parsed = parseInt(wksValue);
+					if (!isNaN(parsed)) {
+						weekNumbers.add(parsed);
+					}
+				}
+			}
+		});
+
+		// Sort week numbers
+		const sortedWeeks = Array.from(weekNumbers).sort((a, b) => a - b);
+		
+		if (sortedWeeks.length === 0) return;
+
+		const headerRow = weekTable.querySelector('tr:first-child');
+		const allDataRows = weekTable.querySelectorAll('tr:not(:first-child)');
+		const currentHeaders = Array.from(headerRow.querySelectorAll('th.week-number'));
+		
+		// Check if we have a placeholder
+		const hasPlaceholder = currentHeaders.length === 1 && currentHeaders[0].textContent.trim() === 'No weeks';
+		
+		// Get current week numbers (excluding placeholder)
+		const currentWeeks = hasPlaceholder ? [] : currentHeaders.map(th => parseInt(th.textContent.trim())).filter(n => !isNaN(n));
+		
+		// If current weeks match sorted weeks, no need to update
+		if (JSON.stringify(currentWeeks) === JSON.stringify(sortedWeeks)) return;
+
+		// Clear existing headers and cells
+		if (hasPlaceholder) {
+			currentHeaders[0].remove();
+			allDataRows.forEach(row => {
+				const cell = row.querySelector('td.week-mapping');
+				if (cell) cell.remove();
+			});
+		} else {
+			currentHeaders.forEach(th => th.remove());
+			allDataRows.forEach(row => {
+				const cells = row.querySelectorAll('td.week-mapping');
+				cells.forEach(cell => cell.remove());
+			});
+		}
+
+		// Add new week columns based on TLA weeks
+		sortedWeeks.forEach(function(weekNum, index) {
+			// Add header
+			const newTh = document.createElement('th');
+			newTh.className = 'week-number';
+			const borderLeft = index > 0 ? 'border-left:1px solid #343a40;' : '';
+			newTh.style.cssText = `border:none; border-bottom:1px solid #343a40; ${borderLeft} height:30px; padding:0.2rem 0.5rem; font-family:Georgia,serif; font-size:13px; color:#000; font-weight:bold; text-align:center;`;
+			newTh.textContent = weekNum;
+			headerRow.appendChild(newTh);
+
+			// Add cells to all data rows
+			allDataRows.forEach(function(row, rowIndex) {
+				const newTd = document.createElement('td');
+				newTd.className = 'week-mapping';
+				const borderTop = rowIndex > 0 ? 'border-top:1px solid #343a40;' : '';
+				newTd.style.cssText = `border:none; ${borderLeft} ${borderTop} height:30px; padding:0.2rem 0.5rem; background-color:#fff; cursor:pointer; text-align:center;`;
+				row.appendChild(newTd);
+				attachWeekCellClickHandler(newTd);
+			});
+		});
+	}
+
+	// Initial sync on load
+	setTimeout(syncWeekColumnsWithTLA, 500);
+
+	// Watch for changes in TLA table week inputs
+	const tlaTable = document.querySelector('#tlaTable tbody');
+	if (tlaTable) {
+		// Use event delegation for input changes
+		tlaTable.addEventListener('input', function(e) {
+			if (e.target.matches('.tla-wks input')) {
+				// Debounce the sync
+				clearTimeout(window.tlaWeekSyncTimeout);
+				window.tlaWeekSyncTimeout = setTimeout(syncWeekColumnsWithTLA, 300);
+			}
+		});
+
+		// Watch for row additions/deletions
+		const tlaObserver = new MutationObserver(function(mutations) {
+			clearTimeout(window.tlaWeekSyncTimeout);
+			window.tlaWeekSyncTimeout = setTimeout(syncWeekColumnsWithTLA, 300);
+		});
+
+		tlaObserver.observe(tlaTable, {
+			childList: true
+		});
+	}
+
 	if (addColumnBtn) {
 		addColumnBtn.addEventListener('click', function() {
 			// Target the week table specifically
