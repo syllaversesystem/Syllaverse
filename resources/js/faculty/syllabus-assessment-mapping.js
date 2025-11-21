@@ -461,13 +461,8 @@ document.addEventListener('DOMContentLoaded', function() {
 			// If no mappings collected, send empty array to delete all existing mappings
 			// This allows saving when there are no fields (clears all data)
 
-			// Disable button and show loading state
-			saveBtn.disabled = true;
-			const originalText = saveBtn.textContent;
-			saveBtn.textContent = 'Saving...';
-
 			// Send AJAX request (even if mappings is empty to delete all)
-		fetch(`/faculty/syllabi/${syllabusId}/assessment-mappings`, {
+			fetch(`/faculty/syllabi/${syllabusId}/assessment-mappings`, {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json',
@@ -782,4 +777,32 @@ if (saveBtn) {
 
 	// Load mappings on page load (after TLA sync delay)
 	setTimeout(loadAssessmentMappings, 1000);
+
+	// Function to check if Assessment Method text overflows and hide if needed
+	function checkAssessmentMethodOverflow() {
+		const header = document.querySelector('.assessment-method-header');
+		const text = document.querySelector('.assessment-method-text');
+		
+		if (!header || !text) return;
+		
+		const headerHeight = header.offsetHeight;
+		const textWidth = text.scrollWidth; // Text width becomes height when rotated
+		
+		// If text is longer than available height, hide it completely
+		if (textWidth > headerHeight) {
+			text.style.visibility = 'hidden';
+		} else {
+			text.style.visibility = 'visible';
+		}
+	}
+
+	// Check overflow initially and whenever rows change
+	setTimeout(checkAssessmentMethodOverflow, 1500);
+	
+	// Re-check when distribution rows are added/removed
+	const originalSyncDistribution = syncDistributionFromAT;
+	syncDistributionFromAT = function() {
+		originalSyncDistribution();
+		setTimeout(checkAssessmentMethodOverflow, 300);
+	};
 });
