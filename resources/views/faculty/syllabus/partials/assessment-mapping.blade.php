@@ -1,4 +1,4 @@
-<div class="assessment-mapping">
+<div class="assessment-mapping" data-syllabus-id="{{ $syllabus->id ?? '' }}">
 <table class="table table-bordered mb-4" style="width:100%; table-layout:fixed; border:1px solid #343a40; border-collapse:collapse;">
 	<thead>
 		<tr>
@@ -6,34 +6,44 @@
 			<th style="border:1px solid #343a40; height:30px; width:70%; padding:0.2rem 0.5rem; font-weight:700; font-family:Georgia, serif; font-size:13px; line-height:1.4; color:#111; text-align:center;">Week No.</th>
 		</tr>
 		<tr>
-			<th class="partial-header-th" style="border:1px solid #343a40; height:30px; padding:0.2rem 0.5rem; font-weight:700; font-family:Georgia, serif; font-size:13px; line-height:1.4; color:#111;"></th>
-			<td class="distribution-table-td" style="border:1px solid #343a40; padding:0;">
-				<table class="distribution-inner-table" style="width:100%; border:none; border-collapse:collapse;">
+			<th class="partial-header" style="border:1px solid #343a40; height:30px; width:15%; padding:0.2rem 0.5rem; font-weight:700; font-family:Georgia, serif; font-size:13px; line-height:1.4; color:#111; text-align:center;"></th>
+			<td class="distribution-table" style="border:1px solid #343a40; padding:0;">
+				<table class="distribution" style="width:100%; border:none; border-collapse:collapse;">
 					<tr>
-						<th class="distribution-header" style="border-top:none; border-left:none; border-right:none; border-bottom:1px solid #343a40; height:30px; padding:0.2rem 0.5rem; font-weight:700; font-family:Georgia, serif; font-size:13px; line-height:1.4; color:#111; text-align:center;">Distribution</th>
+						<th class="distribution-header" style="border:none; border-bottom:1px solid #343a40; height:30px; padding:0.2rem 0.5rem; font-family:Georgia,serif; font-size:13px; color:#000; font-weight:bold; text-align:center;">Distribution</th>
 					</tr>
 					<tr>
-						<td class="assessment-task" style="border:none; height:30px; padding:0.12rem 0.18rem; text-align:center;">
-							<input type="text" name="assessment_task[]" form="syllabusForm" value="" class="form-control cis-input text-center cis-field" placeholder="-" />
+						<td class="task" style="border:none; height:30px; padding:0; background-color:#fff;">
+							<input type="text" class="form-control form-control-sm distribution-input" placeholder="-" style="width:100%; height:22px; border:none; padding:0.2rem 0.5rem; font-family:Georgia,serif; font-size:13px; text-align:center; box-sizing:border-box;">
 						</td>
 					</tr>
 				</table>
 			</td>
-			<td class="weeks-table-td" style="border-top:1px solid #343a40; border-right:1px solid #343a40; border-bottom:1px solid #343a40; border-left:none; padding:0;">
-				<table class="inner-week-table" style="width:100%; border:none; border-collapse:collapse;">
+			<td class="week-table" style="border:1px solid #343a40; padding:0;">
+				<table class="week" style="width:100%; border:none; border-collapse:collapse; table-layout:fixed;">
 					<tr>
-						<th class="week-no-header" style="border-top:none; border-left:none; border-right:none; border-bottom:1px solid #343a40; height:30px; padding:0.2rem 0.5rem; font-weight:700; font-family:Georgia, serif; font-size:13px; line-height:1.4; color:#111; text-align:center;">1</th>
+						<th class="week-number" style="border:none; border-bottom:1px solid #343a40; height:30px; padding:0.2rem 0.5rem; font-family:Georgia,serif; font-size:13px; color:#6c757d; font-weight:normal; text-align:center;">No weeks</th>
 					</tr>
-					<tr style="height:34.212px;">
-						<td class="week-mappings" style="border:none; padding:0.12rem 0.18rem; text-align:center;"></td>
+					<tr>
+						<td class="week-mapping" style="border:none; height:30px; padding:0.2rem 0.5rem; background-color:#fff;"></td>
 					</tr>
 				</table>
 			</td>
 		</tr>
 	</thead>
 </table>
-<div class="mt-2">
-	<button type="button" id="addWeekColumn" class="btn btn-sm btn-outline-primary">Add Week Column</button>
-	<button type="button" id="removeWeekColumn" class="btn btn-sm btn-outline-danger">Remove Week Column</button>
+
+<div class="d-flex gap-2 mt-2">
+	<button type="button" class="btn btn-sm btn-primary" id="add-week-column">Add Week Column</button>
+	<button type="button" class="btn btn-sm btn-danger" id="remove-week-column">Remove Week Column</button>
+</div>
+
+<div class="d-flex gap-2 mt-2">
+	<button type="button" class="btn btn-sm btn-success" id="add-row">Add Row</button>
+	<button type="button" class="btn btn-sm btn-warning" id="remove-row">Remove Row</button>
+</div>
+
+<div class="d-flex gap-2 mt-3">
+	<button type="button" class="btn btn-primary" id="save-assessment-mappings">Save Assessment Mappings</button>
 </div>
 </div>
