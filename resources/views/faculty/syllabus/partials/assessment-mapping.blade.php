@@ -6,7 +6,7 @@
 			<th style="border:1px solid #343a40; height:30px; width:70%; padding:0.2rem 0.5rem; font-weight:700; font-family:Georgia, serif; font-size:13px; line-height:1.4; color:#111; text-align:center;">Week No.</th>
 		</tr>
 		<tr>
-			<th class="partial-header" style="border:1px solid #343a40; height:30px; width:15%; padding:0.2rem 0.5rem; font-weight:700; font-family:Georgia, serif; font-size:13px; line-height:1.4; color:#111; text-align:center;"></th>
+			<th class="align-top text-start cis-label" style="border:1px solid #343a40; height:30px; width:15%; padding:0.2rem 0.5rem; color:#000; font-weight:700;">Assessment Method</th>
 			<td class="distribution-table" style="border:1px solid #343a40; padding:0;">
 				<table class="distribution" style="width:100%; border:none; border-collapse:collapse;">
 					<tr>
@@ -25,25 +25,11 @@
 						<th class="week-number" style="border:none; border-bottom:1px solid #343a40; height:30px; padding:0.2rem 0.5rem; font-family:Georgia,serif; font-size:13px; color:#6c757d; font-weight:normal; text-align:center;">No weeks</th>
 					</tr>
 					<tr>
-						<td class="week-mapping" style="border:none; height:30px; padding:0.2rem 0.5rem; background-color:#fff;"></td>
+						<td class="week-mapping" style="border:none; height:30px; padding:0.2rem 0.5rem; background-color:#fff; height:30px;"></td>
 					</tr>
 				</table>
 			</td>
 		</tr>
 	</thead>
 </table>
-
-<div class="d-flex gap-2 mt-2">
-	<button type="button" class="btn btn-sm btn-primary" id="add-week-column">Add Week Column</button>
-	<button type="button" class="btn btn-sm btn-danger" id="remove-week-column">Remove Week Column</button>
-</div>
-
-<div class="d-flex gap-2 mt-2">
-	<button type="button" class="btn btn-sm btn-success" id="add-row">Add Row</button>
-	<button type="button" class="btn btn-sm btn-warning" id="remove-row">Remove Row</button>
-</div>
-
-<div class="d-flex gap-2 mt-3">
-	<button type="button" class="btn btn-primary" id="save-assessment-mappings">Save Assessment Mappings</button>
-</div>
 </div>

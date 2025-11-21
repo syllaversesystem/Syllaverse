@@ -45,9 +45,9 @@ class SyllabusAssessmentMappingController extends Controller
             ], 404);
         }
 
-        // Validate request
+        // Validate request (allow empty array to delete all mappings)
         $validated = $request->validate([
-            'mappings' => 'required|array',
+            'mappings' => 'present|array',
             'mappings.*.name' => 'nullable|string|max:255',
             'mappings.*.week_marks' => 'nullable|array',
             'mappings.*.position' => 'nullable|integer',

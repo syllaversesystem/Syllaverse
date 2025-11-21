@@ -608,6 +608,19 @@ document.addEventListener('DOMContentLoaded', () => {
       } catch (atErr) {
         console.error('Failed to save Assessment Tasks:', atErr);
         alert('Failed to save Assessment Tasks: ' + (atErr && atErr.message ? atErr.message : 'See console for details.'));
+        try { saveBtn.disabled = false; saveBtn.innerHTML = originalHtml; } catch (e) { /* noop */ }
+        return;
+      }
+
+      // --- Save Assessment Mappings before main form submission ---
+      try {
+        if (window.saveAssessmentMappings && typeof window.saveAssessmentMappings === 'function') {
+          await window.saveAssessmentMappings();
+          console.log('Assessment Mappings saved to database');
+        }
+      } catch (amErr) {
+        console.error('Failed to save Assessment Mappings:', amErr);
+        alert('Failed to save Assessment Mappings: ' + (amErr && amErr.message ? amErr.message : 'See console for details.'));
         try { saveBtn.disabled = false; saveBtn.innerHTML = originalHtml; window._syllabusSaveLock = false; } catch (e) { /* noop */ }
         return;
       }
