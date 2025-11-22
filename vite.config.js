@@ -45,6 +45,7 @@ export default defineConfig({
                 'resources/js/faculty/syllabus-ilo.js',
                 'resources/js/faculty/syllabus-so.js',
                 'resources/js/faculty/syllabus-assessment-mapping.js',
+                'resources/js/faculty/syllabus-ilo-so-cpa-mapping.js',
                 'resources/js/faculty/syllabus-cdio.js',
 
                 // Faculty Master Data JS
