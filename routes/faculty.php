@@ -19,6 +19,7 @@ use App\Http\Controllers\Faculty\Syllabus\SyllabusTLAController;
 use App\Http\Controllers\Faculty\Syllabus\SyllabusIloController;
 use App\Http\Controllers\Faculty\Syllabus\SyllabusSoController;
 use App\Http\Controllers\Faculty\Syllabus\SyllabusSdgController;
+use App\Http\Controllers\Faculty\Syllabus\IloSoCpaController;
 use App\Http\Controllers\Faculty\SdgController;
 use App\Http\Controllers\Faculty\IgaController;
 use App\Http\Controllers\Faculty\CdioController;
@@ -138,6 +139,9 @@ Route::middleware([FacultyAuth::class])->group(function () {
 
     // ---------- IGA (Institutional Graduate Attributes) — managed by dedicated controller ----------
     Route::put('/faculty/syllabi/{syllabus}/igas', [\App\Http\Controllers\Faculty\Syllabus\SyllabusIgaController::class, 'update'])->name('faculty.syllabi.iga.update');
+
+    // ---------- ILO-SO-CPA Mapping ----------
+    Route::post('/faculty/syllabus/save-ilo-so-cpa-mapping', [IloSoCpaController::class, 'save'])->name('faculty.syllabi.ilo-so-cpa.save');
     Route::post('/faculty/syllabi/{syllabus}/load-predefined-igas', [\App\Http\Controllers\Faculty\Syllabus\SyllabusIgaController::class, 'loadPredefinedIgas'])->name('faculty.syllabi.igas.load-predefined');
     Route::post('/faculty/syllabi/igas/reorder', [\App\Http\Controllers\Faculty\Syllabus\SyllabusIgaController::class, 'reorder'])->name('faculty.syllabi.iga.reorder');
     Route::delete('/faculty/syllabi/igas/{id}', [\App\Http\Controllers\Faculty\Syllabus\SyllabusIgaController::class, 'destroy'])->name('faculty.syllabi.iga.destroy');
