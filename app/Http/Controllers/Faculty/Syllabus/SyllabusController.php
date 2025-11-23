@@ -218,6 +218,7 @@ class SyllabusController extends Controller
             'igas' => $syllabus->igas ?? collect(),
             'cdios' => $syllabus->cdios ?? collect(),
             'coursePolicies' => $coursePolicies,
+            'soColumns' => $syllabus->so_columns ? json_decode($syllabus->so_columns, true) : [],
         ]);
     }
 

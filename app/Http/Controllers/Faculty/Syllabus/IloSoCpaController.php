@@ -17,9 +17,11 @@ class IloSoCpaController extends Controller
     {
         $request->validate([
             'syllabus_id' => 'required|exists:syllabi,id',
+            'so_columns' => 'nullable|array',
+            'so_columns.*' => 'string',
             'mappings' => 'array', // Allow empty array to delete all
             'mappings.*.ilo_text' => 'required|string',
-            'mappings.*.sos' => 'nullable|array',
+            'mappings.*.sos' => 'nullable',
             'mappings.*.c' => 'nullable|string',
             'mappings.*.p' => 'nullable|string',
             'mappings.*.a' => 'nullable|string',
@@ -30,6 +32,11 @@ class IloSoCpaController extends Controller
             DB::beginTransaction();
 
             $syllabusId = $request->syllabus_id;
+
+            // Update SO columns in syllabi table
+            DB::table('syllabi')
+                ->where('id', $syllabusId)
+                ->update(['so_columns' => json_encode($request->so_columns ?? [])]);
 
             // Delete existing mappings for this syllabus
             SyllabusIloSoCpa::where('syllabus_id', $syllabusId)->delete();

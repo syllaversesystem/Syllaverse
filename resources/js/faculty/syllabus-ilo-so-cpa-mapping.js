@@ -57,9 +57,23 @@ document.addEventListener('DOMContentLoaded', function() {
 		const isPlaceholder = firstCell && firstCell.textContent.trim() === 'No ILO';
 		
 		if (isPlaceholder) {
-			// Replace placeholder with ILO1
-			firstCell.textContent = 'ILO1';
-			firstCell.style.cssText = 'border:none; border-top:1px solid #343a40; border-right:1px solid #343a40; padding:0.2rem 0.5rem; font-family:Georgia, serif; font-size:13px; color:#000; text-align:center; vertical-align:middle;';
+			// Replace placeholder with blank input
+			firstCell.innerHTML = '';
+			const iloInput = document.createElement('input');
+			iloInput.type = 'text';
+			iloInput.value = '';
+			iloInput.placeholder = '-';
+			iloInput.className = 'form-control form-control-sm';
+			iloInput.style.cssText = 'width:100%; border:none; padding:0.1rem 0.25rem; font-family:Georgia,serif; font-size:13px; text-align:center; box-sizing:border-box; background:transparent;';
+			// Auto-format ILO number
+			iloInput.addEventListener('input', function(e) {
+				const value = e.target.value;
+				if (/^\d+$/.test(value)) {
+					e.target.value = 'ILO' + value;
+				}
+			});
+			firstCell.appendChild(iloInput);
+			firstCell.style.cssText = 'border:none; border-top:1px solid #343a40; border-right:1px solid #343a40; padding:0.1rem 0.25rem; font-family:Georgia, serif; font-size:13px; color:#000; text-align:center; vertical-align:middle;';
 			
 			// Re-enable all textareas (SO and CPA)
 			const cells = lastRow.querySelectorAll('td');
@@ -104,9 +118,38 @@ document.addEventListener('DOMContentLoaded', function() {
 		
 		const newRow = lastRow.cloneNode(true);
 		const iloCell = newRow.querySelector('td:first-child');
-		const iloNumber = dataRows.length + 1;
-		iloCell.textContent = 'ILO' + iloNumber;
-		iloCell.style.cssText = 'border:none; border-top:1px solid #343a40; border-right:1px solid #343a40; padding:0.2rem 0.5rem; font-family:Georgia, serif; font-size:13px; color:#000; text-align:center; vertical-align:middle;';
+		
+		// Create or update input for ILO
+		const existingInput = iloCell.querySelector('input');
+		if (existingInput) {
+			existingInput.value = '';
+			// Re-attach auto-format listener
+			const newInput = existingInput.cloneNode(true);
+			newInput.addEventListener('input', function(e) {
+				const value = e.target.value;
+				if (/^\d+$/.test(value)) {
+					e.target.value = 'ILO' + value;
+				}
+			});
+			iloCell.replaceChild(newInput, existingInput);
+		} else {
+			iloCell.innerHTML = '';
+			const iloInput = document.createElement('input');
+			iloInput.type = 'text';
+			iloInput.value = '';
+			iloInput.placeholder = '-';
+			iloInput.className = 'form-control form-control-sm';
+			iloInput.style.cssText = 'width:100%; border:none; padding:0.1rem 0.25rem; font-family:Georgia,serif; font-size:13px; text-align:center; box-sizing:border-box; background:transparent;';
+			// Auto-format ILO number
+			iloInput.addEventListener('input', function(e) {
+				const value = e.target.value;
+				if (/^\d+$/.test(value)) {
+					e.target.value = 'ILO' + value;
+				}
+			});
+			iloCell.appendChild(iloInput);
+		}
+		iloCell.style.cssText = 'border:none; border-top:1px solid #343a40; border-right:1px solid #343a40; padding:0.1rem 0.25rem; font-family:Georgia, serif; font-size:13px; color:#000; text-align:center; vertical-align:middle;';
 		
 		// Update all cell borders in new row
 		const newCells = newRow.querySelectorAll('td');
@@ -146,7 +189,6 @@ document.addEventListener('DOMContentLoaded', function() {
 		});
 		
 		if (placeholderExists) {
-			alert('No ILO rows to remove');
 			return;
 		}
 		
@@ -194,17 +236,45 @@ document.addEventListener('DOMContentLoaded', function() {
 		// Count current SO columns (all headers between ILOs and C/P/A)
 		const allHeaders = Array.from(headerRow2.querySelectorAll('th'));
 		const soHeaders = allHeaders.filter(th => {
-			const text = th.textContent.trim();
+			const input = th.querySelector('input');
+			const text = input ? input.value.trim() : th.textContent.trim();
 			return (text.startsWith('SO') || text === 'No SO') && text !== 'STUDENT OUTCOMES (SO): Mapping of Assessment Tasks (AT)';
 		});
 		
 		// Check if placeholder exists
-		const placeholderHeader = soHeaders.find(th => th.textContent.trim() === 'No SO');
+		const placeholderHeader = soHeaders.find(th => {
+			const input = th.querySelector('input');
+			const text = input ? input.value.trim() : th.textContent.trim();
+			return text === 'No SO';
+		});
 		
 		if (placeholderHeader) {
-			// Replace placeholder with SO1
-			placeholderHeader.textContent = 'SO1';
-			placeholderHeader.style.cssText = 'border:none; border-bottom:1px solid #343a40; border-right:1px solid #343a40; height:30px; padding:0.2rem 0.5rem; font-weight:700; font-family:Georgia, serif; font-size:13px; line-height:1.4; color:#111; text-align:center;';
+			// Replace placeholder with blank SO input and keep buttons
+			const existingControls = placeholderHeader.querySelector('.so-header-controls');
+			placeholderHeader.textContent = ''; // Clear all content
+			
+			// Re-add controls if they exist
+			if (existingControls) {
+				placeholderHeader.appendChild(existingControls);
+			}
+			
+			// Add blank input for SO
+			const soInput = document.createElement('input');
+			soInput.type = 'text';
+			soInput.value = '';
+			soInput.placeholder = '-';
+			soInput.className = 'form-control form-control-sm';
+			soInput.style.cssText = 'width:100%; border:none; padding:0.1rem 0.25rem; font-family:Georgia,serif; font-size:13px; text-align:center; box-sizing:border-box; background:transparent; font-weight:700;';
+			// Auto-format SO number
+			soInput.addEventListener('input', function(e) {
+				const value = e.target.value;
+				if (/^\d+$/.test(value)) {
+					e.target.value = 'SO' + value;
+				}
+			});
+			placeholderHeader.appendChild(soInput);
+			
+			placeholderHeader.style.cssText = 'border:none; border-bottom:1px solid #343a40; border-right:1px solid #343a40; height:30px; padding:0.2rem 0.5rem; font-weight:700; font-family:Georgia, serif; font-size:13px; line-height:1.4; color:#111; text-align:center; position:relative;';
 			
 			// Replace placeholder cells with textarea and re-enable CPA inputs in each data row
 			dataRows.forEach(row => {
@@ -245,17 +315,6 @@ document.addEventListener('DOMContentLoaded', function() {
 			return;
 		}
 		
-		// Find the highest SO number
-		let maxSoNum = 0;
-		soHeaders.forEach(header => {
-			const match = header.textContent.match(/SO(\d+)/);
-			if (match) {
-				const num = parseInt(match[1]);
-				if (num > maxSoNum) maxSoNum = num;
-			}
-		});
-		const newSoNumber = maxSoNum + 1;
-		
 		// Add column to colgroup (before C, P, A columns)
 		const newCol = document.createElement('col');
 		colgroup.insertBefore(newCol, colgroup.children[colgroup.children.length - 3]);
@@ -268,7 +327,23 @@ document.addEventListener('DOMContentLoaded', function() {
 		const cHeader = allHeaders.find(th => th.textContent.trim() === 'C');
 		const newSoHeader = document.createElement('th');
 		newSoHeader.style.cssText = 'border:none; border-bottom:1px solid #343a40; border-right:1px solid #343a40; height:30px; padding:0.2rem 0.5rem; font-weight:700; font-family:Georgia, serif; font-size:13px; line-height:1.4; color:#111; text-align:center;';
-		newSoHeader.textContent = 'SO' + newSoNumber;
+		
+		// Create blank input for SO header
+		const soInput = document.createElement('input');
+		soInput.type = 'text';
+		soInput.value = '';
+		soInput.placeholder = '-';
+		soInput.className = 'form-control form-control-sm';
+		soInput.style.cssText = 'width:100%; border:none; padding:0.1rem 0.25rem; font-family:Georgia,serif; font-size:13px; text-align:center; box-sizing:border-box; background:transparent; font-weight:700;';
+		// Auto-format SO number
+		soInput.addEventListener('input', function(e) {
+			const value = e.target.value;
+			if (/^\d+$/.test(value)) {
+				e.target.value = 'SO' + value;
+			}
+		});
+		newSoHeader.appendChild(soInput);
+		
 		headerRow2.insertBefore(newSoHeader, cHeader);
 		
 		// Add new SO cell to each data row (before C cell)
@@ -303,19 +378,24 @@ document.addEventListener('DOMContentLoaded', function() {
 		const tbody = mappingTable.querySelector('tbody') || mappingTable;
 		const dataRows = Array.from(tbody.querySelectorAll('tr')).filter(row => row.querySelector('td'));
 		
-		// Count current SO columns (filter properly like in addSoColumn)
+		// Count current SO columns - identify by position (between ILOs and C/P/A headers)
 		const allHeaders = Array.from(headerRow2.querySelectorAll('th'));
-		const soHeaders = allHeaders.filter(th => {
-			const text = th.textContent.trim();
-			return text.startsWith('SO') && text !== 'STUDENT OUTCOMES (SO): Mapping of Assessment Tasks (AT)';
-		});
+		// Find ILOs header and C header to identify SO columns in between
+		const iloHeaderIndex = allHeaders.findIndex(th => th.textContent.includes('ILOs'));
+		const cHeaderIndex = allHeaders.findIndex(th => th.textContent.trim() === 'C');
+		
+		// SO headers are between ILOs and C
+		const soHeaders = allHeaders.slice(iloHeaderIndex + 1, cHeaderIndex);
 		
 		// Check if already showing placeholder
-		const placeholderExists = soHeaders.some(th => th.textContent.trim() === 'No SO');
+		const placeholderExists = soHeaders.some(th => {
+			const input = th.querySelector('input');
+			const text = input ? input.value.trim() : th.textContent.trim();
+			return text === 'No SO';
+		});
 		
 		if (placeholderExists) {
 			// Already at placeholder, can't remove further
-			alert('No SO columns to remove');
 			return;
 		}
 		
@@ -325,10 +405,22 @@ document.addEventListener('DOMContentLoaded', function() {
 			
 			// Don't update header colspan - keep the same span
 			
-			// Replace last SO header with placeholder
+			// Replace last SO header with placeholder but keep buttons
 			const lastSoHeader = soHeaders[soHeaders.length - 1];
-			lastSoHeader.textContent = 'No SO';
-			lastSoHeader.style.cssText = 'border:none; border-bottom:1px solid #343a40; border-right:1px solid #343a40; height:30px; padding:0.2rem 0.5rem; font-weight:400; font-style:italic; font-family:Georgia, serif; font-size:13px; line-height:1.4; color:#999; text-align:center;';
+			const existingControls = lastSoHeader.querySelector('.so-header-controls');
+			
+			lastSoHeader.innerHTML = ''; // Clear all content
+			
+			// Re-add controls if they exist
+			if (existingControls) {
+				lastSoHeader.appendChild(existingControls);
+			}
+			
+			// Add text node for placeholder
+			const textNode = document.createTextNode('No SO');
+			lastSoHeader.appendChild(textNode);
+			
+			lastSoHeader.style.cssText = 'border:none; border-bottom:1px solid #343a40; border-right:1px solid #343a40; height:30px; padding:0.2rem 0.5rem; font-weight:400; font-style:italic; font-family:Georgia, serif; font-size:13px; line-height:1.4; color:#999; text-align:center; position:relative;';
 			
 			// Replace SO cells with placeholder and disable CPA inputs in each data row
 			dataRows.forEach(row => {
@@ -393,9 +485,18 @@ document.addEventListener('DOMContentLoaded', function() {
 		
 		// Get all SO headers (excluding ILOs and C/P/A)
 		const allHeaders = Array.from(headerRow2.querySelectorAll('th'));
-		const soHeaders = allHeaders.filter(th => {
-			const text = th.textContent.trim();
-			return (text.startsWith('SO') || text === 'No SO') && text !== 'STUDENT OUTCOMES (SO): Mapping of Assessment Tasks (AT)';
+		const iloHeaderIndex = allHeaders.findIndex(th => th.textContent.includes('ILOs'));
+		const cHeaderIndex = allHeaders.findIndex(th => th.textContent.trim() === 'C');
+		const soHeaders = allHeaders.slice(iloHeaderIndex + 1, cHeaderIndex);
+		
+		// Collect SO column labels
+		const soColumns = [];
+		soHeaders.forEach(th => {
+			const input = th.querySelector('input');
+			const label = input ? input.value.trim() : th.textContent.trim();
+			if (label && label !== 'No SO') {
+				soColumns.push(label);
+			}
 		});
 		
 		// Build data array - always send data (even if empty) to allow deletion
@@ -403,23 +504,25 @@ document.addEventListener('DOMContentLoaded', function() {
 		
 		dataRows.forEach((row, index) => {
 			const cells = Array.from(row.querySelectorAll('td'));
-			const iloText = cells[0].textContent.trim();
+			const iloInput = cells[0].querySelector('input');
+			const iloText = iloInput ? iloInput.value.trim() : cells[0].textContent.trim();
 			
 			// Skip placeholder rows - this will result in empty array if only placeholder exists
-			if (iloText === 'No ILO') return;
+			if (iloText === 'No ILO' || iloText === '') return;
 			
-			// Collect SO values as simple array
-			const sos = [];
+			// Collect SO values as object with column labels as keys
+			const sos = {};
 			soHeaders.forEach((header, soIndex) => {
-				const soCode = header.textContent.trim();
+				const input = header.querySelector('input');
+				const soLabel = input ? input.value.trim() : header.textContent.trim();
 				// Skip "No SO" placeholder
-				if (soCode === 'No SO') return;
+				if (soLabel === 'No SO' || !soLabel) return;
 				
 				const soCell = cells[soIndex + 1]; // +1 because first cell is ILO
 				if (soCell) {
 					const textarea = soCell.querySelector('textarea');
 					if (textarea) {
-						sos.push(textarea.value.trim());
+						sos[soLabel] = textarea.value.trim();
 					}
 				}
 			});
@@ -464,6 +567,7 @@ document.addEventListener('DOMContentLoaded', function() {
 			},
 			body: JSON.stringify({
 				syllabus_id: syllabusId,
+				so_columns: soColumns,
 				mappings: mappingData
 			})
 		})
@@ -487,4 +591,172 @@ document.addEventListener('DOMContentLoaded', function() {
 			alert('Error saving mapping: ' + error.message);
 		});
 	};
+
+	// Load saved data on page load
+	function loadSavedData() {
+		const soColumnsData = mapping.getAttribute('data-so-columns');
+		const mappingsData = mapping.getAttribute('data-mappings');
+		
+		if (!soColumnsData || !mappingsData) return;
+		
+		try {
+			const soColumns = JSON.parse(soColumnsData);
+			const mappings = JSON.parse(mappingsData);
+			
+			if (!mappings || mappings.length === 0) return;
+			
+			// First, add SO columns
+			if (soColumns && soColumns.length > 0) {
+				// Remove placeholder and add columns
+				soColumns.forEach((soLabel, index) => {
+					if (index === 0) {
+						// First SO - convert placeholder
+						addSoColumn();
+						// Update the label
+						const mappingTable = mapping.querySelector('.mapping');
+						const headerRow2 = mappingTable.querySelectorAll('tr')[1];
+						const allHeaders = Array.from(headerRow2.querySelectorAll('th'));
+						const iloHeaderIndex = allHeaders.findIndex(th => th.textContent.includes('ILOs'));
+						const cHeaderIndex = allHeaders.findIndex(th => th.textContent.trim() === 'C');
+						const firstSoHeader = allHeaders.slice(iloHeaderIndex + 1, cHeaderIndex)[0];
+						if (firstSoHeader) {
+							const input = firstSoHeader.querySelector('input');
+							if (input) input.value = soLabel;
+						}
+					} else {
+						// Additional SO columns
+						addSoColumn();
+						// Update the label
+						const mappingTable = mapping.querySelector('.mapping');
+						const headerRow2 = mappingTable.querySelectorAll('tr')[1];
+						const allHeaders = Array.from(headerRow2.querySelectorAll('th'));
+						const iloHeaderIndex = allHeaders.findIndex(th => th.textContent.includes('ILOs'));
+						const cHeaderIndex = allHeaders.findIndex(th => th.textContent.trim() === 'C');
+						const soHeaders = allHeaders.slice(iloHeaderIndex + 1, cHeaderIndex);
+						const currentSoHeader = soHeaders[index];
+						if (currentSoHeader) {
+							const input = currentSoHeader.querySelector('input');
+							if (input) input.value = soLabel;
+						}
+					}
+				});
+			}
+			
+			// Then, populate ILO rows
+			mappings.forEach((mappingRow, rowIndex) => {
+				if (rowIndex === 0) {
+					// First row - convert placeholder
+					addIloRow();
+					const mappingTable = mapping.querySelector('.mapping');
+					const tbody = mappingTable.querySelector('tbody') || mappingTable;
+					const dataRows = Array.from(tbody.querySelectorAll('tr')).filter(row => row.querySelector('td'));
+					const firstRow = dataRows[0];
+					if (firstRow) {
+						const cells = Array.from(firstRow.querySelectorAll('td'));
+						// Set ILO label
+						const iloInput = cells[0].querySelector('input');
+						if (iloInput) iloInput.value = mappingRow.ilo_text;
+						
+						// Set SO values
+						if (mappingRow.sos && typeof mappingRow.sos === 'object') {
+							Object.entries(mappingRow.sos).forEach(([soLabel, soValue], soIndex) => {
+								const soCell = cells[soIndex + 1];
+								if (soCell) {
+									const textarea = soCell.querySelector('textarea');
+									if (textarea) {
+										textarea.value = soValue;
+										autoResize(textarea);
+									}
+								}
+							});
+						}
+						
+						// Set C, P, A values
+						const cCell = cells[cells.length - 3];
+						const pCell = cells[cells.length - 2];
+						const aCell = cells[cells.length - 1];
+						if (cCell && mappingRow.c) {
+							const textarea = cCell.querySelector('textarea');
+							if (textarea) {
+								textarea.value = mappingRow.c;
+								autoResize(textarea);
+							}
+						}
+						if (pCell && mappingRow.p) {
+							const textarea = pCell.querySelector('textarea');
+							if (textarea) {
+								textarea.value = mappingRow.p;
+								autoResize(textarea);
+							}
+						}
+						if (aCell && mappingRow.a) {
+							const textarea = aCell.querySelector('textarea');
+							if (textarea) {
+								textarea.value = mappingRow.a;
+								autoResize(textarea);
+							}
+						}
+					}
+				} else {
+					// Additional rows
+					addIloRow();
+					const mappingTable = mapping.querySelector('.mapping');
+					const tbody = mappingTable.querySelector('tbody') || mappingTable;
+					const dataRows = Array.from(tbody.querySelectorAll('tr')).filter(row => row.querySelector('td'));
+					const currentRow = dataRows[rowIndex];
+					if (currentRow) {
+						const cells = Array.from(currentRow.querySelectorAll('td'));
+						// Set ILO label
+						const iloInput = cells[0].querySelector('input');
+						if (iloInput) iloInput.value = mappingRow.ilo_text;
+						
+						// Set SO values
+						if (mappingRow.sos && typeof mappingRow.sos === 'object') {
+							Object.entries(mappingRow.sos).forEach(([soLabel, soValue], soIndex) => {
+								const soCell = cells[soIndex + 1];
+								if (soCell) {
+									const textarea = soCell.querySelector('textarea');
+									if (textarea) {
+										textarea.value = soValue;
+										autoResize(textarea);
+									}
+								}
+							});
+						}
+						
+						// Set C, P, A values
+						const cCell = cells[cells.length - 3];
+						const pCell = cells[cells.length - 2];
+						const aCell = cells[cells.length - 1];
+						if (cCell && mappingRow.c) {
+							const textarea = cCell.querySelector('textarea');
+							if (textarea) {
+								textarea.value = mappingRow.c;
+								autoResize(textarea);
+							}
+						}
+						if (pCell && mappingRow.p) {
+							const textarea = pCell.querySelector('textarea');
+							if (textarea) {
+								textarea.value = mappingRow.p;
+								autoResize(textarea);
+							}
+						}
+						if (aCell && mappingRow.a) {
+							const textarea = aCell.querySelector('textarea');
+							if (textarea) {
+								textarea.value = mappingRow.a;
+								autoResize(textarea);
+							}
+						}
+					}
+				}
+			});
+		} catch (e) {
+			console.error('Error loading saved ILO-SO-CPA data:', e);
+		}
+	}
+	
+	// Load data after a short delay to ensure DOM is fully ready
+	setTimeout(loadSavedData, 100);
 });
