@@ -625,6 +625,19 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
+      // --- Save ILO-SO-CPA Mapping before main form submission ---
+      try {
+        if (window.saveIloSoCpaMapping && typeof window.saveIloSoCpaMapping === 'function') {
+          await window.saveIloSoCpaMapping(false); // false = don't show alert
+          console.log('ILO-SO-CPA Mapping saved to database');
+        }
+      } catch (iloSoCpaErr) {
+        console.error('Failed to save ILO-SO-CPA Mapping:', iloSoCpaErr);
+        alert('Failed to save ILO-SO-CPA Mapping: ' + (iloSoCpaErr && iloSoCpaErr.message ? iloSoCpaErr.message : 'See console for details.'));
+        try { saveBtn.disabled = false; saveBtn.innerHTML = originalHtml; window._syllabusSaveLock = false; } catch (e) { /* noop */ }
+        return;
+      }
+
       // Persist assessment mappings
       try {
         if (window.saveAssessmentMappingsForToolbar && typeof window.saveAssessmentMappingsForToolbar === 'function') {

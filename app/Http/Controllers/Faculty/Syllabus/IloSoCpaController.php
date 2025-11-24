@@ -20,7 +20,7 @@ class IloSoCpaController extends Controller
             'so_columns' => 'nullable|array',
             'so_columns.*' => 'string',
             'mappings' => 'array', // Allow empty array to delete all
-            'mappings.*.ilo_text' => 'required|string',
+            'mappings.*.ilo_text' => 'nullable|string', // Allow empty ILO text
             'mappings.*.sos' => 'nullable',
             'mappings.*.c' => 'nullable|string',
             'mappings.*.p' => 'nullable|string',
