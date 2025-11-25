@@ -105,7 +105,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="d-flex align-items-center gap-2">
             <span class="drag-handle text-muted" title="Drag to reorder"><i class="bi bi-grip-vertical"></i></span>
             <div class="flex-grow-1 w-100">
-              <textarea name="iga_titles[]" class="cis-textarea cis-field autosize" placeholder="-" rows="1" style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;font-weight:700;" required></textarea>
+              <textarea name="iga_titles[]" class="cis-textarea cis-field autosize" placeholder="Title" rows="1" style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;font-weight:700;" required></textarea>
               <textarea name="igas[]" class="cis-textarea cis-field autosize" placeholder="Description" rows="1" style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;" required></textarea>
             </div>
             <input type="hidden" name="code[]" value="${newCode}">
@@ -513,7 +513,7 @@ document.addEventListener('DOMContentLoaded', () => {
               <div class="d-flex align-items-center gap-2">
                 <span class="drag-handle text-muted" title="Drag to reorder"><i class="bi bi-grip-vertical"></i></span>
                 <div class="flex-grow-1 w-100">
-                  <textarea name="iga_titles[]" class="cis-textarea cis-field autosize" placeholder="-" rows="1" style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;font-weight:700;" required>${iga.title || ''}</textarea>
+                  <textarea name="iga_titles[]" class="cis-textarea cis-field autosize" placeholder="Title" rows="1" style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;font-weight:700;" required>${iga.title || ''}</textarea>
                   <textarea name="igas[]" class="cis-textarea cis-field autosize" placeholder="Description" rows="1" style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;" required>${iga.description || ''}</textarea>
                 </div>
                 <input type="hidden" name="code[]" value="${iga.code || ('IGA' + (index + 1))}">

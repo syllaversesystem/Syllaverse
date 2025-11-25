@@ -53,6 +53,47 @@ class SyllabusCourseInfoController extends Controller
     }
 
     /**
+     * Dedicated save endpoint for course info partial.
+     */
+    public function save(Request $request, $syllabusId)
+    {
+        try {
+            $syllabus = Syllabus::where('faculty_id', Auth::id())->findOrFail($syllabusId);
+
+            $payload = $request->only($this->courseInfoKeys());
+
+            $payload = $this->normalizePayload($payload);
+
+            $this->pruneLegacyColumns($payload);
+
+            $courseInfo = $syllabus->courseInfo;
+            if ($courseInfo) {
+                $courseInfo->update($payload);
+            } else {
+                $payload['syllabus_id'] = $syllabus->id;
+                SyllabusCourseInfo::create($payload);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Course info saved successfully',
+                'data' => $courseInfo ?? SyllabusCourseInfo::where('syllabus_id', $syllabus->id)->first(),
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Failed to save course info', [
+                'syllabus_id' => $syllabusId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to save course info: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Build the initial payload from the master course and faculty record.
      */
     protected function buildSeedPayload(Syllabus $syllabus, Course $course, ?Authenticatable $faculty = null): array

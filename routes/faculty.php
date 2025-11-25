@@ -115,7 +115,10 @@ Route::middleware([FacultyAuth::class])->group(function () {
     Route::delete('/faculty/syllabi/{id}', [SyllabusController::class, 'destroy'])->name('faculty.syllabi.destroy');
     Route::get('/faculty/syllabi/{id}/predefined-policies', [\App\Http\Controllers\Faculty\Syllabus\SyllabusCoursePolicyController::class, 'getPredefinedPolicies'])->name('faculty.syllabi.predefined-policies');
     
-    // (Removed live save endpoints: mission-vision, course-info, tlas, criteria, ilo-save)
+    // ---------- Course Info Save ----------
+    Route::post('/faculty/syllabi/{syllabus}/course-info', [\App\Http\Controllers\Faculty\Syllabus\SyllabusCourseInfoController::class, 'save'])->name('faculty.syllabi.course-info.save');
+    
+    // (Removed live save endpoints: mission-vision, tlas, criteria, ilo-save)
     // ---------- ILO CRUD & Batch Operations (replacing deprecated IloSaveController) ----------
     // Batch upsert (create/update/delete based on payload) of syllabus ILOs
     Route::put('/faculty/syllabi/{syllabus}/ilos', [\App\Http\Controllers\Faculty\Syllabus\SyllabusIloController::class, 'update'])->name('faculty.syllabi.ilos.update');
@@ -142,6 +145,10 @@ Route::middleware([FacultyAuth::class])->group(function () {
 
     // ---------- ILO-SO-CPA Mapping ----------
     Route::post('/faculty/syllabus/save-ilo-so-cpa-mapping', [IloSoCpaController::class, 'save'])->name('faculty.syllabi.ilo-so-cpa.save');
+    
+    // ---------- ILO-IGA Mapping ----------
+    Route::post('/faculty/syllabus/save-ilo-iga-mapping', [\App\Http\Controllers\Faculty\Syllabus\IloIgaController::class, 'saveMapping'])->name('faculty.syllabi.ilo-iga-mapping.save');
+    Route::post('/faculty/syllabi/{syllabus}/ilo-iga/save', [\App\Http\Controllers\Faculty\Syllabus\IloIgaController::class, 'save'])->name('faculty.syllabi.ilo-iga.save');
     Route::post('/faculty/syllabi/{syllabus}/load-predefined-igas', [\App\Http\Controllers\Faculty\Syllabus\SyllabusIgaController::class, 'loadPredefinedIgas'])->name('faculty.syllabi.igas.load-predefined');
     Route::post('/faculty/syllabi/igas/reorder', [\App\Http\Controllers\Faculty\Syllabus\SyllabusIgaController::class, 'reorder'])->name('faculty.syllabi.iga.reorder');
     Route::delete('/faculty/syllabi/igas/{id}', [\App\Http\Controllers\Faculty\Syllabus\SyllabusIgaController::class, 'destroy'])->name('faculty.syllabi.iga.destroy');

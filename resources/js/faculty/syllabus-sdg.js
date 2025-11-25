@@ -315,9 +315,7 @@ document.addEventListener('DOMContentLoaded', function () {
    */
   async function saveSdg() {
     if (!syllabusId) {
-      if (window.showAlertOverlay) {
-        window.showAlertOverlay('error', 'Syllabus ID not found');
-      }
+      console.error('Syllabus ID not found');
       return;
     }
 
@@ -339,9 +337,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     if (sdgs.length === 0) {
-      if (window.showAlertOverlay) {
-        window.showAlertOverlay('info', 'No SDGs to save');
-      }
+      console.log('No SDGs to save');
       return;
     }
 
@@ -361,10 +357,6 @@ document.addEventListener('DOMContentLoaded', function () {
       }
 
       const data = await response.json();
-
-      if (window.showAlertOverlay) {
-        window.showAlertOverlay('success', 'SDGs saved successfully');
-      }
 
       // Update DOM with fresh data from backend
       if (data.sdgs && Array.isArray(data.sdgs)) {

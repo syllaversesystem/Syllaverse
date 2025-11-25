@@ -38,6 +38,7 @@ export default defineConfig({
                 'resources/js/faculty/courses/courses.js',
                 'resources/js/faculty/complete-profile.js',
                 'resources/js/faculty/syllabus.js',
+                'resources/js/faculty/syllabus-course-info.js',
                 'resources/js/faculty/syllabus-sdg.js',
                 'resources/js/faculty/syllabus-textbook.js',
                 'resources/js/faculty/syllabus-tla.js',

@@ -638,6 +638,45 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
+      // --- Save Course Info before main form submission ---
+      try {
+        if (window.saveCourseInfo && typeof window.saveCourseInfo === 'function') {
+          await window.saveCourseInfo(false); // false = don't show alert
+          console.log('Course Info saved to database');
+        }
+      } catch (courseInfoErr) {
+        console.error('Failed to save Course Info:', courseInfoErr);
+        alert('Failed to save Course Info: ' + (courseInfoErr && courseInfoErr.message ? courseInfoErr.message : 'See console for details.'));
+        try { saveBtn.disabled = false; saveBtn.innerHTML = originalHtml; window._syllabusSaveLock = false; } catch (e) { /* noop */ }
+        return;
+      }
+
+      // --- Save ILO-IGA Mapping before main form submission ---
+      try {
+        if (window.saveIloIga && typeof window.saveIloIga === 'function') {
+          await window.saveIloIga(false); // false = don't show alert
+          console.log('ILO-IGA Mapping saved to database');
+        }
+      } catch (iloIgaErr) {
+        console.error('Failed to save ILO-IGA Mapping:', iloIgaErr);
+        alert('Failed to save ILO-IGA Mapping: ' + (iloIgaErr && iloIgaErr.message ? iloIgaErr.message : 'See console for details.'));
+        try { saveBtn.disabled = false; saveBtn.innerHTML = originalHtml; window._syllabusSaveLock = false; } catch (e) { /* noop */ }
+        return;
+      }
+
+      // --- Save SDGs before main form submission ---
+      try {
+        if (window.saveSdg && typeof window.saveSdg === 'function') {
+          await window.saveSdg(false); // false = don't show alert
+          console.log('SDGs saved to database');
+        }
+      } catch (sdgErr) {
+        console.error('Failed to save SDGs:', sdgErr);
+        alert('Failed to save SDGs: ' + (sdgErr && sdgErr.message ? sdgErr.message : 'See console for details.'));
+        try { saveBtn.disabled = false; saveBtn.innerHTML = originalHtml; window._syllabusSaveLock = false; } catch (e) { /* noop */ }
+        return;
+      }
+
       // Persist assessment mappings
       try {
         if (window.saveAssessmentMappingsForToolbar && typeof window.saveAssessmentMappingsForToolbar === 'function') {

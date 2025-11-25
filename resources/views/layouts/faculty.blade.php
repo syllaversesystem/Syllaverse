@@ -77,6 +77,7 @@
   @vite('resources/js/faculty/layout.js')              {{-- Sidebar/drawer logic --}}
   @vite('resources/js/superadmin/alert-timer.js')      {{-- Shared alert auto-hide --}}
   @vite('resources/js/faculty/syllabus.js')
+  @vite('resources/js/faculty/syllabus-course-info.js')
   @vite('resources/js/faculty/syllabus-sdg.js')
   @vite('resources/js/faculty/syllabus-textbook.js')
   @vite('resources/js/faculty/syllabus-tla.js')

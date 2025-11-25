@@ -11,74 +11,16 @@
 --}}
 
 @php
-  $course  = $syllabus->course ?? null;
-  $program = $syllabus->program ?? null;
-  $faculty = $syllabus->faculty ?? auth()->user();
+  $local = $syllabus->courseInfo ?? null; // per-syllabus saved data
 
-  $local = $syllabus->courseInfo ?? null; // per-syllabus overrides
-
-  $lec = (int) ($local?->contact_hours_lec ?? $course?->contact_hours_lec ?? 0);
-  $lab = (int) ($local?->contact_hours_lab ?? $course?->contact_hours_lab ?? 0);
-  $total = $lec + $lab;
-
-  // human-readable contact hours text (newline between entries when both exist)
-  if ($lec && $lab) {
-    $contactText = "{$lec} hours lecture\n{$lab} hours laboratory";
-  } elseif ($lec) {
-    $contactText = "{$lec} hours lecture";
-  } elseif ($lab) {
-    $contactText = "{$lab} hours laboratory";
-  } else {
-    $contactText = '-';
-  }
-
-  // Normalize any saved/old contact_hours that used semicolons into newlines for display
+  // Only render from database (courseInfo), use empty string as fallback
   $contactHoursRaw = trim((string) ($local?->contact_hours ?? ''));
-  $contactHoursDisplay = $contactHoursRaw !== '' ? preg_replace('/;\s*/', "\n", $contactHoursRaw) : $contactText;
   $contactHoursOld = old('contact_hours');
   if ($contactHoursOld !== null) {
     $contactHoursValue = preg_replace('/;\s*/', "\n", (string) $contactHoursOld);
   } else {
-    $contactHoursValue = $contactHoursDisplay;
+    $contactHoursValue = $contactHoursRaw !== '' ? preg_replace('/;\s*/', "\n", $contactHoursRaw) : '';
   }
-
-  $prereqs = collect();
-  if ($course) {
-    $prereqs = $course->relationLoaded('prerequisites') ? $course->prerequisites : $course->prerequisites()->get();
-  }
-  $prereqStr = $prereqs->map(function($c){
-      $code = trim((string) ($c->code ?? ''));
-      $title = trim((string) ($c->title ?? ''));
-      return $title ? ($code . ' - ' . $title) : $code;
-    })
-    ->filter()
-    ->values()
-    ->implode("\n");
-
-  $courseCategory = $local?->course_category ?? $course->category ?? $course->type ?? $program?->name ?? '';
-
-  $employeeCode = $local?->employee_code
-    ?? $faculty->employee_code
-    ?? $faculty->employee_no
-    ?? $faculty->emp_no
-    ?? $faculty->code
-    ?? $faculty->id_no
-    ?? '';
-
-  $designation = trim((string) ($faculty->designation ?? ''));
-  $nameRaw = $local?->instructor_name ?: $syllabus->instructor ?: ($faculty->name ?? '');
-  $nameDisplay = '';
-  if ($nameRaw) {
-    try { $nameDisplay = mb_convert_case(mb_strtolower($nameRaw), MB_CASE_TITLE, 'UTF-8'); }
-    catch (\Throwable $e) { $nameDisplay = ucwords(strtolower($nameRaw)); }
-  }
-
-  $referenceCMO = $local?->reference_cmo ?? $course->reference_cmo ?? '';
-  $datePrepared = $local?->date_prepared ?? optional($syllabus->created_at)->format('F d, Y');
-  $periodOfStudy = $local?->academic_year ?? $syllabus->academic_year ?? '';
-  $revisionNo = $local?->revision_no ?? $syllabus->revision_no ?? '-';
-  $revisionDate = $local?->revision_date ?? optional($syllabus->revision_date)->format('F d, Y') ?? '-';
-  $courseDescription = trim((string) ($local?->course_description ?? $course->description ?? ''));
   // compute criteria percentage totals for display in headers (e.g., "Lecture (40%)")
   $lecturePercentSum = 0;
   if (!empty(trim((string) ($local?->criteria_lecture ?? '')))) {
@@ -113,7 +55,7 @@
       class="cis-textarea cis-field autosize"
     placeholder="-"
       rows="1"
-      style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">{{ old('course_title', $local?->course_title ?? $course->title ?? '') }}</textarea>
+      style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">{{ old('course_title', $local?->course_title ?? '') }}</textarea>
       </td>
       <th class="align-top text-start cis-label">Course Code
       </th>
@@ -122,7 +64,7 @@
       class="cis-textarea cis-field autosize"
     placeholder="-"
       rows="1"
-      style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">{{ old('course_code', $local?->course_code ?? $course->code ?? '') }}</textarea>
+      style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">{{ old('course_code', $local?->course_code ?? '') }}</textarea>
       </td>
     </tr>
 
@@ -134,7 +76,7 @@
                   class="cis-textarea cis-field autosize"
       placeholder="-"
                   rows="1"
-                  style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">{{ old('course_category', $local?->course_category ?? $courseCategory) }}</textarea>
+                  style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">{{ old('course_category', $local?->course_category ?? '') }}</textarea>
       </td>
       <th class="align-top text-start cis-label">Pre-requisite(s)
       </th>
@@ -142,7 +84,7 @@
   <textarea name="course_prerequisites" class="cis-textarea cis-field autosize"
     placeholder="-"
     rows="1"
-    style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">{{ old('course_prerequisites', $local?->course_prerequisites ?? $prereqStr) }}</textarea>
+    style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">{{ old('course_prerequisites', $local?->course_prerequisites ?? '') }}</textarea>
     </td>
     </tr>
 
@@ -155,13 +97,13 @@
             class="cis-textarea cis-field autosize flex-grow-1"
             placeholder="-"
             rows="1"
-            style="flex:1 1 0;min-width:0;width:auto !important;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">{{ old('semester', $local?->semester ?? $syllabus->semester ?? '') }}</textarea>
+            style="flex:1 1 0;min-width:0;width:auto !important;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">{{ old('semester', $local?->semester ?? '') }}</textarea>
           <div class="employee-code-col" style="flex:0 0 160px;min-width:140px;">
   <textarea name="year_level"
             class="cis-textarea cis-field autosize"
             placeholder="-"
             rows="1"
-            style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">{{ old('year_level', $local?->year_level ?? $syllabus->year_level ?? '') }}</textarea>
+            style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">{{ old('year_level', $local?->year_level ?? '') }}</textarea>
           </div>
         </div>
       </td>
@@ -170,7 +112,7 @@
       <td>
   <textarea id="credit_hours_text" name="credit_hours_text" class="cis-textarea cis-field autosize"
             placeholder="-" aria-live="polite" rows="1"
-            style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">{{ old('credit_hours_text', $local?->credit_hours_text ?? ($total ? ($total . ' (' . $lec . ' hrs lec; ' . $lab . ' hrs lab)') : '-')) }}</textarea>
+            style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">{{ old('credit_hours_text', $local?->credit_hours_text ?? '') }}</textarea>
       </td>
     </tr>
 
@@ -190,12 +132,12 @@
         <textarea name="instructor_name"
           class="cis-textarea cis-field autosize instructor-field flex-grow-1"
           placeholder="-" rows="1"
-          style="flex:1 1 0;min-width:0;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">{{ old('instructor_name', $local?->instructor_name ?? $nameDisplay) }}</textarea>
+          style="flex:1 1 0;min-width:0;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">{{ old('instructor_name', $local?->instructor_name ?? '') }}</textarea>
         <div class="employee-code-col" style="flex:0 0 160px;min-width:140px;">
           <label class="visually-hidden" for="employee_code">Employee No.</label>
           <textarea name="employee_code" class="cis-textarea cis-field autosize instructor-field"
             placeholder="-" rows="1"
-            style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">{{ old('employee_code', $local?->employee_code ?? $employeeCode) }}</textarea>
+            style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">{{ old('employee_code', $local?->employee_code ?? '') }}</textarea>
         </div>
               </div>
             </td>
@@ -207,7 +149,7 @@
       <td>
      <textarea name="reference_cmo" class="cis-textarea cis-field autosize"
                  placeholder="-" rows="1"
-                 style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">{{ old('reference_cmo', $referenceCMO ?: '') }}</textarea>
+                 style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">{{ old('reference_cmo', $local?->reference_cmo ?? '') }}</textarea>
       </td>
     </tr>
     <tr>
@@ -215,14 +157,14 @@
         <label class="visually-hidden" for="instructor_designation">Designation</label>
         <textarea name="instructor_designation" class="cis-textarea cis-field autosize instructor-field"
           placeholder="-" rows="1"
-          style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">{{ old('instructor_designation', $local?->instructor_designation ?? $designation) }}</textarea>
+          style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">{{ old('instructor_designation', $local?->instructor_designation ?? '') }}</textarea>
       </td>
       <th class="align-top text-start cis-label">Date Prepared
       </th>
       <td>
   <textarea name="date_prepared" class="cis-textarea cis-field autosize"
          placeholder="-" rows="1"
-         style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">{{ old('date_prepared', $local?->date_prepared ?? $datePrepared ?: '') }}</textarea>
+         style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">{{ old('date_prepared', $local?->date_prepared ?? '') }}</textarea>
       </td>
     </tr>
     <tr>
@@ -230,14 +172,14 @@
         <label class="visually-hidden" for="instructor_email">Email</label>
         <textarea name="instructor_email" class="cis-textarea cis-field autosize instructor-field"
           placeholder="-" rows="1"
-          style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">{{ old('instructor_email', $local?->instructor_email ?? $faculty->email ?? '') }}</textarea>
+          style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">{{ old('instructor_email', $local?->instructor_email ?? '') }}</textarea>
       </td>
       <th class="align-top text-start cis-label">Revision No.
       </th>
       <td>
   <textarea name="revision_no" class="cis-textarea cis-field autosize"
          placeholder="-" rows="1"
-         style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">{{ old('revision_no', $local?->revision_no ?? $revisionNo ?: '') }}</textarea>
+         style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">{{ old('revision_no', $local?->revision_no ?? '') }}</textarea>
       </td>
     </tr>
     {{-- ░░░ END: Course Instructor ░░░ --}}
@@ -248,14 +190,14 @@
       <td>
   <textarea name="academic_year" class="cis-textarea cis-field autosize"
          placeholder="-" rows="1"
-         style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">{{ old('academic_year', $local?->academic_year ?? $periodOfStudy ?: '') }}</textarea>
+         style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">{{ old('academic_year', $local?->academic_year ?? '') }}</textarea>
       </td>
       <th class="align-top text-start cis-label">Revision Date
       </th>
       <td>
   <textarea name="revision_date" class="cis-textarea cis-field autosize"
          placeholder="-" rows="1"
-         style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">{{ old('revision_date', $local?->revision_date ?? $revisionDate ?: '') }}</textarea>
+         style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">{{ old('revision_date', $local?->revision_date ?? '') }}</textarea>
       </td>
     </tr>
 
@@ -271,7 +213,7 @@
           placeholder="-"
           rows="1"
           style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;"
-        >{{ old('course_description', $local?->course_description ?? $courseDescription) }}</textarea>
+        >{{ old('course_description', $local?->course_description ?? '') }}</textarea>
       </td>
     </tr>
     {{-- ░░░ END: Course Rationale & Description ░░░ --}}
