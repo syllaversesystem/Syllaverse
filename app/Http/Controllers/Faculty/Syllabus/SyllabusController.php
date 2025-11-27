@@ -39,6 +39,7 @@ class SyllabusController extends Controller
         protected SyllabusIloController $ilos,
         protected SyllabusAssessmentTasksController $assessmentTasks,
         protected SyllabusCoursePolicyController $coursePolicy,
+        protected SyllabusStatusController $status,
     ) {
     }
     public function index()
@@ -270,6 +271,9 @@ class SyllabusController extends Controller
 
         // Delegate assessment tasks persistence to dedicated controller
         $this->assessmentTasks->syncFromRequest($request, $syllabus);
+
+        // Persist status fields via dedicated controller
+        $this->status->syncFromRequest($request, $syllabus);
 
         return redirect()->route('faculty.syllabi.show', $syllabus->id)
             ->with('success', 'Syllabus updated successfully.');

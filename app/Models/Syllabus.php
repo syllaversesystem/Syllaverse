@@ -57,6 +57,17 @@ class Syllabus extends Model
     'assessment_tasks_data',
     // Serialized ILO->SO->CPA mapping payload
     'ilo_so_cpa_data',
+    // Status fields (Prepared/Reviewed/Approved)
+    'prepared_by_name',
+    'prepared_by_title',
+    'prepared_by_date',
+    'reviewed_by_name',
+    'reviewed_by_title',
+    'reviewed_by_date',
+    'approved_by_name',
+    'approved_by_title',
+    'approved_by_date',
+    'status_remarks',
     ];
 
     // 🔁 Each syllabus belongs to one faculty

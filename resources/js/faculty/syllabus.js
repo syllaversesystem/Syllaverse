@@ -491,6 +491,18 @@ document.addEventListener('DOMContentLoaded', () => {
   bindUnsavedIndicator('contact_hours_lec');
   bindUnsavedIndicator('contact_hours_lab');
 
+  // Status fields (Prepared/Reviewed/Approved)
+  bindUnsavedIndicator('prepared_by_name');
+  bindUnsavedIndicator('prepared_by_title');
+  bindUnsavedIndicator('prepared_by_date');
+  bindUnsavedIndicator('reviewed_by_name');
+  bindUnsavedIndicator('reviewed_by_title');
+  bindUnsavedIndicator('reviewed_by_date');
+  bindUnsavedIndicator('approved_by_name');
+  bindUnsavedIndicator('approved_by_title');
+  bindUnsavedIndicator('approved_by_date');
+  bindUnsavedIndicator('status_remarks');
+
   // TLA strategies auto-saved via dedicated controller (no unsaved indicator)
 
   // Criteria module disabled
@@ -690,6 +702,19 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
+      // --- Save Syllabus Status before main form submission ---
+      try {
+        if (window.saveSyllabusStatus && typeof window.saveSyllabusStatus === 'function') {
+          await window.saveSyllabusStatus(false); // false = don't show alert
+          console.log('Syllabus Status saved to database');
+        }
+      } catch (statusErr) {
+        console.error('Failed to save Syllabus Status:', statusErr);
+        alert('Failed to save Syllabus Status: ' + (statusErr && statusErr.message ? statusErr.message : 'See console for details.'));
+        try { saveBtn.disabled = false; saveBtn.innerHTML = originalHtml; window._syllabusSaveLock = false; } catch (e) { /* noop */ }
+        return;
+      }
+
       // Persist assessment mappings
       try {
         if (window.saveAssessmentMappingsForToolbar && typeof window.saveAssessmentMappingsForToolbar === 'function') {
@@ -753,7 +778,11 @@ document.addEventListener('DOMContentLoaded', () => {
             'semester','year_level','credit_hours_text','instructor_name','employee_code',
             'reference_cmo','instructor_designation','date_prepared','instructor_email',
             'revision_no','academic_year','revision_date','course_description',
-            'contact_hours','tla_strategies'
+            'contact_hours','tla_strategies',
+            'prepared_by_name','prepared_by_title','prepared_by_date',
+            'reviewed_by_name','reviewed_by_title','reviewed_by_date',
+            'approved_by_name','approved_by_title','approved_by_date',
+            'status_remarks'
           ];
           extraFields.forEach((name) => {
             const el = form.querySelector(`[name="${name}"]`);

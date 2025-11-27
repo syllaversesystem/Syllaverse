@@ -100,8 +100,11 @@
         {{-- ILO ↔ IGA Mapping --}}
         @includeWhen(View::exists('faculty.syllabus.partials.ilo-iga-mapping'), 'faculty.syllabus.partials.ilo-iga-mapping')
 
-          {{-- ILO ↔ CDIO ↔ SDG Mapping --}}
-          @includeWhen(View::exists('faculty.syllabus.partials.mapping-ilo-cdio-sdg'), 'faculty.syllabus.partials.mapping-ilo-cdio-sdg')
+        {{-- ILO ↔ CDIO ↔ SDG Mapping --}}
+        @includeWhen(View::exists('faculty.syllabus.partials.mapping-ilo-cdio-sdg'), 'faculty.syllabus.partials.mapping-ilo-cdio-sdg')
+
+        {{-- Syllabus Status (Prepared/Reviewed/Approved) --}}
+        @includeWhen(View::exists('faculty.syllabus.partials.status'), 'faculty.syllabus.partials.status')
       </div>
     </div>
   </form>
@@ -109,6 +112,10 @@
 @endsection
 
 @push('scripts')
+<script type="module">
+  import { saveSyllabusStatus } from '@/js/faculty/syllabus-status.js';
+  // Function is already exposed globally via window.saveSyllabusStatus
+</script>
 <script>
   // Quick section search: scroll to first matching CIS section label
   // (Search removed) – cleanup placeholder logic; leaving hook if reintroduced later.

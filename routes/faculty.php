@@ -157,6 +157,9 @@ Route::middleware([FacultyAuth::class])->group(function () {
     Route::post('/faculty/syllabi/igas/reorder', [\App\Http\Controllers\Faculty\Syllabus\SyllabusIgaController::class, 'reorder'])->name('faculty.syllabi.iga.reorder');
     Route::delete('/faculty/syllabi/igas/{id}', [\App\Http\Controllers\Faculty\Syllabus\SyllabusIgaController::class, 'destroy'])->name('faculty.syllabi.iga.destroy');
 
+    // ---------- Syllabus Status ----------
+    Route::post('/faculty/syllabus/save-status', [\App\Http\Controllers\Faculty\Syllabus\SyllabusStatusController::class, 'save'])->name('faculty.syllabi.status.save');
+
     // ---------- CDIO (Conceive–Design–Implement–Operate) — per-syllabus CDIO CRUD + Sortable ----------
     Route::put('/faculty/syllabi/{syllabus}/cdios', [\App\Http\Controllers\Faculty\Syllabus\SyllabusCdioController::class, 'update'])->name('faculty.syllabi.cdios.update');
     Route::post('/faculty/syllabi/{syllabus}/cdios/reorder', [\App\Http\Controllers\Faculty\Syllabus\SyllabusCdioController::class, 'reorder'])->name('faculty.syllabi.cdios.reorder');
