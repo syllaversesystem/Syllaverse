@@ -72,7 +72,7 @@ class SyllabusCdioController extends Controller
     public function loadPredefinedCdios(Request $request, $syllabus)
     {
         // Authorization check - faculty only
-        $syllabus = Syllabus::where('faculty_id', Auth::id())->findOrFail($syllabus);
+        $syllabus = Syllabus::whereHas('facultyMembers', function($q) { $q->where('faculty_id', Auth::id())->where('can_edit', true); })->findOrFail($syllabus);
 
         // Validate that cdio_ids is provided and is an array
         $request->validate([
@@ -164,6 +164,6 @@ class SyllabusCdioController extends Controller
      */
     protected function getSyllabusForAction($syllabusId)
     {
-        return Syllabus::where('faculty_id', Auth::id())->findOrFail($syllabusId);
+        return Syllabus::whereHas('facultyMembers', function($q) { $q->where('faculty_id', Auth::id())->where('can_edit', true); })->findOrFail($syllabusId);
     }
 }

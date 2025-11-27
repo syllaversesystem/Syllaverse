@@ -40,12 +40,19 @@ class SyllabusController extends Controller
         protected SyllabusAssessmentTasksController $assessmentTasks,
         protected SyllabusCoursePolicyController $coursePolicy,
         protected SyllabusStatusController $status,
+        protected FacultySyllabusController $facultySyllabus,
     ) {
     }
     public function index()
     {
+        // Get syllabi where user is owner (old way) OR has a relationship in faculty_syllabus table (new way)
         $syllabi = Syllabus::with('course')
-            ->where('faculty_id', auth()->id())
+            ->where(function($query) {
+                $query->where('faculty_id', auth()->id())
+                      ->orWhereHas('facultyMembers', function($q) {
+                          $q->where('faculty_id', auth()->id());
+                      });
+            })
             ->latest()
             ->get();
 
@@ -57,36 +64,71 @@ class SyllabusController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
-            'title' => 'required|string|max:255',
-            'program_id' => 'nullable|exists:programs,id',
-            'faculty_id' => 'nullable|exists:users,id',
-            'course_id' => 'required|exists:courses,id',
-            'academic_year' => 'required|string',
-            'semester' => 'required|string',
-            'year_level' => 'required|string',
-        ]);
+        try {
+            $request->validate([
+                'title' => 'required|string|max:255',
+                'program_id' => 'nullable|exists:programs,id',
+                'faculty_id' => 'nullable|exists:users,id',
+                'course_id' => 'required|exists:courses,id',
+                'academic_year' => 'required|string',
+                'semester' => 'required|string',
+                'year_level' => 'required|string',
+                'recipient_type' => 'required|in:myself,shared,others',
+                'faculty_members' => 'required_if:recipient_type,shared,others|array',
+                'faculty_members.*' => 'exists:users,id',
+            ]);
 
-        $facultyId = $request->input('faculty_id') ?: Auth::id();
+            $recipientType = $request->input('recipient_type');
+            $facultyMembers = $request->input('faculty_members', []);
+            
+            // Determine the owner based on recipient type
+            $ownerId = match($recipientType) {
+                'myself' => Auth::id(),
+                'shared' => Auth::id(),
+                'others' => $facultyMembers[0] ?? Auth::id(), // First selected faculty becomes owner
+            };
 
-        $syllabus = Syllabus::create([
-            'faculty_id' => $facultyId,
-            'program_id' => $request->program_id,
-            'course_id' => $request->course_id,
-            'title' => $request->title,
-            'academic_year' => $request->academic_year,
-            'semester' => $request->semester,
-            'year_level' => $request->year_level,
-        ]);
+            $syllabus = Syllabus::create([
+                'faculty_id' => $ownerId,
+                'program_id' => $request->program_id,
+                'course_id' => $request->course_id,
+                'title' => $request->title,
+                'academic_year' => $request->academic_year,
+                'semester' => $request->semester,
+                'year_level' => $request->year_level,
+            ]);
 
-    // Diagnostic: log created syllabus id so we can correlate model-created seeding
-    try { \Log::info('SyllabusController::store created syllabus', ['syllabus_id' => $syllabus->id, 'faculty_id' => $facultyId]); } catch (\Throwable $__e) {}
-    // seed mission & vision defaults via dedicated partial controller
-    $this->missionVision->seedFromGeneralInformation($syllabus);
+            // Create faculty-syllabus relationships via dedicated controller
+            $this->facultySyllabus->createRelationships($syllabus, $recipientType, $facultyMembers);
 
-        $course = Course::with(['ilos', 'prerequisites'])->find($request->course_id);
-        $this->courseInfo->seedFromCourse($syllabus, $course);
-        $this->ilos->seedFromCourse($syllabus, $course);
+            // Reload syllabus with faculty members for seeding
+            $syllabus->load('facultyMembers');
+
+            // Seed prepared_by based on recipient type
+            if ($recipientType === 'others') {
+                // For "others", prepared_by is the current user (creator)
+                $preparer = Auth::user();
+            } else {
+                // For "myself" and "shared", prepared_by is the owner
+                $preparer = \App\Models\User::find($ownerId);
+            }
+            
+            if ($preparer) {
+                $syllabus->update([
+                    'prepared_by_name' => $preparer->name,
+                    'prepared_by_title' => $preparer->designation ?? null,
+                    'prepared_by_date' => now()->format('Y-m-d'),
+                ]);
+            }
+
+            // Diagnostic: log created syllabus id so we can correlate model-created seeding
+            try { \Log::info('SyllabusController::store created syllabus', ['syllabus_id' => $syllabus->id, 'faculty_id' => $ownerId, 'recipient_type' => $recipientType]); } catch (\Throwable $__e) {}
+            // seed mission & vision defaults via dedicated partial controller
+            $this->missionVision->seedFromGeneralInformation($syllabus);
+
+            $course = Course::with(['ilos', 'prerequisites'])->find($request->course_id);
+            $this->courseInfo->seedFromCourse($syllabus, $course);
+            $this->ilos->seedFromCourse($syllabus, $course);
 
         // Copy master IGAs into per-syllabus IGAs if master table exists
         try {
@@ -165,14 +207,45 @@ class SyllabusController extends Controller
             \Log::warning('Syllabus::store failed to compute SO seed counts', ['error' => $__e->getMessage()]);
         }
 
-        return redirect()->route('faculty.syllabi.show', $syllabus->id)
-            ->with('success', 'Syllabus created successfully. You can now edit it.');
+            // Return JSON response for AJAX requests
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Syllabus created successfully.',
+                    'syllabusId' => $syllabus->id,
+                    'redirect' => route('faculty.syllabi.show', $syllabus->id)
+                ]);
+            }
+
+            return redirect()->route('faculty.syllabi.show', $syllabus->id)
+                ->with('success', 'Syllabus created successfully. You can now edit it.');
+                
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Re-throw validation exceptions so Laravel can handle them
+            throw $e;
+        } catch (\Throwable $e) {
+            \Log::error('Failed to create syllabus', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to create syllabus: ' . $e->getMessage()
+                ], 500);
+            }
+            
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Failed to create syllabus: ' . $e->getMessage());
+        }
     }
 
     public function show($id)
     {
         $syllabus = Syllabus::with([
-            'course', 'program', 'faculty', 'ilos', 'sos', 'sdgs', 'courseInfo', 'criteria', 'cdios',
+            'course', 'program', 'faculty', 'facultyMembers', 'ilos', 'sos', 'sdgs', 'courseInfo', 'criteria', 'cdios',
             'tla.ilos:id,code',
             'tla.sos:id,code',
             // eager-load assessmentMappings so the partial can hydrate saved rows
@@ -281,11 +354,42 @@ class SyllabusController extends Controller
 
     public function destroy($id)
     {
-        $syllabus = Syllabus::where('faculty_id', auth()->id())->findOrFail($id);
-        $syllabus->delete();
+        try {
+            // Check if user can delete: must be owner OR have any relationship (including viewer who created it)
+            $syllabus = Syllabus::where(function($query) {
+                $query->where('syllabi.faculty_id', auth()->id())
+                      ->orWhereHas('facultyMembers', function($q) {
+                          $q->where('faculty_syllabus.faculty_id', auth()->id());
+                      });
+            })->findOrFail($id);
+            
+            // Check if user is owner (can always delete)
+            $userRole = $syllabus->facultyMembers()
+                ->where('faculty_syllabus.faculty_id', auth()->id())
+                ->first();
+            
+            // Only owners can delete, or if the user is the old faculty_id owner
+            if ($syllabus->faculty_id != auth()->id() && 
+                (!$userRole || $userRole->pivot->role !== 'owner')) {
+                return redirect()->route('faculty.syllabi.index')
+                    ->with('error', 'Only the syllabus owner can delete this syllabus.');
+            }
+            
+            $syllabus->delete();
 
-        return redirect()->route('faculty.syllabi.index')
-            ->with('success', 'Syllabus deleted successfully.');
+            return redirect()->route('faculty.syllabi.index')
+                ->with('success', 'Syllabus deleted successfully.');
+                
+        } catch (\Throwable $e) {
+            \Log::error('Failed to delete syllabus', [
+                'syllabus_id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return redirect()->route('faculty.syllabi.index')
+                ->with('error', 'Failed to delete syllabus: ' . $e->getMessage());
+        }
     }
 
     public function exportPdf($id)
@@ -297,7 +401,7 @@ class SyllabusController extends Controller
 
     public function exportWord($id)
     {
-    $syllabus = Syllabus::with(['course', 'program', 'courseInfo', 'faculty'])->findOrFail($id);
+    $syllabus = Syllabus::with(['course', 'program', 'courseInfo', 'faculty', 'facultyMembers'])->findOrFail($id);
 
     $phpWord = new PhpWord();
         $phpWord->setDefaultFontName('Georgia');

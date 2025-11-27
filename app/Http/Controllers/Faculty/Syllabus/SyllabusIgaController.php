@@ -88,7 +88,7 @@ class SyllabusIgaController extends Controller
     // 📥 Load predefined IGAs from master data (replaces existing IGAs)
     public function loadPredefinedIgas(Request $request, $syllabusId)
     {
-        $syllabus = \App\Models\Syllabus::where('faculty_id', Auth::id())->findOrFail($syllabusId);
+        $syllabus = \App\Models\Syllabus::whereHas('facultyMembers', function($q) { $q->where('faculty_id', Auth::id())->where('can_edit', true); })->findOrFail($syllabusId);
 
         // Validate that iga_ids is provided and is an array
         $request->validate([

@@ -34,14 +34,7 @@
         <div class="svx-empty text-center py-5">
           <div class="mb-3"><i class="bi bi-journal-text" style="font-size:2.5rem; opacity:.45;"></i></div>
           <h6 class="fw-bold mb-1">No syllabi yet</h6>
-          <p class="text-muted mb-3">Click the plus button to create your first syllabus.</p>
-          <button type="button"
-                  class="btn programs-add-btn"
-                  data-bs-toggle="modal"
-                  data-bs-target="#selectSyllabusMetaModal"
-                  aria-label="Create Syllabus">
-            <i data-feather="plus"></i>
-          </button>
+          <p class="text-muted mb-3">Click the <i data-feather="plus" style="width: 1rem; height: 1rem; vertical-align: -0.125em;"></i> button to create your first syllabus.</p>
         </div>
       @else
         <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-3" id="syllabiGrid">
@@ -114,6 +107,7 @@
 @endpush
 
 @push('scripts')
+@vite('resources/js/faculty/syllabus-create.js')
 <script>
   document.addEventListener('DOMContentLoaded', function(){
     const search = document.getElementById('syllabiSearch');

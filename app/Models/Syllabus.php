@@ -52,7 +52,7 @@ class Syllabus extends Model
         'title',
         'academic_year',
         'semester',
-    'year_level',
+        'year_level',
     // Serialized assessment tasks JSON created by the AT module
     'assessment_tasks_data',
     // Serialized ILO->SO->CPA mapping payload
@@ -177,5 +177,13 @@ class Syllabus extends Model
     {
         // per-syllabus SDG entries (not a simple many-to-many pivot anymore)
         return $this->hasMany(SyllabusSdg::class)->orderBy('sort_order');
+    }
+
+    // 🔁 A syllabus can have multiple faculty members (owner, collaborators, viewers)
+    public function facultyMembers()
+    {
+        return $this->belongsToMany(User::class, 'faculty_syllabus', 'syllabus_id', 'faculty_id')
+                    ->withPivot('role', 'can_edit')
+                    ->withTimestamps();
     }
 }

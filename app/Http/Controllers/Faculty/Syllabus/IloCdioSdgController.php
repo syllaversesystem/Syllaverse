@@ -47,7 +47,7 @@ class IloCdioSdgController extends Controller
             ]);
 
             // Find syllabus and verify ownership
-            $syllabus = Syllabus::where('faculty_id', Auth::id())->findOrFail($syllabusId);
+            $syllabus = Syllabus::whereHas('facultyMembers', function($q) { $q->where('faculty_id', Auth::id())->where('can_edit', true); })->findOrFail($syllabusId);
 
             DB::beginTransaction();
 

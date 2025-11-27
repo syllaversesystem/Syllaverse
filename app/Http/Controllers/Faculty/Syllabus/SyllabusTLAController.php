@@ -92,7 +92,7 @@ class SyllabusTLAController extends Controller
         $tla = TLA::findOrFail($id);
 
         // Check if user owns this syllabus
-        if (auth()->check() && $tla->syllabus->faculty_id !== auth()->id()) {
+        if (auth()->check() && !$tla->syllabus->canBeEditedBy(auth()->id())) {
             return response()->json(['success' => false, 'message' => 'Unauthorized.'], 403);
         }
 
@@ -204,3 +204,4 @@ public function generateWithAI(Request $request, Syllabus $syllabus)
 
 
 }
+

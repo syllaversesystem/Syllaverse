@@ -58,7 +58,7 @@ class SyllabusCourseInfoController extends Controller
     public function save(Request $request, $syllabusId)
     {
         try {
-            $syllabus = Syllabus::where('faculty_id', Auth::id())->findOrFail($syllabusId);
+            $syllabus = Syllabus::whereHas('facultyMembers', function($q) { $q->where('faculty_id', Auth::id())->where('can_edit', true); })->findOrFail($syllabusId);
 
             $payload = $request->only($this->courseInfoKeys());
 
@@ -121,6 +121,41 @@ class SyllabusCourseInfoController extends Controller
         }
 
         $faculty ??= Auth::user();
+        $currentUserId = Auth::id();
+
+        // Get all faculty members from the pivot table
+        $facultyMembers = $syllabus->facultyMembers ?? collect();
+        
+        // Build instructor information with all faculty members
+        $instructorNames = [];
+        $employeeCodes = [];
+        $designations = [];
+        $emails = [];
+        
+        if ($facultyMembers->isNotEmpty()) {
+            foreach ($facultyMembers as $member) {
+                $isCurrentUser = $member->id == $currentUserId;
+                $role = $member->pivot->role ?? '';
+                
+                // Include only:
+                // - If role is 'collaborator' (selected faculty for "others")
+                // - If role is 'owner' AND NOT current user (to exclude creator of "for others" syllabus)
+                // - If role is 'owner' AND is current user AND faculty_id matches (for "myself" and "shared")
+                if ($role === 'collaborator' || 
+                    ($role === 'owner' && $syllabus->faculty_id == $member->id)) {
+                    $instructorNames[] = $member->name ?? '';
+                    $employeeCodes[] = $member->employee_code ?? $member->employee_no ?? $member->emp_no ?? $member->code ?? $member->id_no ?? '';
+                    $designations[] = $member->designation ?? '';
+                    $emails[] = $member->email ?? '';
+                }
+            }
+        } else {
+            // Fallback to the passed faculty or auth user if no members in pivot table yet
+            $instructorNames[] = $syllabus->instructor ?? ($faculty->name ?? '');
+            $employeeCodes[] = $faculty->employee_code ?? $faculty->employee_no ?? $faculty->emp_no ?? $faculty->code ?? $faculty->id_no ?? '';
+            $designations[] = $faculty->designation ?? '';
+            $emails[] = $faculty->email ?? '';
+        }
 
         $courseInfoData = [
             'syllabus_id' => $syllabus->id,
@@ -135,10 +170,10 @@ class SyllabusCourseInfoController extends Controller
             'semester' => $syllabus->semester ?? null,
             'year_level' => $syllabus->year_level ?? null,
             'academic_year' => $syllabus->academic_year ?? null,
-            'instructor_name' => $syllabus->instructor ?? ($faculty->name ?? null),
-            'employee_code' => $faculty->employee_code ?? $faculty->employee_no ?? $faculty->emp_no ?? $faculty->code ?? $faculty->id_no ?? null,
-            'instructor_designation' => $faculty->designation ?? null,
-            'instructor_email' => $faculty->email ?? null,
+            'instructor_name' => implode("\n", array_filter($instructorNames)),
+            'employee_code' => implode("\n", array_filter($employeeCodes)),
+            'instructor_designation' => implode("\n", array_filter($designations)),
+            'instructor_email' => implode("\n", array_filter($emails)),
             'reference_cmo' => $course->reference_cmo ?? null,
             'date_prepared' => optional($syllabus->created_at)->format('F d, Y') ?? null,
             'revision_no' => $syllabus->revision_no ?? null,

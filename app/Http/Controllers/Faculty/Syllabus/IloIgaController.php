@@ -42,7 +42,7 @@ class IloIgaController extends Controller
             $syllabusId = $validated['syllabus_id'];
 
             // Find syllabus and verify ownership
-            $syllabus = Syllabus::where('faculty_id', Auth::id())->findOrFail($syllabusId);
+            $syllabus = Syllabus::whereHas('facultyMembers', function($q) { $q->where('faculty_id', Auth::id())->where('can_edit', true); })->findOrFail($syllabusId);
 
             DB::beginTransaction();
 
@@ -102,7 +102,7 @@ class IloIgaController extends Controller
     public function save(Request $request, $syllabusId)
     {
         // Find syllabus and verify ownership
-        $syllabus = Syllabus::where('faculty_id', Auth::id())->findOrFail($syllabusId);
+        $syllabus = Syllabus::whereHas('facultyMembers', function($q) { $q->where('faculty_id', Auth::id())->where('can_edit', true); })->findOrFail($syllabusId);
 
         // Validate incoming data
         $request->validate([

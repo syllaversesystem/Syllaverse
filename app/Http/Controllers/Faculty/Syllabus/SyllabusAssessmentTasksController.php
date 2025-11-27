@@ -70,7 +70,7 @@ class SyllabusAssessmentTasksController extends Controller
         try { $facultyId = Auth::guard('faculty')->id(); } catch (\Throwable $e) { /* guard not available */ }
         if (!$facultyId) { $facultyId = Auth::id(); }
 
-        $syllabus = Syllabus::where('faculty_id', $facultyId)->where('id', $syllabusId)->first();
+        $syllabus = Syllabus::whereHas('facultyMembers', function($q) use ($facultyId) { $q->where('faculty_id', $facultyId)->where('can_edit', true); })->where('id', $syllabusId)->first();
         if (!$syllabus) {
             Log::warning('SyllabusAssessmentTasksController.store: scoped syllabus not found', [
                 'syllabus_id' => $syllabusId,
@@ -256,7 +256,7 @@ class SyllabusAssessmentTasksController extends Controller
             try { $facultyId = Auth::guard('faculty')->id(); } catch (\Throwable $e) { /* guard not available */ }
             if (!$facultyId) { $facultyId = Auth::id(); }
 
-            $syllabus = Syllabus::where('faculty_id', $facultyId)->where('id', $syllabusId)->first();
+            $syllabus = Syllabus::whereHas('facultyMembers', function($q) use ($facultyId) { $q->where('faculty_id', $facultyId)->where('can_edit', true); })->where('id', $syllabusId)->first();
             if (!$syllabus) {
                 $syllabus = Syllabus::findOrFail($syllabusId);
             }

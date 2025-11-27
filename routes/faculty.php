@@ -160,6 +160,11 @@ Route::middleware([FacultyAuth::class])->group(function () {
     // ---------- Syllabus Status ----------
     Route::post('/faculty/syllabus/save-status', [\App\Http\Controllers\Faculty\Syllabus\SyllabusStatusController::class, 'save'])->name('faculty.syllabi.status.save');
 
+    // ---------- Faculty-Syllabus Collaboration ----------
+    Route::post('/faculty/syllabi/members/add', [\App\Http\Controllers\Faculty\Syllabus\FacultySyllabusController::class, 'addMember'])->name('faculty.syllabi.members.add');
+    Route::put('/faculty/syllabi/members/update', [\App\Http\Controllers\Faculty\Syllabus\FacultySyllabusController::class, 'updateMember'])->name('faculty.syllabi.members.update');
+    Route::delete('/faculty/syllabi/members/remove', [\App\Http\Controllers\Faculty\Syllabus\FacultySyllabusController::class, 'removeMember'])->name('faculty.syllabi.members.remove');
+
     // ---------- CDIO (Conceive–Design–Implement–Operate) — per-syllabus CDIO CRUD + Sortable ----------
     Route::put('/faculty/syllabi/{syllabus}/cdios', [\App\Http\Controllers\Faculty\Syllabus\SyllabusCdioController::class, 'update'])->name('faculty.syllabi.cdios.update');
     Route::post('/faculty/syllabi/{syllabus}/cdios/reorder', [\App\Http\Controllers\Faculty\Syllabus\SyllabusCdioController::class, 'reorder'])->name('faculty.syllabi.cdios.reorder');
