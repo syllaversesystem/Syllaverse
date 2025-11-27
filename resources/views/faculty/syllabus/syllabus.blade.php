@@ -104,17 +104,6 @@
           @includeWhen(View::exists('faculty.syllabus.partials.mapping-ilo-cdio-sdg'), 'faculty.syllabus.partials.mapping-ilo-cdio-sdg')
       </div>
     </div>
-
-    {{-- Bottom Save / Exit (redundant for long scroll) --}}
-    <div class="d-flex gap-2 my-4">
-      <button id="syllabusSaveBtnBottom" type="button" class="btn btn-danger" onclick="document.getElementById('syllabusSaveBtn').click();">
-        <i class="bi bi-save"></i>
-        <span class="badge bg-warning text-dark ms-1 d-none" id="unsaved-count-badge-bottom">0</span>
-      </button>
-      <button type="button" class="btn btn-outline-secondary" onclick="handleExit('{{ route('faculty.syllabi.index') }}')">
-        <i class="bi bi-arrow-left"></i> Exit
-      </button>
-    </div>
   </form>
 </div>
 @endsection
@@ -123,18 +112,6 @@
 <script>
   // Quick section search: scroll to first matching CIS section label
   // (Search removed) – cleanup placeholder logic; leaving hook if reintroduced later.
-
-  // Mirror top unsaved count to bottom button if present
-  document.addEventListener('DOMContentLoaded', function(){
-    const topBadge = document.getElementById('unsaved-count-badge');
-    const bottomBadge = document.getElementById('unsaved-count-badge-bottom');
-    if (!topBadge || !bottomBadge) return;
-    const mo = new MutationObserver(() => {
-      bottomBadge.textContent = topBadge.textContent;
-      bottomBadge.classList.toggle('d-none', topBadge.style.display === 'none');
-    });
-    mo.observe(topBadge, { characterData: true, subtree: true, childList: true, attributes: true });
-  });
 
   // -----------------------------
   // Undo / Redo & Auto-Save Logic

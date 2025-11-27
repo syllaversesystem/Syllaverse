@@ -20,6 +20,7 @@ use App\Http\Controllers\Faculty\Syllabus\SyllabusIloController;
 use App\Http\Controllers\Faculty\Syllabus\SyllabusSoController;
 use App\Http\Controllers\Faculty\Syllabus\SyllabusSdgController;
 use App\Http\Controllers\Faculty\Syllabus\IloSoCpaController;
+use App\Http\Controllers\Faculty\Syllabus\IloCdioSdgController;
 use App\Http\Controllers\Faculty\SdgController;
 use App\Http\Controllers\Faculty\IgaController;
 use App\Http\Controllers\Faculty\CdioController;
@@ -150,6 +151,9 @@ Route::middleware([FacultyAuth::class])->group(function () {
     Route::post('/faculty/syllabus/save-ilo-iga-mapping', [\App\Http\Controllers\Faculty\Syllabus\IloIgaController::class, 'saveMapping'])->name('faculty.syllabi.ilo-iga-mapping.save');
     Route::post('/faculty/syllabi/{syllabus}/ilo-iga/save', [\App\Http\Controllers\Faculty\Syllabus\IloIgaController::class, 'save'])->name('faculty.syllabi.ilo-iga.save');
     Route::post('/faculty/syllabi/{syllabus}/load-predefined-igas', [\App\Http\Controllers\Faculty\Syllabus\SyllabusIgaController::class, 'loadPredefinedIgas'])->name('faculty.syllabi.igas.load-predefined');
+
+    // ---------- ILO-CDIO-SDG Mapping ----------
+    Route::post('/faculty/syllabus/save-ilo-cdio-sdg-mapping', [IloCdioSdgController::class, 'save'])->name('faculty.syllabi.ilo-cdio-sdg.save');
     Route::post('/faculty/syllabi/igas/reorder', [\App\Http\Controllers\Faculty\Syllabus\SyllabusIgaController::class, 'reorder'])->name('faculty.syllabi.iga.reorder');
     Route::delete('/faculty/syllabi/igas/{id}', [\App\Http\Controllers\Faculty\Syllabus\SyllabusIgaController::class, 'destroy'])->name('faculty.syllabi.iga.destroy');
 

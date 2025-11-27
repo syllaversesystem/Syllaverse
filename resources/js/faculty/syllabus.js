@@ -677,6 +677,19 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
+      // --- Save ILO-CDIO-SDG Mapping before main form submission ---
+      try {
+        if (window.saveIloCdioSdgMapping && typeof window.saveIloCdioSdgMapping === 'function') {
+          await window.saveIloCdioSdgMapping(false); // false = don't show alert
+          console.log('ILO-CDIO-SDG Mapping saved to database');
+        }
+      } catch (iloCdioSdgErr) {
+        console.error('Failed to save ILO-CDIO-SDG Mapping:', iloCdioSdgErr);
+        alert('Failed to save ILO-CDIO-SDG Mapping: ' + (iloCdioSdgErr && iloCdioSdgErr.message ? iloCdioSdgErr.message : 'See console for details.'));
+        try { saveBtn.disabled = false; saveBtn.innerHTML = originalHtml; window._syllabusSaveLock = false; } catch (e) { /* noop */ }
+        return;
+      }
+
       // Persist assessment mappings
       try {
         if (window.saveAssessmentMappingsForToolbar && typeof window.saveAssessmentMappingsForToolbar === 'function') {
@@ -864,93 +877,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // show an alert for non-network errors that likely need user action
     try { alert('Failed to save. ' + msg); } catch (e) { console.warn('Could not show alert', e); }
   }
-
-  // ------------------------------
-  // Minimal ILO save (no external module)
-  // ------------------------------
-  window.saveIlo = async function() {
-    const list = document.getElementById('syllabus-ilo-sortable');
-    if (!list) return { message: 'No ILO list present' };
-
-    function getSyllabusId() {
-      try { const id = list.getAttribute('data-syllabus-id'); if (id) return id; } catch (e) {}
-      try { const act = (form && form.action) ? form.action : ''; const m = act.match(/\/faculty\/syllabi\/([^\/?#]+)/); if (m) return decodeURIComponent(m[1]); } catch (e) {}
-      try {
-        const idInput = document.querySelector('[name="id"], input[name="syllabus_id"], input[name="syllabus"]');
-        if (idInput && idInput.value) return idInput.value;
-      } catch (e) {}
-      return '';
-    }
-
-    const syllabusId = getSyllabusId();
-    if (!syllabusId) throw new Error('Cannot determine syllabus id for ILO save');
-
-    // Build payload from visible rows
-    const rows = Array.from(list.querySelectorAll('tr'))
-      .filter(r => r.querySelector('textarea[name="ilos[]"]') || r.querySelector('.ilo-badge'));
-
-    // Ensure codes are sequential before reading hidden inputs
-    rows.forEach((row, i) => {
-      const code = `ILO${i + 1}`;
-      const badge = row.querySelector('.ilo-badge'); if (badge) badge.textContent = code;
-      const codeInput = row.querySelector('input[name="code[]"]'); if (codeInput) codeInput.value = code;
-    });
-
-    const descriptors = rows.map((row, index) => {
-      const rawId = row.getAttribute('data-id') || '';
-      const id = (/^\d+$/.test(rawId)) ? Number(rawId) : null;
-      const code = row.querySelector('input[name="code[]"]')?.value || `ILO${index + 1}`;
-      const ta = row.querySelector('textarea[name="ilos[]"]');
-      const description = ta ? (ta.value || '') : '';
-      const hasContent = (description.trim().length > 0);
-      return { row, entry: { id, code, description, position: index + 1 }, hasContent };
-    });
-
-    const payloadIlos = descriptors
-      .filter(d => d.entry.id || d.hasContent)
-      .map(d => d.entry);
-
-    // CSRF headers
-    const headers = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
-    try {
-      const token = document.querySelector('meta[name="csrf-token"]')?.content
-        || document.querySelector('#iloForm input[name="_token"], #syllabusForm input[name="_token"]')?.value
-        || '';
-      if (token) headers['X-CSRF-TOKEN'] = token;
-    } catch (e) { /* noop */ }
-
-    const url = (window.syllabusBasePath || '/faculty/syllabi') + `/${encodeURIComponent(syllabusId)}/ilos`;
-
-    const pendingNew = descriptors.filter(d => !d.entry.id && d.hasContent).map(d => d.row);
-
-    const res = await fetch(url, {
-      method: 'PUT',
-      headers,
-      credentials: 'same-origin',
-      body: JSON.stringify({ ilos: payloadIlos })
-    });
-    if (!res.ok) {
-      let body = null; try { body = await res.json(); } catch (e) {}
-      const msg = (body && (body.message || (body.errors && JSON.stringify(body.errors)))) || 'Failed to save ILOs';
-      throw new Error(msg);
-    }
-    const data = await res.json();
-
-    // Assign server IDs back to newly-created rows in DOM
-    if (Array.isArray(data.created_ids) && data.created_ids.length) {
-      const apply = pendingNew.slice(0, data.created_ids.length);
-      apply.forEach((row, i) => {
-        const nid = data.created_ids[i];
-        if (row && nid) row.setAttribute('data-id', String(nid));
-      });
-    }
-
-    // Update originals and hide unsaved pill
-    try { document.getElementById('unsaved-ilos')?.classList.add('d-none'); } catch (e) {}
-    try { list.querySelectorAll('textarea[name="ilos[]"]').forEach(ta => ta.setAttribute('data-original', ta.value || '')); } catch (e) {}
-    try { updateUnsavedCount(); } catch (e) {}
-    return data;
-  };
   // restore button text to original so user can retry
   try { saveBtn.innerHTML = originalHtml; } catch (e) { console.warn(e); }
       } finally {
