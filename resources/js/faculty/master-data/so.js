@@ -4,82 +4,24 @@ import axios from 'axios';
 document.addEventListener('DOMContentLoaded', () => {
   const soTable = document.getElementById('soTable');
   const tableBody = document.getElementById('soTableBody');
-  const deptFilter = document.getElementById('soDepartmentFilter');
+  // Department filter removed – SO list now auto-scoped server-side to user's department.
   const searchInput = document.getElementById('soSearch');
   const addForm = document.getElementById('addSoForm');
   const addModalEl = document.getElementById('addSoModal');
   const addErrors = document.getElementById('addSoErrors');
   const addSubmitBtn = document.getElementById('addSoSubmit');
-  const roleCanSeeDeptCol = (soTable?.dataset?.roleCanSeeDeptCol === '1');
-  let hasDeptCol = roleCanSeeDeptCol;
+  const roleCanSeeDeptCol = false; // always false – department column removed
+  let hasDeptCol = false;
 
-  function rebuildHeaderAndColgroup() {
-    if (!soTable) return;
-    // Determine based on current filter
-    hasDeptCol = roleCanSeeDeptCol;
-
-    const colgroup = soTable.querySelector('colgroup');
-    if (colgroup) {
-      if (hasDeptCol) {
-        colgroup.innerHTML = `
-          <col style="width:24%;" />
-          <col style="width:1%;" />
-          <col />
-          <col style="width:1%;" />
-        `;
-      } else {
-        colgroup.innerHTML = `
-          <col style="width:28%;" />
-          <col />
-          <col style="width:1%;" />
-        `;
-      }
-    }
-
-    const theadRow = soTable.querySelector('thead tr');
-    if (theadRow) {
-      const deptTh = theadRow.querySelector('.th-dept');
-      if (hasDeptCol) {
-        // Ensure it exists after Title
-        if (!deptTh) {
-          const th = document.createElement('th');
-          th.scope = 'col';
-          th.className = 'th-dept';
-          th.innerHTML = '<i class="bi bi-building"></i> Department';
-          const afterTitle = theadRow.children[0]?.nextSibling;
-          if (afterTitle) {
-            theadRow.insertBefore(th, theadRow.children[1] || null);
-          } else {
-            theadRow.appendChild(th);
-          }
-        }
-      } else if (deptTh) {
-        theadRow.removeChild(deptTh);
-      }
-    }
-  }
+  // rebuildHeaderAndColgroup no longer needed (single static column layout)
 
   async function loadSo(options = {}) {
     const showLoadingRow = options.showLoading !== false; // default true
-    const department = deptFilter?.value || 'all';
     try {
-      // Clear search when department filter changes to mirror Programs UX
-      if (document.activeElement === deptFilter && searchInput && searchInput.value) {
-        searchInput.value = '';
-      }
-
-      // Show loading state and disable filter during request (unless silent)
-      if (showLoadingRow) {
-        showLoading();
-        if (deptFilter) {
-          deptFilter.disabled = true;
-          deptFilter.classList.add('is-loading');
-        }
-      }
+      if (showLoadingRow) showLoading();
 
       const resp = await axios.get(`/faculty/master-data/so/filter`, {
-        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-        params: { department }
+        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
       });
       const data = resp.data?.studentOutcomes || [];
       renderRows(data);
@@ -88,10 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // eslint-disable-next-line no-console
       console.error('SO load error:', err);
     } finally {
-      if (deptFilter && showLoadingRow) {
-        deptFilter.disabled = false;
-        deptFilter.classList.remove('is-loading');
-      }
+      // nothing to re-enable
     }
   }
 
@@ -108,14 +47,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const rowsHtml = filtered.map(it => {
-      const dept = it?.department ? `${it.department.code || ''}` : '';
+      // Department no longer displayed – table scoped server-side
       const title = (it?.title || '').trim();
       const titleDisplay = title ? title : '—';
       const cells = [];
       cells.push(`<td class="so-title text-wrap">${escapeHtml(titleDisplay)}</td>`);
-      if (hasDeptCol) {
-        cells.push(`<td class="so-dept text-wrap">${escapeHtml(dept)}</td>`);
-      }
       cells.push(`<td class="so-desc-cell text-wrap text-break">${escapeHtml(it.description || '')}</td>`);
       cells.push(`
         <td class="so-actions text-end">
@@ -147,7 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
       : ' <p>Click the <i data-feather="plus"></i> button to add one.</p>';
     tableBody.innerHTML = `
       <tr class="superadmin-manage-department-empty-row">
-        <td colspan="${hasDeptCol ? 4 : 3}">
+        <td colspan="3">
           <div class="empty-table">
             <h6>${escapeHtml(message)}</h6>
             ${sub}
@@ -164,7 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!tableBody) return;
     tableBody.innerHTML = `
       <tr class="so-loading-row">
-        <td colspan="${hasDeptCol ? 4 : 3}" class="text-center py-4">
+        <td colspan="3" class="text-center py-4">
           <div class="d-flex flex-column align-items-center">
             <i data-feather="loader" class="spinner mb-2" style="width:32px;height:32px;"></i>
             <p class="mb-0 text-muted">Loading student outcomes...</p>
@@ -184,29 +120,15 @@ document.addEventListener('DOMContentLoaded', () => {
     return String(str || '').replace(/["'&<>]/g, (s) => ({ '"': '&quot;', "'": '&#39;', '&': '&amp;', '<': '&lt;', '>': '&gt;' }[s]));
   }
 
-  function handleDeptFilterChange(e) {
-    rebuildHeaderAndColgroup();
-    loadSo();
-  }
-  deptFilter?.addEventListener('change', handleDeptFilterChange);
-  // Subtle visual feedback on filter change (mirror Programs)
-  deptFilter?.addEventListener('change', function (e) {
-    e.target.style.transform = 'scale(0.98)';
-    setTimeout(() => { e.target.style.transform = ''; }, 150);
-  });
+  // Department filter removed; only bind search
   searchInput?.addEventListener('input', loadSo);
 
   // Initial load when SO tab is shown
   const soTab = document.getElementById('so-main-tab');
   if (soTab) {
-    if (soTab.classList.contains('active')) {
-      rebuildHeaderAndColgroup();
-      loadSo();
-    }
-    soTab.addEventListener('shown.bs.tab', () => { rebuildHeaderAndColgroup(); loadSo(); });
+    if (soTab.classList.contains('active')) loadSo();
+    soTab.addEventListener('shown.bs.tab', () => { loadSo(); });
   } else {
-    // if no tabs setup, still try loading on page ready
-    rebuildHeaderAndColgroup();
     loadSo();
   }
 
@@ -228,11 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (addModalEl) {
     addModalEl.addEventListener('shown.bs.modal', () => {
       clearAddErrors();
-      // Prefill department to current filter if select exists and filter is specific
-      const sel = document.getElementById('soDepartment');
-      if (sel && deptFilter && deptFilter.value && deptFilter.value !== 'all') {
-        sel.value = deptFilter.value;
-      }
+      // Prefill department removed – server scopes automatically
       const t = document.getElementById('soTitle');
       t && t.focus();
     });

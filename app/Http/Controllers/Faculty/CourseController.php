@@ -37,7 +37,8 @@ class CourseController extends Controller
         
         // Check if user has any administrative roles
         $hasAdministrativeRole = $userAppointments->contains(function($appointment) {
-            return in_array($appointment->role, ['VCAA', 'ASSOC_VCAA', 'DEAN', 'DEPT_CHAIR', 'PROG_CHAIR']);
+            // Treat DEPT_HEAD as equivalent to legacy DEPT_CHAIR
+            return in_array($appointment->role, ['VCAA', 'ASSOC_VCAA', 'DEAN', 'DEPT_CHAIR', 'DEPT_HEAD', 'PROG_CHAIR']);
         });
         
         \Log::info('Has administrative role: ' . ($hasAdministrativeRole ? 'true' : 'false'));
@@ -49,8 +50,8 @@ class CourseController extends Controller
         
         // For basic faculty users, get their department from faculty appointment
         $facultyAppointment = $userAppointments->filter(function($appointment) {
-            return $appointment->role === 'FACULTY' && 
-                   $appointment->scope_type === 'Department' && 
+            return $appointment->role === 'FACULTY' &&
+                   $appointment->scope_type === 'Department' &&
                    !empty($appointment->scope_id);
         })->first();
         
@@ -89,7 +90,7 @@ class CourseController extends Controller
         $programIds = [];
 
         foreach ($appts as $a) {
-            if ($a->role === 'DEPT_CHAIR') {
+            if (in_array($a->role, ['DEPT_CHAIR', 'DEPT_HEAD'])) {
                 $deptIds[] = (int) $a->scope_id;
             } elseif ($a->role === 'FACULTY') {
                 $deptIds[] = (int) $a->scope_id;
@@ -147,90 +148,81 @@ class CourseController extends Controller
     public function index(Request $request)
     {
         $user = auth()->user();
-        
-        // Get filter parameter for department
-        $departmentFilter = $request->get('department');
-        
-        // Build courses query with optional department filter (exclude deleted courses)
-        $coursesQuery = Course::with(['department'])->notDeleted()->orderBy('title');
-        if ($departmentFilter && $departmentFilter !== 'all') {
-            $coursesQuery->where('department_id', $departmentFilter);
-        }
-        $courses = $coursesQuery->get();
-        
-        // Get all departments for dropdowns
-        $departments = \App\Models\Department::all();
-        
-        // Check user roles and determine department dropdown visibility
-        $userDepartment = null;
-        $showDepartmentDropdown = true;
-        
-        // Get all active appointments for the user
+        // Resolve appointments first (needed for scoping BEFORE querying courses)
         $userAppointments = $user->appointments()->active()->get();
-        
-        // Check for institution-wide roles (roles with Institution scope)
+
+        // Institution-wide roles (see ALL departments)
         $hasInstitutionWideRole = $userAppointments->contains(function($appointment) {
-            return in_array($appointment->role, ['VCAA', 'ASSOC_VCAA']) || 
+            return in_array($appointment->role, ['VCAA', 'ASSOC_VCAA']) ||
                    ($appointment->scope_type === 'Institution') ||
                    ($appointment->role === 'DEAN' && $appointment->scope_type === 'Institution');
         });
-        
-        // Check specifically for VCAA/ASSOC_VCAA roles for department filter
-        $showDepartmentFilter = $userAppointments->contains(function($appointment) {
-            return in_array($appointment->role, ['VCAA', 'ASSOC_VCAA']);
-        });
-        
-        // Check if user has any administrative roles (to show department column)
-        $hasAdministrativeRole = $userAppointments->contains(function($appointment) {
-            return in_array($appointment->role, ['VCAA', 'ASSOC_VCAA', 'DEAN', 'DEPT_CHAIR', 'PROG_CHAIR']);
-        });
-        
-        // Hide department column for users without institution-wide scope (only VCAA/ASSOC_VCAA can see department column)
-        $showDepartmentColumn = $hasInstitutionWideRole;
-        
-        // Check for department-specific roles
-        $departmentSpecificAppointments = $userAppointments->filter(function($appointment) {
-            return in_array($appointment->role, ['DEAN', 'DEPT_CHAIR', 'PROG_CHAIR']) && 
-                   $appointment->scope_type === 'Department' && 
-                   !empty($appointment->scope_id);
-        });
-        
-        // Role-based dropdown logic
-        if ($departmentSpecificAppointments->isNotEmpty() && !$hasInstitutionWideRole) {
-            // User has ONLY department-specific roles - restrict to their department
-            $firstDeptAppointment = $departmentSpecificAppointments->first();
-            $userDepartment = $firstDeptAppointment->scope_id;
-            $showDepartmentDropdown = false;
-        }
-        
-        // For modals: hide department dropdown if user doesn't have VCAA/Associate VCAA role
-        // Only VCAA and Associate VCAA users can see department selection in course modals
-        $hasVcaaRole = $userAppointments->contains(function($appointment) {
-            return in_array($appointment->role, ['VCAA', 'ASSOC_VCAA']);
-        });
-        $showAddDepartmentDropdown = $hasVcaaRole;
-        $showEditDepartmentDropdown = $hasVcaaRole;
-        
-        // If user has no administrative role, get their department from scope
-        if (!$hasAdministrativeRole) {
-            $facultyAppointment = $userAppointments->filter(function($appointment) {
-                return $appointment->role === 'FACULTY' && 
-                       $appointment->scope_type === 'Department' && 
-                       !empty($appointment->scope_id);
-            })->first();
-            
-            if ($facultyAppointment) {
-                $userDepartment = $facultyAppointment->scope_id;
+
+        // Department filter param only honored for institution-wide users
+        $departmentFilter = $hasInstitutionWideRole ? $request->get('department') : null;
+
+        // Determine a single scoped department for non institution-wide users
+        $scopedDepartmentId = null;
+
+        if (!$hasInstitutionWideRole) {
+            // 1. Department-scoped leadership roles (DEPT_HEAD/DEPT_CHAIR, DEAN with Department scope)
+            $deptRoleAppt = $userAppointments->first(function($a) {
+                return in_array($a->role, ['DEPT_HEAD', 'DEPT_CHAIR', 'DEAN']) &&
+                       $a->scope_type === 'Department' && !empty($a->scope_id);
+            });
+            if ($deptRoleAppt) {
+                $scopedDepartmentId = (int) $deptRoleAppt->scope_id;
+            }
+
+            // 2. Program Chair role -> map program to department
+            if (!$scopedDepartmentId) {
+                $progAppt = $userAppointments->first(function($a) {
+                    return $a->role === 'PROG_CHAIR' && $a->scope_type === 'Program' && !empty($a->scope_id);
+                });
+                if ($progAppt) {
+                    $progDept = Program::where('id', $progAppt->scope_id)->value('department_id');
+                    if ($progDept) { $scopedDepartmentId = (int) $progDept; }
+                }
+            }
+
+            // 3. Faculty department appointment fallback
+            if (!$scopedDepartmentId) {
+                $facultyAppt = $userAppointments->first(function($a) {
+                    return $a->role === 'FACULTY' && $a->scope_type === 'Department' && !empty($a->scope_id);
+                });
+                if ($facultyAppt) { $scopedDepartmentId = (int) $facultyAppt->scope_id; }
             }
         }
-        
-        // Filter-based dropdown logic: if a specific department is filtered, pre-select it but keep dropdown pickable
-        if ($departmentFilter && $departmentFilter !== 'all') {
-            $userDepartment = $departmentFilter;
+
+        // Build courses query (exclude deleted); apply scoping
+        $coursesQuery = Course::with(['department', 'prerequisites'])->notDeleted()->orderBy('title');
+        if ($hasInstitutionWideRole) {
+            if ($departmentFilter && $departmentFilter !== 'all') {
+                $coursesQuery->where('department_id', $departmentFilter);
+            }
+        } elseif ($scopedDepartmentId) {
+            $coursesQuery->where('department_id', $scopedDepartmentId);
         }
-        
+        $courses = $coursesQuery->get();
+
+        // Departments list (only needed for institution-wide users or dropdown display in modals)
+        $departments = \App\Models\Department::all();
+
+        // UI flags
+        $showDepartmentFilter = $hasInstitutionWideRole; // Only VCAA / ASSOC_VCAA (and institution-wide DEAN if any) can filter
+        $showDepartmentColumn = $hasInstitutionWideRole; // Hide column for scoped users
+
+        // Department selection inside modals (assigning department when creating/editing)
+        $hasVcaaRole = $userAppointments->contains(function($a) { return in_array($a->role, ['VCAA', 'ASSOC_VCAA']); });
+        $showAddDepartmentDropdown  = $hasVcaaRole; // Only institution-wide can choose department
+        $showEditDepartmentDropdown = $hasVcaaRole;
+
+        // Maintain legacy variables consumed by Blade
+        $userDepartment = $scopedDepartmentId; // Pre-selected / implicit department for scoped users
+        $showDepartmentDropdown = $hasInstitutionWideRole; // (Not explicitly used in Blade right now)
+
         return view('faculty.courses.index', compact(
-            'courses', 
+            'courses',
             'departments',
             'userDepartment',
             'showDepartmentDropdown',
@@ -549,10 +541,46 @@ class CourseController extends Controller
         $departmentFilter = $request->get('department');
         $q = trim((string) $request->get('q', ''));
         
-        // Build courses query with optional department filter (exclude deleted courses)
+        // Appointments & institution-wide check
+        $userAppointments = $user->appointments()->active()->get();
+        $hasInstitutionWideRole = $userAppointments->contains(function($a) {
+            return in_array($a->role, ['VCAA', 'ASSOC_VCAA']) ||
+                   ($a->scope_type === 'Institution') ||
+                   ($a->role === 'DEAN' && $a->scope_type === 'Institution');
+        });
+
+        // Resolve scoped department for non institution-wide users
+        $scopedDeptId = null;
+        if (!$hasInstitutionWideRole) {
+            $deptAppt = $userAppointments->first(function($a) {
+                return in_array($a->role, ['DEPT_HEAD', 'DEPT_CHAIR', 'DEAN']) && $a->scope_type === 'Department' && !empty($a->scope_id);
+            });
+            if ($deptAppt) { $scopedDeptId = (int) $deptAppt->scope_id; }
+            if (!$scopedDeptId) {
+                $progAppt = $userAppointments->first(function($a) {
+                    return $a->role === 'PROG_CHAIR' && $a->scope_type === 'Program' && !empty($a->scope_id);
+                });
+                if ($progAppt) {
+                    $progDept = Program::where('id', $progAppt->scope_id)->value('department_id');
+                    if ($progDept) { $scopedDeptId = (int) $progDept; }
+                }
+            }
+            if (!$scopedDeptId) {
+                $facultyAppt = $userAppointments->first(function($a) {
+                    return $a->role === 'FACULTY' && $a->scope_type === 'Department' && !empty($a->scope_id);
+                });
+                if ($facultyAppt) { $scopedDeptId = (int) $facultyAppt->scope_id; }
+            }
+        }
+
+        // Build query with enforced scoping
         $coursesQuery = Course::with(['department', 'prerequisites'])->notDeleted();
-        if ($departmentFilter && $departmentFilter !== 'all') {
-            $coursesQuery->where('department_id', $departmentFilter);
+        if ($hasInstitutionWideRole) {
+            if ($departmentFilter && $departmentFilter !== 'all') {
+                $coursesQuery->where('department_id', $departmentFilter);
+            }
+        } elseif ($scopedDeptId) {
+            $coursesQuery->where('department_id', $scopedDeptId);
         }
         if ($q !== '') {
             $coursesQuery->where(function($sub) use ($q) {
@@ -562,47 +590,33 @@ class CourseController extends Controller
         }
         $courses = $coursesQuery->get();
         $isSearch = $q !== '';
-        
-        // Get all departments for context
+
+        // Departments list for institution-wide context (still passed for uniform partial)
         $departments = \App\Models\Department::all();
-        
-        // Get user permissions (same logic as index method)
-        $userAppointments = $user->appointments()->active()->get();
-        
-        // Check for institution-wide roles (roles with Institution scope)
-        $hasInstitutionWideRole = $userAppointments->contains(function($appointment) {
-            return in_array($appointment->role, ['VCAA', 'ASSOC_VCAA']) || 
-                   ($appointment->scope_type === 'Institution') ||
-                   ($appointment->role === 'DEAN' && $appointment->scope_type === 'Institution');
-        });
-        
-        // Hide department column for users without institution-wide scope (only VCAA/ASSOC_VCAA can see department column)
         $showDepartmentColumn = $hasInstitutionWideRole;
-        
-        // Check if user can manage courses
-        $canManageCourses = $user->role === 'faculty' 
-            || (method_exists($user, 'isDeptChair') && $user->isDeptChair())
-            || (method_exists($user, 'isProgChair') && $user->isProgChair());
-        
-        // Return JSON response with table data
+
+        // Capability flag
+        $canManageCourses = $user->role === 'faculty' ||
+            (method_exists($user, 'isDeptChair') && $user->isDeptChair()) ||
+            (method_exists($user, 'isProgChair') && $user->isProgChair());
+
         if ($request->expectsJson()) {
             return response()->json([
                 'success' => true,
                 'html' => view('faculty.courses.partials.courses-table-content', compact(
                     'courses',
-                    'departments', 
+                    'departments',
                     'canManageCourses',
                     'showDepartmentColumn',
                     'departmentFilter',
                     'isSearch'
                 ))->render(),
                 'count' => $courses->count(),
-                'department_filter' => $departmentFilter,
+                'department_filter' => $hasInstitutionWideRole ? $departmentFilter : $scopedDeptId,
                 'search' => $q,
             ]);
         }
-        
-        // Fallback to redirect for non-AJAX requests
-        return redirect()->route('faculty.courses.index', ['department' => $departmentFilter]);
+
+        return redirect()->route('faculty.courses.index');
     }
 }

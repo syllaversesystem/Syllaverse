@@ -20,6 +20,7 @@
         </select>
       </div>
     @endif
+    {{-- Courses are pre-filtered server-side to the user's department unless institution-wide (VCAA / Associate VCAA) --}}
     <span class="flex-spacer"></span>
     <button type="button"
             class="btn programs-add-btn d-none d-md-inline-flex"

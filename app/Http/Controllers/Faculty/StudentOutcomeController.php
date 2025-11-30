@@ -218,40 +218,50 @@ class StudentOutcomeController extends Controller
     public function filterByDepartment(Request $request)
     {
         try {
-            $user = Auth::user();
-            $departmentFilter = $request->get('department');
-            
-            // Build student outcomes query with optional department filter
-            $soQuery = StudentOutcome::with(['department']);
-            if ($departmentFilter && $departmentFilter !== 'all') {
-                $soQuery->where('department_id', $departmentFilter);
+            $user = Auth::guard('faculty')->user() ?? Auth::user();
+            $appointments = $user?->appointments()->active()->get() ?? collect();
+
+            // Determine if user has institution-wide only roles (VCAA / ASSOC_VCAA)
+            $hasInstitutionWideOnly = $appointments->isNotEmpty() && $appointments->every(function($a){
+                return in_array($a->role, ['VCAA','ASSOC_VCAA']);
+            });
+
+            // Resolve a single department id from any department-scoped appointment
+            $deptScopedRoles = [
+                \App\Models\Appointment::ROLE_DEPT,
+                \App\Models\Appointment::ROLE_DEPT_HEAD,
+                \App\Models\Appointment::ROLE_PROG,
+                \App\Models\Appointment::ROLE_DEAN,
+                \App\Models\Appointment::ROLE_ASSOC_DEAN,
+                \App\Models\Appointment::ROLE_FACULTY,
+            ];
+            $deptAppt = $appointments->first(function($a) use ($deptScopedRoles){
+                return in_array($a->role, $deptScopedRoles, true) && $a->scope_type === \App\Models\Appointment::SCOPE_DEPT && !empty($a->scope_id);
+            });
+            $departmentId = $deptAppt?->scope_id;
+
+            // Query student outcomes limited to department unless institution-wide only
+            $soQuery = StudentOutcome::with('department');
+            if ($departmentId && !$hasInstitutionWideOnly) {
+                $soQuery->where('department_id', (int) $departmentId);
             }
             $studentOutcomes = $soQuery->get();
-            
-            // Get all departments for context
-            $departments = Department::orderBy('code')->get();
-            
-            // Get user permissions (same logic as MasterDataController)
-            $userAppointments = $user->appointments()->active()->get();
-            
-            // Check if user has VCAA/ASSOC_VCAA roles for department filter
-            $showDepartmentFilter = $userAppointments->contains(function($appointment) {
-                return in_array($appointment->role, ['VCAA', 'ASSOC_VCAA']);
-            });
-            
-            // Return JSON response with data
+
             if ($request->expectsJson()) {
                 return response()->json([
                     'success' => true,
                     'studentOutcomes' => $studentOutcomes,
                     'count' => $studentOutcomes->count(),
-                    'department_filter' => $departmentFilter
+                    'department_id' => $departmentId ? (int)$departmentId : null,
+                    'scoped' => (bool)($departmentId && !$hasInstitutionWideOnly),
                 ]);
             }
-            
-            // Fallback to redirect for non-AJAX requests
-            return redirect()->route('faculty.dashboard')
-                ->with('department', $departmentFilter);
+
+            // Non-AJAX fallback – redirect to dashboard with info
+            return redirect()->route('faculty.dashboard')->with([
+                'so_department_id' => $departmentId,
+                'so_scoped' => (bool)($departmentId && !$hasInstitutionWideOnly),
+            ]);
                 
         } catch (\Exception $e) {
             Log::error('SO Filter Error: ' . $e->getMessage());
