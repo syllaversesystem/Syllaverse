@@ -7,6 +7,7 @@
 
   @includeIf('faculty.syllabus.modals.create')
   @includeIf('faculty.syllabus.modals.submit')
+  @includeIf('faculty.syllabus.modals.delete')
 
   <div class="svx-fullbleed">
     <div class="container-fluid px-3 py-3">
@@ -119,10 +120,16 @@
                       <i class="bi bi-trash"></i>
                     </button>
                   @else
-                  <form action="{{ route('faculty.syllabi.destroy',$syllabus->id) }}" method="POST" onsubmit="return confirm('Delete this syllabus? This action cannot be undone.');">
+                  <form id="delete-syllabus-{{ $syllabus->id }}" action="{{ route('faculty.syllabi.destroy',$syllabus->id) }}" method="POST" style="display:none;">
                     @csrf @method('DELETE')
-                    <button type="submit" class="btn btn-outline-danger btn-sm" aria-label="Delete syllabus"><i class="bi bi-trash"></i></button>
                   </form>
+                  <button type="button"
+                          class="btn btn-outline-danger btn-sm btn-delete-syllabus"
+                          data-form-id="delete-syllabus-{{ $syllabus->id }}"
+                          data-title="{{ $syllabus->title }}"
+                          aria-label="Delete syllabus">
+                    <i class="bi bi-trash"></i>
+                  </button>
                   @endif
                 </div>
               </article>
@@ -282,6 +289,37 @@
           const url = card.getAttribute('data-open-url');
           if (url) { window.location.href = url; }
         }
+      });
+    }
+
+    // Delete modal wiring for syllabi cards
+    const deleteModalEl = document.getElementById('deleteSyllabusModal');
+    const deleteTitleEl = document.getElementById('deleteSyllabusTitle');
+    const confirmDeleteBtn = document.getElementById('confirmDeleteSyllabus');
+    let deleteModalInstance = null;
+    if (deleteModalEl && window.bootstrap && bootstrap.Modal) {
+      deleteModalInstance = new bootstrap.Modal(deleteModalEl);
+    }
+
+    if (gridEl) {
+      gridEl.addEventListener('click', function(ev){
+        const delBtn = ev.target.closest && ev.target.closest('.btn-delete-syllabus');
+        if (!delBtn) return;
+        ev.preventDefault();
+        const formId = delBtn.getAttribute('data-form-id');
+        const title = delBtn.getAttribute('data-title') || 'this syllabus';
+        if (deleteTitleEl) deleteTitleEl.textContent = title;
+        if (deleteModalEl) deleteModalEl.dataset.targetForm = formId || '';
+        if (deleteModalInstance) deleteModalInstance.show();
+      });
+    }
+
+    if (confirmDeleteBtn) {
+      confirmDeleteBtn.addEventListener('click', function(){
+        const formId = deleteModalEl ? deleteModalEl.dataset.targetForm : '';
+        if (!formId) return;
+        const form = document.getElementById(formId);
+        if (form) form.submit();
       });
     }
   });

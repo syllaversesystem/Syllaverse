@@ -53,6 +53,14 @@
         <span class="small">Submit</span>
       </button>
       @endif
+
+      @if(!$isLockedSubmitted)
+      <!-- Settings button + floating overlay panel (no dropdown wrapper) -->
+      <button class="btn btn-outline-secondary d-flex flex-column align-items-center gap-1 toolbar-btn mt-3" type="button" id="syllabusSettingsBtn" title="Settings">
+        <i class="bi bi-gear fs-5"></i>
+        <span class="small">Settings</span>
+      </button>
+      @endif
     </div>
   </div>
 
@@ -744,6 +752,79 @@
         });
       }
     }
+
+    // Settings: IGA visibility toggle (persisted per syllabus in localStorage)
+    try {
+      const docEl = document;
+      const container = docEl.getElementById('syllabus-document');
+      const syllabusId = container ? container.getAttribute('data-syllabus-id') : '';
+      const igaPartial = docEl.querySelector('.sv-partial[data-partial-key="iga"]');
+      const key = 'sv_show_iga_' + (syllabusId || 'default');
+      function applyIgaVisibility(show){ if (igaPartial) igaPartial.style.display = show ? '' : 'none'; }
+      let showIga = true; // default: visible
+      try { const v = localStorage.getItem(key); if (v !== null) showIga = (v === 'true'); } catch(e) {}
+      applyIgaVisibility(showIga);
+      // settings panel creation and wiring
+      const settingsBtn = docEl.getElementById('syllabusSettingsBtn');
+      let settingsPanel = docEl.getElementById('syllabusSettingsPanel');
+      if (!settingsPanel) {
+        settingsPanel = docEl.createElement('div');
+        settingsPanel.id = 'syllabusSettingsPanel';
+        settingsPanel.className = 'sv-settings-panel';
+        settingsPanel.innerHTML = `
+          <div class="form-check form-switch d-flex align-items-center gap-2">
+            <input class="form-check-input" type="checkbox" id="toggleIgaVisibility">
+            <label class="form-check-label" for="toggleIgaVisibility">Show IGA section</label>
+          </div>
+        `;
+        document.body.appendChild(settingsPanel);
+      }
+
+      const toggleIga = docEl.getElementById('toggleIgaVisibility');
+      if (toggleIga) {
+        toggleIga.checked = !!showIga;
+        toggleIga.setAttribute('aria-checked', showIga ? 'true' : 'false');
+        toggleIga.addEventListener('change', function(){
+          const val = !!toggleIga.checked;
+          applyIgaVisibility(val);
+          try { localStorage.setItem(key, val ? 'true' : 'false'); } catch(e) {}
+        });
+      }
+
+      function positionPanel() {
+        if (!settingsBtn || !settingsPanel) return;
+        const rect = settingsBtn.getBoundingClientRect();
+        const gap = 8;
+        let left = rect.right + gap;
+        let top = rect.top;
+        // keep within viewport horizontally
+        const maxLeft = window.innerWidth - settingsPanel.offsetWidth - gap;
+        if (left > maxLeft) left = rect.left - settingsPanel.offsetWidth - gap;
+        if (left < gap) left = gap;
+        // keep within viewport vertically
+        const maxTop = window.innerHeight - settingsPanel.offsetHeight - gap;
+        if (top > maxTop) top = maxTop;
+        if (top < gap) top = gap;
+        settingsPanel.style.left = left + 'px';
+        settingsPanel.style.top = top + 'px';
+      }
+
+      function openPanel(){ settingsPanel.style.display = 'block'; positionPanel(); }
+      function closePanel(){ settingsPanel.style.display = 'none'; }
+      function isOpen(){ return settingsPanel && settingsPanel.style.display !== 'none'; }
+
+      if (settingsBtn) {
+        settingsBtn.addEventListener('click', function(){ isOpen() ? closePanel() : openPanel(); });
+      }
+      document.addEventListener('click', function(e){
+        if (!isOpen()) return;
+        const t = e.target;
+        if (t === settingsBtn || (settingsPanel && settingsPanel.contains(t))) return;
+        closePanel();
+      });
+      window.addEventListener('resize', function(){ if (isOpen()) positionPanel(); });
+      document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closePanel(); });
+    } catch(e) { console.warn('IGA toggle init failed', e); }
     // Draft mode: ensure right toolbar never shows (safety) and skip comment logic
     if (isDraft || (isLockedSubmitted && !isReview)) {
       const rt = document.querySelector('.syllabus-right-toolbar');
@@ -965,7 +1046,48 @@
   .syllabus-doc { display:flex; flex-wrap:nowrap; align-items:stretch; height:100vh; width:100%; min-width:0; position:relative; padding-right: var(--right-toolbar-w, 0px); }
   .syllabus-vertical-toolbar { position:relative; width: var(--toolbar-w, 78px); flex: 0 0 var(--toolbar-w, 78px); flex-shrink:0; order:0; box-sizing:border-box; background:#fff; border-right:1px solid #e2e5e9; padding:10px 8px; display:flex; flex-direction:column; }
   .syllabus-vertical-toolbar .toolbar-inner { display:flex; flex-direction:column; align-items:center; }
-  .syllabus-vertical-toolbar .toolbar-btn { width:100%; }
+  .syllabus-vertical-toolbar .toolbar-btn {
+    width:100%;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    min-height: 48px; /* unify button height for vertical centering */
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+  .syllabus-vertical-toolbar .toolbar-btn .small { line-height: 1; }
+  .syllabus-vertical-toolbar .toolbar-btn i,
+  .syllabus-vertical-toolbar .toolbar-btn svg {
+    display: block;
+    line-height: 1;
+  }
+  .syllabus-vertical-toolbar .dropdown .toolbar-btn { padding-left: 0; padding-right: 0; }
+  .syllabus-vertical-toolbar .dropdown { width:100%; }
+  .syllabus-vertical-toolbar .dropdown-toggle::after { display:none !important; }
+  .syllabus-vertical-toolbar .dropdown-menu { z-index: 20050; }
+  /* Remove Bootstrap's extra right padding reserved for caret */
+  .syllabus-vertical-toolbar .dropdown > .dropdown-toggle {
+    padding-right: 0 !important;
+    padding-left: 0 !important;
+  }
+  /* Floating settings panel */
+  .sv-settings-panel {
+    position: fixed;
+    top: 0; left: 0; /* will be positioned via JS */
+    min-width: 220px;
+    background: #fff;
+    border: 1px solid #E3E3E3;
+    border-radius: 12px;
+    padding: 10px 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.08), 0 2px 12px rgba(0,0,0,.06);
+    z-index: 20060;
+    display: none;
+  }
+  .sv-settings-panel .form-check-input { background-color: #E8E8E8; border-color: #CCCCCC; }
+  .sv-settings-panel .form-check-input:checked { background-color: #6C757D; border-color: #6C757D; }
+  .sv-settings-panel .form-check-input:focus { border-color: #999; box-shadow: 0 0 0 0.25rem rgba(108,117,125,.25); }
   /* Ensure comments badge becomes visible when count > 0 */
   #syllabusCommentsToggleBtn { position: relative; }
   /* Absolute, top-right yellow badge with black text */
