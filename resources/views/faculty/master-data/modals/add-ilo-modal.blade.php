@@ -7,6 +7,7 @@
         #addIloModal { --sv-bg:#FAFAFA; --sv-bdr:#E3E3E3; --sv-acct:#EE6F57; --sv-danger:#CB3737; }
         #addIloModal .modal-header{ padding:.85rem 1rem; border-bottom:1px solid var(--sv-bdr); background:#fff; }
         #addIloModal .modal-title{ font-weight:600; font-size:1rem; display:inline-flex; align-items:center; gap:.5rem; }
+        #addIloModal .modal-title i, #addIloModal .modal-title svg { width:1.05rem; height:1.05rem; stroke: var(--sv-text-muted,#777); }
         #addIloModal .modal-content{ border-radius:16px; border:1px solid var(--sv-bdr); background:#fff; box-shadow:0 10px 30px rgba(0,0,0,.08), 0 2px 12px rgba(0,0,0,.06); overflow:hidden; }
         #addIloModal .form-control, #addIloModal .form-select{ border-radius:12px; border:1px solid var(--sv-bdr); background:#fff; }
         #addIloModal .form-label{ margin-bottom:.35rem; font-size:.8rem; letter-spacing:.02em; }
@@ -16,9 +17,13 @@
         #addIloModal textarea.form-control.form-control-sm{ resize:vertical; }
         #addIloModal .form-control:focus, #addIloModal .form-select:focus{ border-color: var(--sv-acct); box-shadow:0 0 0 3px rgba(238,111,87,.16); }
         #addIloModal .btn-danger{ background:#fff; border:none; color:#000; transition:all .2s ease; display:inline-flex; align-items:center; gap:.5rem; padding:.5rem 1rem; border-radius:.375rem; }
-        #addIloModal .btn-danger:hover, #addIloModal .btn-danger:focus{ background:linear-gradient(135deg, rgba(255,240,235,.88), rgba(255,255,255,.46)); box-shadow:0 4px 10px rgba(204,55,55,.12); color:#CB3737; }
-        #addIloModal .btn-light{ background:#fff; border:none; color:#6c757d; transition:all .2s ease; display:inline-flex; align-items:center; gap:.5rem; padding:.5rem 1rem; border-radius:.375rem; }
-        #addIloModal .btn-light:hover, #addIloModal .btn-light:focus{ background:linear-gradient(135deg, rgba(220,220,220,.88), rgba(240,240,240,.46)); box-shadow:0 4px 10px rgba(108,117,125,.12); color:#495057; }
+        #addIloModal .btn-danger i, #addIloModal .btn-danger svg { stroke:#000; }
+        #addIloModal .btn-danger:hover, #addIloModal .btn-danger:focus{ background:linear-gradient(135deg, rgba(235,235,235,.88), rgba(250,250,250,.46)); box-shadow:0 4px 10px rgba(0,0,0,.10); color:#000; }
+        #addIloModal .btn-danger:hover i, #addIloModal .btn-danger:hover svg, #addIloModal .btn-danger:focus i, #addIloModal .btn-danger:focus svg { stroke:#000; }
+        #addIloModal .btn-light{ background:#fff; border:none; color:#000; transition:all .2s ease; display:inline-flex; align-items:center; gap:.5rem; padding:.5rem 1rem; border-radius:.375rem; }
+        #addIloModal .btn-light i, #addIloModal .btn-light svg { stroke:#000; }
+        #addIloModal .btn-light:hover, #addIloModal .btn-light:focus{ background:linear-gradient(135deg, rgba(225,225,225,.88), rgba(240,240,240,.46)); box-shadow:0 4px 10px rgba(0,0,0,.08); color:#000; }
+        #addIloModal .btn-light:hover i, #addIloModal .btn-light:hover svg, #addIloModal .btn-light:focus i, #addIloModal .btn-light:focus svg { stroke:#000; }
       </style>
 
       <div class="modal-header">

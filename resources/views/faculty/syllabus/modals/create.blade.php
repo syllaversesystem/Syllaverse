@@ -24,6 +24,13 @@
           border-bottom: 1px solid var(--sv-bdr);
           background: var(--sv-bg);
           padding: 0.85rem 1rem;
+          position: sticky; /* keep icon + title always visible */
+          top: 0;
+          z-index: 20;
+        }
+        /* Shadow appears once body scrolls to differentiate header */
+        #selectSyllabusMetaModal .modal-header.sv-stuck {
+          box-shadow: 0 2px 6px rgba(0,0,0,.08);
         }
         #selectSyllabusMetaModal .modal-title {
           font-weight: 600;
@@ -65,28 +72,60 @@
           margin-bottom: 0.5rem;
           font-size: 0.875rem;
         }
+        /* Unified neutral action button (Next / Create / Update style) */
         #selectSyllabusMetaModal .btn-danger {
-          background: var(--sv-card-bg, #fff);
-          border: none;
-          color: var(--sv-danger);
-          transition: all 0.2s ease-in-out;
-          box-shadow: none;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          gap: 0.5rem;
-          padding: 0.75rem 1rem;
-          border-radius: 0.375rem;
-          font-weight: 500;
+          background:#fff;
+          border:none;
+          color:#000;
+          transition:all .2s ease-in-out;
+          box-shadow:none;
+          display:inline-flex;
+          align-items:center;
+          justify-content:center;
+          gap:.5rem;
+          padding:.65rem 1rem;
+          border-radius:.375rem;
+          font-weight:500;
         }
+        #selectSyllabusMetaModal .btn-danger i,
+        #selectSyllabusMetaModal .btn-danger svg { stroke:#000; }
         #selectSyllabusMetaModal .btn-danger:hover,
         #selectSyllabusMetaModal .btn-danger:focus {
-          background: linear-gradient(135deg, rgba(255, 235, 235, 0.88), rgba(255, 245, 245, 0.46));
-          backdrop-filter: blur(7px);
-          -webkit-backdrop-filter: blur(7px);
-          box-shadow: 0 4px 10px rgba(203, 55, 55, 0.15);
-          color: var(--sv-danger);
+          background:linear-gradient(135deg, rgba(235,235,235,.88), rgba(250,250,250,.46));
+          box-shadow:0 4px 10px rgba(0,0,0,.10);
+          color:#000;
         }
+        #selectSyllabusMetaModal .btn-danger:hover i,
+        #selectSyllabusMetaModal .btn-danger:hover svg,
+        #selectSyllabusMetaModal .btn-danger:focus i,
+        #selectSyllabusMetaModal .btn-danger:focus svg { stroke:#000; }
+        /* Neutral utility buttons (Cancel / Back) */
+        #selectSyllabusMetaModal .btn-light {
+          background:#fff;
+          border:none;
+          color:#000;
+          transition:all .2s ease-in-out;
+          display:inline-flex;
+          align-items:center;
+          justify-content:center;
+          gap:.5rem;
+          padding:.65rem 1rem;
+          border-radius:.375rem;
+          font-weight:500;
+        }
+        #selectSyllabusMetaModal .btn-light i,
+        #selectSyllabusMetaModal .btn-light svg { stroke:#000; }
+        #selectSyllabusMetaModal .btn-light:hover,
+        #selectSyllabusMetaModal .btn-light:focus {
+          background:linear-gradient(135deg, rgba(225,225,225,.88), rgba(240,240,240,.46));
+          box-shadow:0 4px 10px rgba(0,0,0,.08);
+          color:#000;
+        }
+        #selectSyllabusMetaModal .btn-light:hover i,
+        #selectSyllabusMetaModal .btn-light:hover svg,
+        #selectSyllabusMetaModal .btn-light:focus i,
+        #selectSyllabusMetaModal .btn-light:focus svg { stroke:#000; }
+        /* Feedback */
         #selectSyllabusMetaModal .invalid-feedback {
           display: block;
           font-size: 0.875rem;
@@ -112,19 +151,12 @@
         #selectSyllabusMetaModal .recipient-options .form-check-input:checked ~ * {
           border-color: var(--sv-danger);
         }
-        #selectSyllabusMetaModal .btn-secondary {
-          background: #6c757d;
-          color: #fff;
-        }
-        #selectSyllabusMetaModal .btn-secondary:hover {
-          background: #5a6268;
-          color: #fff;
-        }
+        /* Remove old secondary styling – using .btn-light instead */
 
         /* Faculty Cards */
         .faculty-cards-container {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+          grid-template-columns: repeat(2, 1fr); /* each card 50% width */
           gap: 0.75rem;
           max-height: 400px;
           overflow-y: auto;
@@ -132,6 +164,9 @@
           border: 1px solid var(--sv-bdr);
           border-radius: 8px;
           background: #fafafa;
+        }
+        @media (max-width: 640px) {
+          .faculty-cards-container { grid-template-columns: 1fr; }
         }
         .faculty-card {
           position: relative;
@@ -229,7 +264,7 @@
           <i data-feather="file-plus"></i>
           Create Syllabus
         </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        {{-- Removed top-right close button per design unification request --}}
       </div>
 
       <div class="modal-body">
@@ -361,12 +396,20 @@
       </div>
 
       <div class="modal-footer">
-        <button type="button" id="nextPhaseBtn" class="btn btn-danger w-100">
-          <i data-feather="arrow-right"></i>
-          Next
-        </button>
+        <!-- Phase 1 Footer (dynamic) -->
+        <div id="phase1Footer" class="d-flex gap-2 w-100">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal" style="width:110px;">
+            <i data-feather="x"></i>
+            Cancel
+          </button>
+          <button type="button" id="nextPhaseBtn" class="btn btn-danger flex-grow-1">
+            <i data-feather="arrow-right"></i>
+            Next
+          </button>
+        </div>
+        <!-- Phase 2 Footer (shown after Next) -->
         <div id="phase2Footer" class="d-none gap-2 w-100">
-          <button type="button" id="backPhaseBtn" class="btn btn-secondary" style="width: 100px;">
+          <button type="button" id="backPhaseBtn" class="btn btn-light" style="width:110px;">
             <i data-feather="arrow-left"></i>
             Back
           </button>
@@ -376,6 +419,45 @@
           </button>
         </div>
       </div>
+      <script>
+        // Phase toggle logic: ensure Cancel (phase1Footer) hidden during phase 2
+        document.addEventListener('DOMContentLoaded', function() {
+          const nextBtn = document.getElementById('nextPhaseBtn');
+          const backBtn = document.getElementById('backPhaseBtn');
+          const phase1 = document.getElementById('phase1');
+          const phase2 = document.getElementById('phase2');
+          const phase1Footer = document.getElementById('phase1Footer');
+          const phase2Footer = document.getElementById('phase2Footer');
+          const modalBody = document.querySelector('#selectSyllabusMetaModal .modal-body');
+          const modalHeader = document.querySelector('#selectSyllabusMetaModal .modal-header');
+          if (nextBtn) {
+            nextBtn.addEventListener('click', () => {
+              if (phase1) phase1.style.display = 'none';
+              if (phase2) phase2.style.display = 'block';
+              if (phase1Footer) phase1Footer.classList.add('d-none');
+              if (phase2Footer) phase2Footer.classList.remove('d-none');
+            });
+          }
+          if (backBtn) {
+            backBtn.addEventListener('click', () => {
+              if (phase1) phase1.style.display = 'block';
+              if (phase2) phase2.style.display = 'none';
+              if (phase1Footer) phase1Footer.classList.remove('d-none');
+              if (phase2Footer) phase2Footer.classList.add('d-none');
+            });
+          }
+          // Add scroll listener to toggle header shadow for visual persistence
+          if (modalBody && modalHeader) {
+            modalBody.addEventListener('scroll', () => {
+              if (modalBody.scrollTop > 4) {
+                modalHeader.classList.add('sv-stuck');
+              } else {
+                modalHeader.classList.remove('sv-stuck');
+              }
+            });
+          }
+        });
+      </script>
     </form>
   </div>
 </div>

@@ -45,10 +45,14 @@
           resize: vertical;
         }
         #addSoModal .form-control:focus, #addSoModal .form-select:focus { border-color: var(--sv-acct); box-shadow: 0 0 0 3px rgba(238,111,87,.16); outline:none; }
-        #addSoModal .btn-danger { background: #fff; border:none; color:#000; transition: all .2s ease; display:inline-flex; align-items:center; gap:.5rem; padding:.5rem 1rem; border-radius:.375rem; }
-        #addSoModal .btn-danger:hover, #addSoModal .btn-danger:focus { background: linear-gradient(135deg, rgba(255,240,235,.88), rgba(255,255,255,.46)); box-shadow:0 4px 10px rgba(204,55,55,.12); color:#CB3737; }
-        #addSoModal .btn-light { background:#fff; border:none; color:#6c757d; transition: all .2s ease; display:inline-flex; align-items:center; gap:.5rem; padding:.5rem 1rem; border-radius:.375rem; }
-        #addSoModal .btn-light:hover, #addSoModal .btn-light:focus { background: linear-gradient(135deg, rgba(220,220,220,.88), rgba(240,240,240,.46)); box-shadow:0 4px 10px rgba(108,117,125,.12); color:#495057; }
+        #addSoModal .btn-danger { background:#fff; border:none; color:#000; transition:all .2s ease; display:inline-flex; align-items:center; gap:.5rem; padding:.5rem 1rem; border-radius:.375rem; }
+        #addSoModal .btn-danger i, #addSoModal .btn-danger svg { stroke:#000; }
+        #addSoModal .btn-danger:hover, #addSoModal .btn-danger:focus { background:linear-gradient(135deg, rgba(235,235,235,.88), rgba(250,250,250,.46)); box-shadow:0 4px 10px rgba(0,0,0,.10); color:#000; }
+        #addSoModal .btn-danger:hover i, #addSoModal .btn-danger:hover svg, #addSoModal .btn-danger:focus i, #addSoModal .btn-danger:focus svg { stroke:#000; }
+        #addSoModal .btn-light { background:#fff; border:none; color:#000; transition:all .2s ease; display:inline-flex; align-items:center; gap:.5rem; padding:.5rem 1rem; border-radius:.375rem; }
+        #addSoModal .btn-light i, #addSoModal .btn-light svg { stroke:#000; }
+        #addSoModal .btn-light:hover, #addSoModal .btn-light:focus { background:linear-gradient(135deg, rgba(225,225,225,.88), rgba(240,240,240,.46)); box-shadow:0 4px 10px rgba(0,0,0,.08); color:#000; }
+        #addSoModal .btn-light:hover i, #addSoModal .btn-light:hover svg, #addSoModal .btn-light:focus i, #addSoModal .btn-light:focus svg { stroke:#000; }
       </style>
       {{-- ░░░ END: Local styles ░░░ --}}
 

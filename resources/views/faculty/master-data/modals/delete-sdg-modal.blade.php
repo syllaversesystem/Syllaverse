@@ -10,8 +10,10 @@
         #deleteSdgModal #deleteSdgTitle{ max-width:100%; overflow:hidden; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; word-break: break-word; overflow-wrap:anywhere; }
         #deleteSdgModal .btn-danger{ background:#fff; border:none; color: var(--sv-danger); transition: all .2s ease; display:inline-flex; align-items:center; gap:.5rem; padding:.5rem 1rem; border-radius:.375rem; }
         #deleteSdgModal .btn-danger:hover, #deleteSdgModal .btn-danger:focus{ background: linear-gradient(135deg, rgba(255,235,235,.88), rgba(255,245,245,.46)); box-shadow:0 4px 10px rgba(203,55,55,.15); color: var(--sv-danger); }
-        #deleteSdgModal .btn-light{ background:#fff; border:none; color:#6c757d; transition: all .2s ease; display:inline-flex; align-items:center; gap:.5rem; padding:.5rem 1rem; border-radius:.375rem; }
-        #deleteSdgModal .btn-light:hover, #deleteSdgModal .btn-light:focus{ background: linear-gradient(135deg, rgba(220,220,220,.88), rgba(240,240,240,.46)); box-shadow:0 4px 10px rgba(108,117,125,.12); color:#495057; }
+        #deleteSdgModal .btn-light{ background:#fff; border:none; color:#000; transition: all .2s ease; display:inline-flex; align-items:center; gap:.5rem; padding:.5rem 1rem; border-radius:.375rem; }
+        #deleteSdgModal .btn-light i, #deleteSdgModal .btn-light svg { stroke:#000; }
+        #deleteSdgModal .btn-light:hover, #deleteSdgModal .btn-light:focus{ background: linear-gradient(135deg, rgba(225,225,225,.88), rgba(240,240,240,.46)); box-shadow:0 4px 10px rgba(0,0,0,.08); color:#000; }
+        #deleteSdgModal .btn-light:hover i, #deleteSdgModal .btn-light:hover svg, #deleteSdgModal .btn-light:focus i, #deleteSdgModal .btn-light:focus svg { stroke:#000; }
       </style>
 
       <div class="modal-header">

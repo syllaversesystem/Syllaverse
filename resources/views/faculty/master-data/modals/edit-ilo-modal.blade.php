@@ -8,6 +8,7 @@
         #editIloModal { --sv-bg:#FAFAFA; --sv-bdr:#E3E3E3; --sv-acct:#EE6F57; --sv-danger:#CB3737; }
         #editIloModal .modal-header{ padding:.85rem 1rem; border-bottom:1px solid var(--sv-bdr); background:#fff; }
         #editIloModal .modal-title{ font-weight:600; font-size:1rem; display:inline-flex; align-items:center; gap:.5rem; }
+        #editIloModal .modal-title i, #editIloModal .modal-title svg { width:1.05rem; height:1.05rem; stroke: var(--sv-text-muted,#777); }
         #editIloModal .modal-content{ border-radius:16px; border:1px solid var(--sv-bdr); background:#fff; box-shadow:0 10px 30px rgba(0,0,0,.08), 0 2px 12px rgba(0,0,0,.06); overflow:hidden; }
         #editIloModal .form-control, #editIloModal .form-select{ border-radius:12px; border:1px solid var(--sv-bdr); background:#fff; }
         #editIloModal .form-label{ margin-bottom:.35rem; font-size:.8rem; letter-spacing:.02em; }
@@ -17,9 +18,13 @@
         #editIloModal textarea.form-control.form-control-sm{ resize:vertical; }
         #editIloModal .form-control:focus, #editIloModal .form-select:focus{ border-color: var(--sv-acct); box-shadow:0 0 0 3px rgba(238,111,87,.16); }
         #editIloModal .btn-danger{ background:#fff; border:none; color:#000; transition:all .2s ease; display:inline-flex; align-items:center; gap:.5rem; padding:.5rem 1rem; border-radius:.375rem; }
-        #editIloModal .btn-danger:hover, #editIloModal .btn-danger:focus{ background:linear-gradient(135deg, rgba(255,240,235,.88), rgba(255,255,255,.46)); box-shadow:0 4px 10px rgba(204,55,55,.12); color:#CB3737; }
-        #editIloModal .btn-light{ background:#fff; border:none; color:#6c757d; transition:all .2s ease; display:inline-flex; align-items:center; gap:.5rem; padding:.5rem 1rem; border-radius:.375rem; }
-        #editIloModal .btn-light:hover, #editIloModal .btn-light:focus{ background:linear-gradient(135deg, rgba(220,220,220,.88), rgba(240,240,240,.46)); box-shadow:0 4px 10px rgba(108,117,125,.12); color:#495057; }
+        #editIloModal .btn-danger i, #editIloModal .btn-danger svg { stroke:#000; }
+        #editIloModal .btn-danger:hover, #editIloModal .btn-danger:focus{ background:linear-gradient(135deg, rgba(235,235,235,.88), rgba(250,250,250,.46)); box-shadow:0 4px 10px rgba(0,0,0,.10); color:#000; }
+        #editIloModal .btn-danger:hover i, #editIloModal .btn-danger:hover svg, #editIloModal .btn-danger:focus i, #editIloModal .btn-danger:focus svg { stroke:#000; }
+        #editIloModal .btn-light{ background:#fff; border:none; color:#000; transition:all .2s ease; display:inline-flex; align-items:center; gap:.5rem; padding:.5rem 1rem; border-radius:.375rem; }
+        #editIloModal .btn-light i, #editIloModal .btn-light svg { stroke:#000; }
+        #editIloModal .btn-light:hover, #editIloModal .btn-light:focus{ background:linear-gradient(135deg, rgba(225,225,225,.88), rgba(240,240,240,.46)); box-shadow:0 4px 10px rgba(0,0,0,.08); color:#000; }
+        #editIloModal .btn-light:hover i, #editIloModal .btn-light:hover svg, #editIloModal .btn-light:focus i, #editIloModal .btn-light:focus svg { stroke:#000; }
       </style>
 
       <div class="modal-header">
