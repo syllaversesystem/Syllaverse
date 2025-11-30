@@ -204,4 +204,20 @@ class Syllabus extends Model
     {
         return $this->hasMany(SyllabusSubmission::class)->orderBy('action_at', 'desc');
     }
+
+    /**
+     * Determine if the syllabus can be edited by the given faculty user.
+     * Uses the pivot table faculty_syllabus (can_edit flag) or direct owner faculty_id.
+     */
+    public function canBeEditedBy($facultyId): bool
+    {
+        if (!$facultyId) return false;
+        // Owner shortcut
+        if ((int)$this->faculty_id === (int)$facultyId) return true;
+        // Collaborators with can_edit flag
+        return $this->facultyMembers()
+            ->where('faculty_id', $facultyId)
+            ->where(function($q){ $q->where('can_edit', true)->orWhereNull('can_edit'); })
+            ->exists();
+    }
 }

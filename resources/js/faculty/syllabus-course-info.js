@@ -22,8 +22,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const form = document.getElementById('syllabusForm');
     if (!form) {
-      console.error('Syllabus form not found');
-      return;
+      console.warn('Syllabus form not found; proceeding with document-level queries');
     }
 
     // Collect all course info fields matching database structure
@@ -43,7 +42,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Collect course info fields
     fields.forEach((name) => {
-      const el = form.querySelector(`[name="${name}"]`);
+      const el = (form ? form.querySelector(`[name="${name}"]`) : null) || document.querySelector(`[name="${name}"]`);
       if (el) {
         payload[name] = el.value ?? '';
       }
@@ -109,7 +108,7 @@ document.addEventListener('DOMContentLoaded', function () {
             group.classList.add('d-none');
           }
         }
-        const el = form.querySelector(`[name="${name}"]`);
+        const el = (form ? form.querySelector(`[name="${name}"]`) : null) || document.querySelector(`[name="${name}"]`);
         if (el) {
           el.dataset.original = el.value ?? '';
           el.classList.remove('sv-new-highlight');

@@ -168,12 +168,16 @@
       @csrf
 
       <style>
+        /* Synced with IGA load modal styling */
         #loadPredefinedCdiosModal {
           --sv-bg:   #FAFAFA;
           --sv-bdr:  #E3E3E3;
           --sv-acct: #EE6F57;
           --sv-danger:#CB3737;
+          z-index: 10010 !important;
         }
+        #loadPredefinedCdiosModal .modal-dialog,
+        #loadPredefinedCdiosModal .modal-content { position: relative; z-index: 10011; }
         #loadPredefinedCdiosModal .modal-header {
           padding: .85rem 1rem;
           border-bottom: 1px solid var(--sv-bdr);
@@ -192,6 +196,10 @@
           height: 1.05rem;
           stroke: var(--sv-text-muted, #777777);
         }
+        /* Scrollable modal layout */
+        #loadPredefinedCdiosModal .modal-dialog { max-width: 680px; }
+        #loadPredefinedCdiosModal .modal-content { max-height: 85vh; display: flex; flex-direction: column; }
+        #loadPredefinedCdiosModal .modal-body { flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain; }
         #loadPredefinedCdiosModal .modal-content {
           border-radius: 16px;
           border: 1px solid var(--sv-bdr);
@@ -205,23 +213,76 @@
           font-size: .875rem;
         }
         #loadPredefinedCdiosModal .alert-warning {
-          background: linear-gradient(135deg, rgba(255, 243, 205, 0.88), rgba(255, 255, 255, 0.46));
-          border: 1px solid rgba(255, 193, 7, 0.3);
+          background: #FFF3CD; /* solid warning background */
+          border: 1px solid #FFE69C;
           color: #856404;
         }
+        /* Primary (Load) button neutral styling */
         #loadPredefinedCdiosModal .btn-danger {
           background: var(--sv-card-bg, #fff);
           border: none;
           color: #000;
           transition: all 0.2s ease-in-out;
+          box-shadow: none;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.5rem 1rem;
+          border-radius: 0.375rem;
+          font-size: 0.95rem;
         }
-        #loadPredefinedCdiosModal .btn-danger:hover {
-          background: linear-gradient(135deg, rgba(255, 240, 235, 0.88), rgba(255, 255, 255, 0.46));
+        #loadPredefinedCdiosModal .btn-danger i,
+        #loadPredefinedCdiosModal .btn-danger svg { width: 1.05rem; height: 1.05rem; }
+        #loadPredefinedCdiosModal .btn-danger:hover,
+        #loadPredefinedCdiosModal .btn-danger:focus {
+          background: linear-gradient(135deg, rgba(220,220,220,.88), rgba(240,240,240,.46));
           backdrop-filter: blur(7px);
           -webkit-backdrop-filter: blur(7px);
-          box-shadow: 0 4px 10px rgba(204, 55, 55, 0.12);
-          color: #CB3737;
+          box-shadow: 0 4px 10px rgba(0,0,0,.12);
+          color: #000;
         }
+        #loadPredefinedCdiosModal .btn-danger:hover i,
+        #loadPredefinedCdiosModal .btn-danger:hover svg,
+        #loadPredefinedCdiosModal .btn-danger:focus i,
+        #loadPredefinedCdiosModal .btn-danger:focus svg { stroke: #000; }
+        #loadPredefinedCdiosModal .btn-danger:active {
+          background: linear-gradient(135deg, rgba(240,242,245,.98), rgba(255,255,255,.62));
+          box-shadow: 0 1px 8px rgba(0,0,0,.16);
+          color: #000;
+        }
+        #loadPredefinedCdiosModal .btn-danger:disabled { opacity: .6; cursor: not-allowed; }
+        /* Cancel button */
+        #loadPredefinedCdiosModal .btn-light {
+          background: var(--sv-card-bg, #fff);
+          border: none;
+          color: #000;
+          transition: all 0.2s ease-in-out;
+          box-shadow: none;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.5rem 1rem;
+          border-radius: 0.375rem;
+          font-size: 0.95rem;
+        }
+        #loadPredefinedCdiosModal .btn-light i,
+        #loadPredefinedCdiosModal .btn-light svg { stroke: #000; width: 1.05rem; height: 1.05rem; }
+        #loadPredefinedCdiosModal .btn-light:hover,
+        #loadPredefinedCdiosModal .btn-light:focus {
+          background: linear-gradient(135deg, rgba(220,220,220,.88), rgba(240,240,240,.46));
+          backdrop-filter: blur(7px);
+          -webkit-backdrop-filter: blur(7px);
+          box-shadow: 0 4px 10px rgba(108,117,125,.12);
+          color: #495057;
+        }
+        #loadPredefinedCdiosModal .btn-light:active {
+          background: linear-gradient(135deg, rgba(240,242,245,.98), rgba(255,255,255,.62));
+          box-shadow: 0 1px 8px rgba(108,117,125,.16);
+        }
+        /* Checkbox styling consistent with IGA modal */
+        #loadPredefinedCdiosModal .form-check-input { background-color: #E8E8E8; border-color: #CCCCCC; }
+        #loadPredefinedCdiosModal .form-check-input:checked { background-color: #6C757D; border-color: #6C757D; }
+        #loadPredefinedCdiosModal .form-check-input:focus { border-color: #999; box-shadow: 0 0 0 0.25rem rgba(108,117,125,.25); }
       </style>
 
       <div class="modal-header">
@@ -229,7 +290,6 @@
           <i data-feather="download"></i>
           <span>Load Predefined CDIOs</span>
         </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
         <div class="alert alert-warning mb-3">
@@ -256,8 +316,14 @@
         </div>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-danger" id="confirmLoadPredefinedCdios">Load Selected CDIOs</button>
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">
+          <i data-feather="x"></i>
+          Cancel
+        </button>
+        <button type="button" class="btn btn-danger" id="confirmLoadPredefinedCdios">
+          <i data-feather="download"></i>
+          Load Selected CDIOs
+        </button>
       </div>
     </div>
   </div>
@@ -268,4 +334,17 @@
   'resources/js/faculty/syllabus-cdio.js'
   ])
 @endpush
+
+<script>
+  document.addEventListener('DOMContentLoaded', function(){
+    try {
+      const modal = document.getElementById('loadPredefinedCdiosModal');
+      if (modal && modal.parentElement !== document.body) {
+        document.body.appendChild(modal);
+        modal.style.zIndex = '10010';
+        const dlg = modal.querySelector('.modal-dialog'); if (dlg) dlg.style.zIndex = '10011';
+      }
+    } catch(e){ console.error('CDIO modal relocation failed', e); }
+  });
+</script>
 

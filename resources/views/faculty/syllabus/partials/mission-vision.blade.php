@@ -38,6 +38,12 @@ Description: Institutional Vision & Mission section (refactored for semantic, ac
   </tbody>
 </table>
 
+<!-- Local save button removed; toolbar Save handles mission & vision -->
+
+@push('scripts')
+  @vite(['resources/js/faculty/syllabus-mission-vision.js'])
+@endpush
+
 @once
 @push('styles')
 <style>

@@ -19,7 +19,7 @@ class SyllabusIgaController extends Controller
     {
         // This endpoint is used by the frontend to persist the current list/order of IGAs.
         $request->validate([
-            'igas' => 'required|array',
+            'igas' => 'nullable|array', // allow empty or omitted igas collection
             'igas.*.id' => 'nullable|integer|exists:syllabus_igas,id',
             'igas.*.code' => 'required|string',
             'igas.*.title' => 'nullable|string|max:255',
@@ -27,7 +27,15 @@ class SyllabusIgaController extends Controller
             'igas.*.position' => 'required|integer',
         ]);
 
-        $incomingIds = collect($request->igas)->pluck('id')->filter();
+        $payload = $request->input('igas', []);
+
+        // If client intentionally sends no IGAs, treat as clearing the list
+        if (empty($payload)) {
+            SyllabusIga::where('syllabus_id', $syllabusId)->delete();
+            return response()->json(['success' => true, 'message' => 'IGAs cleared.', 'ids' => []]);
+        }
+
+        $incomingIds = collect($payload)->pluck('id')->filter();
         $existingIds = SyllabusIga::where('syllabus_id', $syllabusId)->pluck('id');
 
         // delete removed per-syllabus IGAs
@@ -37,8 +45,8 @@ class SyllabusIgaController extends Controller
         }
 
         $createdIds = [];
-        \DB::transaction(function() use ($request, &$createdIds, $syllabusId) {
-            foreach ($request->igas as $igaData) {
+        \DB::transaction(function() use (&$createdIds, $syllabusId, $payload) {
+            foreach ($payload as $igaData) {
                 $attrs = [
                     'syllabus_id' => $syllabusId,
                     'code' => $igaData['code'] ?? null,

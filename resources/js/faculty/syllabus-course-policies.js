@@ -89,35 +89,52 @@ document.addEventListener('DOMContentLoaded', function () {
     if (confirmLoadBtn) {
       confirmLoadBtn.addEventListener('click', async function() {
         try {
-          // Fetch policies again to get raw data
-          const response = await fetch(`/faculty/syllabi/${syllabusId}/predefined-policies`);
+          const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+          // Inform user that loading has started
+          if (window.showAlertOverlay) {
+            window.showAlertOverlay('info', 'Loading predefined course policies...');
+          }
+          const response = await fetch(`/faculty/syllabi/${syllabusId}/load-predefined-policies`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRF-TOKEN': csrf || ''
+            },
+            body: JSON.stringify({})
+          });
           const data = await response.json();
-          
+
           if (data.success && data.policies) {
-            // Get all policy textareas in order
             const textareas = document.querySelectorAll('.course-policies textarea[name="course_policies[]"]');
             const sections = ['policy', 'exams', 'dishonesty', 'dropping', 'other'];
-            
-            // Populate each textarea with corresponding policy
+
             sections.forEach((section, index) => {
-              if (textareas[index] && data.policies[section]) {
+              if (textareas[index] && typeof data.policies[section] !== 'undefined') {
                 textareas[index].value = data.policies[section];
-                
-                // Trigger autosize if available
-                if (window.autosize) {
-                  autosize.update(textareas[index]);
-                }
-                
-                // Trigger change event for unsaved tracking
+                if (window.autosize) { autosize.update(textareas[index]); }
                 textareas[index].dispatchEvent(new Event('input', { bubbles: true }));
               }
             });
-            
-            // Close modal
+
+            // Optionally show a lightweight feedback (custom event for global toast system if exists)
+            document.dispatchEvent(new CustomEvent('syllabus:policiesLoaded', { detail: { syllabusId, source: data.source } }));
+
+            if (window.showAlertOverlay) {
+              window.showAlertOverlay('success', 'Predefined course policies loaded.');
+            }
+
             bootstrap.Modal.getInstance(loadPolicyModal).hide();
+          } else {
+            console.warn('Load predefined policies failed:', data.message);
+            if (window.showAlertOverlay) {
+              window.showAlertOverlay('error', data.message || 'Failed to load predefined policies.');
+            }
           }
         } catch (error) {
-          console.error('Error loading policies:', error);
+          console.error('Error persisting predefined policies:', error);
+          if (window.showAlertOverlay) {
+            window.showAlertOverlay('error', 'Error loading predefined course policies.');
+          }
         }
       });
     }

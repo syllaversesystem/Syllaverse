@@ -316,113 +316,41 @@
 </table>
 
 {{-- ░░░ BEGIN: Load Predefined Policy Modal ░░░ --}}
+<style>
+  /* Ensure the Course Policies modal renders above any dim/backdrop layers
+     and above transformed ancestors by giving it a very high stacking order. */
+  .modal.sv-policy-modal { z-index: 10011 !important; }
+  .modal-backdrop { z-index: 10010 !important; }
+</style>
 <div class="modal fade sv-policy-modal" id="loadPredefinedPolicyModal" tabindex="-1" aria-labelledby="loadPredefinedPolicyModalLabel" aria-hidden="true" data-bs-backdrop="static">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <style>
-        #loadPredefinedPolicyModal {
-          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-          -webkit-font-smoothing: antialiased;
-          -moz-osx-font-smoothing: grayscale;
-        }
-        #loadPredefinedPolicyModal .modal-header {
-          background: linear-gradient(135deg, #F8F9FA 0%, #FFFFFF 100%);
-          border-bottom: 1px solid rgba(0,0,0,.08);
-          padding: 1.25rem 1.5rem;
-        }
-        #loadPredefinedPolicyModal .modal-title {
-          font-weight: 600;
-          font-size: 1.125rem;
-          color: #212529;
-          display: flex;
-          align-items: center;
-          gap: 0.625rem;
-        }
-        #loadPredefinedPolicyModal .modal-title i,
-        #loadPredefinedPolicyModal .modal-title svg {
-          width: 1.25rem;
-          height: 1.25rem;
-        }
-        #loadPredefinedPolicyModal .modal-content {
-          border: none;
-          border-radius: 0.75rem;
-          box-shadow: 0 10px 40px rgba(0,0,0,.12), 0 2px 8px rgba(0,0,0,.06);
-          overflow: hidden;
-        }
-        #loadPredefinedPolicyModal .alert {
-          margin-bottom: 1.5rem;
-        }
-        #loadPredefinedPolicyModal .alert-warning {
-          background: #FFF3CD;
-          border-color: #FFE69C;
-        }
-        #loadPredefinedPolicyModal .btn-danger {
-          background: linear-gradient(135deg, #CB3737 0%, #A82828 100%);
-          border: none;
-          color: #fff;
-          font-weight: 500;
-          padding: 0.625rem 1.5rem;
-          border-radius: 0.5rem;
-          transition: all 0.2s ease;
-          display: inline-flex;
-          align-items: center;
-          gap: 0.5rem;
-          box-shadow: 0 2px 8px rgba(203, 55, 55, 0.2);
-        }
-        #loadPredefinedPolicyModal .btn-danger i,
-        #loadPredefinedPolicyModal .btn-danger svg {
-          width: 1rem;
-          height: 1rem;
-          stroke: #fff;
-        }
-        #loadPredefinedPolicyModal .btn-danger:hover,
-        #loadPredefinedPolicyModal .btn-danger:focus {
-          background: linear-gradient(135deg, #A82828 0%, #8B1F1F 100%);
-          box-shadow: 0 4px 12px rgba(203, 55, 55, 0.3);
-          transform: translateY(-1px);
-        }
-        #loadPredefinedPolicyModal .btn-danger:hover i,
-        #loadPredefinedPolicyModal .btn-danger:hover svg,
-        #loadPredefinedPolicyModal .btn-danger:focus i,
-        #loadPredefinedPolicyModal .btn-danger:focus svg {
-          stroke: #fff;
-        }
-        #loadPredefinedPolicyModal .btn-danger:active {
-          transform: scale(0.98);
-        }
-        #loadPredefinedPolicyModal .btn-danger:active i,
-        #loadPredefinedPolicyModal .btn-danger:active svg {
-          stroke: #fff;
-        }
-        #loadPredefinedPolicyModal .btn-light {
-          background: #fff;
-          border: none;
-          color: #6c757d;
-          transition: all 0.2s ease;
-          display: inline-flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.625rem 1.5rem;
-          border-radius: 0.5rem;
-        }
-        #loadPredefinedPolicyModal .btn-light:hover,
-        #loadPredefinedPolicyModal .btn-light:focus {
-          background: linear-gradient(135deg, rgba(220, 220, 220, 0.88), rgba(240, 240, 240, 0.46));
-          box-shadow: 0 4px 10px rgba(108, 117, 125, 0.12);
-          color: #495057;
-        }
-        #loadPredefinedPolicyModal .policy-content {
-          background: #F8F9FA;
-          border: 1px solid #DEE2E6;
-          border-radius: 0.5rem;
-          padding: 1rem;
-          max-height: 300px;
-          overflow-y: auto;
-          font-family: Georgia, serif;
-          font-size: 13px;
-          line-height: 1.6;
-          white-space: pre-wrap;
-        }
+        /* Synced with IGA load modal styling */
+        #loadPredefinedPolicyModal { z-index: 10010 !important; }
+        #loadPredefinedPolicyModal .modal-dialog, #loadPredefinedPolicyModal .modal-content { position: relative; z-index: 10011; }
+        #loadPredefinedPolicyModal .modal-dialog { max-width: 680px; }
+        #loadPredefinedPolicyModal .modal-content { max-height: 85vh; display: flex; flex-direction: column; }
+        #loadPredefinedPolicyModal .modal-header { padding: .85rem 1rem; border-bottom: 1px solid #E3E3E3; background: #fff; }
+        #loadPredefinedPolicyModal .modal-title { font-weight: 600; font-size: 1rem; display: inline-flex; align-items: center; gap: .5rem; }
+        #loadPredefinedPolicyModal .modal-title i, #loadPredefinedPolicyModal .modal-title svg { width: 1.05rem; height: 1.05rem; stroke: var(--sv-text-muted, #777777); }
+        #loadPredefinedPolicyModal .modal-body { flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain; }
+        #loadPredefinedPolicyModal .modal-content { border-radius: 16px; border: 1px solid #E3E3E3; background: #fff; box-shadow: 0 10px 30px rgba(0,0,0,.08), 0 2px 12px rgba(0,0,0,.06); overflow: hidden; }
+        #loadPredefinedPolicyModal .alert { border-radius: 12px; padding: .75rem 1rem; font-size: .875rem; }
+        #loadPredefinedPolicyModal .alert-warning { background: #FFF3CD; border: 1px solid #FFE69C; color: #856404; }
+        /* Neutral primary (Load) button */
+        #loadPredefinedPolicyModal .btn-danger { background: #fff; border: none; color: #000; transition: all .2s ease-in-out; box-shadow: none; display: inline-flex; align-items: center; gap: .5rem; padding: .5rem 1rem; border-radius: .375rem; font-size: .95rem; }
+        #loadPredefinedPolicyModal .btn-danger i, #loadPredefinedPolicyModal .btn-danger svg { width: 1.05rem; height: 1.05rem; stroke: #000; }
+        #loadPredefinedPolicyModal .btn-danger:hover, #loadPredefinedPolicyModal .btn-danger:focus { background: linear-gradient(135deg, rgba(220,220,220,.88), rgba(240,240,240,.46)); backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px); box-shadow: 0 4px 10px rgba(0,0,0,.12); color: #000; }
+        #loadPredefinedPolicyModal .btn-danger:active { background: linear-gradient(135deg, rgba(240,242,245,.98), rgba(255,255,255,.62)); box-shadow: 0 1px 8px rgba(0,0,0,.16); }
+        #loadPredefinedPolicyModal .btn-danger:disabled { opacity: .6; cursor: not-allowed; }
+        /* Cancel button */
+        #loadPredefinedPolicyModal .btn-light { background: #fff; border: none; color: #000; transition: all .2s ease-in-out; box-shadow: none; display: inline-flex; align-items: center; gap: .5rem; padding: .5rem 1rem; border-radius: .375rem; font-size: .95rem; }
+        #loadPredefinedPolicyModal .btn-light i, #loadPredefinedPolicyModal .btn-light svg { width: 1.05rem; height: 1.05rem; stroke: #000; }
+        #loadPredefinedPolicyModal .btn-light:hover, #loadPredefinedPolicyModal .btn-light:focus { background: linear-gradient(135deg, rgba(220,220,220,.88), rgba(240,240,240,.46)); backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px); box-shadow: 0 4px 10px rgba(108,117,125,.12); color: #495057; }
+        #loadPredefinedPolicyModal .btn-light:active { background: linear-gradient(135deg, rgba(240,242,245,.98), rgba(255,255,255,.62)); box-shadow: 0 1px 8px rgba(108,117,125,.16); }
+        /* Preview content container */
+        #loadPredefinedPolicyModal .policy-content { background: #F8F9FA; border: 1px solid #DEE2E6; border-radius: .5rem; padding: 1rem; max-height: 300px; overflow-y: auto; font-family: Georgia, serif; font-size: 13px; line-height: 1.4; white-space: pre-wrap; }
       </style>
 
       <div class="modal-header">
@@ -465,4 +393,16 @@
 
 @push('scripts')
   @vite(['resources/js/faculty/syllabus-course-policies.js'])
+  <script>
+    // Move the modal under <body> when shown to avoid being trapped by parent stacking contexts
+    (function(){
+      try {
+        const modalEl = document.getElementById('loadPredefinedPolicyModal');
+        if (!modalEl) return;
+        modalEl.addEventListener('show.bs.modal', function(){
+          try { document.body.appendChild(modalEl); } catch (e) {}
+        });
+      } catch (e) {}
+    })();
+  </script>
 @endpush

@@ -1,7 +1,7 @@
 {{-- Modal: Submit Syllabus for Review/Approval --}}
-<div class="modal fade sv-faculty-syllabus-modal" id="submitSyllabusModal" tabindex="-1" aria-labelledby="submitSyllabusModalLabel" aria-hidden="true" data-bs-backdrop="static">
-  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-    <div class="modal-content" style="border-radius: 16px;">
+<div class="modal fade sv-faculty-syllabus-modal" id="submitSyllabusModal" tabindex="-1" aria-labelledby="submitSyllabusModalLabel" aria-hidden="true" data-bs-backdrop="static" style="z-index:20010;">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
       {{-- Local styles matching create modal --}}
       <style>
         #submitSyllabusModal {
@@ -13,27 +13,38 @@
           --sv-muted:#777777;
         }
         #submitSyllabusModal .modal-header {
+          padding: .85rem 1rem;
           border-bottom: 1px solid var(--sv-bdr);
-          background: var(--sv-bg);
-          padding: 0.85rem 1rem;
+          background: #fff;
         }
+        /* Ensure this specific modal always appears above any backdrop overrides from other partials */
+        #submitSyllabusModal { z-index:20010 !important; }
+        /* Raise dialog/content explicitly */
+        #submitSyllabusModal .modal-dialog, #submitSyllabusModal .modal-content { z-index:20011 !important; }
         #submitSyllabusModal .modal-title {
           font-weight: 600;
           font-size: 1rem;
           display: inline-flex;
           align-items: center;
           gap: .5rem;
-          font-family: inherit; /* match app typography */
-          color: var(--sv-text);
         }
-        #submitSyllabusModal .modal-title i {
-          font-size: 1.05rem;
-          color: var(--sv-muted);
+        #submitSyllabusModal .modal-title i,
+        #submitSyllabusModal .modal-title svg {
+          width: 1.05rem;
+          height: 1.05rem;
+          stroke: var(--sv-text-muted, #777777);
+          color: var(--sv-text-muted, #777777);
         }
-        #submitSyllabusModal .modal-body {
-          padding: 1.25rem;
-          font-family: inherit; /* ensure content uses base font */
-          color: var(--sv-text);
+        /* Scrollable modal layout parity with IGA modal */
+        #submitSyllabusModal .modal-dialog { max-width: 680px; }
+        #submitSyllabusModal .modal-content { max-height: 85vh; display: flex; flex-direction: column; }
+        #submitSyllabusModal .modal-body { flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain; padding: 1.15rem 1.1rem; }
+        #submitSyllabusModal .modal-content {
+          border-radius: 16px;
+          border: 1px solid var(--sv-bdr);
+          background: #fff;
+          box-shadow: 0 10px 30px rgba(0,0,0,.08), 0 2px 12px rgba(0,0,0,.06);
+          overflow: hidden;
         }
         #submitSyllabusModal .form-control,
         #submitSyllabusModal .form-select {
@@ -74,35 +85,12 @@
         }
         #submitSyllabusModal .modal-footer {
           border-top: 1px solid var(--sv-bdr);
-          background: var(--sv-bg);
-          padding: 0.75rem 1rem;
-          display: flex;
-          gap: 0.5rem;
+          background: #fff;
+          padding: .75rem 1rem;
+          display: flex; gap: .5rem;
         }
-        #submitSyllabusModal .btn-light {
-          background: var(--sv-card-bg, #fff);
-          border: none;
-          color: #6c757d;
-          transition: all 0.2s ease-in-out;
-          box-shadow: none;
-          display: inline-flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.5rem 1rem;
-          border-radius: 0.375rem;
-        }
-        #submitSyllabusModal .btn-light:hover,
-        #submitSyllabusModal .btn-light:focus {
-          background: linear-gradient(135deg, rgba(220, 220, 220, 0.88), rgba(240, 240, 240, 0.46));
-          backdrop-filter: blur(7px);
-          -webkit-backdrop-filter: blur(7px);
-          box-shadow: 0 4px 10px rgba(108, 117, 125, 0.12);
-          color: #495057;
-        }
-        #submitSyllabusModal .btn-light:active {
-          background: linear-gradient(135deg, rgba(240, 242, 245, 0.98), rgba(255, 255, 255, 0.62));
-          box-shadow: 0 1px 8px rgba(108, 117, 125, 0.16);
-        }
+        /* Neutral button styling parity with IGA load modal */
+        #submitSyllabusModal .btn-light,
         #submitSyllabusModal .btn-danger {
           background: var(--sv-card-bg, #fff);
           border: none;
@@ -111,26 +99,31 @@
           box-shadow: none;
           display: inline-flex;
           align-items: center;
-          gap: 0.5rem;
-          padding: 0.5rem 1rem;
-          border-radius: 0.375rem;
+          gap: .5rem;
+          padding: .5rem 1rem;
+          border-radius: .375rem;
+          font-size: .95rem;
         }
+        #submitSyllabusModal .btn-light i,
+        #submitSyllabusModal .btn-light svg,
+        #submitSyllabusModal .btn-danger i,
+        #submitSyllabusModal .btn-danger svg { width:1.05rem; height:1.05rem; }
+        #submitSyllabusModal .btn-light:hover,
+        #submitSyllabusModal .btn-light:focus,
         #submitSyllabusModal .btn-danger:hover,
         #submitSyllabusModal .btn-danger:focus {
-          background: linear-gradient(135deg, rgba(255, 240, 235, 0.88), rgba(255, 255, 255, 0.46));
-          backdrop-filter: blur(7px);
-          -webkit-backdrop-filter: blur(7px);
-          box-shadow: 0 4px 10px rgba(204, 55, 55, 0.12);
-          color: #CB3737;
+          background: linear-gradient(135deg, rgba(220,220,220,.88), rgba(240,240,240,.46));
+          backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px);
+          box-shadow: 0 4px 10px rgba(0,0,0,.12);
+          color:#000;
         }
+        #submitSyllabusModal .btn-light:active,
         #submitSyllabusModal .btn-danger:active {
-          background: linear-gradient(135deg, rgba(255, 230, 225, 0.98), rgba(255, 255, 255, 0.62));
-          box-shadow: 0 1px 8px rgba(204, 55, 55, 0.16);
+          background: linear-gradient(135deg, rgba(240,242,245,.98), rgba(255,255,255,.62));
+          box-shadow: 0 1px 8px rgba(0,0,0,.16);
+          color:#000;
         }
-        #submitSyllabusModal .btn-danger:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
+        #submitSyllabusModal .btn-danger:disabled { opacity:.6; cursor:not-allowed; }
         #submitSyllabusModal .info-box {
           background: #f8f9fa;
           border-left: 3px solid var(--sv-acct);
@@ -349,6 +342,7 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+  const CURRENT_USER_ID = {{ json_encode(Auth::id()) }};
   const modal = document.getElementById('submitSyllabusModal');
   const form = document.getElementById('submitSyllabusForm');
   const modalTitle = document.getElementById('modalTitleText');
@@ -365,6 +359,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // When modal opens, configure it based on syllabus status
   modal.addEventListener('show.bs.modal', async function(event) {
+    try {
+      // Re-append to body & enforce stacking order
+      if (modal.parentElement !== document.body) document.body.appendChild(modal);
+      modal.style.zIndex = '20010';
+      const backdrops = document.querySelectorAll('.modal-backdrop');
+      backdrops.forEach(b => { b.style.zIndex = '20005'; });
+    } catch(e) {}
     const button = event.relatedTarget;
     const syllabusId = button.getAttribute('data-syllabus-id');
     const status = button.getAttribute('data-status');
@@ -394,8 +395,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
           finalApproverCardsContainer.innerHTML = '';
 
-          if (data.success && data.approvers.length > 0) {
-            data.approvers.forEach(approver => {
+          if (data.success) {
+            const filtered = (data.approvers || []).filter(a => a && a.id !== CURRENT_USER_ID);
+            if (filtered.length > 0) {
+            filtered.forEach(approver => {
               const card = document.createElement('div');
               card.className = 'reviewer-card';
               card.setAttribute('data-approver-id', approver.id);
@@ -423,8 +426,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Setup search functionality for final approvers
             setupFinalApproverSearch();
-          } else {
+            } else {
             finalApproverCardsContainer.innerHTML = '<div class="text-center text-muted py-4 w-100"><small>No final approvers available</small></div>';
+            }
           }
         } catch (error) {
           console.error('Error fetching final approvers:', error);
@@ -450,8 +454,10 @@ document.addEventListener('DOMContentLoaded', function() {
           
           reviewerCardsContainer.innerHTML = '';
           
-          if (data.success && data.reviewers.length > 0) {
-            data.reviewers.forEach(reviewer => {
+          if (data.success) {
+            const filtered = (data.reviewers || []).filter(r => r && r.id !== CURRENT_USER_ID);
+            if (filtered.length > 0) {
+            filtered.forEach(reviewer => {
               const card = document.createElement('div');
               card.className = 'reviewer-card';
               card.setAttribute('data-reviewer-id', reviewer.id);
@@ -479,8 +485,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Setup search functionality
             setupReviewerSearch();
-          } else {
+            } else {
             reviewerCardsContainer.innerHTML = '<div class="text-center text-muted py-4 w-100"><small>No reviewers available</small></div>';
+            }
           }
         } catch (error) {
           console.error('Error fetching reviewers:', error);
@@ -558,6 +565,10 @@ document.addEventListener('DOMContentLoaded', function() {
       });
 
       const data = await response.json();
+      try {
+        // After close, restore backdrop default for other modals if needed
+        document.querySelectorAll('.modal-backdrop').forEach(b => { b.style.zIndex = ''; });
+      } catch(e) {}
 
       if (data.success) {
         // Close modal

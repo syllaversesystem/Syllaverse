@@ -153,75 +153,56 @@
     <div class="modal-content">
       {{-- ░░░ START: Local styles (scoped to this modal) ░░░ --}}
       <style>
-        /* Brand tokens */
+        /* Style synced with ILO load modal (structure & sizing) while retaining red delete button theme */
         #deleteTlaModal {
-          --sv-bg:   #FAFAFA;   /* light bg */
-          --sv-bdr:  #E3E3E3;   /* borders */
-          --sv-acct: #EE6F57;   /* accent/focus */
-          --sv-danger:#CB3737;  /* danger red */
+          --sv-bg:   #FAFAFA;
+          --sv-bdr:  #E3E3E3;
+          --sv-danger:#CB3737;
+          z-index: 10010 !important;
         }
-        #deleteTlaModal .modal-header {
-          border-bottom: 1px solid var(--sv-bdr);
-          background: var(--sv-bg);
+        #deleteTlaModal .modal-dialog { max-width: 520px; }
+        #deleteTlaModal .modal-dialog, #deleteTlaModal .modal-content { position: relative; z-index: 10011; }
+        .modal-backdrop.show { z-index: 10009 !important; }
+        #deleteTlaModal .modal-content {
+          border-radius: 16px;
+          border: 1px solid var(--sv-bdr);
+          background: #fff;
+          box-shadow: 0 10px 30px rgba(0,0,0,.08), 0 2px 12px rgba(0,0,0,.06);
+          overflow: hidden;
+          display: flex; flex-direction: column; max-height: 85vh;
         }
-        #deleteTlaModal .modal-title {
-          color: var(--sv-danger);
-        }
-        /* Delete button styling */
+        #deleteTlaModal .modal-header { padding: .85rem 1rem; border-bottom: 1px solid var(--sv-bdr); background:#fff; }
+        #deleteTlaModal .modal-title { font-weight:600; font-size:1rem; display:inline-flex; align-items:center; gap:.5rem; color: var(--sv-danger); }
+        #deleteTlaModal .modal-title i, #deleteTlaModal .modal-title svg { width:1.05rem; height:1.05rem; }
+        #deleteTlaModal .modal-body { flex:1 1 auto; padding:1rem; overflow-y:auto; }
+        #deleteTlaModal .alert-danger { border-radius:12px; padding:.75rem 1rem; font-size:.875rem; background:#FFE5E5; border:1px solid rgba(203,55,55,.35); color:#7f1d1d; }
+        #deleteTlaModal .alert-danger i, #deleteTlaModal .alert-danger svg { width:1.05rem; height:1.05rem; }
+        /* Delete button retains original red theme & hover effects */
         #deleteTlaModal .btn-danger {
-          background: var(--sv-card-bg, #fff);
-          border: none;
-          color: var(--sv-danger);
-          transition: all 0.2s ease-in-out;
-          box-shadow: none;
-          display: inline-flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.5rem 1rem;
-          border-radius: 0.375rem;
+          background:#fff; border:none; color: var(--sv-danger);
+          transition: all .2s ease-in-out; box-shadow:none; display:inline-flex; align-items:center; gap:.5rem;
+          padding:.5rem 1rem; border-radius:.375rem; font-size:.95rem;
         }
-        #deleteTlaModal .btn-danger:hover,
-        #deleteTlaModal .btn-danger:focus {
-          background: linear-gradient(135deg, rgba(255, 235, 235, 0.88), rgba(255, 245, 245, 0.46));
-          backdrop-filter: blur(7px);
-          -webkit-backdrop-filter: blur(7px);
-          box-shadow: 0 4px 10px rgba(203, 55, 55, 0.15);
+        #deleteTlaModal .btn-danger i, #deleteTlaModal .btn-danger svg { width:1.05rem; height:1.05rem; color: var(--sv-danger); stroke: var(--sv-danger); }
+        #deleteTlaModal .btn-danger:hover, #deleteTlaModal .btn-danger:focus {
+          background: linear-gradient(135deg, rgba(255,235,235,.88), rgba(255,245,245,.46));
+          backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px);
+          box-shadow: 0 4px 10px rgba(203,55,55,.15);
           color: var(--sv-danger);
         }
-        #deleteTlaModal .btn-danger:hover i,
-        #deleteTlaModal .btn-danger:focus i {
-          color: var(--sv-danger);
-        }
-        /* Cancel button styling */
+        #deleteTlaModal .btn-danger:active { transform: scale(.97); filter: brightness(.98); }
+        /* Cancel button neutral like ILO modal */
         #deleteTlaModal .btn-light {
-          background: var(--sv-card-bg, #fff);
-          border: none;
-          color: #6c757d;
-          transition: all 0.2s ease-in-out;
-          box-shadow: none;
-          display: inline-flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.5rem 1rem;
-          border-radius: 0.375rem;
+          background:#fff; border:none; color:#000; transition: all .2s ease-in-out; box-shadow:none;
+          display:inline-flex; align-items:center; gap:.5rem; padding:.5rem 1rem; border-radius:.375rem; font-size:.95rem;
         }
-        #deleteTlaModal .btn-light:hover,
-        #deleteTlaModal .btn-light:focus {
-          background: linear-gradient(135deg, rgba(220, 220, 220, 0.88), rgba(240, 240, 240, 0.46));
-          backdrop-filter: blur(7px);
-          -webkit-backdrop-filter: blur(7px);
-          box-shadow: 0 4px 10px rgba(108, 117, 125, 0.12);
-          color: #495057;
+        #deleteTlaModal .btn-light i, #deleteTlaModal .btn-light svg { width:1.05rem; height:1.05rem; stroke:#000; }
+        #deleteTlaModal .btn-light:hover, #deleteTlaModal .btn-light:focus {
+          background: linear-gradient(135deg, rgba(220,220,220,.88), rgba(240,240,240,.46));
+          backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px);
+          box-shadow: 0 4px 10px rgba(108,117,125,.12); color:#495057;
         }
-        #deleteTlaModal .btn-light:hover i,
-        #deleteTlaModal .btn-light:focus i {
-          color: #495057;
-        }
-        #deleteTlaModal .alert-danger {
-          background: rgba(255, 235, 235, 0.9);
-          border: 1px solid rgba(220, 53, 69, 0.3);
-          color: #721c24;
-        }
+        #deleteTlaModal .btn-light:active { background: linear-gradient(135deg, rgba(240,242,245,.98), rgba(255,255,255,.62)); box-shadow:0 1px 8px rgba(108,117,125,.16); }
       </style>
       {{-- ░░░ END: Local styles ░░░ --}}
 
@@ -262,6 +243,13 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+  // Relocate delete modal under body to avoid parent stacking contexts clipping it
+  try {
+    const delModal = document.getElementById('deleteTlaModal');
+    if (delModal && delModal.parentElement !== document.body) {
+      document.body.appendChild(delModal);
+    }
+  } catch(e) { console.warn('TLA delete modal relocation failed', e); }
   // Expose TLA save function globally for toolbar save button
   window.saveTla = async function() {
     const tlaBody = document.querySelector('#tlaTable tbody');

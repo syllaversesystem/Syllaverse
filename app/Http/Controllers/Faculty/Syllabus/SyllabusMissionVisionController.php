@@ -38,10 +38,17 @@ class SyllabusMissionVisionController extends Controller
      */
     public function syncFromRequest(Request $request, Syllabus $syllabus): void
     {
-        $payload = $request->validate([
-            'mission' => 'required|string',
-            'vision' => 'required|string',
-        ]);
+        // If neither mission nor vision present in the request, treat as no-op (allows partial saves)
+        if (! $request->has('mission') && ! $request->has('vision')) {
+            return;
+        }
+
+        // Build dynamic validation rules: require only the fields that are present
+        $rules = [];
+        if ($request->has('mission')) $rules['mission'] = 'required|string';
+        if ($request->has('vision')) $rules['vision'] = 'required|string';
+
+        $payload = $request->validate($rules);
 
         $this->sync($payload, $syllabus);
     }

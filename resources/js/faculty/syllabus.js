@@ -14,26 +14,44 @@ let isDirty = false;
 window._syllabusSaveLock = false;
 // current UI state for save button: 'idle'|'dirty'|'saving'|'saved'
 let _sv_state = 'idle';
+// instrumentation for debugging duplicate save state transitions
+window._sv_transitions = window._sv_transitions || [];
+let _sv_lastSavingAt = 0;
 
 function setSyllabusSaveState(state, originalHtml = null) {
   try {
     const saveBtn = document.getElementById('syllabusSaveBtn');
     const unsavedCountBadge = document.getElementById('unsaved-count-badge');
     if (!saveBtn) return;
+    const now = Date.now();
+    // Guard: prevent rapid duplicate 'saving' transitions that can lead to endless spinner
+    if (state === 'saving') {
+      if (_sv_state === 'saving' && (now - _sv_lastSavingAt) < 2000) {
+        try { console.debug('[setSyllabusSaveState] Ignored duplicate saving within 2s'); } catch (e) {}
+        return;
+      }
+      _sv_lastSavingAt = now;
+    }
+    // Record transition
+    try { window._sv_transitions.push({ at: now, from: _sv_state, to: state, stack: (new Error()).stack }); } catch (e) { /* noop */ }
     _sv_state = state;
     switch(state) {
       case 'saving':
-        saveBtn.classList.remove('btn-danger'); saveBtn.classList.add('btn-warning');
+        saveBtn.classList.remove('btn-danger','btn-success'); saveBtn.classList.add('btn-warning');
         saveBtn.innerHTML = '<i class="bi bi-arrow-repeat" style="animation: spin 1s linear infinite;"></i>';
         break;
       case 'saved':
-        saveBtn.classList.remove('btn-warning'); saveBtn.classList.add('btn-success');
+        saveBtn.classList.remove('btn-warning','btn-danger'); saveBtn.classList.add('btn-success');
         saveBtn.innerHTML = '<i class="bi bi-check-lg"></i>';
-        // short visual then revert to idle
-        setTimeout(() => { setSyllabusSaveState('idle', originalHtml); }, 900);
+        // revert to idle unless another state supersedes; add safety check
+        setTimeout(() => {
+          if (_sv_state === 'saved') { setSyllabusSaveState('idle', originalHtml); }
+        }, 900);
         break;
       case 'dirty':
-        saveBtn.classList.remove('btn-danger'); saveBtn.classList.add('btn-warning');
+        // don't overwrite active success feedback
+        if (_sv_state === 'saved') return;
+        saveBtn.classList.remove('btn-danger','btn-success'); saveBtn.classList.add('btn-warning');
         if (unsavedCountBadge) unsavedCountBadge.style.display = '';
         break;
       case 'idle':
@@ -486,6 +504,7 @@ function recalcCreditHours() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  try { console.debug('[syllabus.js] DOMContentLoaded fired'); } catch (e) { /* noop */ }
   trackFormChanges();
   setupExitConfirmation();
   initAutosize();
@@ -566,10 +585,19 @@ document.addEventListener('DOMContentLoaded', () => {
   updateUnsavedCount();
 
   // Minimal Save: submit only mission & vision via Fetch when the top Save button is clicked
-  const saveBtn = document.getElementById('syllabusSaveBtn');
-  const form = document.getElementById('syllabusForm');
+    const saveBtn = document.getElementById('syllabusSaveBtn');
+    // Be flexible in finding the syllabus form across templates
+    let form = document.getElementById('syllabusForm')
+      || document.querySelector('form#syllabusForm')
+      || document.querySelector('form[name="syllabusForm"]')
+      || document.querySelector('form[data-role="syllabus-form"]')
+      || (document.querySelector('.syllabus-doc') ? document.querySelector('.syllabus-doc form') : null);
   if (saveBtn && form) {
+    try { console.debug('[syllabus.js] Attaching toolbar save handler to #syllabusSaveBtn'); } catch (e) { /* noop */ }
+    // Instrument click source (trusted vs synthetic)
     saveBtn.addEventListener('click', async (ev) => {
+      try { console.debug('[syllabus.js] saveBtn click isTrusted=', ev.isTrusted, 'current state=', _sv_state); } catch (e) {}
+      try { console.debug('[syllabus.js] Save button clicked'); } catch (e) { /* noop */ }
       ev.preventDefault();
       ev.stopPropagation();
       // set a save lock immediately to avoid beforeunload prompts while the save begins
@@ -577,6 +605,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Capture form action early so other pre-save steps can derive syllabus id from it
   const action = form.action;
+
+      // Capture the button's original HTML immediately so all error handlers can restore it
+      const originalHtml = saveBtn.innerHTML;
+      // Set Saving state on the button before any partial save begins
+      try {
+        saveBtn.disabled = true;
+        console.debug('save click handler: entering, will set Saving... UI', new Date());
+        setSyllabusSaveState('saving');
+      } catch (e) { /* noop */ }
+
+      // Hard guards: ensure form action and CSRF token exist, and mission/vision fields are present
+      try {
+        const tokenEl = form.querySelector('input[name="_token"]');
+        const missionEl = document.querySelector('[name="mission"]');
+        const visionEl = document.querySelector('[name="vision"]');
+        if (!form.action || String(form.action).trim() === '') {
+          console.error('Syllabus save aborted: form.action is empty or undefined');
+          alert('Failed to save. Missing form action URL.');
+          try { saveBtn.disabled = false; saveBtn.innerHTML = originalHtml; } catch (e) {}
+          return;
+        }
+        if (!tokenEl) {
+          console.error('Syllabus save aborted: CSRF token input not found');
+          alert('Failed to save. Missing CSRF token.');
+          try { saveBtn.disabled = false; saveBtn.innerHTML = originalHtml; } catch (e) {}
+          return;
+        }
+        if (!missionEl || !visionEl) {
+          console.error('Syllabus save aborted: mission or vision field not found');
+          alert('Failed to save. Mission/Vision fields not found.');
+          try { saveBtn.disabled = false; saveBtn.innerHTML = originalHtml; } catch (e) {}
+          return;
+        }
+      } catch (e) { /* noop */ }
 
       const missionEl = document.querySelector('[name="mission"]');
       const visionEl = document.querySelector('[name="vision"]');
@@ -591,6 +653,19 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error('Failed to save ILO data before syllabus save:', iloErr);
         alert('Failed to save ILOs: ' + (iloErr && iloErr.message ? iloErr.message : 'See console for details.'));
         try { saveBtn.disabled = false; saveBtn.innerHTML = originalHtml; } catch (e) { /* noop */ }
+        return;
+      }
+
+      // --- Save Mission & Vision before the main form submission ---
+      try {
+        if (window.saveMissionVision && typeof window.saveMissionVision === 'function') {
+          await window.saveMissionVision(false); // false = don't show alert
+          console.log('Mission & Vision saved to database');
+        }
+      } catch (mvErr) {
+        console.error('Failed to save Mission & Vision:', mvErr);
+        alert('Failed to save Mission & Vision: ' + (mvErr && mvErr.message ? mvErr.message : 'See console for details.'));
+        try { saveBtn.disabled = false; saveBtn.innerHTML = originalHtml; window._syllabusSaveLock = false; } catch (e) { /* noop */ }
         return;
       }
 
@@ -685,6 +760,19 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
+      // --- Save Criteria for Assessment before main form submission ---
+      try {
+        if (window.saveCriteria && typeof window.saveCriteria === 'function') {
+          await window.saveCriteria(false); // false = silent
+          console.log('Criteria for Assessment saved to database');
+        }
+      } catch (criteriaErr) {
+        console.error('Failed to save Criteria for Assessment:', criteriaErr);
+        alert('Failed to save Criteria for Assessment: ' + (criteriaErr && criteriaErr.message ? criteriaErr.message : 'See console for details.'));
+        try { saveBtn.disabled = false; saveBtn.innerHTML = originalHtml; window._syllabusSaveLock = false; } catch (e) { /* noop */ }
+        return;
+      }
+
       // --- Save ILO-IGA Mapping before main form submission ---
       try {
         if (window.saveIloIga && typeof window.saveIloIga === 'function') {
@@ -753,9 +841,7 @@ document.addEventListener('DOMContentLoaded', () => {
         console.warn('Unexpected error while attempting to save assessment mappings (ignored)', e);
       }
 
-  const originalHtml = saveBtn.innerHTML;
-  console.debug('save click handler: entering, will set Saving... UI', new Date());
-  setSyllabusSaveState('saving');
+  // originalHtml captured above; saving state already set
 
       try {
         const action = form.action;
@@ -936,6 +1022,38 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+  else {
+    try {
+      console.warn('[syllabus.js] Save handler NOT attached. Found saveBtn?', !!saveBtn, 'Found form?', !!form);
+    } catch (e) { /* noop */ }
+    // Fallback: delegate clicks from any element with data-role="syllabus-save" if toolbar id differs
+    try {
+      document.addEventListener('click', function(ev){
+        const t = ev.target.closest && ev.target.closest('[data-role="syllabus-save"]');
+        if (!t) return;
+        const fallbackBtn = t;
+        const fallbackForm = document.getElementById('syllabusForm')
+              || document.querySelector('form#syllabusForm')
+              || document.querySelector('form[name="syllabusForm"]')
+              || document.querySelector('form[data-role="syllabus-form"]')
+              || (document.querySelector('.syllabus-doc') ? document.querySelector('.syllabus-doc form') : null);
+        if (!fallbackForm) {
+          console.error('[syllabus.js] Fallback save: syllabus form not found');
+          return;
+        }
+        ev.preventDefault();
+        ev.stopPropagation();
+        try { console.debug('[syllabus.js] Fallback save triggered via [data-role="syllabus-save"]'); } catch (e) {}
+        // Trigger the original handler by programmatically clicking #syllabusSaveBtn if it exists
+        if (saveBtn && typeof saveBtn.click === 'function') {
+          saveBtn.click();
+        } else {
+          // Or directly submit the form as last resort
+          fallbackForm.requestSubmit ? fallbackForm.requestSubmit() : fallbackForm.submit();
+        }
+      }, true);
+    } catch (e) { /* noop */ }
+  }
 
   // Partial-save buttons removed; top Save button is the single source of truth for saving
   
@@ -981,3 +1099,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Optional exports
 export { trackFormChanges, setupExitConfirmation, bindUnsavedIndicator, recalcCreditHours, initAutosize, markDirty, updateUnsavedCount };
+
+// Import Criteria module to ensure it initializes when syllabus page loads
+try { import('./syllabus-criteria.js'); } catch (e) { /* noop */ }

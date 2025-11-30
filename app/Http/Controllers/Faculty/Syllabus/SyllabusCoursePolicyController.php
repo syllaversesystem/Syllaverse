@@ -107,4 +107,52 @@ class SyllabusCoursePolicyController extends Controller
             'policies' => $policies
         ], 404);
     }
+
+    /**
+     * Load predefined policies and persist them immediately to syllabus_course_policies.
+     * Replaces existing sections (policy, exams, dishonesty, dropping, other).
+     */
+    public function loadPredefinedPolicies(Request $request, $id)
+    {
+        $syllabus = Syllabus::with('course.department')->findOrFail($id);
+
+        // Authorization: ensure current faculty can edit syllabus
+        $facultyId = auth()->user()->faculty_id ?? auth()->id();
+        if (method_exists($syllabus, 'canBeEditedBy') && !$syllabus->canBeEditedBy($facultyId)) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized.'], 403);
+        }
+
+        $departmentId = $syllabus->course->department_id ?? null;
+        $sections = ['policy', 'exams', 'dishonesty', 'dropping', 'other'];
+        $policies = [];
+        $position = 1;
+
+        try {
+            foreach ($sections as $section) {
+                $content = GeneralInformation::getContent($section, $departmentId) ?? '';
+                $policies[$section] = $content;
+                SyllabusCoursePolicy::updateOrCreate(
+                    ['syllabus_id' => $syllabus->id, 'section' => $section],
+                    ['content' => $content, 'position' => $position++]
+                );
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Predefined course policies loaded and saved.',
+                'policies' => $policies,
+                'department_id' => $departmentId,
+                'source' => $departmentId ? 'department' : 'university'
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Failed to load predefined course policies', [
+                'syllabus_id' => $syllabus->id,
+                'error' => $e->getMessage(),
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to persist predefined course policies.'
+            ], 500);
+        }
+    }
 }

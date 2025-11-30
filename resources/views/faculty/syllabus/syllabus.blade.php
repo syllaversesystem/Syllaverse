@@ -14,8 +14,18 @@
   {{ $syllabus->course?->code ? $syllabus->course->code.' • ' : '' }}Syllabus
 @endsection
 
+@php($submissionStatus = $syllabus->submission_status ?? 'draft')
+@php($isDraft = ($submissionStatus === 'draft'))
+@php($isPendingReview = ($submissionStatus === 'pending_review'))
+@php($isLockedSubmitted = in_array($submissionStatus, ['pending_review','approved','final_approval']))
 @section('content')
 <div class="syllabus-doc" id="syllabus-document" data-syllabus-id="{{ $syllabus->id }}">
+  <!-- Canonical syllabus form used by module-level saves via form="syllabusForm" -->
+  <form id="syllabusForm" name="syllabusForm" action="{{ route('faculty.syllabi.update', $syllabus->id) }}" method="POST" class="d-none">
+    @csrf
+    @method('PUT')
+    <!-- This form intentionally stays empty; fields across partials reference it via form="syllabusForm" -->
+  </form>
   {{-- Vertical toolbar (left side) --}}
   <div class="syllabus-vertical-toolbar" id="syllabusToolbar" aria-label="Syllabus editing toolbar">
     <div class="toolbar-inner">
@@ -23,17 +33,21 @@
         <i class="bi bi-arrow-left fs-5"></i>
         <span class="small">Exit</span>
       </button>
+      @if(!$isPendingReview)
       <button id="syllabusSaveBtn" type="button" class="btn btn-danger d-flex flex-column align-items-center gap-1 toolbar-btn" title="Save">
         <i class="bi bi-save fs-5"></i>
         <span class="small">Save</span>
         <span id="unsaved-count-badge" class="badge bg-warning text-dark mt-1 w-100 text-center" style="display:none;">0</span>
       </button>
-      @if(!$reviewMode)
-      <button id="syllabusCommentsToggleBtn" type="button" class="btn btn-outline-secondary d-flex flex-column align-items-center gap-1 toolbar-btn mt-3" title="Toggle Reviewer Comments">
+      @endif
+      @if(!$reviewMode && !$isDraft && !$isLockedSubmitted)
+      <button id="syllabusCommentsToggleBtn" type="button" class="btn btn-outline-secondary d-flex flex-column align-items-center gap-1 toolbar-btn mt-3" title="Toggle Reviewer Comments" data-disable-comments="0">
         <i class="bi bi-chat-left-text fs-5"></i>
         <span class="small">Comments</span>
         <span id="comments-count-badge" class="badge sv-comments-badge" style="display:none;">0</span>
       </button>
+      @endif
+      @if(!$reviewMode && !$isLockedSubmitted)
       <button id="syllabusSubmitBtn" type="button" class="btn btn-outline-primary d-flex flex-column align-items-center gap-1 toolbar-btn mt-3" title="Submit For Review">
         <i class="bi bi-send fs-5"></i>
         <span class="small">Submit</span>
@@ -74,7 +88,9 @@
 <!-- Include submit modal so submit button works on this page -->
 @includeIf('faculty.syllabus.modals.submit')
 {{-- Right-side review toolbar (fixed on page right) --}}
-@include('faculty.syllabus.partials.toolbar-syllabus')
+@if(!$isDraft && (!$isLockedSubmitted || $reviewMode))
+  @include('faculty.syllabus.partials.toolbar-syllabus')
+@endif
 @if($reviewMode)
   <!-- Approve Confirmation Modal (sidebar context) -->
   <div class="modal fade" id="approveConfirmModal" tabindex="-1" aria-labelledby="approveConfirmLabel" aria-hidden="true" data-bs-backdrop="static">
@@ -82,11 +98,10 @@
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title" id="approveConfirmLabel"><i class="bi bi-check-circle"></i> Confirm Approval</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">Are you sure you want to approve this syllabus?</div>
         <div class="modal-footer d-flex align-items-center gap-2">
-          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i> Cancel</button>
           <button type="button" class="btn approve-confirm-btn" id="approveConfirmBtn" data-approve-url="">
             <i class="bi bi-check-circle"></i> Approve
           </button>
@@ -101,13 +116,12 @@
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title" id="revisionModalLabel"><i class="bi bi-arrow-clockwise"></i> Request Revision</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
           <div class="mb-2">Are you sure you want to return this syllabus for revision?</div>
         </div>
         <div class="modal-footer d-flex align-items-center gap-2">
-          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i> Cancel</button>
           <button type="button" class="btn review-revise-confirm-btn" id="revisionConfirmBtn" data-revision-url="">
             <i class="bi bi-arrow-clockwise"></i> Request Revision
           </button>
@@ -127,6 +141,22 @@
   // Undo / Redo & Auto-Save Logic
   // -----------------------------
   document.addEventListener('DOMContentLoaded', function(){
+    // Ensure all key modals escape local stacking contexts by living under <body>
+    (function(){
+      try {
+        ['submitSyllabusModal','approveConfirmModal','revisionModal'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el && el.parentElement !== document.body) {
+            document.body.appendChild(el);
+          }
+          if (el) {
+            el.addEventListener('show.bs.modal', function(){
+              try { if (el.parentElement !== document.body) document.body.appendChild(el); } catch(e){}
+            });
+          }
+        });
+      } catch(e) { /* noop */ }
+    })();
     // (Removed) Left toolbar resize logic
     // Seed review flag for early conditionals
     const __isReviewCtx = !!({{ $reviewMode ? 'true' : 'false' }});
@@ -173,8 +203,10 @@
     const form = document.getElementById('syllabusForm');
     // Review mode: disable edits and enable comment selection UI
     const isReview = !!({{ $reviewMode ? 'true' : 'false' }});
+    const isDraft = !!({{ $isDraft ? 'true' : 'false' }});
+    const isLockedSubmitted = !!({{ $isLockedSubmitted ? 'true' : 'false' }});
     (function(){
-      if (!isReview) return;
+      if (!isReview || isDraft) return; // allow comments in review mode even for submitted statuses
       const doc = document.getElementById('syllabus-document');
       if (doc) doc.classList.add('is-review');
       const rightBar = doc ? doc.querySelector('.syllabus-right-toolbar') : null;
@@ -241,11 +273,16 @@
       // Auto-wrap direct siblings inside card body with markers
       const cardBody = document.querySelector('.svx-card-body');
       if (cardBody) {
+        // Longer keys first to avoid picking 'ilo' inside 'ilo-so-cpa-mapping'
+        const orderedKeys = Object.keys(palette).sort((a,b) => b.length - a.length);
         Array.from(cardBody.children).forEach(ch => {
-          // infer key by looking for an id or first heading text
+          if (ch.hasAttribute('data-partial-key')) return; // keep explicit keys from Blade
           let key = null;
           const text = (ch.querySelector('th, h6, h5')?.textContent || '').toLowerCase();
-          Object.keys(palette).forEach(k => { if (!key && text.includes(k.replace(/-/g,' '))) key = k; });
+          for (const k of orderedKeys) {
+            const needle = k.replace(/-/g,' ');
+            if (text.includes(needle)) { key = k; break; }
+          }
           if (!key) return;
           ch.setAttribute('data-partial-key', key);
           ch.classList.add('sv-partial');
@@ -260,8 +297,22 @@
         document.querySelectorAll('.sv-partial').forEach(n => n.style.outline='');
         el.style.outline = `2px solid ${color}`;
         el.style.outlineOffset = '2px';
-        // Compose section title
-        const sectionTitle = key.replace(/-/g,' ').replace(/\b\w/g, m=>m.toUpperCase());
+        // Compose section title (custom mapping for TLAS/TLA)
+        const sectionTitleMap = {
+          'tla': 'Teaching, Learning, and Assessment (TLA) Activities',
+          'tlas': 'Teaching, Learning, and Assessment Strategies',
+          'criteria-assessment': 'Criteria for Assessment',
+          'ilo': 'Intended Learning Outcomes (ILO)',
+          'assessment-tasks-distribution': 'Assessment Method and Distribution Map',
+          'iga': 'Institutional Graduate Attributes (IGA)',
+          'so': 'Student Outcomes (SO)',
+          'cdio': 'CDIO Framework Skills (CDIO)',
+          'sdg': 'Sustainable Development Goals (SDG)',
+          'ilo-so-cpa-mapping': 'ILO-SO and ILO-CPA Mapping',
+          'ilo-iga-mapping': 'ILO-IGA Mapping',
+          'ilo-cdio-sdg-mapping': 'ILO-CDIO and ILO-SDG Mapping'
+        };
+        const sectionTitle = sectionTitleMap[key] || key.replace(/-/g,' ').replace(/\b\w/g, m=>m.toUpperCase());
         // Ensure one comment card per partial; allow multiple cards overall
         if (commentsEl) {
           // Ensure an empty placeholder exists when no comments are present
@@ -497,10 +548,32 @@
 
       // Do not load previous batches; reviewers add new comments each round.
     })();
+    // Helper: open submit modal via proxy (used in draft and non-draft)
+    function openSubmitModal(){
+      const syllabusId = document.getElementById('syllabus-document')?.getAttribute('data-syllabus-id');
+      if (!syllabusId) return;
+      try {
+        const proxy = document.getElementById('syllabusSubmitProxyBtn');
+        if (proxy) {
+          proxy.setAttribute('data-syllabus-id', String(syllabusId));
+          proxy.setAttribute('data-status', '{{ $syllabus->submission_status ?? 'draft' }}');
+          proxy.setAttribute('data-department-id', '{{ $syllabus->program->department_id ?? '' }}');
+          proxy.setAttribute('data-program-id', '{{ $syllabus->program->id ?? '' }}');
+          try { proxy.click(); } catch(e){
+            const modalEl = document.getElementById('submitSyllabusModal');
+            if (modalEl) {
+              try { if (modalEl.parentElement !== document.body) document.body.appendChild(modalEl); } catch(err){}
+              if (window.bootstrap && bootstrap.Modal) { new bootstrap.Modal(modalEl).show(); }
+            }
+          }
+        }
+      } catch(e) {}
+    }
+
     // -----------------------------
     // Non-review mode: toggle right toolbar to view reviewer comments (read-only)
     // -----------------------------
-    if (!isReview) {
+    if (!isReview && !isDraft && !isLockedSubmitted) {
       const toggleBtn = document.getElementById('syllabusCommentsToggleBtn');
       const rightBar = document.querySelector('.syllabus-right-toolbar');
       const commentsEl = rightBar ? rightBar.querySelector('#svReviewComments') : null;
@@ -520,28 +593,8 @@
       function humanize(key){ return (key || '').replace(/-/g,' ').replace(/\b\w/g,m=>m.toUpperCase()); }
       function getCsrfToken() { const meta = document.querySelector('meta[name="csrf-token"]'); return meta ? meta.getAttribute('content') : ''; }
       async function submitForReview(){
-        if (!syllabusId) return;
-        const token = getCsrfToken();
-        try {
-          if (submitBtn) { submitBtn.disabled = true; submitBtn.classList.add('disabled'); }
-          // Open the existing submit modal and pass dataset like on index cards
-          const proxy = document.getElementById('syllabusSubmitProxyBtn');
-          if (proxy) {
-            proxy.setAttribute('data-syllabus-id', String(syllabusId));
-            proxy.setAttribute('data-status', '{{ $syllabus->submission_status ?? 'draft' }}');
-            proxy.setAttribute('data-department-id', '{{ $syllabus->program->department_id ?? '' }}');
-            proxy.setAttribute('data-program-id', '{{ $syllabus->program->id ?? '' }}');
-            try { proxy.click(); } catch(e){
-              // Fallback: manually show modal
-              const modalEl = document.getElementById('submitSyllabusModal');
-              if (modalEl && window.bootstrap && bootstrap.Modal) { new bootstrap.Modal(modalEl).show(); }
-            }
-          }
-        } catch(e) {
-          if (window.showAlertOverlay) { window.showAlertOverlay('error', 'Unexpected error while submitting.'); } else { alert('Unexpected error while submitting.'); }
-        } finally {
-          if (submitBtn) { submitBtn.disabled = false; submitBtn.classList.remove('disabled'); }
-        }
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.classList.add('disabled'); }
+        try { openSubmitModal(); } finally { if (submitBtn) { submitBtn.disabled = false; submitBtn.classList.remove('disabled'); } }
       }
       async function loadComments(){
         if (!commentsEl || rightBar.dataset.loaded) return;
@@ -680,6 +733,38 @@
       if (submitBtn) {
         submitBtn.addEventListener('click', submitForReview);
       }
+    }
+    // Draft mode: show submit button and wire it even though comments are hidden
+    if (!isReview && isDraft && !isLockedSubmitted) {
+      const submitBtn = document.getElementById('syllabusSubmitBtn');
+      if (submitBtn) {
+        submitBtn.addEventListener('click', function(){
+          submitBtn.disabled = true; submitBtn.classList.add('disabled');
+          try { openSubmitModal(); } finally { submitBtn.disabled = false; submitBtn.classList.remove('disabled'); }
+        });
+      }
+    }
+    // Draft mode: ensure right toolbar never shows (safety) and skip comment logic
+    if (isDraft || (isLockedSubmitted && !isReview)) {
+      const rt = document.querySelector('.syllabus-right-toolbar');
+      if (rt) rt.remove();
+    }
+    // Locked submitted (pending_review/approved/final_approval): force read-only like review but without comments
+    if (!isReview && isLockedSubmitted) {
+      try {
+        document.getElementById('syllabus-document')?.classList.add('is-submitted-locked');
+        // Disable all form fields
+        Array.from(document.querySelectorAll('.syllabus-content-wrapper input, .syllabus-content-wrapper textarea, .syllabus-content-wrapper select, .syllabus-content-wrapper button'))
+          .forEach(el => {
+            if (el.closest('.sv-partial')) {
+              if (el.tagName === 'BUTTON') { el.disabled = true; }
+              else { el.setAttribute('readonly','readonly'); el.setAttribute('disabled','disabled'); }
+            }
+          });
+        // Hide Save button
+        const saveBtn = document.getElementById('syllabusSaveBtn'); if (saveBtn) saveBtn.style.display='none';
+        const submitBtn = document.getElementById('syllabusSubmitBtn'); if (submitBtn) submitBtn.style.display='none';
+      } catch(e) {}
     }
     if (!form) return;
     const undoBtn = document.getElementById('undoBtn');
@@ -1045,76 +1130,37 @@
   .review-revise-btn:focus { outline: 0; background: #fff; border-color: #d39e00; box-shadow: 0 0 0 0.2rem rgba(255,193,7,0.25); color: #d39e00; }
   .review-revise-btn:active { transform: translateY(0); background: #fff; border-color: #c69500; box-shadow: 0 2px 6px rgba(198, 149, 0, 0.15); color: #c69500; }
   .review-approve-btn:disabled, .review-revise-btn:disabled { opacity: 0.6; cursor: not-allowed; pointer-events: none; }
-  /* Approve confirm modal: match approvals styling */
-  #approveConfirmModal .approve-confirm-btn {
-    background: #fff;
-    color: #28a745;
-    border: 1px solid #28a745;
-    padding: 0.5rem 0.875rem;
-    border-radius: 0.375rem;
-    font-weight: 500;
-    transition: all 0.2s ease-in-out;
-  }
-  #approveConfirmModal .approve-confirm-btn:hover {
-    color: #218838;
-    border-color: #218838;
-    box-shadow: 0 4px 10px rgba(40,167,69,0.12);
-    transform: translateY(-1px);
-  }
-  #approveConfirmModal .approve-confirm-btn:focus {
-    outline: 0;
-    box-shadow: 0 0 0 0.2rem rgba(40,167,69,0.25);
-  }
-  #approveConfirmModal .approve-confirm-btn:disabled {
-    opacity: 0.7; cursor: not-allowed; pointer-events: none;
-  }
-  /* Align modal UI with Add Program modal tokens */
-  #approveConfirmModal {
-    --sv-bg:   #FAFAFA;
-    --sv-bdr:  #E3E3E3;
-  }
-  #approveConfirmModal .modal-content {
-    border: 1px solid var(--sv-bdr);
-    border-radius: 16px;
-  }
-  #approveConfirmModal .modal-header {
-    border-bottom: 1px solid var(--sv-bdr);
-    background: var(--sv-bg);
-  }
-  #approveConfirmModal .modal-title {
-    font-weight: 600;
-    font-size: 1rem;
-    display: inline-flex;
-    align-items: center;
-    gap: .5rem;
-  }
-  #approveConfirmModal .btn-light {
-    background: #fff;
-    border: none;
-    color: #6c757d;
-    transition: all 0.2s ease-in-out;
-    box-shadow: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    border-radius: 0.375rem;
-  }
+  /* Approve confirm modal: neutral styling parity with ILO load modal */
+  #approveConfirmModal { --sv-bg:#FAFAFA; --sv-bdr:#E3E3E3; }
+  #approveConfirmModal .modal-content { border:1px solid var(--sv-bdr); border-radius:16px; background:#fff; box-shadow:0 10px 30px rgba(0,0,0,.08), 0 2px 12px rgba(0,0,0,.06); overflow:hidden; position:relative; }
+  #approveConfirmModal .modal-header { border-bottom:1px solid var(--sv-bdr); background:#fff; padding:.85rem 1rem; }
+  #approveConfirmModal .modal-title { font-weight:600; font-size:1rem; display:inline-flex; align-items:center; gap:.5rem; }
+  #approveConfirmModal .approve-confirm-btn,
+  #approveConfirmModal .btn-light { background:#fff; border:none; color:#000; transition:all .2s ease-in-out; box-shadow:none; display:inline-flex; align-items:center; gap:.5rem; padding:0.5rem 1rem; border-radius:0.375rem; font-weight:500; }
+  #approveConfirmModal .approve-confirm-btn:hover,
+  #approveConfirmModal .approve-confirm-btn:focus,
   #approveConfirmModal .btn-light:hover,
-  #approveConfirmModal .btn-light:focus {
-    background: linear-gradient(135deg, rgba(220, 220, 220, 0.88), rgba(240, 240, 240, 0.46));
-    backdrop-filter: blur(7px);
-    -webkit-backdrop-filter: blur(7px);
-    box-shadow: 0 4px 10px rgba(108, 117, 125, 0.12);
-    color: #495057;
-  }
-  #approveConfirmModal .btn-light:active {
-    background: linear-gradient(135deg, rgba(240, 242, 245, 0.98), rgba(255, 255, 255, 0.62));
-    box-shadow: 0 1px 8px rgba(108, 117, 125, 0.16);
-  }
+  #approveConfirmModal .btn-light:focus { background:linear-gradient(135deg, rgba(220,220,220,0.88), rgba(240,240,240,0.46)); box-shadow:0 4px 10px rgba(0,0,0,0.12); color:#495057; }
+  #approveConfirmModal .approve-confirm-btn:active,
+  #approveConfirmModal .btn-light:active { background:linear-gradient(135deg, rgba(240,242,245,0.98), rgba(255,255,255,0.62)); box-shadow:0 1px 8px rgba(0,0,0,0.16); }
+  #approveConfirmModal .approve-confirm-btn:disabled,
+  #approveConfirmModal .btn-light:disabled { opacity:.6; cursor:not-allowed; }
+  /* Revision modal styling parity */
+  #revisionModal { --sv-bg:#FAFAFA; --sv-bdr:#E3E3E3; z-index:10010 !important; }
+  #revisionModal .modal-content { border:1px solid var(--sv-bdr); border-radius:16px; background:#fff; box-shadow:0 10px 30px rgba(0,0,0,.08), 0 2px 12px rgba(0,0,0,.06); overflow:hidden; position:relative; z-index:10011; }
+  #revisionModal .modal-header { border-bottom:1px solid var(--sv-bdr); background:#fff; padding:.85rem 1rem; }
+  #revisionModal .modal-title { font-weight:600; font-size:1rem; display:inline-flex; align-items:center; gap:.5rem; }
+  #revisionModal .modal-title i { width:1.05rem; height:1.05rem; }
+  #revisionModal .btn-light, #revisionModal .review-revise-confirm-btn { background:#fff; border:none; color:#000; transition:all .2s ease-in-out; box-shadow:none; display:inline-flex; align-items:center; gap:.5rem; padding:0.5rem 1rem; border-radius:0.375rem; }
+  #revisionModal .btn-light:hover, #revisionModal .btn-light:focus,
+  #revisionModal .review-revise-confirm-btn:hover, #revisionModal .review-revise-confirm-btn:focus { background:linear-gradient(135deg, rgba(220,220,220,0.88), rgba(240,240,240,0.46)); box-shadow:0 4px 10px rgba(0,0,0,0.12); color:#495057; }
+  #revisionModal .btn-light:active,
+  #revisionModal .review-revise-confirm-btn:active { background:linear-gradient(135deg, rgba(240,242,245,0.98), rgba(255,255,255,0.62)); box-shadow:0 1px 8px rgba(0,0,0,0.16); }
+  #revisionModal .btn-light:disabled,
+  #revisionModal .review-revise-confirm-btn:disabled { opacity:.6; cursor:not-allowed; }
   /* Ensure Bootstrap modals appear above any local stacking contexts */
-  .modal { z-index: 9999 !important; position: fixed; }
-  .modal-backdrop { z-index: 9990 !important; }
+  .modal { z-index: 10560 !important; position: fixed; }
+  .modal-backdrop { z-index: 10550 !important; }
   /* Neutralize parent stacking contexts that can trap the modal */
   .syllabus-doc,
   .syllabus-content-wrapper,

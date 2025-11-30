@@ -114,10 +114,16 @@
                     <i class="bi {{ $buttonIcon }}"></i> {{ $buttonText }}
                   </button>
                   
+                  @if($submissionStatus === 'pending_review')
+                    <button type="button" class="btn btn-outline-danger btn-sm" disabled title="Cannot delete while pending review" aria-label="Delete disabled (pending review)">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  @else
                   <form action="{{ route('faculty.syllabi.destroy',$syllabus->id) }}" method="POST" onsubmit="return confirm('Delete this syllabus? This action cannot be undone.');">
                     @csrf @method('DELETE')
                     <button type="submit" class="btn btn-outline-danger btn-sm" aria-label="Delete syllabus"><i class="bi bi-trash"></i></button>
                   </form>
+                  @endif
                 </div>
               </article>
             </div>

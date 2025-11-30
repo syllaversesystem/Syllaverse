@@ -40,15 +40,17 @@ class SyllabusSubmissionController extends Controller
             // Get users who are Department Chairs for the department and Program Chairs for the program (if provided)
             // Be tolerant of scope_type inconsistencies: match by role and scope_id primarily.
             // Business rule: Chair role is department-scoped. Label depends on program count in department.
-            $reviewersQuery = User::whereHas('appointments', function($query) use ($departmentId) {
+            // Allow both legacy dept chair and new dept head role identifiers
+            $chairRoles = [Appointment::ROLE_DEPT, Appointment::ROLE_DEPT_HEAD];
+            $reviewersQuery = User::whereHas('appointments', function($query) use ($departmentId, $chairRoles) {
                 $query->where('status', 'active')
                       ->where('scope_id', $departmentId)
-                      ->where('role', Appointment::ROLE_DEPT);
+                      ->whereIn('role', $chairRoles);
             })
-            ->with(['appointments' => function($query) use ($departmentId) {
+            ->with(['appointments' => function($query) use ($departmentId, $chairRoles) {
                 $query->where('status', 'active')
                       ->where('scope_id', $departmentId)
-                      ->where('role', Appointment::ROLE_DEPT);
+                      ->whereIn('role', $chairRoles);
             }])
             ->get();
 
@@ -65,12 +67,16 @@ class SyllabusSubmissionController extends Controller
             ->map(function($user) use ($labelForDept) {
                 $appointment = $user->appointments->first();
                 $roleLabel = $labelForDept;
-                
+                $roleValue = $appointment->role ?? Appointment::ROLE_DEPT;
+                // Normalize role string for frontend (treat DEPT_HEAD equivalent to DEPT_CHAIR)
+                if ($roleValue === Appointment::ROLE_DEPT_HEAD) {
+                    $roleValue = Appointment::ROLE_DEPT; // unify legacy expectation
+                }
                 return [
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
-                    'role' => $appointment->role ?? Appointment::ROLE_DEPT,
+                    'role' => $roleValue,
                     'role_label' => $roleLabel,
                 ];
             });

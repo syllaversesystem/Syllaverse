@@ -153,7 +153,23 @@ document.addEventListener('DOMContentLoaded', () => {
     if (tokenMeta) headers['X-CSRF-TOKEN'] = tokenMeta.content;
     try {
       const res = await fetch(form.action, { method: 'PUT', headers, body: JSON.stringify({ igas: payload }) });
-      if (!res.ok) throw new Error('Failed to save IGAs');
+      if (!res.ok) {
+        let detail = 'Failed to save IGAs';
+        try {
+          const ct = res.headers.get('content-type') || '';
+          if (ct.includes('application/json')) {
+            const j = await res.json();
+            if (j) {
+              if (j.message) detail = j.message;
+              else if (j.errors) detail = Object.entries(j.errors).map(([k,v]) => `${k}: ${Array.isArray(v)?v.join(', '):v}`).join(' | ');
+            }
+          } else {
+            detail = (await res.text()) || detail;
+          }
+        } catch(e) { /* noop */ }
+        console.error('IGA save 422 response detail:', detail);
+        throw new Error(detail);
+      }
       const data = await res.json();
       const top = document.getElementById('unsaved-igas'); if (top) top.classList.add('d-none');
       list.querySelectorAll('textarea.autosize').forEach((ta) => ta.setAttribute('data-original', ta.value || ''));
@@ -171,6 +187,9 @@ document.addEventListener('DOMContentLoaded', () => {
       return data;
     } catch (err) {
       console.error('saveIga failed', err);
+      if (window.showAlertOverlay) {
+        window.showAlertOverlay('error', err.message || 'Failed to save IGAs');
+      }
       throw err;
     }
   };

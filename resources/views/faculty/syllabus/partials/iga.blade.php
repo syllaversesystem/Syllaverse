@@ -171,6 +171,8 @@
   {{-- Action area intentionally minimal; saving is handled by main syllabus Save button. --}}
 </form>
 
+{{-- Local IGA quick-save button removed; toolbar Save handles persistence --}}
+
 @push('scripts')
   @vite('resources/js/faculty/syllabus-iga.js')
 @endpush
@@ -180,14 +182,18 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <style>
+        /* Synced with ILO load modal styling */
         #loadPredefinedIgasModal {
-          --sv-bg: #FAFAFA;
-          --sv-bdr: #E3E3E3;
+          --sv-bg:   #FAFAFA;
+          --sv-bdr:  #E3E3E3;
           --sv-acct: #EE6F57;
-          --sv-danger: #CB3737;
+          --sv-danger:#CB3737;
+          z-index: 10010 !important;
         }
+        #loadPredefinedIgasModal .modal-dialog,
+        #loadPredefinedIgasModal .modal-content { position: relative; z-index: 10011; }
         #loadPredefinedIgasModal .modal-header {
-          padding: 0.85rem 1rem;
+          padding: .85rem 1rem;
           border-bottom: 1px solid var(--sv-bdr);
           background: #fff;
         }
@@ -196,95 +202,101 @@
           font-size: 1rem;
           display: inline-flex;
           align-items: center;
-          gap: 0.5rem;
-          color: #333;
+          gap: .5rem;
         }
         #loadPredefinedIgasModal .modal-title i,
         #loadPredefinedIgasModal .modal-title svg {
-          width: 1.25rem;
-          height: 1.25rem;
+          width: 1.05rem;
+          height: 1.05rem;
+          stroke: var(--sv-text-muted, #777777);
         }
+        /* Scrollable modal layout */
+        #loadPredefinedIgasModal .modal-dialog { max-width: 680px; }
+        #loadPredefinedIgasModal .modal-content { max-height: 85vh; display: flex; flex-direction: column; }
+        #loadPredefinedIgasModal .modal-body { flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain; }
         #loadPredefinedIgasModal .modal-content {
           border-radius: 16px;
           border: 1px solid var(--sv-bdr);
           background: #fff;
-          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08), 0 2px 12px rgba(0, 0, 0, 0.06);
+          box-shadow: 0 10px 30px rgba(0,0,0,.08), 0 2px 12px rgba(0,0,0,.06);
           overflow: hidden;
         }
         #loadPredefinedIgasModal .alert {
           border-radius: 12px;
-          border: 1px solid rgba(255, 193, 7, 0.3);
+          padding: .75rem 1rem;
+          font-size: .875rem;
         }
         #loadPredefinedIgasModal .alert-warning {
-          background: rgba(255, 243, 205, 0.5);
+          background: #FFF3CD; /* solid warning background */
+          border: 1px solid #FFE69C;
           color: #856404;
         }
+        /* Primary (Load) button adopts grey accent like ILO modal */
         #loadPredefinedIgasModal .btn-danger {
-          background: #fff;
+          background: var(--sv-card-bg, #fff);
           border: none;
           color: #000;
-          transition: all 0.2s ease;
+          transition: all 0.2s ease-in-out;
+          box-shadow: none;
           display: inline-flex;
           align-items: center;
           gap: 0.5rem;
           padding: 0.5rem 1rem;
           border-radius: 0.375rem;
         }
+        #loadPredefinedIgasModal .btn-danger { font-size: 0.95rem; }
         #loadPredefinedIgasModal .btn-danger i,
-        #loadPredefinedIgasModal .btn-danger svg {
-          width: 1rem;
-          height: 1rem;
-        }
+        #loadPredefinedIgasModal .btn-danger svg { width: 1.05rem; height: 1.05rem; }
         #loadPredefinedIgasModal .btn-danger:hover,
         #loadPredefinedIgasModal .btn-danger:focus {
-          background: linear-gradient(135deg, rgba(255, 240, 235, 0.88), rgba(255, 255, 255, 0.46));
+          background: linear-gradient(135deg, rgba(220, 220, 220, 0.88), rgba(240, 240, 240, 0.46));
           backdrop-filter: blur(7px);
           -webkit-backdrop-filter: blur(7px);
-          box-shadow: 0 4px 10px rgba(204, 55, 55, 0.12);
-          color: #CB3737;
+          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+          color: #000;
         }
         #loadPredefinedIgasModal .btn-danger:hover i,
         #loadPredefinedIgasModal .btn-danger:hover svg,
         #loadPredefinedIgasModal .btn-danger:focus i,
-        #loadPredefinedIgasModal .btn-danger:focus svg {
-          stroke: #CB3737;
-        }
+        #loadPredefinedIgasModal .btn-danger:focus svg { stroke: #000; }
         #loadPredefinedIgasModal .btn-danger:active {
-          transform: scale(0.98);
+          background: linear-gradient(135deg, rgba(240, 242, 245, 0.98), rgba(255, 255, 255, 0.62));
+          box-shadow: 0 1px 8px rgba(0, 0, 0, 0.16);
+          color: #000;
         }
-        #loadPredefinedIgasModal .btn-danger:active i,
-        #loadPredefinedIgasModal .btn-danger:active svg {
-          stroke: #CB3737;
-        }
-        #loadPredefinedIgasModal .form-check-input {
-          background-color: #E8E8E8;
-          border-color: #CCCCCC;
-        }
-        #loadPredefinedIgasModal .form-check-input:checked {
-          background-color: #6C757D;
-          border-color: #6C757D;
-        }
-        #loadPredefinedIgasModal .form-check-input:focus {
-          border-color: #999999;
-          box-shadow: 0 0 0 0.25rem rgba(108, 117, 125, 0.25);
-        }
+        #loadPredefinedIgasModal .btn-danger:disabled { opacity: .6; cursor: not-allowed; }
+        /* Cancel button */
         #loadPredefinedIgasModal .btn-light {
-          background: #fff;
+          background: var(--sv-card-bg, #fff);
           border: none;
-          color: #6c757d;
-          transition: all 0.2s ease;
+          color: #000;
+          transition: all 0.2s ease-in-out;
+          box-shadow: none;
           display: inline-flex;
           align-items: center;
           gap: 0.5rem;
           padding: 0.5rem 1rem;
           border-radius: 0.375rem;
         }
+        #loadPredefinedIgasModal .btn-light { font-size: 0.95rem; }
+        #loadPredefinedIgasModal .btn-light i,
+        #loadPredefinedIgasModal .btn-light svg { stroke: #000; width: 1.05rem; height: 1.05rem; }
         #loadPredefinedIgasModal .btn-light:hover,
         #loadPredefinedIgasModal .btn-light:focus {
-          background: linear-gradient(135deg, rgba(220, 220, 220, 0.88), rgba(240, 240, 240, 0.46));
-          box-shadow: 0 4px 10px rgba(108, 117, 125, 0.12);
+          background: linear-gradient(135deg, rgba(220,220,220,.88), rgba(240,240,240,.46));
+          backdrop-filter: blur(7px);
+          -webkit-backdrop-filter: blur(7px);
+          box-shadow: 0 4px 10px rgba(108,117,125,.12);
           color: #495057;
         }
+        #loadPredefinedIgasModal .btn-light:active {
+          background: linear-gradient(135deg, rgba(240,242,245,.98), rgba(255,255,255,.62));
+          box-shadow: 0 1px 8px rgba(108,117,125,.16);
+        }
+        /* Checkbox styling consistent */
+        #loadPredefinedIgasModal .form-check-input { background-color: #E8E8E8; border-color: #CCCCCC; }
+        #loadPredefinedIgasModal .form-check-input:checked { background-color: #6C757D; border-color: #6C757D; }
+        #loadPredefinedIgasModal .form-check-input:focus { border-color: #999; box-shadow: 0 0 0 0.25rem rgba(108,117,125,.25); }
       </style>
 
       <div class="modal-header">
@@ -314,6 +326,19 @@
             </div>
           </div>
         </div>
+
+            <script>
+              document.addEventListener('DOMContentLoaded', function(){
+                try {
+                  const modal = document.getElementById('loadPredefinedIgasModal');
+                  if (modal && modal.parentElement !== document.body) {
+                    document.body.appendChild(modal);
+                    modal.style.zIndex = '10010';
+                    const dlg = modal.querySelector('.modal-dialog'); if (dlg) dlg.style.zIndex = '10011';
+                  }
+                } catch(e){ console.error('IGA modal relocation failed', e); }
+              });
+            </script>
       </div>
 
       <div class="modal-footer">

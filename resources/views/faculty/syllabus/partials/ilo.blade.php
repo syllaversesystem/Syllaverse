@@ -161,9 +161,7 @@
     </tbody>
   </table>
 
-  {{-- ░░░ START: ILO Action Buttons (kept removed) ░░░ --}}
-  {{-- Local ILO action buttons remain removed; saving handled by main toolbar. --}}
-  {{-- ░░░ END: ILO Action Buttons ░░░ --}}
+  {{-- Local ILO Save button removed — saving is handled by the main toolbar Save button. --}}
 
 <script>
   // Inline autosize helper for ILO textareas — runs without requiring bundled JS rebuild
@@ -428,13 +426,20 @@
 
       {{-- ░░░ START: Local styles (scoped to this modal) ░░░ --}}
       <style>
+        /* Ensure backdrop sits below this modal */
+        .modal-backdrop { z-index: 10008 !important; }
         /* Brand tokens */
         #loadPredefinedIlosModal {
           --sv-bg:   #FAFAFA;   /* light bg */
           --sv-bdr:  #E3E3E3;   /* borders */
           --sv-acct: #EE6F57;   /* accent/focus */
           --sv-danger:#CB3737;  /* primary action (danger style) */
+          /* Ensure this modal always stacks above any boosted backdrops */
+          z-index: 10010 !important;
         }
+        /* Lift dialog/content above backdrop when global backdrop z-index overrides exist */
+        #loadPredefinedIlosModal .modal-dialog,
+        #loadPredefinedIlosModal .modal-content { position: relative; z-index: 10011; }
         #loadPredefinedIlosModal .modal-header {
           padding: .85rem 1rem;
           border-bottom: 1px solid var(--sv-bdr);
@@ -466,8 +471,8 @@
           font-size: .875rem;
         }
         #loadPredefinedIlosModal .alert-warning {
-          background: linear-gradient(135deg, rgba(255, 243, 205, 0.88), rgba(255, 255, 255, 0.46));
-          border: 1px solid rgba(255, 193, 7, 0.3);
+          background: #FFF3CD; /* solid warning background */
+          border: 1px solid #FFE69C;
           color: #856404;
         }
         #loadPredefinedIlosModal .btn-danger {
@@ -484,25 +489,26 @@
         }
         #loadPredefinedIlosModal .btn-danger:hover,
         #loadPredefinedIlosModal .btn-danger:focus {
-          background: linear-gradient(135deg, rgba(255, 240, 235, 0.88), rgba(255, 255, 255, 0.46));
+          background: linear-gradient(135deg, rgba(220, 220, 220, 0.88), rgba(240, 240, 240, 0.46)); /* grey like Cancel */
           backdrop-filter: blur(7px);
           -webkit-backdrop-filter: blur(7px);
-          box-shadow: 0 4px 10px rgba(204, 55, 55, 0.12);
-          color: #CB3737;
+          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+          color: #000;
         }
         #loadPredefinedIlosModal .btn-danger:hover i,
         #loadPredefinedIlosModal .btn-danger:hover svg,
         #loadPredefinedIlosModal .btn-danger:focus i,
         #loadPredefinedIlosModal .btn-danger:focus svg {
-          stroke: #CB3737;
+          stroke: #000; /* grey/black icon like Cancel */
         }
         #loadPredefinedIlosModal .btn-danger:active {
-          background: linear-gradient(135deg, rgba(255, 230, 225, 0.98), rgba(255, 255, 255, 0.62));
-          box-shadow: 0 1px 8px rgba(204, 55, 55, 0.16);
+          background: linear-gradient(135deg, rgba(240, 242, 245, 0.98), rgba(255, 255, 255, 0.62)); /* grey active */
+          box-shadow: 0 1px 8px rgba(0, 0, 0, 0.16);
+          color: #000;
         }
         #loadPredefinedIlosModal .btn-danger:active i,
         #loadPredefinedIlosModal .btn-danger:active svg {
-          stroke: #CB3737;
+          stroke: #000;
         }
         #loadPredefinedIlosModal .btn-danger:disabled {
           opacity: 0.6;
@@ -512,7 +518,7 @@
         #loadPredefinedIlosModal .btn-light {
           background: var(--sv-card-bg, #fff);
           border: none;
-          color: #6c757d;
+          color: #000; /* make Cancel text black */
           transition: all 0.2s ease-in-out;
           box-shadow: none;
           display: inline-flex;
@@ -534,6 +540,10 @@
         #loadPredefinedIlosModal .btn-light:focus i,
         #loadPredefinedIlosModal .btn-light:focus svg {
           stroke: #495057;
+        }
+        #loadPredefinedIlosModal .btn-light i,
+        #loadPredefinedIlosModal .btn-light svg {
+          stroke: #000; /* base icon color black for Cancel */
         }
         #loadPredefinedIlosModal .btn-light:active {
           background: linear-gradient(135deg, rgba(240, 242, 245, 0.98), rgba(255, 255, 255, 0.62));
@@ -563,9 +573,6 @@
             <strong>Warning:</strong> This will replace all existing ILOs with predefined ILOs from the master data for this course.
           </div>
         </div>
-        <p class="mb-0 text-muted small">
-          This action cannot be undone. Make sure you want to proceed before confirming.
-        </p>
       </div>
       {{-- ░░░ END: Body ░░░ --}}
 
@@ -583,4 +590,22 @@
   </div>
 </div>
 {{-- ░░░ END: Load Predefined ILOs Modal ░░░ --}}
+
+<script>
+  // Ensure modal escapes any transformed ancestor stacking contexts by moving it under <body>
+  document.addEventListener('DOMContentLoaded', function(){
+    try {
+      const modal = document.getElementById('loadPredefinedIlosModal');
+      if (modal && modal.parentElement !== document.body) {
+        document.body.appendChild(modal);
+        // Re-apply z-index safety after relocation
+        modal.style.zIndex = '10012';
+        const dlg = modal.querySelector('.modal-dialog');
+        if (dlg) dlg.style.zIndex = '10013';
+      }
+    } catch (e) {
+      console.error('ILO modal relocation failed', e);
+    }
+  });
+</script>
   

@@ -229,6 +229,7 @@
   </td>
 </tr>
 </table>
+<!-- Local Course Info save button removed; toolbar Save handles persistence -->
 </td>
 </tr>
 {{-- contact hours are now shown as lec/lab columns with combined text; editing still available via the text field --}}
