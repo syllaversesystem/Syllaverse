@@ -10,16 +10,6 @@
       <span class="input-group-text" id="iloSearchIcon"><i data-feather="search"></i></span>
       <input type="search" class="form-control" id="iloSearch" placeholder="Search ILO..." aria-label="Search ILO" />
     </div>
-    @if(!empty($departments) && ($departments->count() > 0))
-      <div class="department-filter-wrapper">
-        <select class="form-select form-select-sm" id="iloDepartmentFilter" aria-label="Filter ILO by department">
-          <option value="all">All Departments</option>
-          @foreach(($departments ?? collect()) as $dept)
-            <option value="{{ $dept->id }}">{{ $dept->code }}</option>
-          @endforeach
-        </select>
-      </div>
-    @endif
     @if(!empty($courses) && ($courses->count() > 0))
       <div class="course-filter-wrapper">
         <select class="form-select form-select-sm" id="iloCourseFilter" aria-label="Filter ILO by course">
@@ -96,12 +86,7 @@
   #iloTable td.ilo-drag { cursor: grab; width:1%; white-space:nowrap; }
   #iloTable tr.dragging { opacity: .6; }
   #iloTable tbody tr:hover, #iloTable tbody tr:hover > * { background-color:transparent !important; }
-  /* Department filter parity with SDG tab */
-  .department-filter-wrapper { margin-left:10px; margin-right:10px; }
-  .department-filter-wrapper .form-select {
-    min-width:200px;
-    transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-  }
+  /* Department filter removed */
   /* Course filter styling mirrors department filter */
   .course-filter-wrapper { margin-left:10px; margin-right:10px; }
   .course-filter-wrapper .form-select {
@@ -113,11 +98,7 @@
     box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
     cursor: progress;
   }
-  .department-filter-wrapper .form-select.is-loading {
-    border-color: #007bff;
-    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-    cursor: progress;
-  }
+  /* Department filter removed */
   /* Grip icon styling */
   .grip-icon { width:16px; height:16px; display:inline-block; opacity:.6; }
   .ilo-drag .grip-icon { width:14px; height:14px; }

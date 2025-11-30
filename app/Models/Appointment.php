@@ -26,7 +26,10 @@ class Appointment extends Model
     // ░░░ START: Constants & Attributes ░░░
 
     /** Role constants to avoid string typos. */
+    // Legacy department chair constant; kept for backward compatibility
     public const ROLE_DEPT    = 'DEPT_CHAIR';
+    // New naming: Department Head (preferred)
+    public const ROLE_DEPT_HEAD = 'DEPT_HEAD';
     public const ROLE_FACULTY = 'FACULTY';
     // Program-chair compatibility (shims) — program-scoped role was removed but
     // some legacy code still references these constants. Keep as shims to avoid

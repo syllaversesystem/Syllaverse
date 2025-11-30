@@ -86,10 +86,13 @@
               $activeAppointments = $user->appointments->where('status', 'active');
               
               if ($activeAppointments->count()) {
+                // Preload departments once for counting programs
+                $deptIds = $activeAppointments->pluck('scope_id')->filter()->unique();
+                $departments = $deptIds->count() ? \App\Models\Department::withCount('programs')->whereIn('id', $deptIds)->get() : collect();
+
                 foreach ($activeAppointments as $appt) {
                   $roleLabel = '';
-                  
-                  // Determine role label
+
                   if ($appt->role === \App\Models\Appointment::ROLE_VCAA) {
                     $roleLabel = 'VCAA';
                   } elseif ($appt->role === \App\Models\Appointment::ROLE_ASSOC_VCAA) {
@@ -102,10 +105,15 @@
                     $roleLabel = 'Dept Chair';
                   } elseif ($appt->role === \App\Models\Appointment::ROLE_PROG) {
                     $roleLabel = 'Prog Chair';
+                  } elseif ($appt->role === \App\Models\Appointment::ROLE_DEPT_HEAD) {
+                    // Dynamic mapping for Department Head: Dept Chair if >=2 programs, else Prog Chair
+                    $dept = $departments->firstWhere('id', $appt->scope_id);
+                    $programsCount = $dept ? (int) ($dept->programs_count ?? 0) : 0;
+                    $roleLabel = $programsCount >= 2 ? 'Dept Chair' : 'Prog Chair';
                   } elseif ($appt->role === \App\Models\Appointment::ROLE_FACULTY) {
                     $roleLabel = 'Faculty';
                   }
-                  
+
                   if ($roleLabel) {
                     $roleData[] = [
                       'role' => $roleLabel,

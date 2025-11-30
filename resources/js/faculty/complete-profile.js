@@ -25,7 +25,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const employeeCode = document.getElementById('svEmployeeCode');
 
   // Role-request controls
-  const cbDept = document.querySelector('#request_dept_chair');
+  // Support new Department Head checkbox id (request_dept_head) while remaining backward compatible with legacy request_dept_chair
+  const cbDept = document.querySelector('#request_dept_head') || document.querySelector('#request_dept_chair');
   const cbVcaa = document.querySelector('#request_vcaa');
   const cbAssocVcaa = document.querySelector('#request_assoc_vcaa');
   const cbDean = document.querySelector('#request_dean');
@@ -87,6 +88,26 @@ document.addEventListener('DOMContentLoaded', () => {
   if (cbAssocDean) cbAssocDean.addEventListener('change', roleChangeHandler);
   if (cbFaculty) cbFaculty.addEventListener('change', roleChangeHandler);
 
+  // Mutual exclusion: Dean vs Associate Dean
+  if (cbDean && cbAssocDean) {
+    cbDean.addEventListener('change', () => {
+      if (cbDean.checked) {
+        cbAssocDean.checked = false;
+        cbAssocDean.disabled = true;
+      } else {
+        if (!requestsLocked) cbAssocDean.disabled = false;
+      }
+    });
+    cbAssocDean.addEventListener('change', () => {
+      if (cbAssocDean.checked) {
+        cbDean.checked = false;
+        cbDean.disabled = true;
+      } else {
+        if (!requestsLocked) cbDean.disabled = false;
+      }
+    });
+  }
+
   // --- Final submit guard (polite checks; server still validates)
   const form = document.getElementById('svCompleteProfileForm');
   if (form) {
@@ -95,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (requestsLocked) return;
 
       // Check if department-specific roles need department selection
-      const wantsDept = cbDept && cbDept.checked;
+      const wantsDept = cbDept && cbDept.checked; // Dept Head or legacy Dept Chair
       const wantsDean = cbDean && cbDean.checked;
       const wantsAssocDean = cbAssocDean && cbAssocDean.checked;
       const wantsFaculty = cbFaculty && cbFaculty.checked;
@@ -109,6 +130,15 @@ document.addEventListener('DOMContentLoaded', () => {
         markInvalid(selDept, 'Please select a department for the selected leadership role.');
         showStep(2);
         return;
+      }
+
+      // Auto-include Faculty when leadership role is selected and mirror department
+      if (hasLeadershipRole && cbFaculty) {
+        cbFaculty.checked = true;
+        // Ensure faculty department mirrors selected leadership department
+        if (selDept && selDept.value && selFacultyDept) {
+          selFacultyDept.value = selDept.value;
+        }
       }
 
       // Require faculty department for faculty role (only when no leadership role is selected)
@@ -162,7 +192,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   /* This shows/hides department selectors based on role selections and manages faculty role logic. */
   function applyToggleState() {
-    const wantsDept = !!(cbDept && cbDept.checked);
+    const wantsDept = !!(cbDept && cbDept.checked); // Dept Head or legacy Dept Chair
     const wantsDean = !!(cbDean && cbDean.checked);
     const wantsAssocDean = !!(cbAssocDean && cbAssocDean.checked);
     const wantsFaculty = !!(cbFaculty && cbFaculty.checked);
@@ -183,16 +213,20 @@ document.addEventListener('DOMContentLoaded', () => {
     // Faculty role logic: disable/hide when leadership role is selected
     if (cbFaculty) {
       if (hasLeadershipRole) {
-        // Disable and uncheck faculty role if leadership role is selected
+        // Auto-include Faculty and disable manual toggle when leadership is selected
+        cbFaculty.checked = true;
         cbFaculty.disabled = true;
-        cbFaculty.checked = false;
+        // Mirror department to faculty department selector
+        if (selDept && selFacultyDept) {
+          selFacultyDept.value = selDept.value || '';
+        }
         // Add visual indication that it's not needed
         const facultyCard = cbFaculty.closest('.card');
         if (facultyCard) {
           facultyCard.style.opacity = '0.5';
           const helpText = facultyCard.querySelector('.text-muted.small');
           if (helpText) {
-            helpText.textContent = 'Not needed - leadership roles include faculty privileges';
+            helpText.textContent = 'Included automatically – leadership roles include faculty privileges';
           }
         }
       } else {
@@ -210,13 +244,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Show faculty department selector only when faculty role is selected and no leadership role
-    const showFacultyDept = wantsFaculty && !hasLeadershipRole;
+    const showFacultyDept = (wantsFaculty || hasLeadershipRole) && !hasLeadershipRole ? true : false;
     if (facultyDeptSelector) {
       facultyDeptSelector.style.display = showFacultyDept ? 'block' : 'none';
       if (!showFacultyDept && selFacultyDept) {
         selFacultyDept.value = '';
         clearInvalid(selFacultyDept);
       }
+    }
+
+    // Keep faculty department in sync with leadership department when leadership selected
+    if (hasLeadershipRole && selDept && selFacultyDept) {
+      selFacultyDept.value = selDept.value || '';
+      // Also keep it synced on change
+      selDept.addEventListener('change', () => {
+        selFacultyDept.value = selDept.value || '';
+      }, { once: false });
     }
   }
 

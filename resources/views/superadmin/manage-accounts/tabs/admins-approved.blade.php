@@ -59,37 +59,49 @@
               
               <td>
                 @php
-                  // Get the primary role for this user
-                  $primaryRole = 'User';
+                  // Derive primary role: prefer first active appointment; else use user->role mapping
                   if ($activeAppointments->count()) {
                     $primaryAppt = $activeAppointments->first();
-                    $isDept = $primaryAppt->role === \App\Models\Appointment::ROLE_DEPT;
-                    $isProg = $primaryAppt->role === \App\Models\Appointment::ROLE_PROG;
-                    $isDean = $primaryAppt->role === \App\Models\Appointment::ROLE_DEAN;
-                    $isFaculty = $primaryAppt->role === \App\Models\Appointment::ROLE_FACULTY;
-                    
-                    if ($isDept) {
-                      $primaryRole = 'Department Chair';
-                    } elseif ($isProg) {
-                      $primaryRole = 'Program Chair';
-                    } elseif ($isDean) {
-                      $primaryRole = 'Dean';
-                    } elseif ($primaryAppt->role === \App\Models\Appointment::ROLE_VCAA) {
-                      $primaryRole = 'VCAA';
-                    } elseif ($primaryAppt->role === \App\Models\Appointment::ROLE_ASSOC_VCAA) {
-                      $primaryRole = 'Associate VCAA';
-                    } elseif ($primaryAppt->role === \App\Models\Appointment::ROLE_ASSOC_DEAN) {
-                      $primaryRole = 'Associate Dean';
-                    } elseif ($isFaculty) {
-                      $primaryRole = 'Faculty';
+                    switch ($primaryAppt->role) {
+                      case \App\Models\Appointment::ROLE_DEPT_HEAD:
+                      case \App\Models\Appointment::ROLE_DEPT:
+                        // Dynamic Dept Head labeling: Dept Chair if department has 2+ programs, else Program Chair
+                        $deptObj = $deptById[$primaryAppt->scope_id] ?? null;
+                        $programCount = $deptObj ? ($programs->where('department_id', $deptObj->id)->count()) : 0;
+                        $primaryRole = $programCount >= 2 ? 'Dept Chair' : 'Program Chair';
+                        break;
+                      case \App\Models\Appointment::ROLE_PROG:
+                        $primaryRole = 'Program Chair';
+                        break;
+                      case \App\Models\Appointment::ROLE_DEAN:
+                        $primaryRole = 'Dean';
+                        break;
+                      case \App\Models\Appointment::ROLE_ASSOC_DEAN:
+                        $primaryRole = 'Associate Dean';
+                        break;
+                      case \App\Models\Appointment::ROLE_VCAA:
+                        $primaryRole = 'VCAA';
+                        break;
+                      case \App\Models\Appointment::ROLE_ASSOC_VCAA:
+                        $primaryRole = 'Associate VCAA';
+                        break;
+                      case \App\Models\Appointment::ROLE_FACULTY:
+                        $primaryRole = 'Faculty';
+                        break;
+                      default:
+                        $primaryRole = $primaryAppt->role ?: 'Role';
                     }
-                  } elseif ($user->role === 'faculty') {
-                    $primaryRole = 'Faculty';
-                  } elseif ($user->role === 'admin') {
-                    $primaryRole = 'Admin';
+                  } else {
+                    // Map base user role when no active appointments
+                    $primaryRole = match ($user->role) {
+                      'admin'      => 'Admin',
+                      'faculty'    => 'Faculty',
+                      'student'    => 'Student',
+                      'superadmin' => 'Superadmin',
+                      default      => ucfirst(strtolower($user->role ?? 'User')),
+                    };
                   }
-                  
-                  // Count additional roles
+
                   $additionalRolesCount = $activeAppointments->count() - 1;
                 @endphp
                 <div class="d-flex align-items-center gap-2">
@@ -176,8 +188,10 @@
                           $isDean = $appt->role === \App\Models\Appointment::ROLE_DEAN;
                           $isFaculty = $appt->role === \App\Models\Appointment::ROLE_FACULTY;
                           
-                          if ($isDept) {
-                            $roleLabel = 'Department Chair';
+                          if ($isDept || $appt->role === \App\Models\Appointment::ROLE_DEPT_HEAD) {
+                            $deptObj = $deptById[$appt->scope_id] ?? null;
+                            $programCount = $deptObj ? ($programs->where('department_id', $deptObj->id)->count()) : 0;
+                            $roleLabel = $programCount >= 2 ? 'Dept Chair' : 'Program Chair';
                           } elseif ($isProg) {
                             $roleLabel = 'Program Chair';
                           } elseif ($isDean) {

@@ -147,17 +147,29 @@
   };
 
   const getAddForm = (modal) => modal?.querySelector('form[data-sv-scope^="add-"]');
+  // Cache of department options for reliable rendering even if add form isn't present
+  let SV_DEPT_OPTIONS_CACHE = null;
+  const buildDeptOptionsCache = () => {
+    // Prefer options from the current modal's add form; fallback to any department selects in the document
+    const anySelect = document.querySelector('select[name="department_id"]');
+    const options = anySelect ? Array.from(anySelect.options) : [];
+    SV_DEPT_OPTIONS_CACHE = options.map(o => ({ value: String(o.value), text: o.textContent || o.text || '' }));
+  };
   const getDeptOptionsHTML = (modal, selectedId) => {
     const src = getAddForm(modal)?.querySelector('.sv-dept');
-    const opts = src ? Array.from(src.options) : [];
-    return opts.map(o => {
+    let opts = src ? Array.from(src.options).map(o => ({ value: String(o.value), text: o.text })) : null;
+    if (!opts || !opts.length) {
+      if (!SV_DEPT_OPTIONS_CACHE) buildDeptOptionsCache();
+      opts = SV_DEPT_OPTIONS_CACHE || [];
+    }
+    return (opts || []).map(o => {
       const sel = String(o.value) === String(selectedId || '') ? ' selected' : '';
       return `<option value="${o.value}"${sel}>${o.text}</option>`;
     }).join('');
   };
   // Program select removed — Program Chair no longer supported
 
-  const renderApptItemHTML = (modal, adminId, appt) => {
+  const renderApptItemHTML = (modal, adminId, appt, totalActive, activeRolesSet) => {
     const csrf = getCsrf(modal);
     const base = (getAddForm(modal)?.action || '/superadmin/appointments').replace(/\/+$/, '');
     const collapseId = `sv-appt-edit-${appt.id}`;
@@ -175,16 +187,18 @@
                   title="Edit appointment" aria-label="Edit appointment">
             <i data-feather="edit-3"></i>
           </button>
+          ${appt.role === 'FACULTY' ? '' : `
           <form method="POST" action="${base}/${appt.id}/end" class="d-inline" data-ajax="true" data-inline-errors="false">
             <input type="hidden" name="_token" value="${csrf}">
             <button class="action-btn reject" type="submit" title="Delete appointment" aria-label="Delete appointment">
               <i data-feather="x"></i>
             </button>
           </form>
+          `}
         </div>
       </div>
 
-      <div id="${collapseId}" class="collapse sv-details">
+      <div id="${collapseId}" class="collapse sv-details" data-bs-parent="#sv-appt-list-${adminId}">
         <form method="POST" action="${base}/${appt.id}" class="row g-2 align-items-end sv-appt-form" data-sv-scope="edit-${appt.id}" data-ajax="true" data-inline-errors="false">
           <input type="hidden" name="_token" value="${csrf}">
           <input type="hidden" name="_method" value="PUT">
@@ -192,19 +206,33 @@
           <div class="col-md-4">
             <label class="form-label small">Role</label>
             <select name="role" class="form-select form-select-sm sv-role">
-              <option value="FACULTY"${appt && appt.role === 'FACULTY' ? ' selected' : ''}>Faculty</option>
-              <option value="DEPT_CHAIR"${(appt && (appt.is_dept || appt.is_prog)) ? ' selected' : ''}>Program/Department Chair</option>
-              <option value="DEAN"${appt && appt.role === 'DEAN' ? ' selected' : ''}>Dean</option>
-              <option value="ASSOC_DEAN"${appt && appt.role === 'ASSOC_DEAN' ? ' selected' : ''}>Associate Dean</option>
-              <option value="VCAA"${appt && appt.role === 'VCAA' ? ' selected' : ''}>VCAA</option>
-              <option value="ASSOC_VCAA"${appt && appt.role === 'ASSOC_VCAA' ? ' selected' : ''}>Associate VCAA</option>
+              ${(() => {
+                const active = activeRolesSet || new Set();
+                const out = [];
+                const pushIf = (role, label) => {
+                  if (!active.has(role) || (appt && appt.role === role)) {
+                    const sel = (appt && appt.role === role) ? ' selected' : '';
+                    out.push(`<option value="${role}"${sel}>${label}</option>`);
+                  }
+                };
+                // Remove Faculty option entirely when there are 2 or more active appointments
+                if (!((totalActive || 0) >= 2)) {
+                  pushIf('FACULTY', 'Faculty');
+                }
+                pushIf('DEPT_HEAD', 'Department Head');
+                const multiActive = (totalActive || 0) >= 2;
+                if (!(multiActive && appt && appt.role === 'DEPT_HEAD')) {
+                  pushIf('DEAN', 'Dean');
+                  pushIf('ASSOC_DEAN', 'Associate Dean');
+                }
+                return out.join('');
+              })()}
             </select>
           </div>
 
           <div class="col-md-7">
             <label class="form-label small">Department</label>
-            <select name="department_id" class="form-select form-select-sm sv-dept"${(appt && (appt.role === 'VCAA' || appt.role === 'ASSOC_VCAA')) ? ' disabled' : ''}>
-              ${(appt && (appt.role === 'VCAA' || appt.role === 'ASSOC_VCAA')) ? '<option value="">— Not Required —</option>' : ''}
+            <select name="department_id" class="form-select form-select-sm sv-dept">
               ${getDeptOptionsHTML(modal, appt.dept_id)}
             </select>
           </div>
@@ -227,7 +255,9 @@
       refreshIcons();
       return;
     }
-    list.innerHTML = appointments.map(a => renderApptItemHTML(modal, adminId, a)).join('');
+    const total = Array.isArray(appointments) ? appointments.length : 0;
+    const activeRolesSet = new Set((appointments || []).map(a => a.role));
+    list.innerHTML = appointments.map(a => renderApptItemHTML(modal, adminId, a, total, activeRolesSet)).join('');
     modal.dispatchEvent(new CustomEvent('shown.bs.modal', { bubbles: true }));
     refreshIcons();
     
@@ -489,8 +519,23 @@
         // ✅ Appointments: keep modal open; update inline list + badges, then refresh Approved row
         const modal = form.closest('.modal');
         if (payload && payload.admin_id && Array.isArray(payload.appointments)) {
+          // Real-time update of modal data attributes for leadership department & faculty-only state
+          try {
+            const leadershipRoles = ['DEPT_HEAD','DEAN','ASSOC_DEAN'];
+            const leadershipAppt = payload.appointments.find(a => leadershipRoles.includes(a.role));
+            const leadershipDeptId = leadershipAppt ? (leadershipAppt.dept_id || leadershipAppt.scope_id || 0) : 0;
+            const onlyFacultyActive = payload.appointments.length > 0 && payload.appointments.every(a => a.role === 'FACULTY');
+            if (modal) {
+              modal.setAttribute('data-leadership-dept-id', String(leadershipDeptId || 0));
+              modal.setAttribute('data-only-faculty-active', onlyFacultyActive ? '1' : '0');
+            }
+          } catch(e){ /* silent */ }
           renderApptList(modal, payload.admin_id, payload.appointments);
           renderBadgesCell(payload.admin_id, payload.appointments);
+          // Re-run department dropdown logic immediately (before row refresh) for responsiveness
+          if (typeof initDepartmentDropdowns === 'function') {
+            initDepartmentDropdowns();
+          }
           await refreshApprovedRow(payload.admin_id); // row-first (falls back to tbody)
         }
 
@@ -515,13 +560,18 @@
   // ── Department dropdown management (admin and faculty modals) ────
   function initDepartmentDropdowns() {
     // Define which roles require department selection
-    const ADMIN_DEPT_REQUIRED_ROLES = ['DEPT_CHAIR', 'DEAN', 'ASSOC_DEAN'];
-    const FACULTY_DEPT_REQUIRED_ROLES = ['FACULTY', 'DEPT_CHAIR', 'DEAN', 'ASSOC_DEAN'];
+    // Added 'DEPT_HEAD' so Department Head selections keep department enabled & required
+    const ADMIN_DEPT_REQUIRED_ROLES = ['DEPT_CHAIR', 'DEPT_HEAD', 'DEAN', 'ASSOC_DEAN'];
+    const FACULTY_DEPT_REQUIRED_ROLES = ['FACULTY', 'DEPT_CHAIR', 'DEPT_HEAD', 'DEAN', 'ASSOC_DEAN'];
     
     function updateDeptDropdownState(roleSelect, deptSelect, isAdminModal = true) {
       const selectedRole = roleSelect.value;
       const requiredRoles = isAdminModal ? ADMIN_DEPT_REQUIRED_ROLES : FACULTY_DEPT_REQUIRED_ROLES;
       const requiresDept = requiredRoles.includes(selectedRole);
+      const modal = roleSelect.closest('.modal');
+      const leadershipDeptId = modal ? modal.getAttribute('data-leadership-dept-id') : null;
+      const onlyFacultyActive = modal ? (modal.getAttribute('data-only-faculty-active') === '1') : false;
+      const isAddForm = !!roleSelect.closest('form')?.getAttribute('data-sv-scope')?.startsWith('add-');
       
       if (requiresDept) {
         deptSelect.disabled = false;
@@ -529,6 +579,24 @@
         const placeholder = deptSelect.querySelector('option[value=""]');
         if (placeholder) {
           placeholder.textContent = '— Select Department —';
+        }
+        // For Faculty modal Add form: if there is an active leadership role, restrict to its department
+        const leadershipRoles = ['DEPT_HEAD','DEAN','ASSOC_DEAN'];
+        if (!isAdminModal 
+            && isAddForm 
+            && leadershipDeptId 
+            && leadershipRoles.includes(selectedRole) 
+            && String(leadershipDeptId) !== '0'
+            && !onlyFacultyActive) {
+          const keepVal = String(leadershipDeptId);
+          Array.from(deptSelect.options).forEach(opt => {
+            if (opt.value === '') return; // keep placeholder
+            opt.hidden = String(opt.value) !== keepVal;
+          });
+          deptSelect.value = keepVal;
+        } else {
+          // Default: show all options
+          Array.from(deptSelect.options).forEach(opt => { opt.hidden = false; });
         }
       } else {
         deptSelect.disabled = true;
@@ -538,6 +606,8 @@
         if (placeholder) {
           placeholder.textContent = '— Not Required —';
         }
+        // Show all options again when not required
+        Array.from(deptSelect.options).forEach(opt => { opt.hidden = false; });
       }
     }
     

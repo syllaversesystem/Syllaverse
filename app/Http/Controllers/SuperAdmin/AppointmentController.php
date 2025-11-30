@@ -37,6 +37,7 @@ class AppointmentController extends Controller
         // Direct matches
         if ($r === Appointment::ROLE_FACULTY) return $r;
         if ($r === Appointment::ROLE_DEPT) return $r;
+        if ($r === Appointment::ROLE_DEPT_HEAD) return $r;
         if ($r === Appointment::ROLE_PROG) return $r;
         if ($r === Appointment::ROLE_DEAN) return $r;
         if ($r === Appointment::ROLE_ASSOC_DEAN) return $r;
@@ -45,7 +46,7 @@ class AppointmentController extends Controller
         
         // Alternative input formats
         if (in_array($r, ['FACULTY'], true)) return Appointment::ROLE_FACULTY;
-        if (in_array($r, ['DEPT','DEPARTMENT','DEPARTMENT_CHAIR','0'], true)) return Appointment::ROLE_DEPT;
+        if (in_array($r, ['DEPT','DEPARTMENT','DEPARTMENT_CHAIR','DEPT_HEAD','DEPARTMENT_HEAD','0'], true)) return Appointment::ROLE_DEPT_HEAD;
         if (in_array($r, ['PROG','PROGRAM','PROGRAM_CHAIR'], true)) return Appointment::ROLE_PROG;
         if (in_array($r, ['DEAN'], true)) return Appointment::ROLE_DEAN;
         if (in_array($r, ['ASSOCIATE_DEAN','ASSOC_DEAN'], true)) return Appointment::ROLE_ASSOC_DEAN;
@@ -54,7 +55,7 @@ class AppointmentController extends Controller
         
         // Pattern matching
         if (str_contains($r, 'FACULTY')) return Appointment::ROLE_FACULTY;
-        if (str_contains($r, 'DEPT')) return Appointment::ROLE_DEPT;
+        if (str_contains($r, 'DEPT_HEAD') || str_contains($r, 'DEPT')) return Appointment::ROLE_DEPT_HEAD;
         if (str_contains($r, 'PROG')) return Appointment::ROLE_PROG;
         if (str_contains($r, 'DEAN')) return str_contains($r, 'ASSOC') ? Appointment::ROLE_ASSOC_DEAN : Appointment::ROLE_DEAN;
         if (str_contains($r, 'VCAA')) return str_contains($r, 'ASSOC') ? Appointment::ROLE_ASSOC_VCAA : Appointment::ROLE_VCAA;
@@ -70,20 +71,34 @@ class AppointmentController extends Controller
 
         $deptNames = Department::pluck('name', 'id');                                 // id => name
         $progNames = Program::pluck('name', 'id');                                     // id => name
+        $deptProgramCounts = Department::withCount('programs')->pluck('programs_count', 'id'); // id => programs_count
 
-        return $active->map(function (Appointment $a) use ($deptNames, $progNames) {
+        return $active->map(function (Appointment $a) use ($deptNames, $progNames, $deptProgramCounts) {
             $isDept = $a->role === Appointment::ROLE_DEPT;
+            $isDeptHead = $a->role === Appointment::ROLE_DEPT_HEAD;
             $isProg = $a->role === Appointment::ROLE_PROG;
             $isDean = $a->role === Appointment::ROLE_DEAN;
 
             $scopeLabel = 'Institution-wide';
             $roleLabel = $a->role ?? 'Appointment';
             
-            if ($isDept || $isProg || $isDean) {
+            if ($isDept || $isDeptHead || $isProg || $isDean) {
                 $scopeLabel = (string) ($deptNames[$a->scope_id] ?? 'Unknown Department');
                 
                 // Dynamic role label based on actual stored role
-                if ($isDept) {
+                if ($isDeptHead) {
+                    // Dynamic mapping: Department Head displays as Department Chair (>=2 programs) or Program Chair (<=1 program)
+                    $programCount = (int) ($deptProgramCounts[$a->scope_id] ?? 0);
+                    if ($programCount >= 2) {
+                        $roleLabel = 'Department Chair';
+                        $isDept = true;    // treat as department chair
+                        $isProg = false;
+                    } else {
+                        $roleLabel = 'Program Chair';
+                        $isDept = false;
+                        $isProg = true;    // treat as program chair
+                    }
+                } elseif ($isDept) {
                     $roleLabel = 'Department Chair';
                 } elseif ($isProg) {
                     $roleLabel = 'Program Chair';
@@ -114,12 +129,14 @@ class AppointmentController extends Controller
                 'id'          => (int) $a->id,
                 'role'        => $a->role,
                 'role_label'  => $roleLabel,
+                // is_dept / is_prog reflect dynamic DEPT_HEAD mapping
                 'is_dept'     => $isDept,
+                'is_dept_head'=> $isDeptHead,
                 'is_prog'     => $isProg,
                 'is_dean'     => $isDean,
                 'scope_id'    => ($a->scope_id && $a->scope_id > 0) ? (int) $a->scope_id : null,
                 'scope_label' => $scopeLabel,
-                'dept_id'     => ($isDept || $isProg || $isDean) ? (int) $a->scope_id : null,
+                'dept_id'     => ($isDept || $isDeptHead || $isProg || $isDean) ? (int) $a->scope_id : null,
                 'program_id'  => null, // Programs are no longer directly assigned
             ];
         })->values()->all();
@@ -164,16 +181,20 @@ class AppointmentController extends Controller
         $scopeId = $data['department_id'] ?? null;
         $role = $inputRole;
         
-        if ($inputRole === Appointment::ROLE_DEPT && $scopeId) {
+        if (in_array($inputRole, [Appointment::ROLE_DEPT, Appointment::ROLE_DEPT_HEAD]) && $scopeId) {
             // Check department program count to determine chair type
             $department = Department::with('programs')->find($scopeId);
             if ($department) {
                 $programCount = $department->programs->count();
-                // If department has 1 or fewer programs, it's a Program Chair
-                if ($programCount <= 1) {
-                    $role = Appointment::ROLE_PROG;
+                // If user selected legacy DEPT (chair) convert based on program count.
+                // If user selected DEPT_HEAD, always keep DEPT_HEAD regardless of program count.
+                if ($inputRole === Appointment::ROLE_DEPT && $programCount <= 1) {
+                    $role = Appointment::ROLE_PROG; // legacy single-program chair becomes program chair
+                } elseif ($inputRole === Appointment::ROLE_DEPT && $programCount > 1) {
+                    $role = Appointment::ROLE_DEPT; // multi-program retains legacy dept chair
+                } elseif ($inputRole === Appointment::ROLE_DEPT_HEAD) {
+                    $role = Appointment::ROLE_DEPT_HEAD; // always store as dept head
                 }
-                // Otherwise, keep as Department Chair (ROLE_DEPT)
             }
         }
 
@@ -223,10 +244,10 @@ class AppointmentController extends Controller
         // - Multiple VCAA and Associate VCAA can exist (institution-wide)
         $exists = Appointment::active()
             ->where(function($query) use ($role, $scopeId) {
-                if (in_array($role, [Appointment::ROLE_DEPT, Appointment::ROLE_PROG])) {
+                if (in_array($role, [Appointment::ROLE_DEPT, Appointment::ROLE_DEPT_HEAD, Appointment::ROLE_PROG])) {
                     // For chair positions, check for any existing chair (dept or prog) in the same department
                     // Both chair types use SCOPE_DEPT
-                    $query->whereIn('role', [Appointment::ROLE_DEPT, Appointment::ROLE_PROG])
+                      $query->whereIn('role', [Appointment::ROLE_DEPT, Appointment::ROLE_DEPT_HEAD, Appointment::ROLE_PROG])
                           ->where('scope_type', Appointment::SCOPE_DEPT)
                           ->where('scope_id', (int) ($scopeId ?? 0));
                 } elseif (in_array($role, [Appointment::ROLE_DEAN, Appointment::ROLE_VCAA, Appointment::ROLE_ASSOC_VCAA])) {
@@ -254,7 +275,7 @@ class AppointmentController extends Controller
         ]);
         
         // Set scope based on role type
-        if (in_array($role, [Appointment::ROLE_FACULTY, Appointment::ROLE_DEPT, Appointment::ROLE_PROG, Appointment::ROLE_DEAN, Appointment::ROLE_ASSOC_DEAN])) {
+        if (in_array($role, [Appointment::ROLE_FACULTY, Appointment::ROLE_DEPT, Appointment::ROLE_DEPT_HEAD, Appointment::ROLE_PROG, Appointment::ROLE_DEAN, Appointment::ROLE_ASSOC_DEAN])) {
             // Faculty, Chair types, Dean, and Associate Dean use department scope
             $appt->role = $role;
             $appt->scope_type = Appointment::SCOPE_DEPT;
@@ -269,6 +290,13 @@ class AppointmentController extends Controller
             $appt->setRoleAndScope($role, null, null);
         }
         $appt->save();
+
+        // If adding a leadership role, replace any existing Faculty appointment(s)
+        if (in_array($role, [Appointment::ROLE_DEPT_HEAD, Appointment::ROLE_DEAN, Appointment::ROLE_ASSOC_DEAN])) {
+            Appointment::where('user_id', (int) $data['user_id'])
+                ->where('role', Appointment::ROLE_FACULTY)
+                ->delete();
+        }
 
         $admin = User::findOrFail((int) $data['user_id']);
         $appointments = $this->buildAppointmentsPayload($admin);
@@ -299,7 +327,7 @@ class AppointmentController extends Controller
         $role = $inputRole;
         
         // For Program/Department Chair selection, determine actual role based on department's program count
-        if ($inputRole === Appointment::ROLE_DEPT && $scopeId) {
+        if (in_array($inputRole, [Appointment::ROLE_DEPT, Appointment::ROLE_DEPT_HEAD]) && $scopeId) {
             $department = Department::with('programs')->find($scopeId);
             if (!$department) {
                 return $this->respond($request, false, 'Selected department not found.', 422, [
@@ -308,11 +336,17 @@ class AppointmentController extends Controller
             }
             
             $programCount = $department->programs->count();
-            // If department has 1 or fewer programs, store as Program Chair
-            if ($programCount <= 1) {
-                $role = Appointment::ROLE_PROG;
+            if ($inputRole === Appointment::ROLE_DEPT) {
+                // Legacy dept chair logic: convert to program chair if single program
+                if ($programCount <= 1) {
+                    $role = Appointment::ROLE_PROG;
+                } else {
+                    $role = Appointment::ROLE_DEPT;
+                }
+            } elseif ($inputRole === Appointment::ROLE_DEPT_HEAD) {
+                // Always store as dept head
+                $role = Appointment::ROLE_DEPT_HEAD;
             }
-            // Otherwise, store as Department Chair (ROLE_DEPT)
         }
 
         // Validate department requirement based on final determined role
@@ -332,10 +366,10 @@ class AppointmentController extends Controller
         // - Multiple VCAA and Associate VCAA can exist (institution-wide)
         $exists = Appointment::active()
             ->where(function($query) use ($role, $scopeId) {
-                if (in_array($role, [Appointment::ROLE_DEPT, Appointment::ROLE_PROG])) {
+                if (in_array($role, [Appointment::ROLE_DEPT, Appointment::ROLE_DEPT_HEAD, Appointment::ROLE_PROG])) {
                     // For chair positions, check for any existing chair (dept or prog) in the same department
                     // Both chair types use SCOPE_DEPT
-                    $query->whereIn('role', [Appointment::ROLE_DEPT, Appointment::ROLE_PROG])
+                      $query->whereIn('role', [Appointment::ROLE_DEPT, Appointment::ROLE_DEPT_HEAD, Appointment::ROLE_PROG])
                           ->where('scope_type', Appointment::SCOPE_DEPT)
                           ->where('scope_id', (int) ($scopeId ?? 0));
                 } elseif (in_array($role, [Appointment::ROLE_DEAN, Appointment::ROLE_VCAA, Appointment::ROLE_ASSOC_VCAA])) {
@@ -365,8 +399,39 @@ class AppointmentController extends Controller
         $originalScopeType = $appointment->scope_type;
         $originalScopeId = $appointment->scope_id;
 
+        // Restrict converting Department Head into Dean / Associate Dean when multiple leadership roles are active
+        $leadershipRolesForRestriction = [Appointment::ROLE_DEPT_HEAD, Appointment::ROLE_DEAN, Appointment::ROLE_ASSOC_DEAN];
+        if ($originalRole === Appointment::ROLE_DEPT_HEAD
+            && in_array($role, [Appointment::ROLE_DEAN, Appointment::ROLE_ASSOC_DEAN], true)) {
+            $otherLeadershipCount = Appointment::active()
+                ->where('user_id', $appointment->user_id)
+                ->whereIn('role', $leadershipRolesForRestriction)
+                ->where('id', '!=', $appointment->id)
+                ->count();
+            if ($otherLeadershipCount > 0) {
+                return $this->respond($request, false, 'Cannot convert Department Head while another leadership role is active.', 422, [
+                    'role' => ['Department Head cannot be converted to Dean or Associate Dean when another leadership role exists.']
+                ]);
+            }
+        }
+
+        // Restrict converting Dean/Associate Dean into Department Head when multiple leadership roles are active (mirror rule)
+        if (in_array($originalRole, [Appointment::ROLE_DEAN, Appointment::ROLE_ASSOC_DEAN], true)
+            && $role === Appointment::ROLE_DEPT_HEAD) {
+            $otherLeadershipCount = Appointment::active()
+                ->where('user_id', $appointment->user_id)
+                ->whereIn('role', $leadershipRolesForRestriction)
+                ->where('id', '!=', $appointment->id)
+                ->count();
+            if ($otherLeadershipCount > 0) {
+                return $this->respond($request, false, 'Cannot convert Dean/Associate Dean to Department Head while another leadership role is active.', 422, [
+                    'role' => ['Dean or Associate Dean cannot be converted to Department Head when another leadership role exists.']
+                ]);
+            }
+        }
+
         // Update appointment with new role and scope information
-        if (in_array($role, [Appointment::ROLE_FACULTY, Appointment::ROLE_DEPT, Appointment::ROLE_PROG, Appointment::ROLE_DEAN, Appointment::ROLE_ASSOC_DEAN])) {
+        if (in_array($role, [Appointment::ROLE_FACULTY, Appointment::ROLE_DEPT, Appointment::ROLE_DEPT_HEAD, Appointment::ROLE_PROG, Appointment::ROLE_DEAN, Appointment::ROLE_ASSOC_DEAN])) {
             // Faculty, Chair types, Dean, and Associate Dean use department scope
             $appointment->role = $role;
             $appointment->scope_type = Appointment::SCOPE_DEPT;
@@ -394,6 +459,26 @@ class AppointmentController extends Controller
             return $this->respond($request, false, 'Failed to update appointment.', 500);
         }
 
+        // If updated appointment is a leadership role, propagate department scope to other active leadership roles
+        $leadershipRoles = [
+            Appointment::ROLE_DEPT_HEAD,
+            Appointment::ROLE_DEAN,
+            Appointment::ROLE_ASSOC_DEAN,
+        ];
+        if (in_array($appointment->role, $leadershipRoles, true)
+            && $appointment->scope_type === Appointment::SCOPE_DEPT
+            && $appointment->scope_id) {
+            Appointment::where('user_id', $appointment->user_id)
+                ->where('status', 'active')
+                ->whereIn('role', $leadershipRoles)
+                ->where('id', '!=', $appointment->id)
+                ->update([
+                    'scope_type' => Appointment::SCOPE_DEPT,
+                    'scope_id'   => (int) $appointment->scope_id,
+                    'updated_at' => now(),
+                ]);
+        }
+
         $admin = $appointment->user()->firstOrFail();
         $appointments = $this->buildAppointmentsPayload($admin);
 
@@ -405,11 +490,28 @@ class AppointmentController extends Controller
 
     public function end(Request $request, Appointment $appointment): JsonResponse|RedirectResponse
     {
-        // Store admin reference before deleting appointment
+        // Store admin reference and last-known department before deleting appointment
         $admin = $appointment->user()->firstOrFail();
-        
+        $deletedDeptId = null;
+        if ($appointment->scope_type === Appointment::SCOPE_DEPT && $appointment->scope_id) {
+            $deletedDeptId = (int) $appointment->scope_id;
+        }
+
         // Hard delete the appointment from database
         $appointment->delete();
+
+        // If user has no more active appointments, restore Faculty with the same department (when available)
+        $hasAnyActive = Appointment::active()->where('user_id', $admin->id)->exists();
+        if (!$hasAnyActive && $deletedDeptId) {
+            $fallback = new Appointment([
+                'user_id' => $admin->id,
+                'role'    => Appointment::ROLE_FACULTY,
+                'status'  => 'active',
+            ]);
+            // Ensure scope set correctly for Faculty role with department context
+            $fallback->setRoleAndScope(Appointment::ROLE_FACULTY, $deletedDeptId, null);
+            $fallback->save();
+        }
 
         $appointments = $this->buildAppointmentsPayload($admin);
 

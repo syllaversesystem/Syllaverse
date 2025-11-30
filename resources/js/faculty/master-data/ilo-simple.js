@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Optional: focus search on add modal hide/show for smoother UX later
   const addModalEl = document.getElementById('addIloModal');
   const searchInput = document.getElementById('iloSearch');
-  const deptFilter = document.getElementById('iloDepartmentFilter');
+  // Department filter removed
     // Simple select-based course filter (UI parity with department filter)
     const courseSelect = document.getElementById('iloCourseFilter');
   const addBtn = document.getElementById('iloAddBtn');
@@ -168,40 +168,14 @@ document.addEventListener('DOMContentLoaded', () => {
     editCodeInput.setAttribute('readonly', 'readonly');
   }
 
-  // Department filter only refines course dropdown list, not ILO table directly
-  deptFilter?.addEventListener('change', () => {
-    deptFilter.classList.add('is-loading');
-    setTimeout(() => deptFilter.classList.remove('is-loading'), 300);
-      filterCourseSelectByDept();
-  });
-
-    function filterCourseSelectByDept() {
-      if (!courseSelect) return;
-      const deptId = deptFilter?.value || 'all';
-      let selectedVisible = true;
-      const currentVal = courseSelect.value;
-      Array.from(courseSelect.options).forEach((opt, idx) => {
-        if (idx === 0) return; // placeholder always visible
-        const od = opt.getAttribute('data-dept-id');
-        const matchesDept = (deptId === 'all') || (od === deptId);
-        opt.hidden = !matchesDept;
-        opt.disabled = !matchesDept;
-        if (currentVal && opt.value === currentVal && !matchesDept) selectedVisible = false;
-      });
-      if (!selectedVisible && currentVal) {
-        courseSelect.value = '';
-        updateAddBtnState();
-        renderEmpty('No course selected');
-      }
-    }
+  // Department filter removed: no course list refinement by department
 
     courseSelect?.addEventListener('change', () => {
       updateAddBtnState();
       loadIlos({ show: true });
     });
 
-    // Initial state
-    filterCourseSelectByDept();
+    // Initial state: no department filtering
 
   // Removed legacy dropdown filtering code (now using simple select); ensure initial empty state set above.
   renderEmpty('No course selected');

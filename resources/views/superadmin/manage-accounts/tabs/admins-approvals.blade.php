@@ -47,16 +47,22 @@
   // Include all role requests including faculty for centralized superadmin management
   foreach ($pendingChairRequests as $r) {
     $uid   = $r->user_id;
-    $label = match ($r->requested_role) {
-      ChairRequest::ROLE_DEPT => 'Dept Chair',
-      ChairRequest::ROLE_PROG => 'Program Chair',
-      ChairRequest::ROLE_VCAA => 'VCAA',
-      ChairRequest::ROLE_ASSOC_VCAA => 'Associate VCAA',
-      ChairRequest::ROLE_DEAN => 'Dean',
-      ChairRequest::ROLE_ASSOC_DEAN => 'Associate Dean',
-      ChairRequest::ROLE_FACULTY => 'Faculty',
-      default => $r->requested_role,
-    };
+    // Dynamic label for Department Head: render as Dept Chair or Program Chair
+    if ($r->requested_role === ChairRequest::ROLE_DEPT_HEAD) {
+      $programCount = optional($r->department)->programs()->count() ?? 0;
+      $label = $programCount >= 2 ? 'Dept Chair' : 'Program Chair';
+    } else {
+      $label = match ($r->requested_role) {
+        ChairRequest::ROLE_DEPT => 'Dept Chair',
+        ChairRequest::ROLE_PROG => 'Program Chair',
+        ChairRequest::ROLE_VCAA => 'VCAA',
+        ChairRequest::ROLE_ASSOC_VCAA => 'Associate VCAA',
+        ChairRequest::ROLE_DEAN => 'Dean',
+        ChairRequest::ROLE_ASSOC_DEAN => 'Associate Dean',
+        ChairRequest::ROLE_FACULTY => 'Faculty',
+        default => $r->requested_role,
+      };
+    }
     $dept  = optional($r->department)->name;
     $prog  = optional($r->program)->name;
     

@@ -142,14 +142,41 @@
     @if ($errors->has('rejected'))
       <div class="alert alert-danger">{{ $errors->first('rejected') }}</div>
     @endif
-    @if ($errors->has('pending'))
-      <div class="alert alert-warning">{{ $errors->first('pending') }}</div>
-    @endif
     @if ($errors->has('role'))
       <div class="alert alert-danger">{{ $errors->first('role') }}</div>
     @endif
     @if ($errors->has('login'))
       <div class="alert alert-danger">{{ $errors->first('login') }}</div>
+    @endif
+
+    {{-- Pending Approval / Profile Submission Message (robust fallback) --}}
+    @php(
+      $pendingMsg = trim($errors->first('pending') ?? '')
+    )
+    @php(
+      $approvalMsg = trim($errors->first('approval') ?? '')
+    )
+    @php(
+      $sessionPending = trim(session('pending') ?? '')
+    )
+    @php(
+      $sessionApproval = trim(session('approval') ?? '')
+    )
+    @php(
+      $finalApprovalMsg = $pendingMsg !== ''
+        ? $pendingMsg
+        : ($approvalMsg !== ''
+            ? $approvalMsg
+            : ($sessionPending !== ''
+                ? $sessionPending
+                : ($sessionApproval !== ''
+                    ? $sessionApproval
+                    : 'Your account is pending approval. You will be notified once approved.')))
+    )
+    @if($pendingMsg !== '' || $approvalMsg !== '' || $sessionPending !== '' || $sessionApproval !== '')
+      <div class="alert alert-warning" style="background-color: #fef8e7; border-color: #f4e5a9; color: #6b5d00; border-radius: 10px; padding: 1rem; margin-bottom: 1.5rem; font-size: 14px;">
+        {{ $finalApprovalMsg }}
+      </div>
     @endif
 
     {{-- Google Sign In --}}

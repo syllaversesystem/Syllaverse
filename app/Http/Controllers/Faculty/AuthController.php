@@ -50,6 +50,11 @@ class AuthController extends Controller
 
             $user = User::where('email', $email)->first();
 
+            // Extract employee code from email local part (before @)
+            $localPart = explode('@', $email)[0] ?? '';
+            // Normalize: trim and keep original pattern (e.g., 22-70787)
+            $extractedCode = trim($localPart);
+
             if ($user) {
                 // Role guard
                 if ($user->role !== 'faculty') {
@@ -61,8 +66,12 @@ class AuthController extends Controller
                 // Backfill google_id
                 if (empty($user->google_id)) {
                     $user->google_id = $googleUser->getId();
-                    $user->save();
                 }
+                // Backfill employee_code if missing
+                if (empty($user->employee_code) && $extractedCode !== '') {
+                    $user->employee_code = $extractedCode;
+                }
+                $user->save();
             } else {
                 // First-time faculty user
                 $user = User::create([
@@ -71,6 +80,7 @@ class AuthController extends Controller
                     'google_id'  => $googleUser->getId(),
                     'role'       => 'faculty',
                     'status'     => 'pending', // stay pending until profile complete and approved
+                    'employee_code' => $extractedCode ?: null,
                 ]);
             }
 

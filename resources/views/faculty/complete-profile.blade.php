@@ -87,7 +87,8 @@
                       <td>
                         @php
                           $roleLabel = match ($r->requested_role) {
-                            \App\Models\ChairRequest::ROLE_DEPT => 'Department Chair',
+                            \App\Models\ChairRequest::ROLE_DEPT => 'Department Head',
+                            \App\Models\ChairRequest::ROLE_DEPT_HEAD => 'Department Head',
                             \App\Models\ChairRequest::ROLE_PROG => 'Program Chair',
                             \App\Models\ChairRequest::ROLE_VCAA => 'Vice Chancellor for Academic Affairs (VCAA)',
                             \App\Models\ChairRequest::ROLE_ASSOC_VCAA => 'Associate VCAA',
@@ -231,15 +232,15 @@
             <div class="form-check">
               <input class="form-check-input" 
                      type="checkbox" 
-                     id="request_dept_chair" 
-                     name="request_dept_chair" 
+                     id="request_dept_head" 
+                     name="request_dept_head" 
                      value="1" 
-                     {{ old('request_dept_chair') ? 'checked' : '' }}
+                     {{ old('request_dept_head') ? 'checked' : '' }}
                      {{ $hasPendingRequests ? 'disabled' : '' }}>
-              <label class="form-check-label fw-semibold" for="request_dept_chair">
-                Department Chair
+              <label class="form-check-label fw-semibold" for="request_dept_head">
+                Department Head
               </label>
-              <div class="form-text small text-muted">Manages department operations and faculty</div>
+              <div class="form-text small text-muted">Leads department operations and faculty</div>
             </div>
           </div>
           
@@ -297,49 +298,18 @@
       </div>
     </div>
 
-    {{-- Institution-Wide Leadership --}}
-    <div class="card border-0 bg-light mb-4">
+    {{-- Institution-Wide Leadership (hidden as per requirement) --}}
+    {{--
+    <div class="card border-0 bg-light mb-4" aria-hidden="true">
       <div class="card-body p-3">
         <h6 class="card-title text-dark mb-2">
           <i class="bi bi-globe me-2"></i>Institution-Wide Leadership
         </h6>
         <p class="text-muted small mb-3">These roles have authority across the entire institution</p>
-        
-        <div class="row g-3">
-          <div class="col-md-6">
-            <div class="form-check">
-              <input class="form-check-input" 
-                     type="checkbox" 
-                     id="request_vcaa" 
-                     name="request_vcaa" 
-                     value="1" 
-                     {{ old('request_vcaa') ? 'checked' : '' }}
-                     {{ $hasPendingRequests ? 'disabled' : '' }}>
-              <label class="form-check-label fw-semibold" for="request_vcaa">
-                Vice Chancellor for Academic Affairs (VCAA)
-              </label>
-              <div class="form-text small text-muted">Oversees all academic programs and policies</div>
-            </div>
-          </div>
-          
-          <div class="col-md-6">
-            <div class="form-check">
-              <input class="form-check-input" 
-                     type="checkbox" 
-                     id="request_assoc_vcaa" 
-                     name="request_assoc_vcaa" 
-                     value="1" 
-                     {{ old('request_assoc_vcaa') ? 'checked' : '' }}
-                     {{ $hasPendingRequests ? 'disabled' : '' }}>
-              <label class="form-check-label fw-semibold" for="request_assoc_vcaa">
-                Associate VCAA
-              </label>
-              <div class="form-text small text-muted">Assists VCAA with academic oversight</div>
-            </div>
-          </div>
-        </div>
+        <div class="alert alert-secondary mb-0 py-2 px-3 small">This section has been disabled.</div>
       </div>
     </div>
+    --}}
 
     {{-- Faculty Role --}}
     <div class="card border-0 bg-light mb-4">

@@ -58,7 +58,8 @@ class ProfileController extends Controller
             'employee_code'   => ['required', 'string', 'max:255'],
 
             // Role-request inputs (optional)
-            'request_dept_chair' => ['nullable', 'boolean'],
+            'request_dept_chair' => ['nullable', 'boolean'], // legacy (still accepted silently)
+            'request_dept_head'  => ['nullable', 'boolean'],
             'request_vcaa'       => ['nullable', 'boolean'],
             'request_assoc_vcaa' => ['nullable', 'boolean'],
             'request_dean'       => ['nullable', 'boolean'],
@@ -72,12 +73,21 @@ class ProfileController extends Controller
         // ░░░ END: Validate Core Fields (HR) ░░░
 
         // ░░░ START: Interpret Role Requests ░░░
-        $wantsDept = (bool) $request->boolean('request_dept_chair');
+        // Accept either legacy dept chair or new dept head flag
+        $wantsDept = (bool) ($request->boolean('request_dept_chair') || $request->boolean('request_dept_head'));
         $wantsVcaa = (bool) $request->boolean('request_vcaa');
         $wantsAssocVcaa = (bool) $request->boolean('request_assoc_vcaa');
         $wantsDean = (bool) $request->boolean('request_dean');
         $wantsAssocDean = (bool) $request->boolean('request_assoc_dean');
+        // Enforce mutual exclusion on server side: cannot request both Dean and Associate Dean
+        if ($wantsDean && $wantsAssocDean) {
+            return back()
+                ->withErrors(['request_dean' => 'Select either Dean OR Associate Dean, not both.'])
+                ->withInput();
+        }
         $wantsFaculty = (bool) $request->boolean('request_faculty');
+        // Auto-include Faculty when any department-scoped leadership role is requested
+        $hasLeadershipRole = $wantsDept || $wantsDean || $wantsAssocDean;
         // ░░░ END: Interpret Role Requests ░░░
 
         // ░░░ START: Conditional Validation for Scope ░░░
@@ -95,7 +105,8 @@ class ProfileController extends Controller
         }
 
         // Require department when requesting Faculty role
-        if ($wantsFaculty && !$request->filled('faculty_department_id')) {
+        // If leadership role is requested, we'll mirror that department to the Faculty role automatically.
+        if ($wantsFaculty && !$hasLeadershipRole && !$request->filled('faculty_department_id')) {
             return back()
                 ->withErrors(['faculty_department_id' => 'Please select your department for the Faculty role.'])
                 ->withInput();
@@ -103,7 +114,7 @@ class ProfileController extends Controller
         // ░░░ END: Conditional Validation for Scope ░░░
 
         // ░░░ START: Save & Create Requests (Transaction) ░░░
-        DB::transaction(function () use ($user, $request, $wantsDept, $wantsVcaa, $wantsAssocVcaa, $wantsDean, $wantsAssocDean, $wantsFaculty) {
+        DB::transaction(function () use ($user, $request, $wantsDept, $wantsVcaa, $wantsAssocVcaa, $wantsDean, $wantsAssocDean, $wantsFaculty, $hasLeadershipRole) {
             // -- Save profile and HR fields on the user
             $userPayload = [
                 'name'          => $request->input('name'),
@@ -120,39 +131,19 @@ class ProfileController extends Controller
 
             $user->update($userPayload);
 
-            // -- Create Dept/Program Chair request (dedupe pending)
+            // -- Create Department Head request (dedupe pending)
             if ($wantsDept) {
                 $deptId = (int) $request->input('department_id');
-
-                // Count programs in the selected department. If there's only one program, the
-                // user should be requesting a Program Chair (PROG_CHAIR) instead of a Department Chair.
-                $programCount = Program::where('department_id', $deptId)->count();
-
-                if ($programCount === 1) {
-                    // Find the single program id
-                    $singleProgramId = Program::where('department_id', $deptId)->value('id');
-                    ChairRequest::firstOrCreate(
-                        [
-                            'user_id'        => $user->id,
-                            'requested_role' => ChairRequest::ROLE_PROG,
-                            'department_id'  => $deptId,
-                            'program_id'     => $singleProgramId,
-                            'status'         => ChairRequest::STATUS_PENDING,
-                        ],
-                        []
-                    );
-                } else {
-                    ChairRequest::firstOrCreate(
-                        [
-                            'user_id'        => $user->id,
-                            'requested_role' => ChairRequest::ROLE_DEPT,
-                            'department_id'  => $deptId,
-                            'program_id'     => null,
-                            'status'         => ChairRequest::STATUS_PENDING,
-                        ],
-                        []
-                    );
-                }
+                ChairRequest::firstOrCreate(
+                    [
+                        'user_id'        => $user->id,
+                        'requested_role' => ChairRequest::ROLE_DEPT_HEAD,
+                        'department_id'  => $deptId,
+                        'program_id'     => null,
+                        'status'         => ChairRequest::STATUS_PENDING,
+                    ],
+                    []
+                );
             }
 
             // -- Create institution-level requests.
@@ -215,13 +206,16 @@ class ProfileController extends Controller
             }
 
             // Faculty Member role (standard faculty without administrative responsibilities)
-            if ($wantsFaculty) {
-                $facultyDeptId = $request->input('faculty_department_id');
+            // Auto-create when leadership is selected, mirroring department.
+            if ($wantsFaculty || $hasLeadershipRole) {
+                $facultyDeptId = $hasLeadershipRole
+                    ? $request->input('department_id')
+                    : $request->input('faculty_department_id');
                 ChairRequest::firstOrCreate(
                     [
                         'user_id'        => $user->id,
-                        'requested_role' => ChairRequest::ROLE_FACULTY, // Standard faculty role
-                        'department_id'  => $facultyDeptId, // Department-specific assignment
+                        'requested_role' => ChairRequest::ROLE_FACULTY,
+                        'department_id'  => $facultyDeptId,
                         'program_id'     => null,
                         'status'         => ChairRequest::STATUS_PENDING,
                     ],
@@ -237,7 +231,7 @@ class ProfileController extends Controller
         return redirect()
             ->route('faculty.login.form')
             ->withErrors([
-                'approval' => 'Your profile was submitted. Your account is pending approval by the Superadmin.',
+                'approval' => 'Your account is pending approval. You will be notified once approved.',
             ]);
         // ░░░ END: Response ░░░
     }

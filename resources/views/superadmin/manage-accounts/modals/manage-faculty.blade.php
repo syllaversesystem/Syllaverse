@@ -11,8 +11,22 @@
   $activeAppointments = $faculty->appointments ? $faculty->appointments->where('status','active') : collect();
 @endphp
 
-<div class="modal fade sv-appt-modal" id="manageFaculty-{{ $faculty->id }}" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+@php
+  // Determine faculty department (from active Faculty appointment)
+  $facultyDeptId = optional($activeAppointments->firstWhere('role', \App\Models\Appointment::ROLE_FACULTY))->scope_id;
+  // Determine active leadership department (Dept Head / Dean / Assoc Dean)
+  $leadershipRoles = [\App\Models\Appointment::ROLE_DEPT_HEAD, \App\Models\Appointment::ROLE_DEAN, \App\Models\Appointment::ROLE_ASSOC_DEAN];
+  $leadershipAppt = $activeAppointments->first(function($a) use ($leadershipRoles) { return in_array($a->role, $leadershipRoles, true); });
+  $leadershipDeptId = optional($leadershipAppt)->scope_id;
+  // Active role codes for option filtering in Edit selects
+  $activeRoleCodes = $activeAppointments->pluck('role')->toArray();
+  // Only Faculty active? (no leadership roles among actives)
+  $onlyFacultyActive = $activeAppointments->count() > 0 && $activeAppointments->every(function($a){
+    return $a->role === \App\Models\Appointment::ROLE_FACULTY;
+  });
+@endphp
+<div class="modal fade sv-appt-modal" id="manageFaculty-{{ $faculty->id }}" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false" data-leadership-dept-id="{{ (int) ($leadershipDeptId ?? 0) }}" data-only-faculty-active="{{ $onlyFacultyActive ? 1 : 0 }}">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered">
     <div class="modal-content">
 
       {{-- ░░░ START: Modal Header ░░░ --}}
@@ -45,18 +59,15 @@
               <label class="form-label small">Role</label>
               <select name="role" class="form-select form-select-sm" required>
                 <option value="">— Select Role —</option>
-                <option value="{{ \App\Models\Appointment::ROLE_FACULTY }}">Faculty</option>
-                <option value="{{ \App\Models\Appointment::ROLE_DEPT }}">Department Chair</option>
+                <option value="{{ \App\Models\Appointment::ROLE_DEPT_HEAD }}">Department Head</option>
                 <option value="{{ \App\Models\Appointment::ROLE_DEAN }}">Dean</option>
                 <option value="{{ \App\Models\Appointment::ROLE_ASSOC_DEAN }}">Associate Dean</option>
-                <option value="{{ \App\Models\Appointment::ROLE_VCAA }}">VCAA</option>
-                <option value="{{ \App\Models\Appointment::ROLE_ASSOC_VCAA }}">Associate VCAA</option>
               </select>
             </div>
 
             <div class="col-md-7">
               <label class="form-label small">Department</label>
-              <select name="department_id" class="form-select form-select-sm" required>
+              <select name="department_id" class="form-select form-select-sm sv-dept" required>
                 <option value="">— Select Department —</option>
                 @foreach (($departments ?? []) as $dept)
                   <option value="{{ $dept->id }}">{{ $dept->name }}</option>
@@ -83,19 +94,32 @@
             @if ($activeAppointments->count())
               @foreach ($activeAppointments as $appt)
                 @php
-                  // Simple role display using proper constants
-                  $roleLabel = match($appt->role) {
-                    \App\Models\Appointment::ROLE_FACULTY => 'Faculty',
-                    \App\Models\Appointment::ROLE_DEPT => 'Department Chair',
-                    \App\Models\Appointment::ROLE_DEAN => 'Dean',
-                    \App\Models\Appointment::ROLE_ASSOC_DEAN => 'Associate Dean',
-                    \App\Models\Appointment::ROLE_VCAA => 'VCAA',
-                    \App\Models\Appointment::ROLE_ASSOC_VCAA => 'Associate VCAA',
-                    default => $appt->role ?? 'Appointment'
-                  };
-                  
-                  // Simple department display
+                  // Determine department & program count for dynamic DEPT_HEAD mapping
                   $department = $departments->firstWhere('id', $appt->scope_id);
+                  $programCount = 0;
+                  if ($department) {
+                    if (method_exists($department, 'programs')) {
+                      $programCount = $department->relationLoaded('programs') ? $department->programs->count() : \App\Models\Program::where('department_id', $department->id)->count();
+                    }
+                  }
+
+                  // Dynamic role label
+                  if ($appt->role === \App\Models\Appointment::ROLE_DEPT_HEAD) {
+                    $roleLabel = $programCount >= 2 ? 'Department Chair' : 'Program Chair';
+                  } else {
+                    $roleLabel = match($appt->role) {
+                      \App\Models\Appointment::ROLE_FACULTY => 'Faculty',
+                      \App\Models\Appointment::ROLE_DEPT => 'Department Chair',
+                      \App\Models\Appointment::ROLE_PROG => 'Program Chair',
+                      \App\Models\Appointment::ROLE_DEAN => 'Dean',
+                      \App\Models\Appointment::ROLE_ASSOC_DEAN => 'Associate Dean',
+                      \App\Models\Appointment::ROLE_VCAA => 'VCAA',
+                      \App\Models\Appointment::ROLE_ASSOC_VCAA => 'Associate VCAA',
+                      default => $appt->role ?? 'Appointment'
+                    };
+                  }
+
+                  // Department display
                   $deptName = $department ? $department->name : 'Institution-wide';
                 @endphp
 
@@ -106,16 +130,73 @@
                   </div>
 
                   <div class="sv-request-actions">
-                    <form method="POST"
-                          action="{{ route('superadmin.appointments.end', $appt->id) }}"
-                          class="d-inline"
-                          data-ajax="true">
-                      @csrf
-                      <button class="action-btn reject" type="submit" title="Delete appointment" aria-label="Delete appointment">
-                        <i data-feather="x"></i>
-                      </button>
-                    </form>
+                    <button class="action-btn edit" type="button"
+                            data-bs-toggle="collapse" data-bs-target="#sv-fac-appt-edit-{{ $appt->id }}"
+                            aria-expanded="false" aria-controls="sv-fac-appt-edit-{{ $appt->id }}"
+                            title="Edit appointment" aria-label="Edit appointment">
+                      <i data-feather="edit-3"></i>
+                    </button>
+                    @if ($appt->role !== \App\Models\Appointment::ROLE_FACULTY)
+                      <form method="POST"
+                            action="{{ route('superadmin.appointments.end', $appt->id) }}"
+                            class="d-inline"
+                            data-ajax="true">
+                        @csrf
+                        <button class="action-btn reject" type="submit" title="Delete appointment" aria-label="Delete appointment">
+                          <i data-feather="x"></i>
+                        </button>
+                      </form>
+                    @endif
                   </div>
+                </div>
+
+                <div id="sv-fac-appt-edit-{{ $appt->id }}" class="collapse sv-details" data-bs-parent="#sv-appt-list-{{ $faculty->id }}">
+                  <form method="POST"
+                        action="{{ route('superadmin.appointments.update', $appt->id) }}"
+                        class="row g-2 align-items-end sv-appt-form"
+                        data-sv-scope="edit-{{ $appt->id }}"
+                        data-ajax="true">
+                    @csrf
+                    @method('PUT')
+
+                    <div class="col-md-4">
+                      <label class="form-label small">Role</label>
+                      <select name="role" class="form-select form-select-sm" required>
+                        <option value="">— Select Role —</option>
+                        @if($activeAppointments->count() < 2 && (!in_array(\App\Models\Appointment::ROLE_FACULTY, $activeRoleCodes, true) || $appt->role === \App\Models\Appointment::ROLE_FACULTY))
+                          <option value="{{ \App\Models\Appointment::ROLE_FACULTY }}" {{ $appt->role === \App\Models\Appointment::ROLE_FACULTY ? 'selected' : '' }}>Faculty</option>
+                        @endif
+                        @if(!in_array(\App\Models\Appointment::ROLE_DEPT_HEAD, $activeRoleCodes, true) || $appt->role === \App\Models\Appointment::ROLE_DEPT_HEAD)
+                          <option value="{{ \App\Models\Appointment::ROLE_DEPT_HEAD }}" {{ $appt->role === \App\Models\Appointment::ROLE_DEPT_HEAD ? 'selected' : '' }}>Department Head</option>
+                        @endif
+                        @php $multiActive = $activeAppointments->count() >= 2; @endphp
+                        @if(!($multiActive && $appt->role === \App\Models\Appointment::ROLE_DEPT_HEAD))
+                          @if(!in_array(\App\Models\Appointment::ROLE_DEAN, $activeRoleCodes, true) || $appt->role === \App\Models\Appointment::ROLE_DEAN)
+                            <option value="{{ \App\Models\Appointment::ROLE_DEAN }}" {{ $appt->role === \App\Models\Appointment::ROLE_DEAN ? 'selected' : '' }}>Dean</option>
+                          @endif
+                          @if(!in_array(\App\Models\Appointment::ROLE_ASSOC_DEAN, $activeRoleCodes, true) || $appt->role === \App\Models\Appointment::ROLE_ASSOC_DEAN)
+                            <option value="{{ \App\Models\Appointment::ROLE_ASSOC_DEAN }}" {{ $appt->role === \App\Models\Appointment::ROLE_ASSOC_DEAN ? 'selected' : '' }}>Associate Dean</option>
+                          @endif
+                        @endif
+                      </select>
+                    </div>
+
+                    <div class="col-md-7">
+                      <label class="form-label small">Department</label>
+                      <select name="department_id" class="form-select form-select-sm sv-dept" required>
+                        <option value="">— Select Department —</option>
+                        @foreach (($departments ?? []) as $dept)
+                          <option value="{{ $dept->id }}" {{ (int)$appt->scope_id === (int)$dept->id ? 'selected' : '' }}>{{ $dept->name }}</option>
+                        @endforeach
+                      </select>
+                    </div>
+
+                    <div class="col-md-1 d-flex">
+                      <button class="action-btn approve ms-auto" type="submit" title="Save changes" aria-label="Save changes">
+                        <i data-feather="check"></i>
+                      </button>
+                    </div>
+                  </form>
                 </div>
               @endforeach
             @else
@@ -265,7 +346,10 @@ document.addEventListener('DOMContentLoaded', function() {
       // Map display text back to role constants
       const roleMapping = {
         'Faculty': '{{ \App\Models\Appointment::ROLE_FACULTY }}',
-        'Department Chair': '{{ \App\Models\Appointment::ROLE_DEPT }}',
+        // Dynamic chair labels both map back to DEPT_HEAD (single or multi program)
+        'Department Chair': '{{ \App\Models\Appointment::ROLE_DEPT_HEAD }}',
+        'Program Chair': '{{ \App\Models\Appointment::ROLE_DEPT_HEAD }}',
+        'Department Head': '{{ \App\Models\Appointment::ROLE_DEPT_HEAD }}', // fallback if still displayed
         'Dean': '{{ \App\Models\Appointment::ROLE_DEAN }}',
         'Associate Dean': '{{ \App\Models\Appointment::ROLE_ASSOC_DEAN }}',
         'VCAA': '{{ \App\Models\Appointment::ROLE_VCAA }}',
@@ -290,19 +374,20 @@ document.addEventListener('DOMContentLoaded', function() {
     // Re-add only non-conflicting options
     originalOptions.forEach(optionData => {
       const roleValue = optionData.value;
-      
+
       // Always include empty option
       if (!roleValue) {
         roleSelect.appendChild(optionData.element.cloneNode(true));
         return;
       }
-      
-      // Check if this role conflicts with any current roles
-      const hasConflict = currentRoles.some(currentRole => {
-        return mutuallyExclusive[roleValue] === currentRole;
-      });
-      
-      // Only add option if there's no conflict
+
+      // Skip roles already assigned (exact match)
+      const alreadyAssigned = currentRoles.includes(roleValue);
+      if (alreadyAssigned) return;
+
+      // Check mutual exclusivity conflicts
+      const hasConflict = currentRoles.some(currentRole => mutuallyExclusive[roleValue] === currentRole);
+
       if (!hasConflict) {
         roleSelect.appendChild(optionData.element.cloneNode(true));
       }

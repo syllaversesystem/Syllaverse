@@ -52,6 +52,7 @@ class SyllabusController extends Controller
             ->active()
             ->whereIn('role', [
                 \App\Models\Appointment::ROLE_DEPT,
+                \App\Models\Appointment::ROLE_DEPT_HEAD,
                 \App\Models\Appointment::ROLE_DEAN,
                 \App\Models\Appointment::ROLE_ASSOC_DEAN,
             ])->exists();
