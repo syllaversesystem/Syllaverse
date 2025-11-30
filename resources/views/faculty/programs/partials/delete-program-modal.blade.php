@@ -114,7 +114,7 @@
         #deleteProgramModal .btn-light {
           background: var(--sv-card-bg, #fff);
           border: none;
-          color: #6c757d;
+          color: #000;
           transition: all 0.2s ease-in-out;
           box-shadow: none;
           display: inline-flex;
@@ -128,22 +128,23 @@
           background: linear-gradient(135deg, rgba(220, 220, 220, 0.88), rgba(240, 240, 240, 0.46));
           backdrop-filter: blur(7px);
           -webkit-backdrop-filter: blur(7px);
-          box-shadow: 0 4px 10px rgba(108, 117, 125, 0.12);
-          color: #495057;
+          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+          color: #000;
         }
         #deleteProgramModal .btn-light:hover i,
         #deleteProgramModal .btn-light:hover svg,
         #deleteProgramModal .btn-light:focus i,
         #deleteProgramModal .btn-light:focus svg {
-          stroke: #495057;
+          stroke: #000;
         }
         #deleteProgramModal .btn-light:active {
           background: linear-gradient(135deg, rgba(240, 242, 245, 0.98), rgba(255, 255, 255, 0.62));
-          box-shadow: 0 1px 8px rgba(108, 117, 125, 0.16);
+          box-shadow: 0 1px 8px rgba(0, 0, 0, 0.16);
+          color: #000;
         }
         #deleteProgramModal .btn-light:active i,
         #deleteProgramModal .btn-light:active svg {
-          stroke: #495057;
+          stroke: #000;
         }
         #deleteProgramModal .alert-warning {
           background: rgba(255, 245, 235, 0.9);

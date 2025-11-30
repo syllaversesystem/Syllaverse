@@ -157,31 +157,32 @@
         }
         #editCourseModal .btn-danger:hover,
         #editCourseModal .btn-danger:focus {
-          background: linear-gradient(135deg, rgba(255, 240, 235, 0.88), rgba(255, 255, 255, 0.46));
+          background: linear-gradient(135deg, rgba(220, 220, 220, 0.88), rgba(240, 240, 240, 0.46));
           backdrop-filter: blur(7px);
           -webkit-backdrop-filter: blur(7px);
-          box-shadow: 0 4px 10px rgba(204, 55, 55, 0.12);
-          color: #CB3737;
+          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+          color: #000;
         }
         #editCourseModal .btn-danger:hover i,
         #editCourseModal .btn-danger:hover svg,
         #editCourseModal .btn-danger:focus i,
         #editCourseModal .btn-danger:focus svg {
-          stroke: #CB3737;
+          stroke: #000;
         }
         #editCourseModal .btn-danger:active {
-          background: linear-gradient(135deg, rgba(255, 230, 225, 0.98), rgba(255, 255, 255, 0.62));
-          box-shadow: 0 1px 8px rgba(204, 55, 55, 0.16);
+          background: linear-gradient(135deg, rgba(240, 242, 245, 0.98), rgba(255, 255, 255, 0.62));
+          box-shadow: 0 1px 8px rgba(0, 0, 0, 0.16);
+          color: #000;
         }
         #editCourseModal .btn-danger:active i,
         #editCourseModal .btn-danger:active svg {
-          stroke: #CB3737;
+          stroke: #000;
         }
         /* Cancel button styling */
         #editCourseModal .btn-light {
           background: var(--sv-card-bg, #fff);
           border: none;
-          color: #6c757d;
+          color: #000;
           transition: all 0.2s ease-in-out;
           box-shadow: none;
           display: inline-flex;
@@ -195,22 +196,23 @@
           background: linear-gradient(135deg, rgba(220, 220, 220, 0.88), rgba(240, 240, 240, 0.46));
           backdrop-filter: blur(7px);
           -webkit-backdrop-filter: blur(7px);
-          box-shadow: 0 4px 10px rgba(108, 117, 125, 0.12);
-          color: #495057;
+          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+          color: #000;
         }
         #editCourseModal .btn-light:hover i,
         #editCourseModal .btn-light:hover svg,
         #editCourseModal .btn-light:focus i,
         #editCourseModal .btn-light:focus svg {
-          stroke: #495057;
+          stroke: #000;
         }
         #editCourseModal .btn-light:active {
           background: linear-gradient(135deg, rgba(240, 242, 245, 0.98), rgba(255, 255, 255, 0.62));
-          box-shadow: 0 1px 8px rgba(108, 117, 125, 0.16);
+          box-shadow: 0 1px 8px rgba(0, 0, 0, 0.16);
+          color: #000;
         }
         #editCourseModal .btn-light:active i,
         #editCourseModal .btn-light:active svg {
-          stroke: #495057;
+          stroke: #000;
         }
         #editCourseModal .sv-divider {
           height: 1px;
@@ -370,7 +372,7 @@
 
             <div class="mt-3">
               <label for="editCourseDescription" class="form-label small fw-medium text-muted">Course Rationale and Description <span class="text-muted">(Optional)</span></label>
-              <textarea class="form-control" id="editCourseDescription" name="description" rows="6" style="min-height:160px"></textarea>
+              <textarea class="form-control" id="editCourseDescription" name="description" rows="6" style="min-height:160px" placeholder="Explain the course rationale and provide a short description (topics, scope, etc.)"></textarea>
             </div>
           </div>
           {{-- ░░░ END: Left – Core details ░░░ --}}

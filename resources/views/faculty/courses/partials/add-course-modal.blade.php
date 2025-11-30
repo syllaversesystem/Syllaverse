@@ -165,31 +165,32 @@
         }
         #addCourseModal .btn-danger:hover,
         #addCourseModal .btn-danger:focus {
-          background: linear-gradient(135deg, rgba(255, 240, 235, 0.88), rgba(255, 255, 255, 0.46));
+          background: linear-gradient(135deg, rgba(220, 220, 220, 0.88), rgba(240, 240, 240, 0.46));
           backdrop-filter: blur(7px);
           -webkit-backdrop-filter: blur(7px);
-          box-shadow: 0 4px 10px rgba(204, 55, 55, 0.12);
-          color: #CB3737;
+          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+          color: #000;
         }
         #addCourseModal .btn-danger:hover i,
         #addCourseModal .btn-danger:hover svg,
         #addCourseModal .btn-danger:focus i,
         #addCourseModal .btn-danger:focus svg {
-          stroke: #CB3737;
+          stroke: #000;
         }
         #addCourseModal .btn-danger:active {
-          background: linear-gradient(135deg, rgba(255, 230, 225, 0.98), rgba(255, 255, 255, 0.62));
-          box-shadow: 0 1px 8px rgba(204, 55, 55, 0.16);
+          background: linear-gradient(135deg, rgba(240, 242, 245, 0.98), rgba(255, 255, 255, 0.62));
+          box-shadow: 0 1px 8px rgba(0, 0, 0, 0.16);
+          color: #000;
         }
         #addCourseModal .btn-danger:active i,
         #addCourseModal .btn-danger:active svg {
-          stroke: #CB3737;
+          stroke: #000;
         }
         /* Cancel button styling */
         #addCourseModal .btn-light {
           background: var(--sv-card-bg, #fff);
           border: none;
-          color: #6c757d;
+          color: #000;
           transition: all 0.2s ease-in-out;
           box-shadow: none;
           display: inline-flex;
@@ -203,22 +204,23 @@
           background: linear-gradient(135deg, rgba(220, 220, 220, 0.88), rgba(240, 240, 240, 0.46));
           backdrop-filter: blur(7px);
           -webkit-backdrop-filter: blur(7px);
-          box-shadow: 0 4px 10px rgba(108, 117, 125, 0.12);
-          color: #495057;
+          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+          color: #000;
         }
         #addCourseModal .btn-light:hover i,
         #addCourseModal .btn-light:hover svg,
         #addCourseModal .btn-light:focus i,
         #addCourseModal .btn-light:focus svg {
-          stroke: #495057;
+          stroke: #000;
         }
         #addCourseModal .btn-light:active {
           background: linear-gradient(135deg, rgba(240, 242, 245, 0.98), rgba(255, 255, 255, 0.62));
-          box-shadow: 0 1px 8px rgba(108, 117, 125, 0.16);
+          box-shadow: 0 1px 8px rgba(0, 0, 0, 0.16);
+          color: #000;
         }
         #addCourseModal .btn-light:active i,
         #addCourseModal .btn-light:active svg {
-          stroke: #495057;
+          stroke: #000;
         }
         #addCourseModal .sv-divider {
           height: 1px;

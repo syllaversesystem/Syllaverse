@@ -10,8 +10,8 @@
 
 {{-- ░░░ START: Add Program Modal ░░░ --}}
 <div class="modal fade sv-faculty-program-modal" id="addProgramModal" tabindex="-1" aria-labelledby="addProgramModalLabel" aria-hidden="true" data-bs-backdrop="static">
-  <div class="modal-dialog modal-dialog-centered modal-lg">
-    <form id="addProgramForm" action="{{ route('faculty.programs.store') }}" method="POST" class="modal-content program-form" style="border-radius: 16px;"
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+    <form id="addProgramForm" action="{{ route('faculty.programs.store') }}" method="POST" class="modal-content program-form"
       @csrf
 
       {{-- ░░░ START: Local styles (scoped to this modal) ░░░ --}}
@@ -22,6 +22,29 @@
           --sv-bdr:  #E3E3E3;   /* borders */
           --sv-acct: #EE6F57;   /* accent/focus */
           --sv-danger:#CB3737;  /* primary action (danger style) */
+        }
+        #addProgramModal .modal-content {
+          border-radius: 0.75rem;
+        }
+        /* Ensure internal scrolling behaves smoothly */
+        #addProgramModal .modal-body {
+          max-height: 60vh;
+          overflow-y: auto;
+          scrollbar-width: thin;
+        }
+        #addProgramModal .modal-body::-webkit-scrollbar {
+          width: 8px;
+        }
+        #addProgramModal .modal-body::-webkit-scrollbar-track {
+          background: #f1f1f1;
+          border-radius: 4px;
+        }
+        #addProgramModal .modal-body::-webkit-scrollbar-thumb {
+          background: #c4c4c4;
+          border-radius: 4px;
+        }
+        #addProgramModal .modal-body::-webkit-scrollbar-thumb:hover {
+          background: #b0b0b0;
         }
         #addProgramModal .modal-header {
           border-bottom: 1px solid var(--sv-bdr);
@@ -86,31 +109,32 @@
         }
         #addProgramModal .btn-danger:hover,
         #addProgramModal .btn-danger:focus {
-          background: linear-gradient(135deg, rgba(255, 240, 235, 0.88), rgba(255, 255, 255, 0.46));
+          background: linear-gradient(135deg, rgba(220, 220, 220, 0.88), rgba(240, 240, 240, 0.46));
           backdrop-filter: blur(7px);
           -webkit-backdrop-filter: blur(7px);
-          box-shadow: 0 4px 10px rgba(204, 55, 55, 0.12);
-          color: #CB3737;
+          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+          color: #000;
         }
         #addProgramModal .btn-danger:hover i,
         #addProgramModal .btn-danger:hover svg,
         #addProgramModal .btn-danger:focus i,
         #addProgramModal .btn-danger:focus svg {
-          stroke: #CB3737;
+          stroke: #000;
         }
         #addProgramModal .btn-danger:active {
-          background: linear-gradient(135deg, rgba(255, 230, 225, 0.98), rgba(255, 255, 255, 0.62));
-          box-shadow: 0 1px 8px rgba(204, 55, 55, 0.16);
+          background: linear-gradient(135deg, rgba(240, 242, 245, 0.98), rgba(255, 255, 255, 0.62));
+          box-shadow: 0 1px 8px rgba(0, 0, 0, 0.16);
+          color: #000;
         }
         #addProgramModal .btn-danger:active i,
         #addProgramModal .btn-danger:active svg {
-          stroke: #CB3737;
+          stroke: #000;
         }
         /* Cancel button styling */
         #addProgramModal .btn-light {
           background: var(--sv-card-bg, #fff);
           border: none;
-          color: #6c757d;
+          color: #000;
           transition: all 0.2s ease-in-out;
           box-shadow: none;
           display: inline-flex;
@@ -124,22 +148,23 @@
           background: linear-gradient(135deg, rgba(220, 220, 220, 0.88), rgba(240, 240, 240, 0.46));
           backdrop-filter: blur(7px);
           -webkit-backdrop-filter: blur(7px);
-          box-shadow: 0 4px 10px rgba(108, 117, 125, 0.12);
-          color: #495057;
+          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+          color: #000;
         }
         #addProgramModal .btn-light:hover i,
         #addProgramModal .btn-light:hover svg,
         #addProgramModal .btn-light:focus i,
         #addProgramModal .btn-light:focus svg {
-          stroke: #495057;
+          stroke: #000;
         }
         #addProgramModal .btn-light:active {
           background: linear-gradient(135deg, rgba(240, 242, 245, 0.98), rgba(255, 255, 255, 0.62));
-          box-shadow: 0 1px 8px rgba(108, 117, 125, 0.16);
+          box-shadow: 0 1px 8px rgba(0, 0, 0, 0.16);
+          color: #000;
         }
         #addProgramModal .btn-light:active i,
         #addProgramModal .btn-light:active svg {
-          stroke: #495057;
+          stroke: #000;
         }
         #addProgramModal .sv-divider {
           height: 1px;

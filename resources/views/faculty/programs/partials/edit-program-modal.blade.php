@@ -10,8 +10,8 @@
 
 {{-- ░░░ START: Edit Program Modal ░░░ --}}
 <div class="modal fade sv-faculty-program-modal" id="editProgramModal" tabindex="-1" aria-labelledby="editProgramModalLabel" aria-hidden="true" data-bs-backdrop="static">
-  <div class="modal-dialog modal-dialog-centered modal-lg">
-    <form id="editProgramForm" action="{{ route('faculty.programs.update', 0) }}" method="POST" class="modal-content program-form edit-program-form" style="border-radius: 16px;"
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+    <form id="editProgramForm" action="{{ route('faculty.programs.update', 0) }}" method="POST" class="modal-content program-form edit-program-form"
       @csrf
       @method('PUT')
 
@@ -24,6 +24,19 @@
           --sv-acct: #EE6F57;   /* accent/focus */
           --sv-danger:#CB3737;  /* primary action (danger style) */
         }
+        #editProgramModal .modal-content {
+          border-radius: 0.75rem;
+        }
+        /* Scroll behavior matching add modal */
+        #editProgramModal .modal-body {
+          max-height: 60vh;
+          overflow-y: auto;
+          scrollbar-width: thin;
+        }
+        #editProgramModal .modal-body::-webkit-scrollbar { width: 8px; }
+        #editProgramModal .modal-body::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        #editProgramModal .modal-body::-webkit-scrollbar-thumb { background: #c4c4c4; border-radius: 4px; }
+        #editProgramModal .modal-body::-webkit-scrollbar-thumb:hover { background: #b0b0b0; }
         #editProgramModal .modal-header {
           border-bottom: 1px solid var(--sv-bdr);
           background: var(--sv-bg);
@@ -87,31 +100,32 @@
         }
         #editProgramModal .btn-danger:hover,
         #editProgramModal .btn-danger:focus {
-          background: linear-gradient(135deg, rgba(255, 240, 235, 0.88), rgba(255, 255, 255, 0.46));
+          background: linear-gradient(135deg, rgba(220, 220, 220, 0.88), rgba(240, 240, 240, 0.46));
           backdrop-filter: blur(7px);
           -webkit-backdrop-filter: blur(7px);
-          box-shadow: 0 4px 10px rgba(204, 55, 55, 0.12);
-          color: #CB3737;
+          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+          color: #000;
         }
         #editProgramModal .btn-danger:hover i,
         #editProgramModal .btn-danger:hover svg,
         #editProgramModal .btn-danger:focus i,
         #editProgramModal .btn-danger:focus svg {
-          stroke: #CB3737;
+          stroke: #000;
         }
         #editProgramModal .btn-danger:active {
-          background: linear-gradient(135deg, rgba(255, 230, 225, 0.98), rgba(255, 255, 255, 0.62));
-          box-shadow: 0 1px 8px rgba(204, 55, 55, 0.16);
+          background: linear-gradient(135deg, rgba(240, 242, 245, 0.98), rgba(255, 255, 255, 0.62));
+          box-shadow: 0 1px 8px rgba(0, 0, 0, 0.16);
+          color: #000;
         }
         #editProgramModal .btn-danger:active i,
         #editProgramModal .btn-danger:active svg {
-          stroke: #CB3737;
+          stroke: #000;
         }
         /* Cancel button styling */
         #editProgramModal .btn-light {
           background: var(--sv-card-bg, #fff);
           border: none;
-          color: #6c757d;
+          color: #000;
           transition: all 0.2s ease-in-out;
           box-shadow: none;
           display: inline-flex;
@@ -125,22 +139,23 @@
           background: linear-gradient(135deg, rgba(220, 220, 220, 0.88), rgba(240, 240, 240, 0.46));
           backdrop-filter: blur(7px);
           -webkit-backdrop-filter: blur(7px);
-          box-shadow: 0 4px 10px rgba(108, 117, 125, 0.12);
-          color: #495057;
+          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+          color: #000;
         }
         #editProgramModal .btn-light:hover i,
         #editProgramModal .btn-light:hover svg,
         #editProgramModal .btn-light:focus i,
         #editProgramModal .btn-light:focus svg {
-          stroke: #495057;
+          stroke: #000;
         }
         #editProgramModal .btn-light:active {
           background: linear-gradient(135deg, rgba(240, 242, 245, 0.98), rgba(255, 255, 255, 0.62));
-          box-shadow: 0 1px 8px rgba(108, 117, 125, 0.16);
+          box-shadow: 0 1px 8px rgba(0, 0, 0, 0.16);
+          color: #000;
         }
         #editProgramModal .btn-light:active i,
         #editProgramModal .btn-light:active svg {
-          stroke: #495057;
+          stroke: #000;
         }
         #editProgramModal .sv-divider {
           height: 1px;
@@ -195,8 +210,12 @@
         @endif
 
         <div class="program-field-group mb-3">
-          <label for="editProgramDescription" class="form-label small">Description</label>
-          <textarea name="description" id="editProgramDescription" class="form-control" rows="5"></textarea>
+          <label for="editProgramDescription" class="form-label small">Description (optional)</label>
+          <textarea name="description" id="editProgramDescription" class="form-control" rows="5" placeholder="Enter a brief description of the program, its objectives, and key features..."></textarea>
+          <div class="form-text text-muted mt-1">
+            <i data-feather="info" class="me-1" style="width: 14px; height: 14px;"></i>
+            This description will be used in AI prompts to generate more relevant and accurate syllabi content for this program.
+          </div>
         </div>
       </div>
       {{-- ░░░ END: Body ░░░ --}}

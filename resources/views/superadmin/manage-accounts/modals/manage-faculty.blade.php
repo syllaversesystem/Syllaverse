@@ -249,7 +249,7 @@
         #manageFaculty-{{ $faculty->id }} .btn-light {
           background: var(--sv-card-bg, #fff);
           border: none;
-          color: #6c757d;
+          color: #000;
           transition: all 0.2s ease-in-out;
           box-shadow: none;
           display: inline-flex;
@@ -263,22 +263,23 @@
           background: linear-gradient(135deg, rgba(220, 220, 220, 0.88), rgba(240, 240, 240, 0.46));
           backdrop-filter: blur(7px);
           -webkit-backdrop-filter: blur(7px);
-          box-shadow: 0 4px 10px rgba(108, 117, 125, 0.12);
-          color: #495057;
+          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+          color: #000;
         }
         #manageFaculty-{{ $faculty->id }} .btn-light:hover i,
         #manageFaculty-{{ $faculty->id }} .btn-light:hover svg,
         #manageFaculty-{{ $faculty->id }} .btn-light:focus i,
         #manageFaculty-{{ $faculty->id }} .btn-light:focus svg {
-          stroke: #495057;
+          stroke: #000;
         }
         #manageFaculty-{{ $faculty->id }} .btn-light:active {
           background: linear-gradient(135deg, rgba(240, 242, 245, 0.98), rgba(255, 255, 255, 0.62));
-          box-shadow: 0 1px 8px rgba(108, 117, 125, 0.16);
+          box-shadow: 0 1px 8px rgba(0, 0, 0, 0.16);
+          color: #000;
         }
         #manageFaculty-{{ $faculty->id }} .btn-light:active i,
         #manageFaculty-{{ $faculty->id }} .btn-light:active svg {
-          stroke: #495057;
+          stroke: #000;
         }
       </style>
       <div class="modal-footer d-flex justify-content-between">
@@ -511,7 +512,7 @@ document.addEventListener('DOMContentLoaded', function() {
         #revokeFacultyModal-{{ $faculty->id }} .btn-light {
           background: var(--sv-card-bg, #fff);
           border: none;
-          color: #6c757d;
+          color: #000;
           transition: all 0.2s ease-in-out;
           box-shadow: none;
           display: inline-flex;
@@ -525,22 +526,23 @@ document.addEventListener('DOMContentLoaded', function() {
           background: linear-gradient(135deg, rgba(220, 220, 220, 0.88), rgba(240, 240, 240, 0.46));
           backdrop-filter: blur(7px);
           -webkit-backdrop-filter: blur(7px);
-          box-shadow: 0 4px 10px rgba(108, 117, 125, 0.12);
-          color: #495057;
+          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+          color: #000;
         }
         #revokeFacultyModal-{{ $faculty->id }} .btn-light:hover i,
         #revokeFacultyModal-{{ $faculty->id }} .btn-light:hover svg,
         #revokeFacultyModal-{{ $faculty->id }} .btn-light:focus i,
         #revokeFacultyModal-{{ $faculty->id }} .btn-light:focus svg {
-          stroke: #495057;
+          stroke: #000;
         }
         #revokeFacultyModal-{{ $faculty->id }} .btn-light:active {
           background: linear-gradient(135deg, rgba(240, 242, 245, 0.98), rgba(255, 255, 255, 0.62));
-          box-shadow: 0 1px 8px rgba(108, 117, 125, 0.16);
+          box-shadow: 0 1px 8px rgba(0, 0, 0, 0.16);
+          color: #000;
         }
         #revokeFacultyModal-{{ $faculty->id }} .btn-light:active i,
         #revokeFacultyModal-{{ $faculty->id }} .btn-light:active svg {
-          stroke: #495057;
+          stroke: #000;
         }
       </style>
       <div class="modal-footer border-0 pt-2">
