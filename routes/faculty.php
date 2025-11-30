@@ -108,6 +108,7 @@ Route::middleware([FacultyAuth::class])->group(function () {
 
     // ---------- Syllabus Routes ----------
     Route::get('/faculty/syllabi', [SyllabusController::class, 'index'])->name('faculty.syllabi.index');
+    Route::get('/faculty/syllabi/approvals', [SyllabusController::class, 'approvals'])->name('faculty.syllabi.approvals');
     Route::get('/faculty/syllabi/create', [SyllabusController::class, 'create'])->name('faculty.syllabi.create');
     Route::post('/faculty/syllabi', [SyllabusController::class, 'store'])->name('faculty.syllabi.store');
     Route::get('/faculty/syllabi/proceed', [SyllabusController::class, 'proceed'])->name('faculty.syllabi.proceed');
@@ -164,6 +165,17 @@ Route::middleware([FacultyAuth::class])->group(function () {
     Route::post('/faculty/syllabi/members/add', [\App\Http\Controllers\Faculty\Syllabus\FacultySyllabusController::class, 'addMember'])->name('faculty.syllabi.members.add');
     Route::put('/faculty/syllabi/members/update', [\App\Http\Controllers\Faculty\Syllabus\FacultySyllabusController::class, 'updateMember'])->name('faculty.syllabi.members.update');
     Route::delete('/faculty/syllabi/members/remove', [\App\Http\Controllers\Faculty\Syllabus\FacultySyllabusController::class, 'removeMember'])->name('faculty.syllabi.members.remove');
+
+    // ---------- Syllabus Submission Workflow ----------
+    Route::get('/faculty/syllabus/{syllabus}/reviewers', [\App\Http\Controllers\Faculty\Syllabus\SyllabusSubmissionController::class, 'getReviewers'])->name('faculty.syllabi.reviewers');
+    Route::post('/faculty/syllabus/{syllabus}/submit', [\App\Http\Controllers\Faculty\Syllabus\SyllabusSubmissionController::class, 'submit'])->name('faculty.syllabi.submit');
+    Route::post('/faculty/syllabus/{syllabus}/approve', [\App\Http\Controllers\Faculty\Syllabus\SyllabusSubmissionController::class, 'approve'])->name('faculty.syllabi.approve');
+    Route::post('/faculty/syllabus/{syllabus}/revision', [\App\Http\Controllers\Faculty\Syllabus\SyllabusSubmissionController::class, 'requestRevision'])->name('faculty.syllabi.revision');
+    Route::get('/faculty/syllabus/{syllabus}/final-approvers', [\App\Http\Controllers\Faculty\Syllabus\SyllabusSubmissionController::class, 'getFinalApprovers'])->name('faculty.syllabi.final_approvers');
+
+    // ---------- Review Comments (per batch) ----------
+    Route::get('/faculty/syllabi/{syllabus}/comments', [\App\Http\Controllers\Faculty\Syllabus\SyllabusCommentController::class, 'index'])->name('faculty.syllabi.comments.index');
+    Route::post('/faculty/syllabi/{syllabus}/comments', [\App\Http\Controllers\Faculty\Syllabus\SyllabusCommentController::class, 'store'])->name('faculty.syllabi.comments.store');
 
     // ---------- CDIO (Conceive–Design–Implement–Operate) — per-syllabus CDIO CRUD + Sortable ----------
     Route::put('/faculty/syllabi/{syllabus}/cdios', [\App\Http\Controllers\Faculty\Syllabus\SyllabusCdioController::class, 'update'])->name('faculty.syllabi.cdios.update');

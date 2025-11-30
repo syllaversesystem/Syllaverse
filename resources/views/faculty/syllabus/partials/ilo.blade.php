@@ -10,18 +10,7 @@
 --}}
 
 @php $rp = $routePrefix ?? 'faculty.syllabi'; @endphp
-<form id="iloForm" method="POST" action="{{ route($rp . '.ilos.update', $default['id']) }}">
-  @csrf
-  {{-- Using new batch upsert endpoint (PUT /{syllabus}/ilos); JS handles method override. --}}
-  <script>
-    // Prevent native form submission; rely solely on JS bulk save (window.saveIlo)
-    document.addEventListener('DOMContentLoaded', function(){
-      var f = document.getElementById('iloForm');
-      if (f) {
-        f.addEventListener('submit', function(ev){ ev.preventDefault(); ev.stopPropagation(); });
-      }
-    });
-  </script>
+{{-- Removed form wrapper per request; ILO section is now plain markup without its own <form>. --}}
 
   @php
     $ilosSorted = $ilos->sortBy('position')->values();
@@ -97,7 +86,7 @@
   .ilo-header-actions .btn:active { transform: scale(.97); filter: brightness(.98); }
   </style>
 
-  <table class="table table-bordered mb-4 cis-table">
+  <table class="table table-bordered mb-4 cis-table cis">
     <colgroup>
       <col style="width:16%">
       <col style="width:84%">
@@ -106,7 +95,7 @@
             <tr>
         <th id="ilo-left-title" class="align-top text-start cis-label">Intended Learning Outcomes (ILO)</th>
         <td id="ilo-right-wrap">
-          <table class="table mb-0" style="font-family: Georgia, serif; font-size: 13px; line-height: 1.4; border: none;">
+          <table class="table mb-0 cis" style="font-family: Georgia, serif; font-size: 13px; line-height: 1.4; border: none;">
             <colgroup>
               <col style="width:70px"> <!-- ILO code column fixed -->
               <col style="width:auto"> <!-- Description column flexes remaining -->
@@ -172,12 +161,9 @@
     </tbody>
   </table>
 
-  {{-- ░░░ START: ILO Action Buttons ░░░ --}}
-  <div class="d-flex gap-2">
-    {{-- Add Row, Save Order, and local Save All buttons removed; saving is handled by the main toolbar Save button. --}}
-  </div>
+  {{-- ░░░ START: ILO Action Buttons (kept removed) ░░░ --}}
+  {{-- Local ILO action buttons remain removed; saving handled by main toolbar. --}}
   {{-- ░░░ END: ILO Action Buttons ░░░ --}}
-</form>
 
 <script>
   // Inline autosize helper for ILO textareas — runs without requiring bundled JS rebuild

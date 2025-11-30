@@ -113,12 +113,18 @@
                          class="form-control form-control-sm text-center fw-semibold mb-2" 
                          placeholder="Reviewed by:"
                          style="border: none; background: transparent; font-size: 10pt;">
-                  <input type="text" 
-                         name="reviewed_by_name" 
-                         class="form-control form-control-sm text-center mb-1" 
-                         placeholder="Name"
-                         value="{{ old('reviewed_by_name', $syllabus->reviewed_by_name ?? '') }}"
-                         data-original="{{ $syllabus->reviewed_by_name ?? '' }}">
+                      @php
+                        // If submission workflow assigned a reviewer (user id), prefer their name
+                        $autoReviewerName = optional($syllabus->reviewer)->name;
+                        $reviewerNameValue = old('reviewed_by_name', ($syllabus->reviewed_by_name ?? $autoReviewerName) ?? '');
+                        $reviewerNameOriginal = ($syllabus->reviewed_by_name ?? $autoReviewerName) ?? '';
+                      @endphp
+                      <input type="text" 
+                        name="reviewed_by_name" 
+                        class="form-control form-control-sm text-center mb-1" 
+                        placeholder="Name"
+                        value="{{ $reviewerNameValue }}"
+                        data-original="{{ $reviewerNameOriginal }}">
                   <input type="text" 
                          name="reviewed_by_title" 
                          class="form-control form-control-sm text-center" 

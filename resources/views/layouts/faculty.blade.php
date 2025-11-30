@@ -53,23 +53,33 @@
 
   @stack('styles')
 </head>
-<body class="bg-sv-light">
+<body class="bg-sv-light {{ isset($fullscreen) && $fullscreen ? 'fullscreen-mode' : '' }}">
   {{-- ░░░ START: Floating Alert Overlay (Shared Component) ░░░ --}}
   <x-alert-overlay />
   {{-- ░░░ END: Floating Alert Overlay ░░░ --}}
 
-  <div class="d-flex" id="wrapper">
-    @include('includes.faculty-sidebar')
-    <div id="page-content-wrapper" class="w-100">
-      @include('includes.faculty-navbar')
-      <div id="sidebar-backdrop" class="sidebar-backdrop d-none"></div>
-
-      {{-- ✅ Reduced container padding to 16px --}}
-      <main class="container-fluid" style="padding: 16px;">
+  @php $fullscreen = $fullscreen ?? (isset($__env) && $__env->yieldContent('fullscreen')); @endphp
+  @if(isset($fullscreen) && $fullscreen)
+    {{-- Fullscreen content (no sidebar/navbar) no outer padding; inner views handle spacing --}}
+    <main class="w-100" style="min-height:100vh; margin:0;">
+      <div class="fullscreen-inner" style="max-width:1400px; margin:0 auto;">
         @yield('content')
-      </main>
+      </div>
+    </main>
+  @else
+    <div class="d-flex" id="wrapper">
+      @include('includes.faculty-sidebar')
+      <div id="page-content-wrapper" class="w-100">
+        @include('includes.faculty-navbar')
+        <div id="sidebar-backdrop" class="sidebar-backdrop d-none"></div>
+
+        {{-- ✅ Reduced container padding to 16px --}}
+        <main class="container-fluid" style="padding: 16px;">
+          @yield('content')
+        </main>
+      </div>
     </div>
-  </div>
+  @endif
 
   @stack('scripts')
 
@@ -84,6 +94,16 @@
   @vite('resources/js/faculty/syllabus-tla-ai.js')
   @vite('resources/js/faculty/syllabus-assessment-mapping.js')
   {{-- ░░░ END: Vite JS ░░░ --}}
+  @if(isset($fullscreen) && $fullscreen)
+  <style>
+    /* Prevent page scroll; inner view controls its own scrolling */
+    body.fullscreen-mode { overflow:hidden !important; }
+    /* Remove padding from main in fullscreen (override layout CSS) */
+    body.fullscreen-mode main { padding: 0 !important; overflow: hidden !important; }
+    /* Make fullscreen container span full width (no centered max-width gap) */
+    body.fullscreen-mode .fullscreen-inner { max-width: none !important; margin: 0 !important; }
+  </style>
+  @endif
 </body>
 </html>
 

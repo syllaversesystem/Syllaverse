@@ -70,6 +70,25 @@ function setupExitConfirmation(exitUrlVariable = 'syllabusExitUrl') {
     // Determine destination URL: explicit URL passed, then globally provided syllabusExitUrl, then computed targetUrl
     let dest = url || window.syllabusExitUrl || targetUrl;
 
+    // Prefer returning to Approvals when coming from that page
+    try {
+      const ref = document.referrer || '';
+      const refUrl = new URL(ref, window.location.origin);
+      const cameFromApprovals = refUrl.pathname.includes('/faculty/syllabi/approvals') || refUrl.pathname.includes('/admin/syllabi/approvals');
+      const params = new URLSearchParams(window.location.search || '');
+      const fromApprovalsParam = params.get('from') === 'approvals';
+      if (cameFromApprovals || fromApprovalsParam) {
+        // If referrer exists and is approvals, go back there
+        if (cameFromApprovals) dest = refUrl.href;
+        // Otherwise build approvals path based on current area (admin vs faculty)
+        else {
+          const currentPath = window.location.pathname || '';
+          const base = currentPath.startsWith('/admin') ? '/admin/syllabi/approvals' : '/faculty/syllabi/approvals';
+          dest = base;
+        }
+      }
+    } catch (e) { /* noop */ }
+
     // If we're on an admin path but the destination points to faculty index, rewrite to admin index.
     try {
       const currentPath = window.location.pathname || '';
@@ -88,7 +107,10 @@ function setupExitConfirmation(exitUrlVariable = 'syllabusExitUrl') {
           const base = (typeof window.syllabusBasePath === 'string' && window.syllabusBasePath.startsWith('/')) ? window.syllabusBasePath : ('/' + (window.syllabusBasePath || ''));
           dest = window.location.origin + base;
         } else {
-          dest = '/admin/syllabi';
+          // Default: try approvals; if not, fall back to syllabi index
+          const currentPath = window.location.pathname || '';
+          const defaultApprovals = currentPath.startsWith('/admin') ? '/admin/syllabi/approvals' : '/faculty/syllabi/approvals';
+          dest = defaultApprovals;
         }
       }
     } catch (e) { /* noop */ }

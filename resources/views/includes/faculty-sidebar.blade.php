@@ -51,7 +51,7 @@
       </li>
 
       {{-- Syllabi --}}
-      @php $isActive = request()->routeIs('faculty.syllabi*'); @endphp
+      @php $isActive = request()->routeIs('faculty.syllabi*') && !request()->routeIs('faculty.syllabi.approvals*'); @endphp
       <li class="nav-item">
         <a class="nav-link d-flex align-items-center {{ $isActive ? 'active' : '' }}"
            href="{{ route('faculty.syllabi.index') }}"
@@ -60,6 +60,29 @@
           <span class="label">Syllabi</span>
         </a>
       </li>
+
+      {{-- Approvals (visible only to Dean/Associate Dean and Program/Department Chairpersons) --}}
+      @php 
+        $isActive = request()->routeIs('faculty.syllabi.approvals*'); 
+        $user = Auth::guard('faculty')->user() ?? auth()->user();
+        $hasApprovalsAccess = $user && $user->appointments()
+          ->active()
+          ->whereIn('role', [
+            \App\Models\Appointment::ROLE_DEPT,
+            \App\Models\Appointment::ROLE_DEAN,
+            \App\Models\Appointment::ROLE_ASSOC_DEAN,
+          ])->exists();
+      @endphp
+      @if($hasApprovalsAccess)
+      <li class="nav-item">
+        <a class="nav-link d-flex align-items-center {{ $isActive ? 'active' : '' }}"
+           href="{{ route('faculty.syllabi.approvals') }}"
+           aria-current="{{ $isActive ? 'page' : '' }}">
+          <i class="bi bi-clipboard-check"></i>
+          <span class="label">Approvals</span>
+        </a>
+      </li>
+      @endif
 
       {{-- Separator --}}
       <li class="nav-item">

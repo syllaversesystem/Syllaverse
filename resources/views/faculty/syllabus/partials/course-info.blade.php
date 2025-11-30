@@ -233,5 +233,4 @@
 </tr>
 {{-- contact hours are now shown as lec/lab columns with combined text; editing still available via the text field --}}
 
-  {{-- Criteria for Assessment partial (editable inline) --}}
-  @include('faculty.syllabus.partials.criteria-assessment')
+  {{-- (Removed) Inline Criteria for Assessment to avoid duplication; use main page include. --}}

@@ -208,6 +208,47 @@
     </div>
 </div>
 
+@push('styles')
+<style>
+    /* Ensure accounts table fills available container width */
+    .table-wrapper, .table-responsive { width: 100%; }
+    .superadmin-manage-account-table { width: 100%; table-layout: auto; }
+    /* If columns overflow, allow horizontal scroll within responsive wrapper */
+    .table-responsive { overflow-x: auto; }
+
+    /* Stack view: show accounts as vertical blocks on smaller screens */
+    @media (max-width: 768px) {
+        .superadmin-manage-account-table thead { display: none; }
+        .superadmin-manage-account-table, 
+        .superadmin-manage-account-table tbody, 
+        .superadmin-manage-account-table tr, 
+        .superadmin-manage-account-table td { display: block; width: 100%; }
+        .superadmin-manage-account-table tr { 
+            margin-bottom: 0.75rem; 
+            border: 1px solid #e5e5e5; 
+            border-radius: 8px; 
+            background: #fff; 
+            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+            padding: 0.5rem 0.75rem;
+        }
+        .superadmin-manage-account-table td { 
+            border: none !important; 
+            padding: 0.25rem 0; 
+        }
+        .superadmin-manage-account-table td:first-child { 
+            font-weight: 600; 
+            font-size: 0.95rem; 
+            margin-bottom: 0.25rem; 
+        }
+        .superadmin-manage-account-table td.text-end { 
+            text-align: left !important; 
+            margin-top: 0.25rem; 
+        }
+        .superadmin-manage-account-empty-row td { padding: 0; border: none; }
+    }
+</style>
+@endpush
+
 {{-- ░░░ START: JavaScript for Actions ░░░ --}}
 <script>
 // Admin approval functions

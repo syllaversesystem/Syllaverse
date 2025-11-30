@@ -53,21 +53,27 @@ class Syllabus extends Model
         'academic_year',
         'semester',
         'year_level',
-    // Serialized assessment tasks JSON created by the AT module
-    'assessment_tasks_data',
-    // Serialized ILO->SO->CPA mapping payload
-    'ilo_so_cpa_data',
-    // Status fields (Prepared/Reviewed/Approved)
-    'prepared_by_name',
-    'prepared_by_title',
-    'prepared_by_date',
-    'reviewed_by_name',
-    'reviewed_by_title',
-    'reviewed_by_date',
-    'approved_by_name',
-    'approved_by_title',
-    'approved_by_date',
-    'status_remarks',
+        // Submission workflow fields
+        'submission_status',
+        'submission_remarks',
+        'submitted_at',
+        'reviewed_by',
+        'reviewed_at',
+        // Serialized assessment tasks JSON created by the AT module
+        'assessment_tasks_data',
+        // Serialized ILO->SO->CPA mapping payload
+        'ilo_so_cpa_data',
+        // Status fields (Prepared/Reviewed/Approved)
+        'prepared_by_name',
+        'prepared_by_title',
+        'prepared_by_date',
+        'reviewed_by_name',
+        'reviewed_by_title',
+        'reviewed_by_date',
+        'approved_by_name',
+        'approved_by_title',
+        'approved_by_date',
+        'status_remarks',
     ];
 
     // 🔁 Each syllabus belongs to one faculty
@@ -185,5 +191,17 @@ class Syllabus extends Model
         return $this->belongsToMany(User::class, 'faculty_syllabus', 'syllabus_id', 'faculty_id')
                     ->withPivot('role', 'can_edit')
                     ->withTimestamps();
+    }
+
+    // 🔁 Reviewer relationship for submission workflow
+    public function reviewer()
+    {
+        return $this->belongsTo(User::class, 'reviewed_by');
+    }
+
+    // 🔁 Submission history
+    public function submissions()
+    {
+        return $this->hasMany(SyllabusSubmission::class)->orderBy('action_at', 'desc');
     }
 }

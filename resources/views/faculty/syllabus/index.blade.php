@@ -6,6 +6,7 @@
   @endpush
 
   @includeIf('faculty.syllabus.modals.create')
+  @includeIf('faculty.syllabus.modals.submit')
 
   <div class="svx-fullbleed">
     <div class="container-fluid px-3 py-3">
@@ -47,7 +48,22 @@
                 <div class="svx-card-body flex-grow-1">
                   <div class="d-flex align-items-center justify-content-between mb-1 small text-muted">
                     <span class="svx-course-pill"><i class="bi bi-book"></i> {{ $syllabus->course->code ?? '-' }}</span>
-                    <span class="svx-stamp">Updated {{ optional($syllabus->updated_at)->diffForHumans() ?? '-' }}</span>
+                    @php
+                      $submissionStatus = $syllabus->submission_status ?? 'draft';
+                      $statusConfig = [
+                        'draft' => ['label' => 'Draft', 'icon' => 'bi-pencil', 'class' => 'bg-secondary'],
+                        'pending_review' => ['label' => 'Pending Review', 'icon' => 'bi-clock-history', 'class' => 'bg-warning text-dark'],
+                        // Show "Returned" with yellow background and black font
+                        'revision' => ['label' => 'Returned', 'icon' => 'bi-arrow-clockwise', 'class' => 'bg-warning text-dark'],
+                        'approved' => ['label' => 'Reviewed', 'icon' => 'bi-check-circle', 'class' => 'bg-success'],
+                        'final_approval' => ['label' => 'Final Approval', 'icon' => 'bi-award', 'class' => 'bg-primary'],
+                      ];
+                      $status = $statusConfig[$submissionStatus] ?? $statusConfig['draft'];
+                    @endphp
+                    <span class="badge {{ $status['class'] }} submission-status-badge-small">
+                      <i class="bi {{ $status['icon'] }}"></i>
+                      {{ $status['label'] }}
+                    </span>
                   </div>
                   <h6 class="fw-semibold mb-0 syllabus-title">{{ $syllabus->title }}</h6>
                   @if(!empty($syllabus->course?->title))
@@ -58,9 +74,46 @@
                     <span class="chip"><i class="bi bi-collection"></i> {{ $syllabus->semester }}</span>
                     <span class="chip"><i class="bi bi-people"></i> {{ $syllabus->year_level ?? '-' }}</span>
                   </div>
+                  
                 </div>
                 <div class="svx-card-footer d-flex justify-content-between align-items-center gap-2">
-                  <a href="{{ route('faculty.syllabi.show',$syllabus->id) }}" class="btn btn-outline-primary btn-sm syllabus-open-btn" aria-label="Open syllabus"><i class="bi bi-box-arrow-up-right"></i></a>
+                  @php
+                    // Determine button text and behavior based on status
+                    $canSubmit = in_array($submissionStatus, ['draft', 'revision']);
+                    $canSubmitApproval = $submissionStatus === 'approved';
+                    $isPending = $submissionStatus === 'pending_review';
+                    $isFinalApproval = $submissionStatus === 'final_approval';
+
+                    // Default to "Submit" icon/text
+                    $buttonText = 'Submit';
+                    $buttonIcon = 'bi-send';
+                    $buttonDisabled = false;
+
+                    if ($canSubmitApproval) {
+                      // After review approved, allow final approval submission
+                      $buttonText = 'Submit for Approval';
+                      $buttonIcon = 'bi-check-circle';
+                    } elseif ($isPending) {
+                      // Keep text as "Submit" but disable interaction while pending review
+                      $buttonDisabled = true;
+                    } elseif ($isFinalApproval) {
+                      // Final approval state: keep text as "Submit" but disabled
+                      $buttonDisabled = true;
+                    }
+                  @endphp
+                  
+                  <button type="button" 
+                          class="btn btn-sm btn-outline-primary submission-action-btn"
+                          data-bs-toggle="modal" 
+                          data-bs-target="#submitSyllabusModal"
+                          data-syllabus-id="{{ $syllabus->id }}"
+                          data-status="{{ $submissionStatus }}"
+                          data-department-id="{{ $syllabus->program->department_id ?? '' }}"
+                          data-program-id="{{ $syllabus->program->id ?? '' }}"
+                          {{ $buttonDisabled ? 'disabled' : '' }}>
+                    <i class="bi {{ $buttonIcon }}"></i> {{ $buttonText }}
+                  </button>
+                  
                   <form action="{{ route('faculty.syllabi.destroy',$syllabus->id) }}" method="POST" onsubmit="return confirm('Delete this syllabus? This action cannot be undone.');">
                     @csrf @method('DELETE')
                     <button type="submit" class="btn btn-outline-danger btn-sm" aria-label="Delete syllabus"><i class="bi bi-trash"></i></button>
@@ -101,8 +154,80 @@
   }
 
   /* Make syllabus cards feel clickable */
-  .syllabus-card { cursor: pointer; }
-  .syllabus-card:focus { outline: 2px solid rgba(203,55,55,.45); outline-offset: 2px; }
+  .syllabus-card { 
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 1px solid #e0e0e0;
+  }
+  .syllabus-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15) !important;
+    border-color: #CB3737;
+  }
+  .syllabus-card:hover .syllabus-title {
+    color: #CB3737;
+  }
+  .syllabus-card:focus { 
+    outline: 2px solid rgba(203,55,55,.45); 
+    outline-offset: 2px; 
+  }
+  .syllabus-card:active {
+    transform: translateY(-2px);
+  }
+
+  /* Submission status badge (small version in card header) */
+  .submission-status-badge-small {
+    font-size: 0.65rem;
+    padding: 0.25rem 0.5rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    border-radius: 4px;
+  }
+  .submission-status-badge-small i {
+    font-size: 0.7rem;
+  }
+
+  /* Submission action button matching create modal style */
+  .submission-action-btn {
+    background: var(--sv-card-bg, #fff);
+    border: 1px solid #E3E3E3;
+    color: #CB3737;
+    transition: all 0.2s ease-in-out;
+    box-shadow: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.875rem;
+    border-radius: 0.375rem;
+    font-weight: 500;
+    font-size: 0.875rem;
+  }
+  .submission-action-btn:hover,
+  .submission-action-btn:focus {
+    background: linear-gradient(135deg, rgba(255, 235, 235, 0.88), rgba(255, 245, 245, 0.46));
+    backdrop-filter: blur(7px);
+    -webkit-backdrop-filter: blur(7px);
+    box-shadow: 0 4px 10px rgba(203, 55, 55, 0.15);
+    color: #CB3737;
+    border-color: #CB3737;
+    transform: translateY(-1px);
+  }
+  .submission-action-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: #f8f9fa;
+    color: #6c757d;
+    border-color: #E3E3E3;
+    pointer-events: none; /* ensure not clickable when disabled */
+  }
+  .submission-action-btn:disabled:hover {
+    transform: none;
+    box-shadow: none;
+    background: #f8f9fa;
+  }
 </style>
 @endpush
 

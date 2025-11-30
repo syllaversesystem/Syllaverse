@@ -5,117 +5,120 @@
 * Rationale: Recreated after accidental removal to satisfy SyllabusController@show
 -------------------------------------------------------------------------------
 --}}
+@php($fullscreen = true)
 @extends('layouts.faculty')
 
-@section('title', ($syllabus->course?->code ? ($syllabus->course->code.' • ') : '').'Syllabus')
-
-@php
-  // Provide route base for partials expecting $routePrefix
-  $routePrefix = 'faculty.syllabi';
-@endphp
+@php($routePrefix = 'faculty.syllabi')
+@php($reviewMode = ($reviewMode ?? (request()->boolean('review') || request()->get('from') === 'approvals')))
+@section('title')
+  {{ $syllabus->course?->code ? $syllabus->course->code.' • ' : '' }}Syllabus
+@endsection
 
 @section('content')
 <div class="syllabus-doc" id="syllabus-document" data-syllabus-id="{{ $syllabus->id }}">
-  {{-- Top toolbar card (parity with index toolbar) --}}
-  <div class="svx-card mb-3">
-    <div class="svx-card-body">
-      <div class="programs-toolbar mb-0 w-100" id="syllabusToolbar">
-        <!-- Left: Save -->
-        <div class="d-flex align-items-center gap-2">
-          <button id="syllabusSaveBtn" type="button" class="btn btn-danger" title="Save" aria-label="Save">
-            <i class="bi bi-save"></i>
-            <span id="unsaved-count-badge" class="badge bg-warning text-dark ms-1" style="display:none;">0</span>
-          </button>
-        </div>
-
-        <span class="flex-spacer"></span>
-
-        <!-- Right: Auto-Save + Exit -->
-        <div class="d-flex align-items-center gap-3">
-          <div class="form-check form-switch m-0" title="Auto-Save">
-            <input class="form-check-input" type="checkbox" role="switch" id="autoSaveToggle">
-            <label class="form-check-label d-none d-md-inline" for="autoSaveToggle">Auto-Save</label>
-          </div>
-          <button type="button" class="btn btn-outline-secondary" onclick="handleExit('{{ route('faculty.syllabi.index') }}')" title="Exit" aria-label="Exit">
-            <i class="bi bi-arrow-left"></i>
-            <span class="d-none d-sm-inline">Exit</span>
-          </button>
-        </div>
-      </div>
+  {{-- Vertical toolbar (left side) --}}
+  <div class="syllabus-vertical-toolbar" id="syllabusToolbar" aria-label="Syllabus editing toolbar">
+    <div class="toolbar-inner">
+      <button type="button" class="btn btn-outline-secondary d-flex flex-column align-items-center gap-1 toolbar-btn mb-3" onclick="handleExit('{{ route('faculty.syllabi.index') }}')" title="Exit">
+        <i class="bi bi-arrow-left fs-5"></i>
+        <span class="small">Exit</span>
+      </button>
+      <button id="syllabusSaveBtn" type="button" class="btn btn-danger d-flex flex-column align-items-center gap-1 toolbar-btn" title="Save">
+        <i class="bi bi-save fs-5"></i>
+        <span class="small">Save</span>
+        <span id="unsaved-count-badge" class="badge bg-warning text-dark mt-1 w-100 text-center" style="display:none;">0</span>
+      </button>
+      @if(!$reviewMode)
+      <button id="syllabusCommentsToggleBtn" type="button" class="btn btn-outline-secondary d-flex flex-column align-items-center gap-1 toolbar-btn mt-3" title="Toggle Reviewer Comments">
+        <i class="bi bi-chat-left-text fs-5"></i>
+        <span class="small">Comments</span>
+        <span id="comments-count-badge" class="badge sv-comments-badge" style="display:none;">0</span>
+      </button>
+      <button id="syllabusSubmitBtn" type="button" class="btn btn-outline-primary d-flex flex-column align-items-center gap-1 toolbar-btn mt-3" title="Submit For Review">
+        <i class="bi bi-send fs-5"></i>
+        <span class="small">Submit</span>
+      </button>
+      @endif
     </div>
   </div>
 
-  <form id="syllabusForm" method="POST" action="{{ route('faculty.syllabi.update', $syllabus->id) }}" novalidate>
-    @csrf
-    @method('PUT')
-    <input type="hidden" name="id" value="{{ $syllabus->id }}">
-
-    <div class="svx-card mb-3">
+  <div class="syllabus-content-wrapper">
+    <div class="svx-card">
       <div class="svx-card-body">
-        {{-- Header / Title Banner --}}
         @include('faculty.syllabus.partials.header')
 
-        {{-- Mission & Vision --}}
-        @include('faculty.syllabus.partials.mission-vision')
-
-  {{-- Course Information (CIS table) + Criteria for Assessment (embedded inside partial) --}}
-  @include('faculty.syllabus.partials.course-info')
-
-  {{-- Teaching, Learning, and Assessment Strategies (summary) --}}
-  @includeWhen(View::exists('faculty.syllabus.partials.tlas'), 'faculty.syllabus.partials.tlas')
-
-  {{-- Intended Learning Outcomes --}}
-  @include('faculty.syllabus.partials.ilo')
-
-  {{-- Assessment Method and Distribution Map (moved directly below ILO for workflow continuity) --}}
-  @includeWhen(View::exists('faculty.syllabus.partials.assessment-tasks-distribution'), 'faculty.syllabus.partials.assessment-tasks-distribution')
-
-  {{-- Textbook Upload / References --}}
-  @includeWhen(View::exists('faculty.syllabus.partials.textbook-upload'), 'faculty.syllabus.partials.textbook-upload')
-
-  {{-- IGA (Institutional Graduate Attributes) --}}
-  @includeWhen(View::exists('faculty.syllabus.partials.iga'), 'faculty.syllabus.partials.iga')
-
-        {{-- Student Outcomes --}}
-        @includeWhen(View::exists('faculty.syllabus.partials.so'), 'faculty.syllabus.partials.so')
-
-        {{-- CDIO --}}
-        @includeWhen(View::exists('faculty.syllabus.partials.cdio'), 'faculty.syllabus.partials.cdio')
-
-        {{-- Sustainable Development Goals --}}
-        @includeWhen(View::exists('faculty.syllabus.partials.sdg'), 'faculty.syllabus.partials.sdg')
-
-        {{-- Course Policies --}}
-        @include('faculty.syllabus.partials.course-policies')
-
-        {{-- Teaching & Learning Activities (dedicated partial if present) --}}
-        @includeWhen(View::exists('faculty.syllabus.partials.tla'), 'faculty.syllabus.partials.tla')
-
-        {{-- Assessment Mapping (ILO/SO/CDIO/SDG/IGA crosswalk) moved directly below TLA for immediate follow-up workflows --}}
-        @includeWhen(View::exists('faculty.syllabus.partials.assessment-mapping'), 'faculty.syllabus.partials.assessment-mapping')
-
-        {{-- Assessment Mappings (ILO → SO → CPA) --}}
-        @includeWhen(View::exists('faculty.syllabus.partials.ilo-so-cpa-mapping'), 'faculty.syllabus.partials.ilo-so-cpa-mapping')
-
-        {{-- ILO ↔ IGA Mapping --}}
-        @includeWhen(View::exists('faculty.syllabus.partials.ilo-iga-mapping'), 'faculty.syllabus.partials.ilo-iga-mapping')
-
-        {{-- ILO ↔ CDIO ↔ SDG Mapping --}}
-        @includeWhen(View::exists('faculty.syllabus.partials.mapping-ilo-cdio-sdg'), 'faculty.syllabus.partials.mapping-ilo-cdio-sdg')
-
-        {{-- Syllabus Status (Prepared/Reviewed/Approved) --}}
-        @includeWhen(View::exists('faculty.syllabus.partials.status'), 'faculty.syllabus.partials.status')
+        <div class="sv-partial" data-partial-key="mission-vision">@include('faculty.syllabus.partials.mission-vision')</div>
+        <div class="sv-partial" data-partial-key="course-info">@include('faculty.syllabus.partials.course-info')</div>
+        <div class="sv-partial" data-partial-key="criteria-assessment">@include('faculty.syllabus.partials.criteria-assessment')</div>
+        <div class="sv-partial" data-partial-key="tlas">@include('faculty.syllabus.partials.tlas')</div>
+        
+        <div class="sv-partial" data-partial-key="ilo">@include('faculty.syllabus.partials.ilo')</div>
+        <div class="sv-partial" data-partial-key="assessment-tasks-distribution">@include('faculty.syllabus.partials.assessment-tasks-distribution')</div>
+        <div class="sv-partial" data-partial-key="textbook-upload">@include('faculty.syllabus.partials.textbook-upload')</div>
+        <div class="sv-partial" data-partial-key="iga">@include('faculty.syllabus.partials.iga')</div>
+        <div class="sv-partial" data-partial-key="so">@include('faculty.syllabus.partials.so')</div>
+        <div class="sv-partial" data-partial-key="cdio">@include('faculty.syllabus.partials.cdio')</div>
+        <div class="sv-partial" data-partial-key="sdg">@include('faculty.syllabus.partials.sdg')</div>
+        <div class="sv-partial" data-partial-key="course-policies">@include('faculty.syllabus.partials.course-policies')</div>
+        <div class="sv-partial" data-partial-key="tla">@include('faculty.syllabus.partials.tla')</div>
+        <div class="sv-partial" data-partial-key="assessment-mapping">@include('faculty.syllabus.partials.assessment-mapping')</div>
+        <div class="sv-partial" data-partial-key="ilo-so-cpa-mapping">@include('faculty.syllabus.partials.ilo-so-cpa-mapping')</div>
+        <div class="sv-partial" data-partial-key="ilo-iga-mapping">@include('faculty.syllabus.partials.ilo-iga-mapping')</div>
+        <div class="sv-partial" data-partial-key="ilo-cdio-sdg-mapping">@include('faculty.syllabus.partials.mapping-ilo-cdio-sdg')</div>
+        <div class="sv-partial" data-partial-key="status" data-non-commentable="1">@include('faculty.syllabus.partials.status')</div>
+</div> {{--/.syllabus-content-wrapper--}}
+  
+</div>
+<!-- Hidden proxy button to open submit modal with proper dataset -->
+<button type="button" id="syllabusSubmitProxyBtn" class="d-none" data-bs-toggle="modal" data-bs-target="#submitSyllabusModal"></button>
+<!-- Include submit modal so submit button works on this page -->
+@includeIf('faculty.syllabus.modals.submit')
+{{-- Right-side review toolbar (fixed on page right) --}}
+@include('faculty.syllabus.partials.toolbar-syllabus')
+@if($reviewMode)
+  <!-- Approve Confirmation Modal (sidebar context) -->
+  <div class="modal fade" id="approveConfirmModal" tabindex="-1" aria-labelledby="approveConfirmLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="approveConfirmLabel"><i class="bi bi-check-circle"></i> Confirm Approval</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">Are you sure you want to approve this syllabus?</div>
+        <div class="modal-footer d-flex align-items-center gap-2">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn approve-confirm-btn" id="approveConfirmBtn" data-approve-url="">
+            <i class="bi bi-check-circle"></i> Approve
+          </button>
+        </div>
       </div>
     </div>
-  </form>
-</div>
+    </div>
+
+  <!-- Request Revision Modal (sidebar context) -->
+  <div class="modal fade" id="revisionModal" tabindex="-1" aria-labelledby="revisionModalLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="revisionModalLabel"><i class="bi bi-arrow-clockwise"></i> Request Revision</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-2">Are you sure you want to return this syllabus for revision?</div>
+        </div>
+        <div class="modal-footer d-flex align-items-center gap-2">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn review-revise-confirm-btn" id="revisionConfirmBtn" data-revision-url="">
+            <i class="bi bi-arrow-clockwise"></i> Request Revision
+          </button>
+        </div>
+      </div>
+    </div>
+    </div>
+@endif
 @endsection
 
 @push('scripts')
-<script type="module">
-  import { saveSyllabusStatus } from '@/js/faculty/syllabus-status.js';
-  // Function is already exposed globally via window.saveSyllabusStatus
-</script>
 <script>
   // Quick section search: scroll to first matching CIS section label
   // (Search removed) – cleanup placeholder logic; leaving hook if reintroduced later.
@@ -124,7 +127,560 @@
   // Undo / Redo & Auto-Save Logic
   // -----------------------------
   document.addEventListener('DOMContentLoaded', function(){
+    // (Removed) Left toolbar resize logic
+    // Seed review flag for early conditionals
+    const __isReviewCtx = !!({{ $reviewMode ? 'true' : 'false' }});
+    // (Removed) Right review sidebar resize logic
+    // Right toolbar (review panel) resize
+    (function(){
+      const doc = document.getElementById('syllabus-document');
+      const rightBar = doc ? doc.querySelector('.syllabus-right-toolbar') : null;
+      const handle = rightBar ? rightBar.querySelector('.right-resize-handle') : null;
+      // Only enable resize behavior during review
+      if (!__isReviewCtx) return;
+      if (!doc || !rightBar || !handle) return;
+
+      function getMaxPx(){ return Math.floor(doc.clientWidth * 0.25); }
+      const MIN_PX = 240;
+      function applyW(px){
+        const maxPx = getMaxPx();
+        const effectiveMin = Math.min(MIN_PX, maxPx);
+        const w = Math.max(effectiveMin, Math.min(px, maxPx));
+        doc.style.setProperty('--right-toolbar-w', w + 'px');
+        rightBar.style.width = w + 'px';
+        try { localStorage.setItem('sv_right_toolbar_w', String(w)); } catch(e){}
+      }
+      // Seed width
+      try {
+        const stored = parseInt(localStorage.getItem('sv_right_toolbar_w') || '0', 10);
+        if (!isNaN(stored) && stored > 0) applyW(stored); else applyW(rightBar.getBoundingClientRect().width || 78);
+      } catch(e){ applyW(rightBar.getBoundingClientRect().width || 78); }
+
+      let dragging = false;
+      function onMove(ev){
+        if (!dragging) return;
+        const x = ev.touches && ev.touches[0] ? ev.touches[0].clientX : ev.clientX;
+        const rect = doc.getBoundingClientRect();
+        const desired = rect.right - x; // anchored to document's right edge
+        applyW(desired);
+      }
+      function onUp(){ dragging = false; document.body.style.userSelect=''; document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); document.removeEventListener('touchmove', onMove); document.removeEventListener('touchend', onUp); }
+      function onDown(ev){ dragging = true; ev.preventDefault(); ev.stopPropagation(); document.body.style.userSelect='none'; document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp); document.addEventListener('touchmove', function(e){ onMove(e); e.preventDefault(); }, { passive:false }); document.addEventListener('touchend', onUp); }
+      handle.addEventListener('mousedown', onDown);
+      handle.addEventListener('touchstart', onDown, { passive:true });
+      window.addEventListener('resize', function(){ const varVal = getComputedStyle(doc).getPropertyValue('--right-toolbar-w').trim(); const w = parseInt(varVal || '78', 10) || 78; applyW(w); });
+    })();
     const form = document.getElementById('syllabusForm');
+    // Review mode: disable edits and enable comment selection UI
+    const isReview = !!({{ $reviewMode ? 'true' : 'false' }});
+    (function(){
+      if (!isReview) return;
+      const doc = document.getElementById('syllabus-document');
+      if (doc) doc.classList.add('is-review');
+      const rightBar = doc ? doc.querySelector('.syllabus-right-toolbar') : null;
+      const titleEl = rightBar ? rightBar.querySelector('#svReviewTitle') : null;
+      const tagEl = rightBar ? rightBar.querySelector('#svReviewColorTag') : null;
+      const commentsEl = rightBar ? rightBar.querySelector('#svReviewComments') : null;
+      const approveBtnRight = rightBar ? rightBar.querySelector('.review-approve-btn') : null;
+      const reviseBtnRight = rightBar ? rightBar.querySelector('.review-revise-btn') : null;
+      const approveConfirmBtn = document.getElementById('approveConfirmBtn');
+      const approveConfirmModalEl = document.getElementById('approveConfirmModal');
+      const revisionModalEl = document.getElementById('revisionModal');
+      const revisionConfirmBtn = document.getElementById('revisionConfirmBtn');
+      const revisionNumberInput = null;
+      const revisionDateInput = null;
+      const inputEl = rightBar ? rightBar.querySelector('#svCommentInput') : null;
+      const addBtn = rightBar ? rightBar.querySelector('#svAddCommentBtn') : null;
+      // Make inputs read-only/disabled inside the content area only (do not affect left toolbar)
+      Array.from(document.querySelectorAll('.syllabus-content-wrapper input, .syllabus-content-wrapper textarea, .syllabus-content-wrapper select'))
+        .forEach(el => {
+          if (el.tagName === 'BUTTON') { el.disabled = true; return; }
+          el.setAttribute('readonly', 'readonly');
+          el.setAttribute('disabled', 'disabled');
+        });
+      // Color palette per partial key
+      const palette = {
+        'mission-vision': '#4e79a7',
+        'course-info': '#f28e2b',
+        'criteria-assessment': '#e15759',
+        'tlas': '#76b7b2',
+        'tla': '#59a14f',
+        'ilo': '#edc949',
+        'assessment-tasks-distribution': '#af7aa1',
+        'textbook-upload': '#ff9da7',
+        'iga': '#9c755f',
+        'so': '#bab0ab',
+        'cdio': '#2f4b7c',
+        'sdg': '#b07aa1',
+        'course-policies': '#3a77a3',
+        'ilo-so-cpa-mapping': '#d37266',
+        'ilo-iga-mapping': '#86bc86'
+      };
+      // Mark partial containers with keys
+      const partials = [
+        ['mission-vision', 'faculty.syllabus.partials.mission-vision'],
+        ['course-info', 'faculty.syllabus.partials.course-info'],
+        ['criteria-assessment', 'faculty.syllabus.partials.criteria-assessment'],
+        ['tlas', 'faculty.syllabus.partials.tlas'],
+        ['tla', 'faculty.syllabus.partials.tla'],
+        ['ilo', 'faculty.syllabus.partials.ilo'],
+        ['assessment-tasks-distribution', 'faculty.syllabus.partials.assessment-tasks-distribution'],
+        ['textbook-upload', 'faculty.syllabus.partials.textbook-upload'],
+        ['iga', 'faculty.syllabus.partials.iga'],
+        ['so', 'faculty.syllabus.partials.so'],
+        ['cdio', 'faculty.syllabus.partials.cdio'],
+        ['sdg', 'faculty.syllabus.partials.sdg'],
+        ['course-policies', 'faculty.syllabus.partials.course-policies'],
+        ['ilo-so-cpa-mapping', 'faculty.syllabus.partials.ilo-so-cpa-mapping'],
+        ['ilo-iga-mapping', 'faculty.syllabus.partials.ilo-iga-mapping']
+      ];
+      partials.forEach(([key]) => {
+        const container = document.querySelector(`[data-partial-key="${key}"]`) || null;
+        if (container) return; // already marked
+      });
+      // Auto-wrap direct siblings inside card body with markers
+      const cardBody = document.querySelector('.svx-card-body');
+      if (cardBody) {
+        Array.from(cardBody.children).forEach(ch => {
+          // infer key by looking for an id or first heading text
+          let key = null;
+          const text = (ch.querySelector('th, h6, h5')?.textContent || '').toLowerCase();
+          Object.keys(palette).forEach(k => { if (!key && text.includes(k.replace(/-/g,' '))) key = k; });
+          if (!key) return;
+          ch.setAttribute('data-partial-key', key);
+          ch.classList.add('sv-partial');
+        });
+      }
+      // Click to select
+      function selectPartial(el){
+        const key = el.getAttribute('data-partial-key');
+        if (!key) return;
+        const color = palette[key] || '#4e79a7';
+        // Outline selection
+        document.querySelectorAll('.sv-partial').forEach(n => n.style.outline='');
+        el.style.outline = `2px solid ${color}`;
+        el.style.outlineOffset = '2px';
+        // Compose section title
+        const sectionTitle = key.replace(/-/g,' ').replace(/\b\w/g, m=>m.toUpperCase());
+        // Ensure one comment card per partial; allow multiple cards overall
+        if (commentsEl) {
+          // Ensure an empty placeholder exists when no comments are present
+          const ensureEmptyPlaceholder = () => {
+            const hasCards = !!commentsEl.querySelector('.sv-comment-card');
+            let emptyEl = commentsEl.querySelector('.sv-comment-empty');
+            if (!hasCards && !emptyEl) {
+              emptyEl = document.createElement('div');
+              emptyEl.className = 'sv-comment-empty';
+              emptyEl.innerHTML = '<div class="sv-comment-empty-inner"><i class="bi bi-chat-left"></i><div class="sv-comment-empty-text">Select a section to add comments</div></div>';
+              commentsEl.appendChild(emptyEl);
+              commentsEl.classList.add('sv-comments-empty');
+            }
+            if (hasCards && emptyEl) { emptyEl.remove(); commentsEl.classList.remove('sv-comments-empty'); }
+          };
+          ensureEmptyPlaceholder();
+          const existing = commentsEl.querySelector(`.sv-comment-card[data-partial-key="${key}"]`);
+          if (existing) {
+            existing.classList.add('sv-comment-card-active');
+            existing.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            setTimeout(() => existing.classList.remove('sv-comment-card-active'), 600);
+          } else {
+            const card = document.createElement('div');
+            card.className = 'sv-comment-card';
+            card.setAttribute('data-partial-key', key);
+            card.style.borderLeftColor = color;
+            const closeId = 'svClose_'+Math.random().toString(36).slice(2);
+            card.innerHTML = `
+              <div class="sv-card-header">
+                <span class="sv-card-title" contenteditable="true" spellcheck="false">${sectionTitle}</span>
+                <button type="button" class="sv-card-close" id="${closeId}" aria-label="Close">✕</button>
+              </div>
+              <div class="sv-card-body">
+                <textarea class="sv-comment-input" rows="3" placeholder="Write a comment…"></textarea>
+              </div>`;
+            commentsEl.appendChild(card);
+            // Remove placeholder now that a card exists
+            const emptyEl = commentsEl.querySelector('.sv-comment-empty');
+            if (emptyEl) { emptyEl.remove(); commentsEl.classList.remove('sv-comments-empty'); }
+            const closeBtn = card.querySelector('#'+closeId);
+            if (closeBtn) closeBtn.addEventListener('click', function(){ 
+              card.remove(); 
+              // Restore placeholder if no cards remain
+              const remaining = commentsEl.querySelectorAll('.sv-comment-card').length;
+              if (remaining === 0) {
+                ensureEmptyPlaceholder();
+              }
+            });
+            // Auto-save on edit
+            const titleElEditable = card.querySelector('.sv-card-title');
+            const bodyEl = card.querySelector('.sv-comment-input');
+            const syllabusId = document.getElementById('syllabus-document')?.getAttribute('data-syllabus-id');
+            async function saveComment(){
+              const token = getCsrfToken();
+              const fd = new FormData();
+              fd.append('partial_key', key);
+              fd.append('title', titleElEditable?.textContent || '');
+              fd.append('body', bodyEl?.value || '');
+              try {
+                await fetch(`/faculty/syllabi/${syllabusId}/comments`, { method: 'POST', headers: { 'X-CSRF-TOKEN': token, 'Accept':'application/json' }, body: fd });
+              } catch(e) { console.warn('Save comment failed', e); }
+            }
+            let saveTimer;
+            function scheduleSave(){ clearTimeout(saveTimer); saveTimer = setTimeout(saveComment, 450); }
+            if (titleElEditable) titleElEditable.addEventListener('input', scheduleSave);
+            if (bodyEl) { bodyEl.addEventListener('input', scheduleSave); bodyEl.addEventListener('blur', saveComment); }
+          }
+        }
+      }
+      // Seed default placeholder on load
+      if (commentsEl) {
+        const hasCards = !!commentsEl.querySelector('.sv-comment-card');
+        const hasPlaceholder = !!commentsEl.querySelector('.sv-comment-empty');
+        if (!hasCards && !hasPlaceholder) {
+          const emptyEl = document.createElement('div');
+          emptyEl.className = 'sv-comment-empty';
+          emptyEl.innerHTML = '<div class="sv-comment-empty-inner"><i class="bi bi-chat-left"></i><div class="sv-comment-empty-text">Select a section to add comments</div></div>';
+          commentsEl.appendChild(emptyEl);
+          commentsEl.classList.add('sv-comments-empty');
+        }
+      }
+      document.addEventListener('click', function(ev){
+        const el = ev.target.closest('.sv-partial');
+        if (el) {
+          const key = el.getAttribute('data-partial-key');
+          if (el.hasAttribute('data-non-commentable') || key === 'status') return; // skip non-commentable sections
+          ev.preventDefault(); ev.stopPropagation(); selectPartial(el);
+        }
+      });
+
+      // -----------------------------
+      // Wire right toolbar Approve / Revision
+      // -----------------------------
+      function getCsrfToken() {
+        const meta = document.querySelector('meta[name="csrf-token"]');
+        return meta ? meta.getAttribute('content') : '';
+      }
+      function setLoading(btn, isLoading) {
+        if (!btn) return;
+        btn.disabled = !!isLoading;
+        if (isLoading) {
+          btn.dataset._origHtml = btn.innerHTML;
+          btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+        } else if (btn.dataset._origHtml) {
+          btn.innerHTML = btn.dataset._origHtml;
+          delete btn.dataset._origHtml;
+        }
+      }
+
+      // Inject URLs from Blade for this syllabus
+      const approveUrl = '{{ route('faculty.syllabi.approve',$syllabus->id) }}';
+      const revisionUrl = '{{ route('faculty.syllabi.revision',$syllabus->id) }}';
+      if (approveBtnRight) approveBtnRight.dataset.approveUrl = approveUrl;
+      if (reviseBtnRight) reviseBtnRight.dataset.revisionUrl = revisionUrl;
+
+      if (approveBtnRight) {
+        approveBtnRight.addEventListener('click', function(){
+          const url = approveBtnRight.dataset.approveUrl || '';
+          if (!url || !approveConfirmBtn || !approveConfirmModalEl) return;
+          approveConfirmBtn.dataset.approveUrl = url;
+          // Move modal to body to avoid parent stacking contexts
+          try { if (approveConfirmModalEl.parentElement !== document.body) document.body.appendChild(approveConfirmModalEl); } catch(e) {}
+          let modal = (bootstrap.Modal && bootstrap.Modal.getInstance) ? bootstrap.Modal.getInstance(approveConfirmModalEl) : null;
+          if (!modal) { modal = new bootstrap.Modal(approveConfirmModalEl); }
+          modal.show();
+        });
+      }
+
+      if (reviseBtnRight) {
+        reviseBtnRight.addEventListener('click', function(){
+          const url = reviseBtnRight.dataset.revisionUrl || '';
+          if (!url || !revisionConfirmBtn || !revisionModalEl) return;
+          revisionConfirmBtn.dataset.revisionUrl = url;
+          // Move modal to body to avoid parent stacking contexts
+          try { if (revisionModalEl.parentElement !== document.body) document.body.appendChild(revisionModalEl); } catch(e) {}
+          let modal = (bootstrap.Modal && bootstrap.Modal.getInstance) ? bootstrap.Modal.getInstance(revisionModalEl) : null;
+          if (!modal) { modal = new bootstrap.Modal(revisionModalEl); }
+          // no client-side revision fields; handled by backend
+          modal.show();
+        });
+      }
+
+      // Modal confirm actions
+      if (approveConfirmBtn && approveConfirmModalEl) {
+        approveConfirmBtn.addEventListener('click', async function(){
+          const url = approveConfirmBtn.dataset.approveUrl || '';
+          if (!url) return;
+          const token = getCsrfToken();
+          try {
+            setLoading(approveConfirmBtn, true);
+            const res = await fetch(url, { method: 'POST', headers: { 'X-CSRF-TOKEN': token, 'Accept': 'application/json' } });
+            if (!res.ok) {
+              let msg = 'Approval failed';
+              try { const j = await res.json(); if (j && j.message) msg = j.message; } catch(e) {}
+              if (window.showAlertOverlay) { window.showAlertOverlay('error', msg); } else { alert(msg); }
+              setLoading(approveConfirmBtn, false);
+              return;
+            }
+            // hide modal
+            try {
+              let modal = (bootstrap.Modal && bootstrap.Modal.getInstance) ? bootstrap.Modal.getInstance(approveConfirmModalEl) : null;
+              if (!modal) { modal = new bootstrap.Modal(approveConfirmModalEl); }
+              modal.hide();
+            } catch(e) {}
+            if (window.showAlertOverlay) { window.showAlertOverlay('success', 'Syllabus approved successfully'); } else { alert('Approved'); }
+            // Redirect back to approvals listing after successful approval
+            try {
+              setTimeout(() => { window.location.href = '{{ route('faculty.syllabi.approvals') }}'; }, 400);
+            } catch(e) { window.location.href = '{{ route('faculty.syllabi.approvals') }}'; }
+          } catch (err) {
+            console.error(err);
+            if (window.showAlertOverlay) { window.showAlertOverlay('error', 'Unexpected error while approving.'); } else { alert('Unexpected error while approving.'); }
+          } finally {
+            setLoading(approveConfirmBtn, false);
+          }
+        });
+      }
+
+      if (revisionConfirmBtn && revisionModalEl) {
+        revisionConfirmBtn.addEventListener('click', async function(){
+          const url = revisionConfirmBtn.dataset.revisionUrl || '';
+          if (!url) return;
+          const token = getCsrfToken();
+          try {
+            setLoading(revisionConfirmBtn, true);
+            const fd = new FormData();
+            const res = await fetch(url, { method: 'POST', headers: { 'X-CSRF-TOKEN': token, 'Accept': 'application/json' }, body: fd });
+            if (!res.ok) {
+              let msg = 'Action failed';
+              try { const j = await res.json(); if (j && j.message) msg = j.message; } catch(e) {}
+              if (window.showAlertOverlay) { window.showAlertOverlay('error', msg); } else { alert(msg); }
+              setLoading(revisionConfirmBtn, false);
+              return;
+            }
+            // hide modal
+            try {
+              let modal = (bootstrap.Modal && bootstrap.Modal.getInstance) ? bootstrap.Modal.getInstance(revisionModalEl) : null;
+              if (!modal) { modal = new bootstrap.Modal(revisionModalEl); }
+              modal.hide();
+            } catch(e) {}
+            // Save non-empty comments for current batch
+            try {
+              const commentsWrap = document.getElementById('svReviewComments');
+              const syllabusId = document.getElementById('syllabus-document')?.getAttribute('data-syllabus-id');
+              const token2 = token;
+              const cards = Array.from(commentsWrap ? commentsWrap.querySelectorAll('.sv-comment-card') : []);
+              for (const card of cards) {
+                const key = card.getAttribute('data-partial-key');
+                const title = (card.querySelector('.sv-card-title')?.textContent || '').trim();
+                const body = (card.querySelector('.sv-comment-input')?.value || '').trim();
+                if ((!title || title === '') && (!body || body === '')) continue; // skip null/empty comments
+                const fdComment = new FormData();
+                fdComment.append('partial_key', key || '');
+                if (title) fdComment.append('title', title);
+                if (body) fdComment.append('body', body);
+                await fetch(`/faculty/syllabi/${syllabusId}/comments`, { method: 'POST', headers: { 'X-CSRF-TOKEN': token2, 'Accept':'application/json' }, body: fdComment });
+              }
+            } catch(e) { console.warn('Saving comments on return failed', e); }
+            // revision metadata is updated server-side
+            if (window.showAlertOverlay) { window.showAlertOverlay('success', 'Revision requested successfully'); } else { alert('Revision requested'); }
+            // Redirect back to approvals listing after successful revision request
+            try {
+              setTimeout(() => { window.location.href = '{{ route('faculty.syllabi.approvals') }}'; }, 400);
+            } catch(e) { window.location.href = '{{ route('faculty.syllabi.approvals') }}'; }
+          } catch (err) {
+            console.error(err);
+            if (window.showAlertOverlay) { window.showAlertOverlay('error', 'Unexpected error while processing action.'); } else { alert('Unexpected error while processing action.'); }
+          } finally {
+            setLoading(revisionConfirmBtn, false);
+          }
+        });
+      }
+
+      // Do not load previous batches; reviewers add new comments each round.
+    })();
+    // -----------------------------
+    // Non-review mode: toggle right toolbar to view reviewer comments (read-only)
+    // -----------------------------
+    if (!isReview) {
+      const toggleBtn = document.getElementById('syllabusCommentsToggleBtn');
+      const rightBar = document.querySelector('.syllabus-right-toolbar');
+      const commentsEl = rightBar ? rightBar.querySelector('#svReviewComments') : null;
+      const syllabusId = document.getElementById('syllabus-document')?.getAttribute('data-syllabus-id');
+      const docEl = document.getElementById('syllabus-document');
+      const countBadge = document.getElementById('comments-count-badge');
+      const submitBtn = document.getElementById('syllabusSubmitBtn');
+      if (rightBar) {
+        rightBar.style.display = 'none';
+        rightBar.classList.add('viewer-only');
+        const handle = rightBar.querySelector('.right-resize-handle');
+        if (handle) handle.style.display = 'none';
+      }
+      if (docEl) {
+        try { docEl.style.setProperty('--right-toolbar-w', '0px'); } catch(e) {}
+      }
+      function humanize(key){ return (key || '').replace(/-/g,' ').replace(/\b\w/g,m=>m.toUpperCase()); }
+      function getCsrfToken() { const meta = document.querySelector('meta[name="csrf-token"]'); return meta ? meta.getAttribute('content') : ''; }
+      async function submitForReview(){
+        if (!syllabusId) return;
+        const token = getCsrfToken();
+        try {
+          if (submitBtn) { submitBtn.disabled = true; submitBtn.classList.add('disabled'); }
+          // Open the existing submit modal and pass dataset like on index cards
+          const proxy = document.getElementById('syllabusSubmitProxyBtn');
+          if (proxy) {
+            proxy.setAttribute('data-syllabus-id', String(syllabusId));
+            proxy.setAttribute('data-status', '{{ $syllabus->submission_status ?? 'draft' }}');
+            proxy.setAttribute('data-department-id', '{{ $syllabus->program->department_id ?? '' }}');
+            proxy.setAttribute('data-program-id', '{{ $syllabus->program->id ?? '' }}');
+            try { proxy.click(); } catch(e){
+              // Fallback: manually show modal
+              const modalEl = document.getElementById('submitSyllabusModal');
+              if (modalEl && window.bootstrap && bootstrap.Modal) { new bootstrap.Modal(modalEl).show(); }
+            }
+          }
+        } catch(e) {
+          if (window.showAlertOverlay) { window.showAlertOverlay('error', 'Unexpected error while submitting.'); } else { alert('Unexpected error while submitting.'); }
+        } finally {
+          if (submitBtn) { submitBtn.disabled = false; submitBtn.classList.remove('disabled'); }
+        }
+      }
+      async function loadComments(){
+        if (!commentsEl || rightBar.dataset.loaded) return;
+        try {
+          const res = await fetch(`/faculty/syllabi/${syllabusId}/comments`, { headers: { 'Accept':'application/json' } });
+          if (!res.ok) return;
+          const j = await res.json();
+          const batch = j.currentBatch;
+          const byBatch = j.commentsByBatch || {};
+          const list = byBatch[String(batch)] || byBatch[batch] || [];
+          if (countBadge) {
+            const n = Array.isArray(list) ? list.length : 0;
+            if (n > 0) { countBadge.textContent = String(n); countBadge.style.display = 'inline-block'; }
+            else { countBadge.style.display = 'none'; }
+          }
+          if (list.length === 0) {
+            commentsEl.innerHTML = '';
+            const emptyEl = document.createElement('div');
+            emptyEl.className = 'sv-comment-empty';
+            emptyEl.innerHTML = '<div class="sv-comment-empty-inner"><i class="bi bi-chat-left"></i><div class="sv-comment-empty-text">No reviewer comments</div></div>';
+            commentsEl.appendChild(emptyEl);
+            commentsEl.classList.add('sv-comments-empty');
+          } else {
+            commentsEl.innerHTML = '';
+            list.forEach(c => {
+              const card = document.createElement('div');
+              card.className = 'sv-comment-card';
+              card.style.borderLeftColor = '#475569';
+              card.setAttribute('data-partial-key', c.partial_key || '');
+              card.innerHTML = `<div class="sv-card-header"><span class="sv-card-title">${humanize(c.partial_key)}</span></div><div class="sv-card-body"><div class="sv-comment-text small" style="white-space:pre-wrap;">${(c.body || '').replace(/[<>]/g,'')}</div></div>`;
+              // Click to scroll to the corresponding partial in the document
+              card.addEventListener('click', function(){
+                const key = card.getAttribute('data-partial-key');
+                if (!key) return;
+                const target = document.querySelector(`.sv-partial[data-partial-key="${CSS.escape(key)}"]`);
+                if (target) {
+                  target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  // brief highlight
+                  target.style.outline = '2px solid var(--sv-accent, #3b82f6)';
+                  target.style.outlineOffset = '2px';
+                  setTimeout(() => { target.style.outline=''; target.style.outlineOffset=''; }, 1200);
+                }
+              });
+              commentsEl.appendChild(card);
+            });
+          }
+          rightBar.dataset.loaded = '1';
+        } catch(e) { commentsEl.innerHTML = '<div class="text-danger small">Failed to load comments.</div>'; }
+      }
+      async function loadCommentsCount(){
+        try {
+          const res = await fetch(`/faculty/syllabi/${syllabusId}/comments`, { headers: { 'Accept':'application/json' } });
+          if (!res.ok) return;
+          const j = await res.json();
+          const batch = j.currentBatch;
+          const byBatch = j.commentsByBatch || {};
+          const list = byBatch[String(batch)] || byBatch[batch] || [];
+          // Fallback: total across all batches if current batch empty
+          const total = Object.values(byBatch).reduce((acc, v) => acc + (Array.isArray(v) ? v.length : 0), 0);
+          const n = Array.isArray(list) ? list.length : 0;
+          const showCount = n > 0 ? n : total > 0 ? total : 0;
+          if (countBadge) {
+            if (showCount > 0) {
+              countBadge.textContent = String(showCount);
+              countBadge.style.display = 'inline-block';
+              countBadge.classList.add('sv-badge-visible');
+            } else {
+              countBadge.style.display = 'none';
+              countBadge.classList.remove('sv-badge-visible');
+            }
+          }
+          // Debug: surface basic info in console for quick checks
+          try { console.debug('[CommentsCount]', { batch, current: n, total }); } catch(e){}
+        } catch(e) {}
+      }
+      // Prefetch count for badge on load (do this even if rightBar is missing)
+      loadCommentsCount();
+
+      // Lightweight resize initializer for viewer mode
+      function initViewerResize(){
+        if (!rightBar || rightBar.dataset.viewerResizeInit) return;
+        const handle = rightBar.querySelector('.right-resize-handle');
+        if (!handle) return;
+        rightBar.dataset.viewerResizeInit = '1';
+        function getMaxPx(){ return Math.floor((docEl?.clientWidth || window.innerWidth) * 0.25); }
+        const MIN_PX = 240;
+        function applyW(px){
+          const maxPx = getMaxPx();
+          const effectiveMin = Math.min(MIN_PX, maxPx);
+          const w = Math.max(effectiveMin, Math.min(px, maxPx));
+          if (docEl) docEl.style.setProperty('--right-toolbar-w', w + 'px');
+          rightBar.style.width = w + 'px';
+          try { localStorage.setItem('sv_right_toolbar_w', String(w)); } catch(e){}
+        }
+        let dragging = false;
+        function onMove(ev){
+          if (!dragging) return;
+          const x = ev.touches && ev.touches[0] ? ev.touches[0].clientX : ev.clientX;
+          const rect = (docEl || document.body).getBoundingClientRect();
+          const desired = rect.right - x;
+          applyW(desired);
+        }
+        function onUp(){ dragging = false; document.body.style.userSelect=''; document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); document.removeEventListener('touchmove', onMove); document.removeEventListener('touchend', onUp); }
+        function onDown(ev){ dragging = true; ev.preventDefault(); ev.stopPropagation(); document.body.style.userSelect='none'; document.addEventListener('mousemove', onMove); document.addEventListener('mouseup', onUp); document.addEventListener('touchmove', function(e){ onMove(e); e.preventDefault(); }, { passive:false }); document.addEventListener('touchend', onUp); }
+        handle.addEventListener('mousedown', onDown);
+        handle.addEventListener('touchstart', onDown, { passive:true });
+        window.addEventListener('resize', function(){ const varVal = getComputedStyle(docEl || document.body).getPropertyValue('--right-toolbar-w').trim(); const w = parseInt(varVal || '300', 10) || 300; applyW(w); });
+      }
+
+      if (toggleBtn && rightBar) {
+        toggleBtn.addEventListener('click', function(){
+          const isHidden = rightBar.style.display === 'none';
+          rightBar.style.display = isHidden ? 'flex' : 'none';
+          if (isHidden) {
+            // set width and document padding when showing
+            let w = parseInt((() => { try { return localStorage.getItem('sv_right_toolbar_w') || '300'; } catch(e){ return '300'; } })(), 10);
+            if (isNaN(w) || w <= 0) { w = rightBar.getBoundingClientRect().width || 300; }
+            rightBar.style.width = w + 'px';
+            if (docEl) { try { docEl.style.setProperty('--right-toolbar-w', w + 'px'); } catch(e) {} }
+            // show resize handle and enable viewer resize
+            const handle = rightBar.querySelector('.right-resize-handle');
+            if (handle) { handle.style.display = 'block'; }
+            initViewerResize();
+            loadComments();
+          } else {
+            // remove reserved space when hiding
+            if (docEl) { try { docEl.style.setProperty('--right-toolbar-w', '0px'); } catch(e) {} }
+            const handle = rightBar.querySelector('.right-resize-handle');
+            if (handle) { handle.style.display = 'none'; }
+          }
+          toggleBtn.classList.toggle('active', isHidden);
+        });
+        // Refresh count whenever toggled open
+        // handled inside click handler using local isHidden
+      }
+      if (submitBtn) {
+        submitBtn.addEventListener('click', submitForReview);
+      }
+    }
     if (!form) return;
     const undoBtn = document.getElementById('undoBtn');
     const redoBtn = document.getElementById('redoBtn');
@@ -319,6 +875,263 @@
   @keyframes spin {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
+  }
+  /* Layout: toolbar left, content right; only content scrolls */
+  .syllabus-doc { display:flex; flex-wrap:nowrap; align-items:stretch; height:100vh; width:100%; min-width:0; position:relative; padding-right: var(--right-toolbar-w, 0px); }
+  .syllabus-vertical-toolbar { position:relative; width: var(--toolbar-w, 78px); flex: 0 0 var(--toolbar-w, 78px); flex-shrink:0; order:0; box-sizing:border-box; background:#fff; border-right:1px solid #e2e5e9; padding:10px 8px; display:flex; flex-direction:column; }
+  .syllabus-vertical-toolbar .toolbar-inner { display:flex; flex-direction:column; align-items:center; }
+  .syllabus-vertical-toolbar .toolbar-btn { width:100%; }
+  /* Ensure comments badge becomes visible when count > 0 */
+  #syllabusCommentsToggleBtn { position: relative; }
+  /* Absolute, top-right yellow badge with black text */
+  #syllabusCommentsToggleBtn #comments-count-badge,
+  #syllabusCommentsToggleBtn .sv-comments-badge {
+    position: absolute;
+    top: 4px;
+    right: 6px;
+    background: #ffc107; /* yellow */
+    color: #111; /* black-ish for readability */
+    border-radius: 999px;
+    padding: 0 6px;
+    line-height: 18px;
+    height: 18px;
+    min-width: 18px;
+    font-size: 11px;
+    font-weight: 700;
+    text-align: center;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.12);
+  }
+  #syllabusCommentsToggleBtn #comments-count-badge.sv-badge-visible { display: inline-block !important; }
+  .syllabus-content-wrapper { flex:1 1 auto; order:1; padding:16px 20px; overflow-y:auto; overflow-x:auto; min-height:0; min-width:0; position: relative; z-index: 1; }
+  .syllabus-right-toolbar { position:fixed; right:0; top:0; height:100vh; width: var(--right-toolbar-w, 78px); box-sizing:border-box; background:#fff; border-left:1px solid #e2e5e9; padding:10px 8px; display:flex; flex-direction:column; z-index: 10; margin:0 !important; }
+  .sv-partial { transition: outline-color .15s ease; }
+  /* Hover affordance for partials in review mode */
+  .is-review .syllabus-content-wrapper .sv-partial:not([data-partial-key="status"]):hover {
+    outline: 2px solid var(--sv-accent, #3b82f6);
+    background-color: rgba(59,130,246,0.06);
+    cursor: pointer;
+  }
+  /* Improve click targeting: prevent inner controls from hijacking clicks */
+  .is-review .syllabus-content-wrapper .sv-partial input,
+  .is-review .syllabus-content-wrapper .sv-partial textarea,
+  .is-review .syllabus-content-wrapper .sv-partial select,
+  .is-review .syllabus-content-wrapper .sv-partial button {
+    pointer-events: none;
+  }
+  /* Review mode: hide action buttons inside content partials only */
+  .is-review .syllabus-content-wrapper .sv-partial .btn,
+  .is-review .syllabus-content-wrapper .sv-partial button,
+  .is-review .syllabus-content-wrapper .sv-partial a.btn {
+    display: none !important;
+  }
+  /* Hide Save button in left toolbar during review mode */
+  .is-review #syllabusSaveBtn { display: none !important; }
+  /* Review panel layout */
+  .sv-review-panel { gap: 12px; }
+    .sv-review-panel { padding: 20px; gap: 12px; display:flex; flex-direction:column; height:100%; }
+    .sv-review-header { padding: 10px 8px; border-bottom: 1px solid #e6e9ed; }
+    .sv-review-title { font-size: 1rem; font-weight: 600; color: #333; }
+  .sv-review-tag { display:inline-block; width:14px; height:14px; border-radius:3px; border:1px solid rgba(0,0,0,0.1); }
+  .sv-toolbar-comment-section { display:flex; flex-direction:column; gap:12px; flex:1 1 auto; min-height:0; }
+  .sv-review-comments { overflow-y:auto; padding: 4px 2px; display:flex; flex-direction:column; gap:8px; flex:1 1 auto; min-height:0; }
+  /* Center placeholder when empty */
+  .sv-review-comments.sv-comments-empty { align-items:center; justify-content:center; }
+  .sv-toolbar-button-section { margin-top:auto; }
+  /* Make toolbar action buttons equal width and fill section */
+  .sv-toolbar-button-section { display:flex; gap:8px; }
+  .sv-toolbar-button-section .btn { flex: 1 1 0; width: auto; }
+  .sv-comment-card { border:1px solid #e6e9ed; border-left-width:4px; border-radius:8px; background:#fff; box-shadow: 0 1px 2px rgba(0,0,0,0.03); }
+  /* Adaptive height for non-review comment cards */
+  .sv-review-comments .sv-comment-card { width: 100%; align-self: stretch; }
+  .sv-review-comments .sv-comment-card .sv-card-body { padding:8px; display:block; max-height: 240px; overflow: auto; resize: vertical; }
+  .sv-review-comments .sv-comment-card .sv-comment-text { white-space: pre-wrap; word-break: break-word; }
+  .sv-comment-card:hover { 
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    transform: translateY(-1px);
+    border-color: #d9dee5;
+    cursor: pointer;
+  }
+  .sv-comment-card-active { animation: svCardFlash 600ms ease; }
+  @keyframes svCardFlash {
+    0% { box-shadow: 0 0 0 rgba(0,0,0,0); }
+    25% { box-shadow: 0 0 0.35rem rgba(0,0,0,0.08); }
+    100% { box-shadow: 0 0 0 rgba(0,0,0,0); }
+  }
+  /* Modern clean comment card header */
+  .sv-comment-card .sv-card-header {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:8px 10px; border-top-left-radius:8px; border-top-right-radius:8px;
+    background: linear-gradient(180deg, #ffffff, #f8f9fb);
+    border-bottom:1px solid #e6e9ed;
+  }
+  .sv-comment-card .sv-card-title { font-size:.82rem; font-weight:600; color:#333; outline:none; }
+  .sv-comment-card .sv-card-title[contenteditable="true"]:focus { box-shadow: inset 0 -2px 0 #d0d6dc; }
+  .sv-comment-card .sv-card-close { background:transparent; border:none; color:#666; font-weight:700; line-height:1; cursor:pointer; border-radius:6px; padding:0 6px; font-size:.85rem; }
+  .sv-comment-card .sv-card-close:hover { background:#f0f2f5; color:#333; }
+  .sv-comment-card .sv-card-body { padding:8px; }
+  .sv-comment-card .sv-comment-meta { font-size:.75rem; color:#6c757d; margin-bottom:4px; }
+  .sv-comment-card .sv-comment-input { width:100%; border:1px solid #e6e9ed; border-radius:8px; padding:8px; font-size:.85rem; color:#333; resize: vertical; box-sizing: border-box; }
+  .sv-comment-card .sv-comment-input:focus { outline:none; border-color:#cdd3d9; box-shadow: 0 0 0 2px rgba(61,126,255,0.12); }
+  /* Empty state placeholder: professional and clean */
+  .sv-comment-empty { border: none; border-radius: 0; padding: 0.5rem 0.75rem; background: transparent; color: #6b7280; }
+  .sv-comment-empty-inner { display:flex; align-items:center; gap:.5rem; justify-content:center; }
+  .sv-comment-empty-inner i { color:#9aa0a6; font-size:1rem; }
+  .sv-comment-empty-text { font-size:.88rem; }
+  .sv-review-input { border-top:1px solid #e6e9ed; padding:8px; }
+  .sv-review-input .form-label { font-size:.78rem; color:#555; margin-bottom:6px; }
+  .sv-review-input-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:8px; }
+  .sv-review-actions { margin-top:auto; padding:8px; border-top:1px solid #e6e9ed; display:flex; gap:8px; }
+  /* Right toolbar resize handle */
+  .syllabus-right-toolbar .right-resize-handle { position:absolute; left:0; top:0; bottom:0; width:12px; cursor:ew-resize; z-index:5; background:transparent; touch-action:none; }
+  /* In-toolbar grip visuals */
+  .syllabus-right-toolbar .right-resize-handle::after {
+    content:'';
+    position:absolute;
+    left:10px;
+    top:0;
+    bottom:0;
+    width:2px;
+    background:rgba(0,0,0,0.06);
+  }
+  .syllabus-right-toolbar .right-resize-handle::before {
+    content:'';
+    position:absolute;
+    left:2px;
+    top:50%;
+    transform:translateY(-50%);
+    width:8px;
+    height:40px;
+    background-image: radial-gradient(#b7b7b7 1px, transparent 1px);
+    background-size:4px 6px;
+    background-repeat:repeat;
+    opacity:.9;
+  }
+  .syllabus-right-toolbar .right-resize-handle:hover::before { background-image: radial-gradient(#8c8c8c 1px, transparent 1px); }
+  .syllabus-right-toolbar .right-resize-handle:hover::after { background: rgba(0,0,0,0.15); }
+  /* (Removed) Review sidebar styles */
+  
+  /* Match approvals card button UI */
+  .review-approve-btn, .review-revise-btn {
+    padding: 0.4rem 0.7rem;
+    font-size: 0.78rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    border-radius: 0.375rem;
+    transition: all 0.2s ease-in-out;
+    border: 1px solid transparent;
+    background: #fff;
+    box-shadow: none;
+  }
+  .review-approve-btn i, .review-revise-btn i { font-size: 0.9rem; }
+  .review-approve-btn { color: #28a745; border-color: #28a745; }
+  .review-approve-btn:hover {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.66));
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(40, 167, 69, 0.15);
+    border-color: #218838; color: #218838;
+  }
+  .review-approve-btn:focus { outline: 0; background: #fff; border-color: #228a35; box-shadow: 0 0 0 0.2rem rgba(40,167,69,0.25); color: #228a35; }
+  .review-approve-btn:active { transform: translateY(0); background: #fff; border-color: #1e7e34; box-shadow: 0 2px 6px rgba(30, 126, 52, 0.15); color: #1e7e34; }
+  .review-revise-btn { color: #e0a800; border-color: #ffc107; }
+  .review-revise-btn:hover {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.66));
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(255, 193, 7, 0.15);
+    border-color: #e0a800; color: #e0a800;
+  }
+  .review-revise-btn:focus { outline: 0; background: #fff; border-color: #d39e00; box-shadow: 0 0 0 0.2rem rgba(255,193,7,0.25); color: #d39e00; }
+  .review-revise-btn:active { transform: translateY(0); background: #fff; border-color: #c69500; box-shadow: 0 2px 6px rgba(198, 149, 0, 0.15); color: #c69500; }
+  .review-approve-btn:disabled, .review-revise-btn:disabled { opacity: 0.6; cursor: not-allowed; pointer-events: none; }
+  /* Approve confirm modal: match approvals styling */
+  #approveConfirmModal .approve-confirm-btn {
+    background: #fff;
+    color: #28a745;
+    border: 1px solid #28a745;
+    padding: 0.5rem 0.875rem;
+    border-radius: 0.375rem;
+    font-weight: 500;
+    transition: all 0.2s ease-in-out;
+  }
+  #approveConfirmModal .approve-confirm-btn:hover {
+    color: #218838;
+    border-color: #218838;
+    box-shadow: 0 4px 10px rgba(40,167,69,0.12);
+    transform: translateY(-1px);
+  }
+  #approveConfirmModal .approve-confirm-btn:focus {
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(40,167,69,0.25);
+  }
+  #approveConfirmModal .approve-confirm-btn:disabled {
+    opacity: 0.7; cursor: not-allowed; pointer-events: none;
+  }
+  /* Align modal UI with Add Program modal tokens */
+  #approveConfirmModal {
+    --sv-bg:   #FAFAFA;
+    --sv-bdr:  #E3E3E3;
+  }
+  #approveConfirmModal .modal-content {
+    border: 1px solid var(--sv-bdr);
+    border-radius: 16px;
+  }
+  #approveConfirmModal .modal-header {
+    border-bottom: 1px solid var(--sv-bdr);
+    background: var(--sv-bg);
+  }
+  #approveConfirmModal .modal-title {
+    font-weight: 600;
+    font-size: 1rem;
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+  }
+  #approveConfirmModal .btn-light {
+    background: #fff;
+    border: none;
+    color: #6c757d;
+    transition: all 0.2s ease-in-out;
+    box-shadow: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+  }
+  #approveConfirmModal .btn-light:hover,
+  #approveConfirmModal .btn-light:focus {
+    background: linear-gradient(135deg, rgba(220, 220, 220, 0.88), rgba(240, 240, 240, 0.46));
+    backdrop-filter: blur(7px);
+    -webkit-backdrop-filter: blur(7px);
+    box-shadow: 0 4px 10px rgba(108, 117, 125, 0.12);
+    color: #495057;
+  }
+  #approveConfirmModal .btn-light:active {
+    background: linear-gradient(135deg, rgba(240, 242, 245, 0.98), rgba(255, 255, 255, 0.62));
+    box-shadow: 0 1px 8px rgba(108, 117, 125, 0.16);
+  }
+  /* Ensure Bootstrap modals appear above any local stacking contexts */
+  .modal { z-index: 9999 !important; position: fixed; }
+  .modal-backdrop { z-index: 9990 !important; }
+  /* Neutralize parent stacking contexts that can trap the modal */
+  .syllabus-doc,
+  .syllabus-content-wrapper,
+  .svx-card,
+  .svx-card-body {
+    transform: none !important;
+    filter: none !important;
+    perspective: none !important;
+  }
+  .syllabus-doc { position: static !important; z-index: auto !important; }
+  /* (Removed) Left toolbar resize handle and drag shield */
+  @media (max-width: 768px) {
+    /* Keep three-column layout even on small screens; allow inner scrolls */
+    .syllabus-vertical-toolbar { border-right:1px solid #e2e5e9; }
+    .syllabus-vertical-toolbar .toolbar-inner { gap:12px; }
+    .syllabus-content-wrapper { padding:16px; }
+    /* (Removed) Left toolbar resize handle on mobile */
   }
 </style>
 @endpush

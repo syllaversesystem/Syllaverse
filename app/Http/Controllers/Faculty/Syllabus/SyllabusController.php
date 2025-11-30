@@ -43,6 +43,32 @@ class SyllabusController extends Controller
         protected FacultySyllabusController $facultySyllabus,
     ) {
     }
+    public function approvals()
+    {
+        // Restrict access: only Dean/Associate Dean and Program/Department Chairpersons
+        $user = \Auth::guard('faculty')->user() ?? auth()->user();
+        // Authorize via active appointments: Dept Chair, Dean, Associate Dean
+        $hasAccess = $user && $user->appointments()
+            ->active()
+            ->whereIn('role', [
+                \App\Models\Appointment::ROLE_DEPT,
+                \App\Models\Appointment::ROLE_DEAN,
+                \App\Models\Appointment::ROLE_ASSOC_DEAN,
+            ])->exists();
+        if (!$hasAccess) {
+            return redirect()->route('faculty.syllabi.index')
+                ->with('error', 'Access denied: Approvals are visible only to Deans and Program/Department Chairpersons.');
+        }
+        // Get syllabi pending review where current user is the assigned reviewer
+        $syllabi = Syllabus::with('course', 'program')
+            ->where('submission_status', 'pending_review')
+            ->where('reviewed_by', auth()->id())
+            ->orderBy('submitted_at', 'desc')
+            ->get();
+
+        return view('faculty.syllabus.approvals', compact('syllabi'));
+    }
+
     public function index()
     {
         // Get syllabi where user is owner (old way) OR has a relationship in faculty_syllabus table (new way)
