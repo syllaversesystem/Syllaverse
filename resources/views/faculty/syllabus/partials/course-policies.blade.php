@@ -5,6 +5,7 @@
 -------------------------------------------------------------------------------
 --}}
 
+<div class="sv-partial" data-partial-key="course-policies">
 <table class="table table-bordered mb-4 cis-table course-policies">
   <colgroup>
     <col style="width:6%">
@@ -314,6 +315,7 @@
   </tr>
   </tbody>
 </table>
+</div>
 
 {{-- ░░░ BEGIN: Load Predefined Policy Modal ░░░ --}}
 <style>

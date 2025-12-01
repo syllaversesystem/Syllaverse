@@ -6,7 +6,7 @@
 
 <!-- Toolbar with Generate/Distribute actions removed per request -->
 
-<div class="tla-partial">
+<div class="tla-partial sv-partial" data-partial-key="tla">
   <style>
     /* Harmonize TLA table typography with other CIS partials */
     .tla-partial #tlaTable,
@@ -162,6 +162,8 @@
     </tbody>
   </table>
 </div>
+
+<!-- Section divider moved to assessment-mapping partial -->
 
 {{-- ░░░ START: Delete TLA Row Modal ░░░ --}}
 <div class="modal fade sv-tla-modal" id="deleteTlaModal" tabindex="-1" aria-labelledby="deleteTlaModalLabel" aria-hidden="true">

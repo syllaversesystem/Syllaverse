@@ -9,6 +9,12 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\DB;
 use App\Models\Syllabus;
 use App\Services\TextbookChunkService;
+use App\Models\SyllabusSo;
+use App\Models\StudentOutcome;
+use App\Models\SyllabusCdio;
+use App\Models\Cdio;
+use App\Models\SyllabusSdg;
+use App\Models\Sdg;
 
 class AIChatController extends Controller
 {
@@ -181,10 +187,26 @@ class AIChatController extends Controller
             } catch (\Throwable $e) { /* ignore */ }
             if ($context !== '') {
                 // Trim context to a larger cap now that we rely on unified snapshot
-                $maxContextChars = 14000; // safety cap
+                $maxContextChars = 18000; // safety cap
                 if (mb_strlen($context) > $maxContextChars) {
                     $context = mb_substr($context, 0, $maxContextChars) . "\n[Context trimmed]";
                 }
+                // Summarize detected sections so the model can rely on a compact list
+                try {
+                    $sections = [];
+                    if (preg_match_all('/PARTIAL_BEGIN:([^\s\n\r]+)/', $context, $m)) {
+                        foreach ($m[1] as $k) { $sections[] = trim($k); }
+                    }
+                    $hasPolicies = (strpos($context, 'PARTIAL_BEGIN:course-policies') !== false);
+                    $hasPoliciesBlock = (strpos($context, 'POLICIES_START') !== false);
+                    $sum = [];
+                    $sum[] = 'SNAPSHOT_SECTIONS_BEGIN';
+                    if (!empty($sections)) { $sum[] = 'Sections: '.implode(', ', array_unique($sections)); }
+                    $sum[] = 'Course Policies: '.($hasPolicies ? 'present' : 'absent').'; POLICIES block: '.($hasPoliciesBlock ? 'present' : 'absent');
+                    $sum[] = 'SNAPSHOT_SECTIONS_END';
+                    $messages[] = ['role' => 'system', 'content' => implode("\n", $sum)];
+                } catch (\Throwable $e) { /* ignore summary errors */ }
+                // Full context payload
                 $messages[] = ['role' => 'system', 'content' => "SYLLABUS_CONTEXT_BEGIN\n".$context."\nSYLLABUS_CONTEXT_END"]; // mark boundaries
             }
             // Strengthen edit/replace behavior when the user explicitly asks for it
@@ -268,6 +290,120 @@ class AIChatController extends Controller
                     if (mb_strlen($dbContext) > $maxDb) $dbContext = mb_substr($dbContext, 0, $maxDb)."\n[DB context truncated]";
                     $messages[] = ['role' => 'system', 'content' => "DB_CONTEXT_BEGIN\n".$dbContext."\nDB_CONTEXT_END"];
                 }
+
+                // Include Student Outcomes (SOs): prefer syllabus-specific; fallback to department master
+                try {
+                    $sySo = SyllabusSo::where('syllabus_id', $syllabus->id)->orderBy('position')->get();
+                    $deptId = $syllabus->program->department_id ?? $syllabus->program->dept_id ?? ($syllabus->course->department->id ?? null);
+                    $source = 'syllabus';
+                    $items = [];
+                    if ($sySo && $sySo->count() > 0) {
+                        foreach ($sySo as $idx => $so) {
+                            $code = trim($so->code ?? ('SO'.($idx+1)));
+                            $title = trim($so->title ?? '');
+                            $desc = trim($so->description ?? '');
+                            if (mb_strlen($title) > 160) $title = mb_substr($title, 0, 160).'…';
+                            if (mb_strlen($desc) > 320) $desc = mb_substr($desc, 0, 320).'…';
+                            $items[] = $code.': '.($title !== '' ? $title.' | ' : '').$desc;
+                        }
+                    } else if ($deptId) {
+                        $source = 'department';
+                        $deptSOs = StudentOutcome::where('department_id', $deptId)->orderBy('id')->get();
+                        foreach ($deptSOs as $i => $so) {
+                            $code = 'SO'.($i+1);
+                            $title = trim($so->title ?? '');
+                            $desc = trim($so->description ?? '');
+                            if (mb_strlen($title) > 160) $title = mb_substr($title, 0, 160).'…';
+                            if (mb_strlen($desc) > 320) $desc = mb_substr($desc, 0, 320).'…';
+                            $items[] = $code.': '.($title !== '' ? $title.' | ' : '').$desc;
+                        }
+                    }
+                    if (!empty($items)) {
+                        $soBlock = [];
+                        $soBlock[] = 'PROGRAM_SOS_BEGIN';
+                        $soBlock[] = 'Source: '.$source;
+                        foreach ($items as $ln) { $soBlock[] = $ln; }
+                        $soBlock[] = 'PROGRAM_SOS_END';
+                        $messages[] = ['role' => 'system', 'content' => implode("\n", $soBlock)];
+                    }
+                } catch (\Throwable $e) { /* ignore SO context errors */ }
+
+                // Include CDIO skills: prefer syllabus-specific; optional fallback to master list (first 8)
+                try {
+                    $syCdio = SyllabusCdio::where('syllabus_id', $syllabus->id)->orderBy('position')->get();
+                    $items = [];
+                    $source = 'syllabus';
+                    if ($syCdio && $syCdio->count() > 0) {
+                        foreach ($syCdio as $idx => $cd) {
+                            $code = trim($cd->code ?? ('CDIO'.($idx+1)));
+                            $title = trim($cd->title ?? '');
+                            $desc = trim($cd->description ?? '');
+                            if (mb_strlen($title) > 160) $title = mb_substr($title, 0, 160).'…';
+                            if (mb_strlen($desc) > 320) $desc = mb_substr($desc, 0, 320).'…';
+                            $items[] = $code.': '.($title !== '' ? $title.' | ' : '').$desc;
+                        }
+                    } else {
+                        // Master fallback: provide a compact generic list to guide selection
+                        $source = 'master';
+                        $masters = Cdio::orderBy('id')->limit(8)->get();
+                        foreach ($masters as $i => $cd) {
+                            $code = 'CDIO'.($i+1);
+                            $title = trim($cd->title ?? '');
+                            $desc = trim($cd->description ?? '');
+                            if (mb_strlen($title) > 160) $title = mb_substr($title, 0, 160).'…';
+                            if (mb_strlen($desc) > 320) $desc = mb_substr($desc, 0, 320).'…';
+                            $items[] = $code.': '.($title !== '' ? $title.' | ' : '').$desc;
+                        }
+                    }
+                    if (!empty($items)) {
+                        $cdioBlock = [];
+                        $cdioBlock[] = 'PROGRAM_CDIOS_BEGIN';
+                        $cdioBlock[] = 'Source: '.$source;
+                        foreach ($items as $ln) { $cdioBlock[] = $ln; }
+                        $cdioBlock[] = 'PROGRAM_CDIOS_END';
+                        $messages[] = ['role' => 'system', 'content' => implode("\n", $cdioBlock)];
+                    }
+                } catch (\Throwable $e) { /* ignore CDIO context errors */ }
+
+                // Include SDG skills: prefer syllabus-specific; optional fallback to master list (first 8)
+                try {
+                    $sySdg = SyllabusSdg::where('syllabus_id', $syllabus->id)
+                        ->orderBy('sort_order')
+                        ->orderBy('id')
+                        ->get();
+                    $items = [];
+                    $source = 'syllabus';
+                    if ($sySdg && $sySdg->count() > 0) {
+                        foreach ($sySdg as $idx => $sd) {
+                            $code = trim($sd->code ?? ('SDG'.($idx+1)));
+                            $title = trim($sd->title ?? '');
+                            $desc = trim($sd->description ?? '');
+                            if (mb_strlen($title) > 160) $title = mb_substr($title, 0, 160).'…';
+                            if (mb_strlen($desc) > 320) $desc = mb_substr($desc, 0, 320).'…';
+                            $items[] = $code.': '.($title !== '' ? $title.' | ' : '').$desc;
+                        }
+                    } else {
+                        // Master fallback: provide a compact generic list to guide selection
+                        $source = 'master';
+                        $masters = Sdg::orderBy('id')->limit(8)->get();
+                        foreach ($masters as $i => $sd) {
+                            $code = 'SDG'.($i+1);
+                            $title = trim($sd->title ?? '');
+                            $desc = trim($sd->description ?? '');
+                            if (mb_strlen($title) > 160) $title = mb_substr($title, 0, 160).'…';
+                            if (mb_strlen($desc) > 320) $desc = mb_substr($desc, 0, 320).'…';
+                            $items[] = $code.': '.($title !== '' ? $title.' | ' : '').$desc;
+                        }
+                    }
+                    if (!empty($items)) {
+                        $sdgBlock = [];
+                        $sdgBlock[] = 'PROGRAM_SDGS_BEGIN';
+                        $sdgBlock[] = 'Source: '.$source;
+                        foreach ($items as $ln) { $sdgBlock[] = $ln; }
+                        $sdgBlock[] = 'PROGRAM_SDGS_END';
+                        $messages[] = ['role' => 'system', 'content' => implode("\n", $sdgBlock)];
+                    }
+                } catch (\Throwable $e) { /* ignore SDG context errors */ }
 
                 // Include textbook references and brief excerpts if available (textbook_chunks)
                 if ($syllabus->textbooks && $syllabus->textbooks->count()) {

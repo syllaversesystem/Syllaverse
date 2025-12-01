@@ -187,8 +187,15 @@
       const headingTexts = Array.from(p.querySelectorAll('h1,h2,h3,h4,h5,h6,th'))
         .map(h => h.textContent.trim())
         .filter(Boolean);
-      // Main text content (excluding excessive whitespace)
-      let textBlock = (p.textContent || '').replace(/\s+/g,' ').trim();
+      // Main text content (exclude <style>/<script> noise)
+      let textBlock = '';
+      try {
+        const clone = p.cloneNode(true);
+        clone.querySelectorAll('style,script,noscript').forEach(el => el.remove());
+        textBlock = (clone.textContent || '').replace(/\s+/g,' ').trim();
+      } catch(e) {
+        textBlock = (p.textContent || '').replace(/\s+/g,' ').trim();
+      }
       if (textBlock.length > 1400) textBlock = textBlock.slice(0,1400) + ' …';
       // Form fields with label resolution
       const fields = [];
@@ -222,6 +229,162 @@
       const lines = [];
       lines.push(`PARTIAL_BEGIN:${key}`);
       if (headingTexts.length) lines.push('HEADINGS:' + headingTexts.join(' | '));
+      // Special handling: SO list (codes, titles, descriptions)
+      try {
+        const soTable = p.querySelector('#syllabus-so-sortable');
+        if (soTable) {
+          const rows = Array.from(soTable.querySelectorAll('tr'));
+          const soRows = rows.filter(r => !r.id || r.id !== 'so-placeholder');
+          if (soRows.length) {
+            lines.push('SO_START');
+            soRows.forEach((row, index) => {
+              const code = row.querySelector('.so-badge')?.textContent?.trim() || row.querySelector('input[name="code[]"]')?.value?.trim() || `SO${index+1}`;
+              const title = row.querySelector('textarea[name="so_titles[]"]')?.value?.trim() || '';
+              const desc  = row.querySelector('textarea[name="sos[]"]')?.value?.trim() || '';
+              const t = title.length > 160 ? (title.slice(0,160) + ' …') : title;
+              const d = desc.length  > 320 ? (desc.slice(0,320)   + ' …') : desc;
+              lines.push(`${code}: ${t} | ${d}`);
+            });
+            lines.push('SO_END');
+          }
+        }
+      } catch(e) { /* ignore SO snapshot errors */ }
+      // Special handling: IGA list (codes, titles, descriptions)
+      try {
+        const igaTable = p.querySelector('#syllabus-iga-sortable');
+        if (igaTable) {
+          const rows = Array.from(igaTable.querySelectorAll('tr.iga-row'));
+          lines.push('IGA_START');
+          rows.forEach((row, index) => {
+            const code = row.querySelector('.iga-badge')?.textContent?.trim() || `IGA${index+1}`;
+            const title = row.querySelector('textarea[name="iga_titles[]"]')?.value?.trim() || '';
+            const desc  = row.querySelector('textarea[name="igas[]"]')?.value?.trim() || '';
+            // clamp very long fields
+            const t = title.length > 160 ? (title.slice(0,160) + ' …') : title;
+            const d = desc.length  > 320 ? (desc.slice(0,320)   + ' …') : desc;
+            lines.push(`${code}: ${t} | ${d}`);
+          });
+          lines.push('IGA_END');
+        }
+      } catch(e) { /* ignore IGA snapshot errors */ }
+      // Special handling: CDIO list (codes, titles, descriptions)
+      try {
+        const cdioTable = p.querySelector('#syllabus-cdio-sortable');
+        if (cdioTable) {
+          const rows = Array.from(cdioTable.querySelectorAll('tr')).filter(r => !r.id || r.id !== 'cdio-placeholder');
+          lines.push('CDIO_START');
+          if (rows.length) {
+            rows.forEach((row, index) => {
+              const code = row.querySelector('.cdio-badge')?.textContent?.trim() || row.querySelector('input[name="code[]"]')?.value?.trim() || `CDIO${index+1}`;
+              const title = row.querySelector('textarea[name="cdio_titles[]"]')?.value?.trim() || '';
+              const desc  = row.querySelector('textarea[name="cdios[]"]')?.value?.trim() || '';
+              const t = title.length > 160 ? (title.slice(0,160) + ' …') : title;
+              const d = desc.length  > 320 ? (desc.slice(0,320)   + ' …') : desc;
+              lines.push(`${code}: ${t} | ${d}`);
+            });
+          }
+          lines.push('CDIO_END');
+        }
+      } catch(e) { /* ignore CDIO snapshot errors */ }
+      // Special handling: SDG list (codes, titles, descriptions)
+      try {
+        const sdgTable = p.querySelector('#syllabus-sdg-sortable');
+        if (sdgTable) {
+          const rows = Array.from(sdgTable.querySelectorAll('tr')).filter(r => !r.id || r.id !== 'sdg-placeholder');
+          lines.push('SDG_START');
+          if (rows.length) {
+            rows.forEach((row, index) => {
+              const code = row.querySelector('.sdg-badge')?.textContent?.trim() || row.querySelector('input[name="code[]"]')?.value?.trim() || `SDG${index+1}`;
+              const title = row.querySelector('textarea[name="sdg_titles[]"]')?.value?.trim() || '';
+              const desc  = row.querySelector('textarea[name="sdgs[]"]')?.value?.trim() || '';
+              const t = title.length > 160 ? (title.slice(0,160) + ' …') : title;
+              const d = desc.length  > 320 ? (desc.slice(0,320)   + ' …') : desc;
+              lines.push(`${code}: ${t} | ${d}`);
+            });
+          }
+          lines.push('SDG_END');
+        }
+      } catch(e) { /* ignore SDG snapshot errors */ }
+      // Special handling: TLA rows (Teaching, Learning, and Assessment Activities)
+      try {
+        const tlaTable = p.querySelector('#tlaTable');
+        if (tlaTable) {
+          const bodyRows = Array.from(tlaTable.querySelectorAll('tbody tr'))
+            .filter(r => r.id !== 'tla-placeholder');
+          if (bodyRows.length) {
+            lines.push('TLA_START');
+            bodyRows.forEach((row, index) => {
+              const getVal = (sel) => (row.querySelector(sel)?.value || '').toString().trim();
+              const ch = getVal('[name*="[ch]"]');
+              const topic = getVal('[name*="[topic]"]');
+              const wks = getVal('[name*="[wks]"]');
+              const outcomes = getVal('[name*="[outcomes]"]');
+              const ilo = getVal('[name*="[ilo]"]');
+              const so = getVal('[name*="[so]"]');
+              const delivery = getVal('[name*="[delivery]"]');
+              const clamp = (s, n) => s ? (s.length > n ? s.slice(0,n) + ' …' : s) : '';
+              const t = clamp(topic, 200);
+              const oc = clamp(outcomes, 220);
+              const dv = clamp(delivery, 160);
+              lines.push(`ROW:${index+1} | Ch:${ch} | Wks:${wks} | Topic:${t} | Outcomes:${oc} | ILO:${ilo} | SO:${so} | Delivery:${dv}`);
+            });
+            lines.push('TLA_END');
+          }
+        }
+      } catch(e) { /* ignore TLA snapshot errors */ }
+      // Special handling: Course Policies (five areas)
+      try {
+        const isPolicies = (key === 'course-policies') || p.classList.contains('course-policies');
+        if (isPolicies) {
+          const sectionKeys = ['policy','exams','dishonesty','dropping','other'];
+          const labels = {
+            policy: 'Class policy',
+            exams: 'Missed examinations',
+            dishonesty: 'Academic dishonesty',
+            dropping: 'Dropping',
+            other: 'Other course policies and requirements'
+          };
+          const tas = Array.from(p.querySelectorAll('textarea[name="course_policies[]"]'));
+          lines.push('POLICIES_START');
+          for (let i = 0; i < sectionKeys.length; i++) {
+            const keyName = sectionKeys[i];
+            const ta = tas[i];
+            let val = (ta && typeof ta.value === 'string') ? ta.value.trim() : '';
+            if (val.length > 800) val = val.slice(0,800) + ' …';
+            if (val === '') val = '[empty]';
+            lines.push(`${labels[keyName]}: ${val}`);
+          }
+          lines.push('POLICIES_END');
+        }
+      } catch(e) { /* ignore policies snapshot errors */ }
+      // Special handling: Assessment Mapping (distribution + week grid)
+      try {
+        const mappingWrap = p.querySelector('.assessment-mapping');
+        if (mappingWrap) {
+          const distRows = Array.from(mappingWrap.querySelectorAll('table.distribution tr:not(:first-child)'));
+          const weekHeader = Array.from(mappingWrap.querySelectorAll('table.week tr:first-child th.week-number'))
+            .map(th => th.textContent.trim())
+            .filter(t => t && t.toLowerCase() !== 'no weeks')
+            .map(t => parseInt(t, 10))
+            .filter(n => !isNaN(n));
+          const weekRows = Array.from(mappingWrap.querySelectorAll('table.week tr:not(:first-child) td.week-mapping'));
+          lines.push('GRID_START');
+          lines.push('WEEKS:' + (weekHeader.length ? weekHeader.join(',') : ''));
+          // Each row: name | marks
+          distRows.forEach((dr, idx) => {
+            const name = dr.querySelector('input.distribution-input')?.value?.trim() || '';
+            const cell = weekRows[idx];
+            let marks = [];
+            if (cell) {
+              const spans = Array.from(cell.querySelectorAll('span'));
+              marks = spans.map((s, sIdx) => (s.textContent.trim() === 'x') ? (weekHeader[sIdx] || '') : '')
+                           .filter(v => v !== '');
+            }
+            lines.push(`ROW:${name} | ${marks.join(',')}`);
+          });
+          lines.push('GRID_END');
+        }
+      } catch(e){ /* ignore grid snapshot errors */ }
       if (fields.length) {
         lines.push('FIELDS_START');
         fields.forEach(f => lines.push(`${f.label} = ${f.value}`));
@@ -236,10 +399,208 @@
       return lines.join('\n');
     }
     partials.forEach(p => { const part = serializePartial(p); if (part) snapshotParts.push(part); });
+    // Ensure Course Policies appears early to avoid truncation effects
+    try {
+      const idx = snapshotParts.findIndex(s => s.indexOf('PARTIAL_BEGIN:course-policies') !== -1);
+      if (idx > 0) {
+        const pol = snapshotParts.splice(idx, 1)[0];
+        snapshotParts.unshift(pol);
+      }
+    } catch(e) { /* ignore reorder errors */ }
+    // Fallback: include SO block even if not wrapped in .sv-partial
+    try {
+      const hasSoBlock = snapshotParts.some(s => s.includes('PARTIAL_BEGIN:so'));
+      const soTable = document.getElementById('syllabus-so-sortable');
+      if (!hasSoBlock && soTable) {
+        const rows = Array.from(soTable.querySelectorAll('tr')).filter(r => !r.id || r.id !== 'so-placeholder');
+        if (rows.length) {
+          const lines = [];
+          lines.push('PARTIAL_BEGIN:so');
+          lines.push('HEADINGS:Student Outcomes (SO) | SO | Student Outcomes (SO) Statements');
+          lines.push('SO_START');
+          rows.forEach((row, index) => {
+            const code = row.querySelector('.so-badge')?.textContent?.trim() || row.querySelector('input[name="code[]"]')?.value?.trim() || `SO${index+1}`;
+            const title = row.querySelector('textarea[name="so_titles[]"]')?.value?.trim() || '';
+            const desc  = row.querySelector('textarea[name="sos[]"]')?.value?.trim() || '';
+            const t = title.length > 160 ? (title.slice(0,160) + ' …') : title;
+            const d = desc.length  > 320 ? (desc.slice(0,320)   + ' …') : desc;
+            lines.push(`${code}: ${t} | ${d}`);
+          });
+          lines.push('SO_END');
+          lines.push('PARTIAL_END:so');
+          snapshotParts.push(lines.join('\n'));
+        }
+      }
+    } catch(e) { /* ignore SO fallback errors */ }
+    // Fallback: include IGA block even if not wrapped in .sv-partial
+    try {
+      const hasIgaBlock = snapshotParts.some(s => s.includes('PARTIAL_BEGIN:iga'));
+      const igaTable = document.getElementById('syllabus-iga-sortable');
+      if (!hasIgaBlock && igaTable) {
+        const rows = Array.from(igaTable.querySelectorAll('tr.iga-row'));
+        if (rows.length) {
+          const lines = [];
+          lines.push('PARTIAL_BEGIN:iga');
+          lines.push('HEADINGS:Institutional Graduate Attributes (IGA)');
+          lines.push('IGA_START');
+          rows.forEach((row, index) => {
+            const code = row.querySelector('.iga-badge')?.textContent?.trim() || `IGA${index+1}`;
+            const title = row.querySelector('textarea[name="iga_titles[]"]')?.value?.trim() || '';
+            const desc  = row.querySelector('textarea[name="igas[]"]')?.value?.trim() || '';
+            const t = title.length > 160 ? (title.slice(0,160) + ' …') : title;
+            const d = desc.length  > 320 ? (desc.slice(0,320)   + ' …') : desc;
+            lines.push(`${code}: ${t} | ${d}`);
+          });
+          lines.push('IGA_END');
+          lines.push('PARTIAL_END:iga');
+          snapshotParts.push(lines.join('\n'));
+        }
+      }
+    } catch(e) { /* ignore fallback errors */ }
+    // Fallback: include CDIO block even if not wrapped in .sv-partial
+    try {
+      const hasCdioBlock = snapshotParts.some(s => s.includes('PARTIAL_BEGIN:cdio'));
+      const cdioTable = document.getElementById('syllabus-cdio-sortable');
+      if (!hasCdioBlock && cdioTable) {
+        const rows = Array.from(cdioTable.querySelectorAll('tr')).filter(r => !r.id || r.id !== 'cdio-placeholder');
+        const lines = [];
+        lines.push('PARTIAL_BEGIN:cdio');
+        lines.push('HEADINGS:CDIO Framework Skills (CDIO) | CDIO | CDIO Framework Skills Statements');
+        lines.push('CDIO_START');
+        if (rows.length) {
+          rows.forEach((row, index) => {
+            const code = row.querySelector('.cdio-badge')?.textContent?.trim() || row.querySelector('input[name="code[]"]')?.value?.trim() || `CDIO${index+1}`;
+            const title = row.querySelector('textarea[name="cdio_titles[]"]')?.value?.trim() || '';
+            const desc  = row.querySelector('textarea[name="cdios[]"]')?.value?.trim() || '';
+            const t = title.length > 160 ? (title.slice(0,160) + ' …') : title;
+            const d = desc.length  > 320 ? (desc.slice(0,320)   + ' …') : desc;
+            lines.push(`${code}: ${t} | ${d}`);
+          });
+        }
+        lines.push('CDIO_END');
+        lines.push('PARTIAL_END:cdio');
+        snapshotParts.push(lines.join('\n'));
+      }
+    } catch(e) { /* ignore CDIO fallback errors */ }
+    // Fallback: include SDG block even if not wrapped in .sv-partial
+    try {
+      const hasSdgBlock = snapshotParts.some(s => s.includes('PARTIAL_BEGIN:sdg'));
+      const sdgTable = document.getElementById('syllabus-sdg-sortable');
+      if (!hasSdgBlock && sdgTable) {
+        const rows = Array.from(sdgTable.querySelectorAll('tr')).filter(r => !r.id || r.id !== 'sdg-placeholder');
+        const lines = [];
+        lines.push('PARTIAL_BEGIN:sdg');
+        lines.push('HEADINGS:Sustainable Development Goals (SDG) | SDG | Sustainable Development Goals (SDG) Statements');
+        lines.push('SDG_START');
+        if (rows.length) {
+          rows.forEach((row, index) => {
+            const code = row.querySelector('.sdg-badge')?.textContent?.trim() || row.querySelector('input[name="code[]"]')?.value?.trim() || `SDG${index+1}`;
+            const title = row.querySelector('textarea[name="sdg_titles[]"]')?.value?.trim() || '';
+            const desc  = row.querySelector('textarea[name="sdgs[]"]')?.value?.trim() || '';
+            const t = title.length > 160 ? (title.slice(0,160) + ' …') : title;
+            const d = desc.length  > 320 ? (desc.slice(0,320)   + ' …') : desc;
+            lines.push(`${code}: ${t} | ${d}`);
+          });
+        }
+        lines.push('SDG_END');
+        lines.push('PARTIAL_END:sdg');
+        snapshotParts.push(lines.join('\n'));
+      }
+    } catch(e) { /* ignore SDG fallback errors */ }
+    // Fallback: include TLA block even if not wrapped in .sv-partial
+    try {
+      const hasTlaBlock = snapshotParts.some(s => s.includes('PARTIAL_BEGIN:tla'));
+      const tlaTable = document.getElementById('tlaTable');
+      if (!hasTlaBlock && tlaTable) {
+        const bodyRows = Array.from(tlaTable.querySelectorAll('tbody tr'))
+          .filter(r => r.id !== 'tla-placeholder');
+        const lines = [];
+        lines.push('PARTIAL_BEGIN:tla');
+        lines.push('HEADINGS:Teaching, Learning, and Assessment (TLA) Activities');
+        if (bodyRows.length) {
+          lines.push('TLA_START');
+          bodyRows.forEach((row, index) => {
+            const getVal = (sel) => (row.querySelector(sel)?.value || '').toString().trim();
+            const ch = getVal('[name*="[ch]"]');
+            const topic = getVal('[name*="[topic]"]');
+            const wks = getVal('[name*="[wks]"]');
+            const outcomes = getVal('[name*="[outcomes]"]');
+            const ilo = getVal('[name*="[ilo]"]');
+            const so = getVal('[name*="[so]"]');
+            const delivery = getVal('[name*="[delivery]"]');
+            const clamp = (s, n) => s ? (s.length > n ? s.slice(0,n) + ' …' : s) : '';
+            const t = clamp(topic, 200);
+            const oc = clamp(outcomes, 220);
+            const dv = clamp(delivery, 160);
+            lines.push(`ROW:${index+1} | Ch:${ch} | Wks:${wks} | Topic:${t} | Outcomes:${oc} | ILO:${ilo} | SO:${so} | Delivery:${dv}`);
+          });
+          lines.push('TLA_END');
+        }
+        lines.push('PARTIAL_END:tla');
+        snapshotParts.push(lines.join('\n'));
+      }
+    } catch(e) { /* ignore TLA fallback errors */ }
+    // Fallback: include Course Policies block even if not wrapped in .sv-partial
+    try {
+      const hasPolicies = snapshotParts.some(s => s.includes('PARTIAL_BEGIN:course-policies'));
+      const policiesRoot = document.querySelector('table.course-policies') || document.querySelector('.course-policies');
+      if (!hasPolicies && policiesRoot) {
+        const lines = [];
+        lines.push('PARTIAL_BEGIN:course-policies');
+        lines.push('HEADINGS:Course Policies | Grading System | Class policy | Missed examinations | Academic dishonesty | Dropping | Other course policies and requirements');
+        // Collect the five policy textareas in order
+        const sectionKeys = ['policy','exams','dishonesty','dropping','other'];
+        const labels = {
+          policy: 'Class policy',
+          exams: 'Missed examinations',
+          dishonesty: 'Academic dishonesty',
+          dropping: 'Dropping',
+          other: 'Other course policies and requirements'
+        };
+        const textareas = Array.from(policiesRoot.querySelectorAll('textarea[name="course_policies[]"]'));
+        if (textareas.length) {
+          lines.push('FIELDS_START');
+          for (let i = 0; i < sectionKeys.length; i++) {
+            const key = sectionKeys[i];
+            const ta = textareas[i];
+            const val = (ta && typeof ta.value === 'string') ? ta.value.trim() : '';
+            if (val !== '') {
+              const v = val.length > 800 ? (val.slice(0,800) + ' …') : val;
+              lines.push(`${labels[key]} = ${v}`);
+            }
+          }
+          lines.push('FIELDS_END');
+        }
+        // Add a compact text block (grading table headings and any visible labels)
+        try {
+          const clone = policiesRoot.cloneNode(true);
+          clone.querySelectorAll('style,script,noscript').forEach(el => el.remove());
+          let text = (clone.textContent || '').replace(/\s+/g,' ').trim();
+          if (text && text.length > 1200) text = text.slice(0,1200) + ' …';
+          if (text) {
+            lines.push('TEXT_START');
+            lines.push(text);
+            lines.push('TEXT_END');
+          }
+        } catch(e) { /* ignore text extraction errors */ }
+        lines.push('PARTIAL_END:course-policies');
+        // Prepend to prioritize inclusion before any truncation
+        snapshotParts.unshift(lines.join('\n'));
+      }
+    } catch(e) { /* ignore Course Policies fallback errors */ }
     let full = snapshotParts.join('\n\n');
-    const MAX_SNAPSHOT = 12000;
+    const MAX_SNAPSHOT = 18000;
     if (full.length > MAX_SNAPSHOT) full = full.slice(0, MAX_SNAPSHOT) + '\n[Snapshot truncated]';
-    try { console.debug('[AIChat][snapshot]', { length: full.length }); } catch(e) {}
+    try {
+      const hasSO = full.includes('SO_START');
+      const hasIGA = full.includes('IGA_START');
+      const hasCDIO = full.includes('CDIO_START');
+      const hasSDG = full.includes('SDG_START');
+      const hasPOL = full.includes('PARTIAL_BEGIN:course-policies');
+      const hasPOLBlock = full.includes('POLICIES_START');
+      const hasTLA = full.includes('PARTIAL_BEGIN:tla') && full.includes('TLA_START');
+      console.debug('[AIChat][snapshot]', { length: full.length, hasSO, hasIGA, hasCDIO, hasSDG, hasPOL, hasPOLBlock, hasTLA });
+    } catch(e) {}
     return full;
   }
   function autosizeTextarea(el){
@@ -312,5 +673,8 @@
   }
   document.addEventListener('DOMContentLoaded', init);
   // expose for debugging
-  try { window._aiChat = { sendMessage, appendMsg, sendAssessmentMapPrompt }; } catch(e) {}
+  try {
+    window._aiChat = { sendMessage, appendMsg, sendAssessmentMapPrompt };
+    window._aiChatSnapshot = () => collectFullSnapshot();
+  } catch(e) {}
 })();
