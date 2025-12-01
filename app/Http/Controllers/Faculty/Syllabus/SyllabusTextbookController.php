@@ -11,6 +11,8 @@ use App\Models\Syllabus;
 use App\Models\SyllabusTextbook;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
+use App\Services\TextbookChunkService;
 
 class SyllabusTextbookController extends Controller
 {
@@ -44,6 +46,11 @@ class SyllabusTextbookController extends Controller
                         'original_name' => $file->getClientOriginalName(),
                         'type' => $defaultType,
                     ]);
+
+                    // Attempt lightweight ingestion (docx/txt) into textbook_chunks
+                    try {
+                        app(TextbookChunkService::class)->ingest($path, $textbook->id);
+                    } catch (\Throwable $e) { /* skip */ }
 
                     $uploaded[] = [
                         'id' => $textbook->id,
@@ -124,6 +131,9 @@ class SyllabusTextbookController extends Controller
             if ($textbook->file_path && Storage::disk('public')->exists($textbook->file_path)) {
                 Storage::disk('public')->delete($textbook->file_path);
             }
+
+            // Remove any stored chunks tied to this textbook
+            try { DB::table('textbook_chunks')->where('textbook_id', $textbook->id)->orWhere('source_path', $textbook->file_path)->delete(); } catch (\Throwable $e) { /* skip */ }
 
             $textbook->delete();
 

@@ -366,13 +366,51 @@ document.addEventListener('DOMContentLoaded', function() {
       const backdrops = document.querySelectorAll('.modal-backdrop');
       backdrops.forEach(b => { b.style.zIndex = '20005'; });
     } catch(e) {}
-    const button = event.relatedTarget;
-    const syllabusId = button.getAttribute('data-syllabus-id');
-    const status = button.getAttribute('data-status');
-          const departmentId = button.getAttribute('data-department-id');
-          const programId    = button.getAttribute('data-program-id');
+    const button = event.relatedTarget || null;
+    // Resolve attributes robustly: from trigger, proxy button, or modal dataset
+    const proxyBtn = document.getElementById('syllabusSubmitProxyBtn');
+    const syllabusId = (button && button.getAttribute('data-syllabus-id'))
+                    || (proxyBtn && proxyBtn.getAttribute('data-syllabus-id'))
+                    || modal.getAttribute('data-syllabus-id')
+                    || '';
+    const status = (button && button.getAttribute('data-status'))
+                || (proxyBtn && proxyBtn.getAttribute('data-status'))
+                || modal.getAttribute('data-status')
+                || '';
+    const departmentId = (button && button.getAttribute('data-department-id'))
+                       || (proxyBtn && proxyBtn.getAttribute('data-department-id'))
+                       || modal.getAttribute('data-department-id')
+                       || '';
+    const programId    = (button && button.getAttribute('data-program-id'))
+                       || (proxyBtn && proxyBtn.getAttribute('data-program-id'))
+                       || modal.getAttribute('data-program-id')
+                       || '';
+
+    // Cache on modal for subsequent shows when no relatedTarget is provided
+    try {
+      if (syllabusId) modal.setAttribute('data-syllabus-id', syllabusId);
+      if (status) modal.setAttribute('data-status', status);
+      if (departmentId) modal.setAttribute('data-department-id', departmentId);
+      if (programId) modal.setAttribute('data-program-id', programId);
+    } catch(e) {}
+
+    if (!syllabusId) {
+      // Missing context; show a friendly error instead of endless loading
+      reviewerCardsContainer.innerHTML = '<div class="text-center text-danger py-4 w-100"><small>Missing syllabus context. Close and try again.</small></div>';
+      if (finalApproverCardsContainer) {
+        finalApproverCardsContainer.innerHTML = '<div class="text-center text-danger py-4 w-100"><small>Missing syllabus context. Close and try again.</small></div>';
+      }
+      return;
+    }
 
     syllabusIdInput.value = syllabusId;
+    // Reset loading states for lists every time modal opens
+    if (reviewerCardsContainer) {
+      reviewerCardsContainer.innerHTML = '<div class="text-center text-muted py-4 w-100"><small>Loading reviewers...</small></div>';
+    }
+    if (finalApproverCardsContainer) {
+      finalApproverCardsContainer.innerHTML = '<div class="text-center text-muted py-4 w-100"><small>Loading final approvers...</small></div>';
+    }
 
     // Determine if this is review or approval stage
     const isApprovalStage = status === 'approved';
@@ -434,7 +472,10 @@ document.addEventListener('DOMContentLoaded', function() {
           console.error('Error fetching final approvers:', error);
           finalApproverCardsContainer.innerHTML = '<div class="text-center text-danger py-4 w-100"><small>Error loading final approvers</small></div>';
         }
-      }
+        } else {
+          // No department context – avoid endless loading
+          finalApproverCardsContainer.innerHTML = '<div class="text-center text-muted py-4 w-100"><small>No department found; cannot load final approvers.</small></div>';
+        }
     } else {
       // Review stage (draft, revision)
       modalTitle.textContent = 'Submit for Review';
@@ -443,27 +484,27 @@ document.addEventListener('DOMContentLoaded', function() {
       reviewStageSection.style.display = 'block';
       approvalStageSection.style.display = 'none';
 
-      // Fetch Program/Department Chairperson users from department
-      if (departmentId) {
-        try {
-          const url = new URL(`/faculty/syllabus/${syllabusId}/reviewers`, window.location.origin);
-          url.searchParams.set('department_id', departmentId);
-          if (programId) url.searchParams.set('program_id', programId);
-          const response = await fetch(url);
-          const data = await response.json();
-          
-          reviewerCardsContainer.innerHTML = '';
-          
-          if (data.success) {
-            const filtered = (data.reviewers || []).filter(r => r && r.id !== CURRENT_USER_ID);
-            if (filtered.length > 0) {
+      // Fetch Program/Department Chairperson users (fallback to backend defaults if no dept/program provided)
+      try {
+        const url = new URL(`/faculty/syllabus/${syllabusId}/reviewers`, window.location.origin);
+        if (departmentId) url.searchParams.set('department_id', departmentId);
+        if (programId) url.searchParams.set('program_id', programId);
+        const response = await fetch(url);
+        const data = await response.json();
+
+        reviewerCardsContainer.innerHTML = '';
+
+        if (data && data.success) {
+          const list = Array.isArray(data.reviewers) ? data.reviewers : [];
+          const filtered = list.filter(r => r && r.id !== CURRENT_USER_ID);
+          if (filtered.length > 0) {
             filtered.forEach(reviewer => {
               const card = document.createElement('div');
               card.className = 'reviewer-card';
               card.setAttribute('data-reviewer-id', reviewer.id);
-              card.setAttribute('data-name', reviewer.name.toLowerCase());
+              card.setAttribute('data-name', (reviewer.name || '').toLowerCase());
               card.setAttribute('data-email', (reviewer.email || '').toLowerCase());
-              
+
               card.innerHTML = `
                 <input type="radio" name="reviewer_id" value="${reviewer.id}" id="reviewer_${reviewer.id}" class="reviewer-radio" required>
                 <label for="reviewer_${reviewer.id}" class="reviewer-card-label">
@@ -471,8 +512,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     <i class="bi bi-person"></i>
                   </div>
                   <div class="reviewer-info">
-                    <div class="reviewer-name">${reviewer.name}</div>
-                    <div class="reviewer-role">${reviewer.role_label}</div>
+                    <div class="reviewer-name">${reviewer.name || ''}</div>
+                    <div class="reviewer-role">${reviewer.role_label || ''}</div>
                     ${reviewer.email ? `<div class="reviewer-email">${reviewer.email}</div>` : ''}
                   </div>
                   <div class="reviewer-check">
@@ -482,17 +523,16 @@ document.addEventListener('DOMContentLoaded', function() {
               `;
               reviewerCardsContainer.appendChild(card);
             });
-
-            // Setup search functionality
             setupReviewerSearch();
-            } else {
+          } else {
             reviewerCardsContainer.innerHTML = '<div class="text-center text-muted py-4 w-100"><small>No reviewers available</small></div>';
-            }
           }
-        } catch (error) {
-          console.error('Error fetching reviewers:', error);
-          reviewerCardsContainer.innerHTML = '<div class="text-center text-danger py-4 w-100"><small>Error loading reviewers</small></div>';
+        } else {
+          reviewerCardsContainer.innerHTML = '<div class="text-center text-danger py-4 w-100"><small>Failed to load reviewers</small></div>';
         }
+      } catch (error) {
+        console.error('Error fetching reviewers:', error);
+        reviewerCardsContainer.innerHTML = '<div class="text-center text-danger py-4 w-100"><small>Error loading reviewers</small></div>';
       }
     }
   });

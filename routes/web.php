@@ -7,6 +7,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Faculty\AuthController as FacultyAuthController;
+use App\Http\Controllers\AIChatController;
 
 // ------------------------------------------------
 // Redirect root to Super Admin login
@@ -14,6 +15,11 @@ use App\Http\Controllers\Faculty\AuthController as FacultyAuthController;
 Route::get('/', function () {
     return redirect()->route('superladmin.login.form');
 });
+
+// ------------------------------------------------
+// AI Chat endpoint (faculty syllabus contextual suggestions)
+// ------------------------------------------------
+Route::post('/faculty/syllabi/{syllabus}/ai-chat', [AIChatController::class, 'chat'])->name('faculty.syllabi.ai.chat');
 
 // ------------------------------------------------
 // Generic login route (for Laravel default authentication redirects)

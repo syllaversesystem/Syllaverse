@@ -19,7 +19,13 @@
           --sv-bdr:  #E3E3E3;
           --sv-acct: #EE6F57;
           --sv-danger:#CB3737;
+          /* Ensure modal stacks above backdrop and any page overlays */
+          z-index: 2000 !important;
         }
+        /* Ensure Bootstrap backdrop sits below our modal */
+        .modal-backdrop.show { z-index: 1990 !important; }
+        /* Extra safety: keep dialog above backdrop and surrounding UI */
+        #selectSyllabusMetaModal .modal-dialog { z-index: 2001; }
         #selectSyllabusMetaModal .modal-header {
           border-bottom: 1px solid var(--sv-bdr);
           background: var(--sv-bg);
@@ -422,6 +428,12 @@
       <script>
         // Phase toggle logic: ensure Cancel (phase1Footer) hidden during phase 2
         document.addEventListener('DOMContentLoaded', function() {
+          // Ensure the modal lives under <body> to avoid stacking-context issues
+          const createModalRoot = document.getElementById('selectSyllabusMetaModal');
+          if (createModalRoot && createModalRoot.parentElement !== document.body) {
+            document.body.appendChild(createModalRoot);
+          }
+
           const nextBtn = document.getElementById('nextPhaseBtn');
           const backBtn = document.getElementById('backPhaseBtn');
           const phase1 = document.getElementById('phase1');

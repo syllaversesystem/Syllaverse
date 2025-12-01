@@ -55,6 +55,14 @@
       @endif
 
       @if(!$isLockedSubmitted)
+      <!-- AI Assist button (opens floating overlay) -->
+      <button class="btn btn-outline-secondary d-flex flex-column align-items-center gap-1 toolbar-btn mt-3" type="button" id="syllabusAiBtn" title="AI Assist" aria-haspopup="true" aria-expanded="false" aria-controls="syllabusAiPanel">
+        <i class="bi bi-stars fs-5"></i>
+        <span class="small">AI Assist</span>
+      </button>
+      @endif
+
+      @if(!$isLockedSubmitted)
       <!-- Settings button + floating overlay panel (no dropdown wrapper) -->
       <button class="btn btn-outline-secondary d-flex flex-column align-items-center gap-1 toolbar-btn mt-3" type="button" id="syllabusSettingsBtn" title="Settings">
         <i class="bi bi-gear fs-5"></i>
@@ -95,8 +103,8 @@
 <button type="button" id="syllabusSubmitProxyBtn" class="d-none" data-bs-toggle="modal" data-bs-target="#submitSyllabusModal"></button>
 <!-- Include submit modal so submit button works on this page -->
 @includeIf('faculty.syllabus.modals.submit')
-{{-- Right-side review toolbar (fixed on page right) --}}
-@if(!$isDraft && (!$isLockedSubmitted || $reviewMode))
+{{-- Right-side toolbar (review/comments/AI). Show when not locked or in review. --}}
+@if((!$isLockedSubmitted) || $reviewMode)
   @include('faculty.syllabus.partials.toolbar-syllabus')
 @endif
 @if($reviewMode)
@@ -581,7 +589,8 @@
     // -----------------------------
     // Non-review mode: toggle right toolbar to view reviewer comments (read-only)
     // -----------------------------
-    if (!isReview && !isDraft && !isLockedSubmitted) {
+    // Viewer mode (non-review, not locked): enable smart right-toolbar (comments/AI)
+    if (!isReview && !isLockedSubmitted) {
       const toggleBtn = document.getElementById('syllabusCommentsToggleBtn');
       const rightBar = document.querySelector('.syllabus-right-toolbar');
       const commentsEl = rightBar ? rightBar.querySelector('#svReviewComments') : null;
@@ -589,14 +598,72 @@
       const docEl = document.getElementById('syllabus-document');
       const countBadge = document.getElementById('comments-count-badge');
       const submitBtn = document.getElementById('syllabusSubmitBtn');
+      const aiBtn = document.getElementById('syllabusAiBtn');
+      const commentSection = rightBar ? rightBar.querySelector('.sv-toolbar-comment-section') : null;
+      const aiSection = rightBar ? rightBar.querySelector('#svAiChatSection') : null;
+      // Initialize: hide toolbar in viewer mode
       if (rightBar) {
         rightBar.style.display = 'none';
         rightBar.classList.add('viewer-only');
         const handle = rightBar.querySelector('.right-resize-handle');
         if (handle) handle.style.display = 'none';
       }
-      if (docEl) {
-        try { docEl.style.setProperty('--right-toolbar-w', '0px'); } catch(e) {}
+      if (docEl) { try { docEl.style.setProperty('--right-toolbar-w', '0px'); } catch(e) {} }
+
+      function setToolbarVisible(visible){
+        if (!rightBar) return;
+        rightBar.style.display = visible ? 'flex' : 'none';
+        const w =  Math.max(240, parseInt((() => { try { return localStorage.getItem('sv_right_toolbar_w') || '300'; } catch(e){ return '300'; } })(), 10) || 300);
+        if (visible) {
+          rightBar.style.width = w + 'px';
+          if (docEl) { try { docEl.style.setProperty('--right-toolbar-w', w + 'px'); } catch(e) {} }
+          const handle = rightBar.querySelector('.right-resize-handle');
+          if (handle) handle.style.display = 'block';
+          // ensure resize initialized once
+          try { initViewerResize(); } catch(e) {}
+        } else {
+          if (docEl) { try { docEl.style.setProperty('--right-toolbar-w', '0px'); } catch(e) {} }
+          const handle = rightBar.querySelector('.right-resize-handle');
+          if (handle) handle.style.display = 'none';
+        }
+      }
+      function setActiveStates(mode){
+        if (toggleBtn) toggleBtn.classList.toggle('active', mode === 'comments');
+        if (aiBtn) aiBtn.classList.toggle('active', mode === 'ai');
+        if (toggleBtn) toggleBtn.setAttribute('aria-expanded', String(mode === 'comments'));
+        if (aiBtn) aiBtn.setAttribute('aria-expanded', String(mode === 'ai'));
+      }
+      function persistMode(mode){
+        try { localStorage.setItem('sv_right_toolbar_mode_' + (syllabusId || 'default'), mode); } catch(e) {}
+      }
+      function getPersistedMode(){
+        try { return localStorage.getItem('sv_right_toolbar_mode_' + (syllabusId || 'default')) || ''; } catch(e){ return ''; }
+      }
+      function showMode(mode){
+        if (!rightBar) return;
+        if (mode === 'ai') {
+          if (commentSection) commentSection.style.display = 'none';
+          if (aiSection) aiSection.style.display = '';
+          rightBar.dataset.mode = 'ai';
+          // ensure chat scrolls to bottom when shown
+          try {
+            const wrap = document.getElementById('svAiChatMessages');
+            if (wrap) wrap.scrollTop = wrap.scrollHeight;
+          } catch(e) {}
+        } else {
+          if (aiSection) aiSection.style.display = 'none';
+          if (commentSection) commentSection.style.display = '';
+          rightBar.dataset.mode = 'comments';
+        }
+        setActiveStates(mode);
+        persistMode(mode);
+      }
+      function toggleMode(mode){
+        const visible = rightBar && getComputedStyle(rightBar).display !== 'none';
+        const cur = rightBar?.dataset.mode || '';
+        if (!visible) { setToolbarVisible(true); showMode(mode); return; }
+        if (cur === mode) { setToolbarVisible(false); setActiveStates(''); return; }
+        showMode(mode);
       }
       function humanize(key){ return (key || '').replace(/-/g,' ').replace(/\b\w/g,m=>m.toUpperCase()); }
       function getCsrfToken() { const meta = document.querySelector('meta[name="csrf-token"]'); return meta ? meta.getAttribute('content') : ''; }
@@ -713,30 +780,10 @@
       }
 
       if (toggleBtn && rightBar) {
-        toggleBtn.addEventListener('click', function(){
-          const isHidden = rightBar.style.display === 'none';
-          rightBar.style.display = isHidden ? 'flex' : 'none';
-          if (isHidden) {
-            // set width and document padding when showing
-            let w = parseInt((() => { try { return localStorage.getItem('sv_right_toolbar_w') || '300'; } catch(e){ return '300'; } })(), 10);
-            if (isNaN(w) || w <= 0) { w = rightBar.getBoundingClientRect().width || 300; }
-            rightBar.style.width = w + 'px';
-            if (docEl) { try { docEl.style.setProperty('--right-toolbar-w', w + 'px'); } catch(e) {} }
-            // show resize handle and enable viewer resize
-            const handle = rightBar.querySelector('.right-resize-handle');
-            if (handle) { handle.style.display = 'block'; }
-            initViewerResize();
-            loadComments();
-          } else {
-            // remove reserved space when hiding
-            if (docEl) { try { docEl.style.setProperty('--right-toolbar-w', '0px'); } catch(e) {} }
-            const handle = rightBar.querySelector('.right-resize-handle');
-            if (handle) { handle.style.display = 'none'; }
-          }
-          toggleBtn.classList.toggle('active', isHidden);
-        });
-        // Refresh count whenever toggled open
-        // handled inside click handler using local isHidden
+        toggleBtn.addEventListener('click', function(){ toggleMode('comments'); if (rightBar && getComputedStyle(rightBar).display !== 'none') { initViewerResize(); loadComments(); } });
+      }
+      if (aiBtn && rightBar) {
+        aiBtn.addEventListener('click', function(){ toggleMode('ai'); });
       }
       if (submitBtn) {
         submitBtn.addEventListener('click', submitForReview);
@@ -825,8 +872,10 @@
       window.addEventListener('resize', function(){ if (isOpen()) positionPanel(); });
       document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closePanel(); });
     } catch(e) { console.warn('IGA toggle init failed', e); }
-    // Draft mode: ensure right toolbar never shows (safety) and skip comment logic
-    if (isDraft || (isLockedSubmitted && !isReview)) {
+
+    // AI chat initialization moved to standalone module (syllabus-ai-chat.js)
+    // Hide right toolbar only when locked-submitted outside review
+    if (isLockedSubmitted && !isReview) {
       const rt = document.querySelector('.syllabus-right-toolbar');
       if (rt) rt.remove();
     }
@@ -1088,6 +1137,20 @@
   .sv-settings-panel .form-check-input { background-color: #E8E8E8; border-color: #CCCCCC; }
   .sv-settings-panel .form-check-input:checked { background-color: #6C757D; border-color: #6C757D; }
   .sv-settings-panel .form-check-input:focus { border-color: #999; box-shadow: 0 0 0 0.25rem rgba(108,117,125,.25); }
+
+  /* Floating AI panel */
+  .sv-ai-panel {
+    position: fixed;
+    top: 0; left: 0;
+    min-width: 240px;
+    background: #fff;
+    border: 1px solid #E3E3E3;
+    border-radius: 12px;
+    padding: 10px 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.08), 0 2px 12px rgba(0,0,0,.06);
+    z-index: 20060;
+    display: none;
+  }
   /* Ensure comments badge becomes visible when count > 0 */
   #syllabusCommentsToggleBtn { position: relative; }
   /* Absolute, top-right yellow badge with black text */
@@ -1294,6 +1357,92 @@
   }
   .syllabus-doc { position: static !important; z-index: auto !important; }
   /* (Removed) Left toolbar resize handle and drag shield */
+  
+  /* AI Chat (right toolbar) */
+  .sv-toolbar-ai-section { display:flex; flex-direction:column; gap:8px; flex:1 1 auto; min-height:0; }
+  .sv-ai-header { border-bottom:1px solid #e6e9ed; padding:6px 4px; }
+  .sv-ai-title { font-size:.92rem; font-weight:600; color:#333; }
+  .sv-ai-chat { flex:1 1 auto; min-height:0; overflow:auto; padding:8px 4px; display:flex; flex-direction:column; gap:8px; }
+  .sv-ai-input { border-top:1px solid #e6e9ed; padding:8px 6px; }
+  .sv-ai-input-group {
+    background:#fff;
+    border:1px solid #e6e9ed;
+    border-radius:10px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+    padding:4px;
+    gap:6px;
+    align-items:center;
+  }
+  .sv-ai-input-group .input-group-text {
+    border:none;
+    background:transparent;
+    padding:0 .35rem;
+    color:#6b7280;
+    display:flex;
+    align-items:center;
+  }
+  .sv-ai-input-group .input-group-text i { font-size:1rem; }
+  .sv-ai-input-group .form-control {
+    border:none;
+    border-radius:8px;
+    background:#fafafa;
+    padding:.5rem .65rem;
+    font-size:.9rem;
+    color:#2c2c2c;
+  }
+  .sv-ai-input-group .form-control::placeholder { color:#8a8f98; }
+  .sv-ai-input-group .form-control:focus {
+    outline:none;
+    box-shadow: 0 0 0 2px rgba(59,130,246,0.18);
+    background:#fff;
+  }
+  .sv-ai-input-group .btn {
+    border-radius:8px;
+    padding:.45rem .6rem;
+    font-weight:600;
+    box-shadow: 0 4px 12px rgba(220,53,69,0.2);
+  }
+  .sv-ai-input-group .btn i { font-size:1rem; }
+  .sv-ai-input-group .btn:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(220,53,69,0.25); }
+  .sv-ai-input-group .btn:active { transform: translateY(0); box-shadow: 0 3px 10px rgba(220,53,69,0.18); }
+  .sv-ai-textarea { resize: none; min-height: 2.25rem; max-height: 10rem; overflow-y: hidden; }
+  
+  .sv-ai-msg { display:flex; width:100%; }
+  .sv-ai-msg.user { justify-content:flex-end; }
+  .sv-ai-msg.ai { justify-content:flex-start; }
+  .sv-ai-msg .bubble {
+    max-width:85%;
+    padding:8px 10px;
+    border-radius:12px;
+    font-size:.86rem;
+    line-height:1.35;
+    word-break:break-word;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .sv-ai-msg.user .bubble { background:#fff5f5; border:1px solid #ffd6d9; color:#3b3b3b; }
+  .sv-ai-msg.ai .bubble { background:#ffffff; border:1px solid #e6e9ed; color:#2c2c2c; }
+  .sv-ai-msg.loading .bubble { background:#f1f5f9; border:1px solid #e2e8f0; color:#556070; animation: svPulse 1.2s ease-in-out infinite; }
+  .sv-ai-msg.error .bubble { background:#fff5f5; border:1px solid #f8b4b4; color:#b91c1c; }
+  /* Formatted AI content */
+  .sv-ai-msg.ai .bubble h2, .sv-ai-msg.ai .bubble h3, .sv-ai-msg.ai .bubble h4 { font-size:.78rem; font-weight:600; margin:.25rem 0 .35rem; color:#1e293b; }
+  .sv-ai-msg.ai .bubble h2 { font-size:.82rem; }
+  .sv-ai-msg.ai .bubble ul, .sv-ai-msg.ai .bubble ol { padding-left:1.05rem; margin:.35rem 0 .5rem; }
+  .sv-ai-msg.ai .bubble ul { list-style:disc; }
+  .sv-ai-msg.ai .bubble ol { list-style:decimal; }
+  .sv-ai-msg.ai .bubble li { margin:0 0 .25rem; line-height:1.3; }
+  .sv-ai-msg.ai .bubble p { margin:0 0 .5rem; }
+  .sv-ai-msg.ai .bubble code { background:#f1f5f9; padding:2px 4px; border-radius:4px; font-size:.75rem; font-family:Menlo,Consolas,monospace; color:#334155; }
+  .sv-ai-msg.ai .bubble pre { background:#f8fafc; border:1px solid #e2e8f0; padding:.55rem .7rem; border-radius:8px; overflow:auto; font-size:.72rem; line-height:1.25; margin:.45rem 0 .6rem; }
+  .sv-ai-msg.ai .bubble pre code { background:transparent; padding:0; border:none; }
+  .sv-ai-msg.ai .bubble strong { font-weight:600; }
+  .sv-ai-msg.ai .bubble em { font-style:italic; }
+  .sv-ai-msg.ai .bubble .sv-ai-table-wrap { overflow-x:auto; margin:.4rem 0 .6rem; }
+  .sv-ai-msg.ai .bubble table.sv-ai-table { border-collapse:collapse; width:100%; min-width:520px; font-size:.7rem; background:#fff; }
+  .sv-ai-msg.ai .bubble table.sv-ai-table thead th { background:#f1f5f9; font-weight:600; color:#1e293b; }
+  .sv-ai-msg.ai .bubble table.sv-ai-table th, .sv-ai-msg.ai .bubble table.sv-ai-table td { padding:.4rem .5rem; border:1px solid #e2e8f0; text-align:left; vertical-align:top; }
+  .sv-ai-msg.ai .bubble table.sv-ai-table tbody tr:nth-child(even) { background:#f8fafc; }
+  @keyframes svPulse { 0% { opacity:.55; } 50% { opacity:1; } 100% { opacity:.55; } }
+
   @media (max-width: 768px) {
     /* Keep three-column layout even on small screens; allow inner scrolls */
     .syllabus-vertical-toolbar { border-right:1px solid #e2e5e9; }

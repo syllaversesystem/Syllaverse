@@ -49,6 +49,7 @@ export default defineConfig({
                 'resources/js/faculty/syllabus-cdio.js',
                 'resources/js/faculty/syllabus-create.js',
                 'resources/js/faculty/syllabus-status.js',
+                'resources/js/faculty/syllabus-ai-chat.js',
 
                 // Faculty Master Data JS
                 'resources/js/faculty/master-data/so.js',

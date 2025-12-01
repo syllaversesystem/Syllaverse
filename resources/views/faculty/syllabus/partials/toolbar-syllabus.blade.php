@@ -3,9 +3,24 @@
 
   <!-- Header removed per request: selected partial title and color tag no longer shown -->
 
-  <!-- Comment Section (content removed per request) -->
+  <!-- Comment Section (default) -->
   <div class="sv-toolbar-comment-section">
     <div class="sv-review-comments" id="svReviewComments" aria-live="polite"></div>
+  </div>
+
+  <!-- AI Chat Section (hidden by default; toggled by AI button) -->
+  <div class="sv-toolbar-ai-section" id="svAiChatSection" style="display:none;">
+    <div class="sv-ai-header d-flex align-items-center justify-content-between mb-1">
+      <div class="sv-ai-title"><i class="bi bi-stars me-1"></i> AI Assist</div>
+    </div>
+    <div class="sv-ai-chat" id="svAiChatMessages" aria-live="polite"></div>
+    <div class="sv-ai-input">
+      <div class="input-group input-group-sm sv-ai-input-group">
+        <span class="input-group-text" aria-hidden="true"><i class="bi bi-stars"></i></span>
+        <textarea id="svAiChatInput" class="form-control sv-ai-textarea" rows="1" placeholder="Ask AI about this syllabus..." aria-label="AI chat input"></textarea>
+        <button class="btn btn-danger" type="button" id="svAiChatSend" aria-label="Send AI message"><i class="bi bi-send-fill"></i></button>
+      </div>
+    </div>
   </div>
 
   @if(!empty($reviewMode))
