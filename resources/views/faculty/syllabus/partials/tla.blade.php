@@ -25,6 +25,15 @@
     /* Remove previous yellow focus effect; keep neutral focus */
     .tla-partial #tlaTable textarea.cis-textarea.cis-field:focus { background:transparent !important; outline:none !important; box-shadow:none !important; }
     .tla-partial #tlaTable input.cis-input { height:28px; }
+    /* Remove padding from specific column inputs for compact layout */
+    .tla-partial #tlaTable td.tla-ch input.form-control,
+    .tla-partial #tlaTable td.tla-wks input.form-control,
+    .tla-partial #tlaTable td.tla-ilo input.form-control,
+    .tla-partial #tlaTable td.tla-so input.form-control,
+    .tla-partial #tlaTable td.tla-delivery input.form-control,
+    .tla-partial #tlaTable td.tla-delivery textarea.form-control {
+      padding: 0 !important;
+    }
     /* Icon-only header buttons styled like ILO/SDG circular actions */
     .tla-header-actions .btn {
       position: relative; padding: 0 !important;
@@ -43,17 +52,24 @@
       color: #CB3737;
     }
     .tla-header-actions .btn:active { transform: scale(.97); filter: brightness(.98); }
+    /* Make Actions column fit its button (minimal width) */
+    .tla-partial #tlaTable td.tla-actions,
+    .tla-partial #tlaTable th.tla-actions {
+      width: 1%;
+      white-space: nowrap;
+    }
+    .tla-partial #tlaTable td.tla-actions { padding-left: .25rem !important; padding-right: .25rem !important; }
   </style>
   <table class="table table-bordered mb-4 cis-table" id="tlaTable" style="width: 100%; margin: 0;">
     <colgroup>
       <col style="width:4%">
-      <col style="width:36%">
+      <col style="width:32%">
       <col style="width:6%">
-      <col style="width:30%">
+      <col style="width:26%">
       <col style="width:6%">
       <col style="width:6%">
-      <col style="width:8%">
-      <col style="width:4%">
+      <col style="width:12%">
+      <col>
     </colgroup>
     <thead>
       <tr>
@@ -72,13 +88,13 @@
       </tr>
       <tr class="table-light align-middle">
         <th class="text-center" style="width: 4%;">Ch.</th>
-        <th class="text-start" style="width: 36%;">Topics / Reading List</th>
+        <th class="text-start" style="width: 32%;">Topics / Reading List</th>
         <th class="text-center" style="width: 6%;">Wks.</th>
-        <th class="text-center" style="width: 30%;">Topic Outcomes</th>
+        <th class="text-center" style="width: 26%;">Topic Outcomes</th>
         <th class="text-center" style="width: 6%;">ILO</th>
         <th class="text-center" style="width: 6%;">SO</th>
-        <th class="text-center" style="width: 8%;">Delivery Method</th>
-        <th class="text-center" style="width: 4%;"></th>
+        <th class="text-center" style="width: 12%;">Delivery Method</th>
+        <th class="text-center tla-actions"></th>
       </tr>
     </thead>
     <tbody>
@@ -130,7 +146,7 @@
               <input name="tla[{{ $i }}][so]" form="syllabusForm" class="form-control cis-input text-center" value="{{ $so }}" placeholder="-">
             </td>
             <td class="tla-delivery">
-              <input name="tla[{{ $i }}][delivery]" form="syllabusForm" class="form-control cis-input" value="{{ $delivery }}" placeholder="-">
+              <textarea name="tla[{{ $i }}][delivery]" form="syllabusForm" class="form-control cis-textarea autosize cis-field" rows="1" placeholder="-">{{ $delivery }}</textarea>
             </td>
             <td class="tla-actions text-center">
               <button type="button" class="btn btn-sm btn-outline-danger remove-tla-row" data-id="{{ $id }}" title="Delete Row">
