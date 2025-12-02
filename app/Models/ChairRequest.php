@@ -22,6 +22,8 @@ class ChairRequest extends Model
     public const ROLE_DEPT = 'DEPT_CHAIR';
     // New identifier for Department Head requests
     public const ROLE_DEPT_HEAD = 'DEPT_HEAD';
+    // New simplified identifier for Chairperson
+    public const ROLE_CHAIR = 'CHAIR';
     // Program-level chair (assigned when a department has only one program)
     public const ROLE_PROG = 'PROG_CHAIR';
     // Central/institution-level roles (no department/program scope)
@@ -66,7 +68,7 @@ class ChairRequest extends Model
     public function scopeForProgram($q, int $id){ return $q->where('program_id', $id); }
 
     // Helpers
-    public function isDeptRequest(): bool { return in_array($this->requested_role, [self::ROLE_DEPT, self::ROLE_DEPT_HEAD], true); }
+    public function isDeptRequest(): bool { return in_array($this->requested_role, [self::ROLE_DEPT, self::ROLE_DEPT_HEAD, self::ROLE_CHAIR], true); }
     public function isProgRequest(): bool { return $this->requested_role === self::ROLE_PROG; }
     public function isInstitutionRequest(): bool
     {

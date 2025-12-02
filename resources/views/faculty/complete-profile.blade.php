@@ -23,11 +23,99 @@
 
   {{-- ░░░ START: Minimal page styles (palette-aware) ░░░ --}}
   <style>
+    :root {
+      --sv-bg: #FAFAFA;
+      --sv-bdr: #E3E3E3;
+      --sv-acct: #EE6F57;
+      --sv-danger: #CB3737;
+    }
     body { background:#FAFAFA; }
     .sv-step { width:32px;height:32px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;background:#E3E3E3;color:#333;font-weight:600; }
     .sv-step-active { background:#CB3737;color:#fff; }
     .sv-step-disabled { background:#E3E3E3;color:#aaa; }
     .sv-step-pane[hidden]{ display:none!important; }
+
+    /* Scoped to Complete Profile page to mirror add-program modal UI */
+    #svCompleteProfile .form-control,
+    #svCompleteProfile .form-select {
+      border-color: var(--sv-bdr);
+      border-radius: 12px;
+      background: #fff;
+    }
+    #svCompleteProfile .form-control:focus,
+    #svCompleteProfile .form-select:focus {
+      border-color: var(--sv-acct);
+      box-shadow: 0 0 0 .2rem rgb(238 111 87 / 15%);
+      outline: none;
+    }
+
+    /* Buttons styled like add-program modal */
+    #svCompleteProfile .btn-danger {
+      background: var(--sv-card-bg, #fff);
+      border: none;
+      color: #000;
+      transition: all 0.2s ease-in-out;
+      box-shadow: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      border-radius: 0.375rem;
+    }
+    #svCompleteProfile .btn-danger:hover,
+    #svCompleteProfile .btn-danger:focus {
+      background: linear-gradient(135deg, rgba(235,235,235,.88), rgba(250,250,250,.46));
+      backdrop-filter: blur(7px);
+      -webkit-backdrop-filter: blur(7px);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+      color: #000;
+    }
+    #svCompleteProfile .btn-danger:active {
+      background: linear-gradient(135deg, rgba(240,242,245,.98), rgba(255,255,255,.62));
+      box-shadow: 0 1px 8px rgba(0,0,0,.16);
+      color: #000;
+    }
+
+    #svCompleteProfile .btn-light {
+      background: var(--sv-card-bg, #fff);
+      border: none;
+      color: #000;
+      transition: all 0.2s ease-in-out;
+      box-shadow: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      border-radius: 0.375rem;
+    }
+    #svCompleteProfile .btn-light:hover,
+    #svCompleteProfile .btn-light:focus {
+      background: linear-gradient(135deg, rgba(220,220,220,.88), rgba(240,240,240,.46));
+      backdrop-filter: blur(7px);
+      -webkit-backdrop-filter: blur(7px);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+      color: #000;
+    }
+    #svCompleteProfile .btn-light:active {
+      background: linear-gradient(135deg, rgba(240,242,245,.98), rgba(255,255,255,.62));
+      box-shadow: 0 1px 8px rgba(0,0,0,.16);
+      color: #000;
+    }
+
+    /* Role checkbox accent color → dark grey */
+    #svCompleteProfile .form-check-input {
+      accent-color: #495057;
+    }
+    #svCompleteProfile .form-check-input:checked {
+      background-color: #495057;
+      border-color: #495057;
+    }
+    #svCompleteProfile .form-check-input:focus {
+      border-color: #495057;
+      box-shadow: 0 0 0 .2rem rgb(73 80 87 / 20%);
+      outline: none;
+    }
+    #svCompleteProfile .form-check-label { color: #343a40; }
   </style>
   {{-- ░░░ END: Minimal page styles ░░░ --}}
 </head>
@@ -45,7 +133,7 @@
 
   {{-- ░░░ END: Header ░░░ --}}
 
-  <main class="container py-4 py-md-5">
+  <main id="svCompleteProfile" class="container py-4 py-md-5">
 
     {{-- ░░░ START: Page Title + Alerts ░░░ --}}
     <div class="mb-3">
@@ -87,12 +175,13 @@
                       <td>
                         @php
                           $roleLabel = match ($r->requested_role) {
-                            \App\Models\ChairRequest::ROLE_DEPT => 'Department Head',
-                            \App\Models\ChairRequest::ROLE_DEPT_HEAD => 'Department Head',
+                            \App\Models\ChairRequest::ROLE_DEPT => 'Chairperson',
+                            \App\Models\ChairRequest::ROLE_DEPT_HEAD => 'Department Head (Dean/Head/Principal)',
+                            \App\Models\ChairRequest::ROLE_CHAIR => 'Chairperson',
                             \App\Models\ChairRequest::ROLE_PROG => 'Program Chair',
                             \App\Models\ChairRequest::ROLE_VCAA => 'Vice Chancellor for Academic Affairs (VCAA)',
                             \App\Models\ChairRequest::ROLE_ASSOC_VCAA => 'Associate VCAA',
-                            \App\Models\ChairRequest::ROLE_DEAN => 'Dean',
+                            \App\Models\ChairRequest::ROLE_DEAN => 'Department Head (Dean/Head/Principal)',
                             \App\Models\ChairRequest::ROLE_ASSOC_DEAN => 'Associate Dean',
                             \App\Models\ChairRequest::ROLE_FACULTY => 'Faculty',
                             default => $r->requested_role,
@@ -161,12 +250,16 @@
 
           {{-- ░░░ START: Step 1 – Profile & Employment ░░░ --}}
           <section id="svStep1" class="sv-step-pane">
-            <h6 class="text-muted mb-3">Basic Information</h6>
+            <h6 class="text-muted mb-2">Basic Information</h6>
+            <div class="text-muted small mb-3">
+              <i class="bi bi-info-circle me-1"></i>
+              You can edit these details the way you prefer — they will be used to personalize generated syllabus content.
+            </div>
                 <div class="row g-3">
                     {{-- Name --}}
                     <div class="col-md-6">
                         <label for="svName" class="form-label">Full Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control @error('name') is-invalid @enderror" id="svName" name="name" value="{{ old('name', $user->name) }}" required>
+                      <input type="text" class="form-control @error('name') is-invalid @enderror" id="svName" name="name" value="{{ old('name', $user->name) }}" placeholder="e.g., Juan Dela Cruz" required>
                         @error('name')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -175,7 +268,7 @@
                     {{-- Email --}}
                     <div class="col-md-6">
                         <label for="svEmail" class="form-label">Email <span class="text-danger">*</span></label>
-                        <input type="email" class="form-control @error('email') is-invalid @enderror" id="svEmail" name="email" value="{{ old('email', $user->email) }}" required>
+                        <input type="email" class="form-control @error('email') is-invalid @enderror" id="svEmail" name="email" value="{{ old('email', $user->email) }}" placeholder="22-12345@g.batstate-u.edu.ph" required>
                         @error('email')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -184,7 +277,7 @@
                     {{-- Designation --}}
                     <div class="col-md-6">
                         <label for="svDesignation" class="form-label">Designation <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control @error('designation') is-invalid @enderror" id="svDesignation" name="designation" value="{{ old('designation', $user->designation) }}" required>
+                      <input type="text" class="form-control @error('designation') is-invalid @enderror" id="svDesignation" name="designation" value="{{ old('designation', $user->designation) }}" placeholder="e.g., Assistant Professor" required>
                         @error('designation')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -193,7 +286,7 @@
                     {{-- Employee Code --}}
                     <div class="col-md-6">
                         <label for="svEmployeeCode" class="form-label">Employee Code <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control @error('employee_code') is-invalid @enderror" id="svEmployeeCode" name="employee_code" value="{{ old('employee_code', $user->employee_code) }}" required>
+                        <input type="text" class="form-control @error('employee_code') is-invalid @enderror" id="svEmployeeCode" name="employee_code" value="{{ old('employee_code', $user->employee_code) }}" placeholder="22-12345" required>
                         @error('employee_code')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -201,7 +294,10 @@
                 </div>
 
             <div class="d-flex justify-content-end mt-4">
-              <button type="button" class="btn btn-danger" id="svNextToStep2" {{ $hasPendingRequests ? 'disabled' : '' }}>Next</button>
+              <button type="button" class="btn btn-danger" id="svNextToStep2" {{ $hasPendingRequests ? 'disabled' : '' }}>
+                <i class="bi bi-chevron-right"></i>
+                Next
+              </button>
             </div>
           </section>
           {{-- ░░░ END: Step 1 – Profile & Employment ░░░ --}}
@@ -218,6 +314,10 @@
   {{-- Leadership Role Requests --}}
   <div class="mb-4">
     <h6 class="text-muted mb-3">Request Leadership Roles</h6>
+    <div class="text-muted small mb-3">
+      <i class="bi bi-info-circle me-1"></i>
+      Select any leadership role to request approval. Choosing a leadership role will disable the separate Faculty request. You'll need to pick a department for leadership requests.
+    </div>
     
     {{-- Department-Specific Leadership --}}
     <div class="card border-0 bg-light mb-4">
@@ -228,6 +328,40 @@
         <p class="text-muted small mb-3">These roles manage and oversee a specific department</p>
         
         <div class="row g-3 mb-3">
+             <div class="col-md-6">
+               <div class="form-check">
+                 <input class="form-check-input" 
+                        type="checkbox" 
+                        id="request_dean" 
+                        name="request_dean" 
+                        value="1" 
+                        {{ old('request_dean') ? 'checked' : '' }}
+                        {{ $hasPendingRequests ? 'disabled' : '' }}>
+                 <label class="form-check-label fw-semibold text-dark" for="request_dean">
+                   Department Head (Dean/Head/Principal)
+                 </label>
+                 <div class="form-text small text-muted">Leads and oversees the department</div>
+               </div>
+             </div>
+
+             <div class="col-md-6">
+               <div class="form-check">
+                 <input class="form-check-input" 
+                        type="checkbox" 
+                         id="request_assoc_dean" 
+                         name="request_assoc_dean" 
+                         value="1" 
+                         {{ old('request_assoc_dean') ? 'checked' : '' }}
+                        {{ $hasPendingRequests ? 'disabled' : '' }}>
+                 <label class="form-check-label fw-semibold text-dark" for="request_assoc_dean">
+                   Associate Dean
+                 </label>
+                 <div class="form-text small text-muted">Assists the Dean in departmental operations</div>
+               </div>
+             </div>
+        </div>
+
+        <div class="row g-3 mb-3">
           <div class="col-md-6">
             <div class="form-check">
               <input class="form-check-input" 
@@ -237,43 +371,11 @@
                      value="1" 
                      {{ old('request_dept_head') ? 'checked' : '' }}
                      {{ $hasPendingRequests ? 'disabled' : '' }}>
-              <label class="form-check-label fw-semibold" for="request_dept_head">
-                Department Chairperson
+              <label class="form-check-label fw-semibold text-dark" for="request_dept_head">
+                Chairperson
               </label>
               <div class="form-text small text-muted">Leads department operations and faculty</div>
             </div>
-          </div>
-          
-          <div class="col-md-6">
-            <div class="form-check">
-              <input class="form-check-input" 
-                     type="checkbox" 
-                     id="request_dean" 
-                     name="request_dean" 
-                     value="1" 
-                     {{ old('request_dean') ? 'checked' : '' }}
-                     {{ $hasPendingRequests ? 'disabled' : '' }}>
-              <label class="form-check-label fw-semibold" for="request_dean">
-                Dean
-              </label>
-              <div class="form-text small text-muted">Leads and oversees the department</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="col-md-6">
-          <div class="form-check">
-            <input class="form-check-input" 
-                   type="checkbox" 
-                   id="request_assoc_dean" 
-                   name="request_assoc_dean" 
-                   value="1" 
-                   {{ old('request_assoc_dean') ? 'checked' : '' }}
-                   {{ $hasPendingRequests ? 'disabled' : '' }}>
-            <label class="form-check-label fw-semibold" for="request_assoc_dean">
-              Associate Dean
-            </label>
-            <div class="form-text small text-muted">Assists the Dean in departmental operations</div>
           </div>
         </div>
 
@@ -319,9 +421,9 @@
         </h6>
         <p class="text-muted small mb-3">Standard teaching and research position</p>
         
-        <div class="alert alert-info py-2 px-3 mb-3" style="font-size: 0.875rem;">
+        <div class="text-muted small mb-3">
           <i class="bi bi-info-circle me-1"></i>
-          <strong>Note:</strong> If you select any leadership role above, faculty privileges are automatically included - no need to select this separately.
+          When a leadership role is selected, a separate Faculty request is not needed and will be disabled. Select Faculty only when not requesting leadership.
         </div>
         
         <div class="form-check mb-3">
@@ -332,7 +434,7 @@
                  value="1" 
                  {{ old('request_faculty') ? 'checked' : '' }}
                  {{ $hasPendingRequests ? 'disabled' : '' }}>
-          <label class="form-check-label fw-semibold" for="request_faculty">
+          <label class="form-check-label fw-semibold text-dark" for="request_faculty">
             Faculty Member
           </label>
           <div class="form-text small text-muted">Regular faculty position for teaching and research</div>
@@ -361,8 +463,14 @@
   </div>
 
   <div class="d-flex justify-content-between mt-4">
-    <button type="button" class="btn btn-secondary" id="svBackToStep1">Back</button>
-    <button type="submit" class="btn btn-danger" {{ $hasPendingRequests ? 'disabled' : '' }}>Complete Profile</button>
+    <button type="button" class="btn btn-light" id="svBackToStep1">
+      <i class="bi bi-chevron-left"></i>
+      Back
+    </button>
+    <button type="submit" class="btn btn-danger" {{ $hasPendingRequests ? 'disabled' : '' }}>
+      <i class="bi bi-check-circle"></i>
+      Complete Profile
+    </button>
   </div>
 </section>
 {{-- ░░░ END: Step 2 – Role Requests ░░░ --}}
