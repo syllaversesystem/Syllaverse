@@ -57,3 +57,62 @@
     </form>
   </div>
 </div>
+
+@push('scripts')
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('addCdioForm');
+    const submitBtn = document.getElementById('addCdioSubmit');
+    const modalEl = document.getElementById('addCdioModal');
+    const errorsEl = document.getElementById('addCdioErrors');
+    const Modal = window.bootstrap?.Modal;
+
+    function getCsrf() {
+      return document.querySelector('meta[name="csrf-token"]')?.content || '';
+    }
+
+    if (form && submitBtn) {
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        errorsEl?.classList.add('d-none');
+        errorsEl && (errorsEl.innerHTML = '');
+        submitBtn.disabled = true;
+        try {
+          const fd = new FormData(form);
+          const res = await fetch(form.action, {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': getCsrf(), 'Accept': 'application/json' },
+            body: fd,
+          });
+          let data = {};
+          try { data = await res.json(); } catch {}
+          if (res.ok) {
+            // Close modal and notify
+            try { const mm = Modal ? Modal.getOrCreateInstance(modalEl) : null; mm && mm.hide(); } catch {}
+            if (window.showAlertOverlay) window.showAlertOverlay('success', 'CDIO created'); else alert('CDIO created');
+            // Optionally refresh the page or list
+            setTimeout(() => { window.location.reload(); }, 300);
+          } else if (res.status === 422 && data?.errors) {
+            const lines = [];
+            Object.values(data.errors).forEach(arr => { (arr||[]).forEach(msg => lines.push(msg)); });
+            if (errorsEl) {
+              errorsEl.innerHTML = lines.join('<br>');
+              errorsEl.classList.remove('d-none');
+            } else {
+              alert('Please fix errors before submitting.');
+            }
+          } else {
+            const msg = data?.message || 'Failed to create CDIO';
+            if (window.showAlertOverlay) window.showAlertOverlay('error', msg); else alert(msg);
+          }
+        } catch (err) {
+          console.error(err);
+          alert('Unexpected error');
+        } finally {
+          submitBtn.disabled = false;
+        }
+      });
+    }
+  });
+</script>
+@endpush

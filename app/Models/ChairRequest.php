@@ -70,7 +70,9 @@ class ChairRequest extends Model
     public function isProgRequest(): bool { return $this->requested_role === self::ROLE_PROG; }
     public function isInstitutionRequest(): bool
     {
-        return in_array($this->requested_role, [self::ROLE_VCAA, self::ROLE_ASSOC_VCAA, self::ROLE_DEAN], true);
+        // Institution-wide roles: VCAA and Associate VCAA only.
+        // Dean and Associate Dean are department-scoped in Syllaverse.
+        return in_array($this->requested_role, [self::ROLE_VCAA, self::ROLE_ASSOC_VCAA], true);
     }
 
     public function scopeConsistentWithDepartment(): bool
@@ -113,6 +115,16 @@ class ChairRequest extends Model
             $role = Appointment::ROLE_PROG;
             $scopeType = Appointment::SCOPE_PROG;
             $scopeId = $this->program_id;
+        } elseif ($this->requested_role === self::ROLE_DEAN) {
+            // Dean is department-scoped
+            $role = Appointment::ROLE_DEAN;
+            $scopeType = Appointment::SCOPE_DEPT;
+            $scopeId = $this->department_id;
+        } elseif ($this->requested_role === self::ROLE_ASSOC_DEAN) {
+            // Associate Dean is department-scoped
+            $role = Appointment::ROLE_ASSOC_DEAN;
+            $scopeType = Appointment::SCOPE_DEPT;
+            $scopeId = $this->department_id;
         } else {
             // Institution-level roles: store role as the requested_role string and use a sentinel
             // scope id (0) to represent the institution when the DB requires a non-null scope_id.

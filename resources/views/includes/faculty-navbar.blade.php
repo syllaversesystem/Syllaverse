@@ -152,7 +152,7 @@
       </a>
       <ul class="dropdown-menu dropdown-menu-end shadow-sm animate__animated animate__fadeIn" aria-labelledby="profileDropdown" style="min-width: 180px;">
         <li>
-          <a class="dropdown-item d-flex align-items-center" href="#">
+          <a class="dropdown-item d-flex align-items-center" href="{{ route('faculty.manage-profile') }}">
             <i class="bi bi-person me-2"></i> Profile
           </a>
         </li>

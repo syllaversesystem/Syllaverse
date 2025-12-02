@@ -11,6 +11,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\Faculty\ManageProfileController;
 use App\Http\Controllers\Faculty\AuthController as FacultyAuthController;
 use App\Http\Controllers\Faculty\ProfileController;
 use App\Http\Controllers\Faculty\Syllabus\SyllabusController;
@@ -47,6 +48,11 @@ Route::middleware(['auth:faculty'])->group(function () {
 
 // ---------- Faculty-Only Protected Routes ----------
 Route::middleware([FacultyAuth::class])->group(function () {
+        // ---------- Manage Profile (separate module) ----------
+        Route::get('/faculty/manage-profile', [ManageProfileController::class, 'index'])->name('faculty.manage-profile');
+        Route::post('/faculty/manage-profile', [ManageProfileController::class, 'update'])->name('faculty.manage-profile.update');
+        Route::post('/faculty/manage-profile/request-role', [ManageProfileController::class, 'requestRole'])->name('faculty.manage-profile.request-role');
+        Route::delete('/faculty/manage-profile', [ManageProfileController::class, 'destroy'])->name('faculty.manage-profile.destroy');
     Route::view('/faculty/dashboard', 'faculty.dashboard')->name('faculty.dashboard');
 
     // ---------- Master Data (SO, ILO, SDG, IGA, CDIO) ----------

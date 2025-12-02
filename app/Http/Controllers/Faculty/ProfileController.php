@@ -86,7 +86,7 @@ class ProfileController extends Controller
                 ->withInput();
         }
         $wantsFaculty = (bool) $request->boolean('request_faculty');
-        // Auto-include Faculty when any department-scoped leadership role is requested
+        // Leadership roles (department-scoped)
         $hasLeadershipRole = $wantsDept || $wantsDean || $wantsAssocDean;
         // ░░░ END: Interpret Role Requests ░░░
 
@@ -206,11 +206,9 @@ class ProfileController extends Controller
             }
 
             // Faculty Member role (standard faculty without administrative responsibilities)
-            // Auto-create when leadership is selected, mirroring department.
-            if ($wantsFaculty || $hasLeadershipRole) {
-                $facultyDeptId = $hasLeadershipRole
-                    ? $request->input('department_id')
-                    : $request->input('faculty_department_id');
+            // Only create when explicitly requested, do NOT auto-include with leadership.
+            if ($wantsFaculty) {
+                $facultyDeptId = $request->input('faculty_department_id');
                 ChairRequest::firstOrCreate(
                     [
                         'user_id'        => $user->id,

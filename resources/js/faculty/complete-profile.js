@@ -132,14 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      // Auto-include Faculty when leadership role is selected and mirror department
-      if (hasLeadershipRole && cbFaculty) {
-        cbFaculty.checked = true;
-        // Ensure faculty department mirrors selected leadership department
-        if (selDept && selDept.value && selFacultyDept) {
-          selFacultyDept.value = selDept.value;
-        }
-      }
+      // Do NOT auto-include Faculty when leadership is selected
 
       // Require faculty department for faculty role (only when no leadership role is selected)
       if (wantsFaculty && !hasLeadershipRole && selFacultyDept && !selFacultyDept.value) {
@@ -210,27 +203,20 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // Faculty role logic: disable/hide when leadership role is selected
+    // Faculty role logic: when any Department-Specific Leadership is selected, uncheck and restrict Faculty
     if (cbFaculty) {
       if (hasLeadershipRole) {
-        // Auto-include Faculty and disable manual toggle when leadership is selected
-        cbFaculty.checked = true;
+        cbFaculty.checked = false;
         cbFaculty.disabled = true;
-        // Mirror department to faculty department selector
-        if (selDept && selFacultyDept) {
-          selFacultyDept.value = selDept.value || '';
-        }
-        // Add visual indication that it's not needed
         const facultyCard = cbFaculty.closest('.card');
         if (facultyCard) {
-          facultyCard.style.opacity = '0.5';
+          facultyCard.style.opacity = '0.6';
           const helpText = facultyCard.querySelector('.text-muted.small');
           if (helpText) {
-            helpText.textContent = 'Included automatically – leadership roles include faculty privileges';
+            helpText.textContent = 'Restricted: leadership requests exclude separate Faculty selection';
           }
         }
       } else {
-        // Re-enable faculty role if no leadership role is selected
         cbFaculty.disabled = requestsLocked; // Only disable if requests are locked
         const facultyCard = cbFaculty.closest('.card');
         if (facultyCard) {
@@ -244,7 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Show faculty department selector only when faculty role is selected and no leadership role
-    const showFacultyDept = (wantsFaculty || hasLeadershipRole) && !hasLeadershipRole ? true : false;
+    const showFacultyDept = !!wantsFaculty && !hasLeadershipRole;
     if (facultyDeptSelector) {
       facultyDeptSelector.style.display = showFacultyDept ? 'block' : 'none';
       if (!showFacultyDept && selFacultyDept) {
@@ -253,14 +239,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // Keep faculty department in sync with leadership department when leadership selected
-    if (hasLeadershipRole && selDept && selFacultyDept) {
-      selFacultyDept.value = selDept.value || '';
-      // Also keep it synced on change
-      selDept.addEventListener('change', () => {
-        selFacultyDept.value = selDept.value || '';
-      }, { once: false });
-    }
+    // No automatic syncing from leadership; faculty department is independent
   }
 
   /* Marks a field invalid with a custom message (Bootstrap-friendly). */

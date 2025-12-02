@@ -136,8 +136,9 @@ class Appointment extends Model
                     // Program role removed
                     self::ROLE_FACULTY      => self::SCOPE_FACULTY,
                     self::ROLE_VCAA,
-                    self::ROLE_ASSOC_VCAA,
-                    self::ROLE_DEAN         => self::SCOPE_INSTITUTION,
+                    self::ROLE_ASSOC_VCAA   => self::SCOPE_INSTITUTION,
+                    // Dean and Associate Dean are department-scoped in Syllaverse
+                    self::ROLE_DEAN,
                     self::ROLE_ASSOC_DEAN   => self::SCOPE_DEPT,
                     default                 => self::SCOPE_DEPT,
                 };
@@ -151,8 +152,9 @@ class Appointment extends Model
                     // Program role removed
                     self::ROLE_FACULTY      => self::SCOPE_FACULTY,
                     self::ROLE_VCAA,
-                    self::ROLE_ASSOC_VCAA,
-                    self::ROLE_DEAN         => self::SCOPE_INSTITUTION,
+                    self::ROLE_ASSOC_VCAA   => self::SCOPE_INSTITUTION,
+                    // Dean and Associate Dean are department-scoped in Syllaverse
+                    self::ROLE_DEAN,
                     self::ROLE_ASSOC_DEAN   => self::SCOPE_DEPT,
                     default                 => self::SCOPE_DEPT,
                 };
