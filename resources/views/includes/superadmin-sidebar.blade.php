@@ -51,8 +51,34 @@
         <a class="nav-link d-flex align-items-center @if(request()->is('superadmin/manage-accounts')) active @endif"
            href="{{ route('superadmin.manage-accounts') }}"
            aria-current="@if(request()->is('superadmin/manage-accounts')) page @endif">
-          <i class="bi bi-people"></i>
+          <i class="bi bi-people-gear"></i>
           <span class="label">Manage Accounts</span>
+        </a>
+      </li>
+
+      <!-- Manage Accounts modules -->
+      <li class="nav-item">
+        <a class="nav-link d-flex align-items-center @if(request()->is('superadmin/manage-accounts/approved')) active @endif"
+           href="{{ url('superadmin/manage-accounts/approved') }}"
+           aria-current="@if(request()->is('superadmin/manage-accounts/approved')) page @endif">
+          <i class="bi bi-shield-check"></i>
+          <span class="label">Approved Accounts</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link d-flex align-items-center @if(request()->is('superadmin/manage-accounts/rejected')) active @endif"
+           href="{{ url('superadmin/manage-accounts/rejected') }}"
+           aria-current="@if(request()->is('superadmin/manage-accounts/rejected')) page @endif">
+          <i class="bi bi-shield-x"></i>
+          <span class="label">Rejected Accounts</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link d-flex align-items-center @if(request()->is('superadmin/manage-accounts/pending')) active @endif"
+           href="{{ url('superadmin/manage-accounts/pending') }}"
+           aria-current="@if(request()->is('superadmin/manage-accounts/pending')) page @endif">
+          <i class="bi bi-hourglass-split"></i>
+          <span class="label">Pending Accounts</span>
         </a>
       </li>
 

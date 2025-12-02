@@ -25,7 +25,7 @@
     return $a->role === \App\Models\Appointment::ROLE_FACULTY;
   });
 @endphp
-<div class="modal fade sv-appt-modal" id="manageFaculty-{{ $faculty->id }}" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false" data-leadership-dept-id="{{ (int) ($leadershipDeptId ?? 0) }}" data-only-faculty-active="{{ $onlyFacultyActive ? 1 : 0 }}">
+<div class="modal fade sv-appt-modal" id="manageFaculty-{{ $faculty->id }}" tabindex="-1" aria-hidden="true" data-leadership-dept-id="{{ (int) ($leadershipDeptId ?? 0) }}" data-only-faculty-active="{{ $onlyFacultyActive ? 1 : 0 }}" data-user-id="{{ $faculty->id }}">
   <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered">
     <div class="modal-content">
 
@@ -43,7 +43,7 @@
         {{-- ░░░ START: Add Appointment (AJAX) ░░░ --}}
         <div class="mb-3">
           <h6 class="mb-2 d-flex align-items-center gap-2">
-            <i data-feather="plus-circle"></i><span>Add appointment</span>
+            <i data-feather="plus-circle"></i><span>Set Appointment</span>
           </h6>
 
           {{-- This creates a new appointment and stays in the modal (AJAX). --}}
@@ -59,9 +59,10 @@
               <label class="form-label small">Role</label>
               <select name="role" class="form-select form-select-sm" required>
                 <option value="">— Select Role —</option>
-                <option value="{{ \App\Models\Appointment::ROLE_DEPT_HEAD }}">Department Chairperson</option>
-                <option value="{{ \App\Models\Appointment::ROLE_DEAN }}">Dean</option>
+                <option value="{{ \App\Models\Appointment::ROLE_FACULTY }}">Faculty</option>
+                <option value="{{ \App\Models\Appointment::ROLE_DEPT_HEAD }}">Department Head (Dean/Head/Principal)</option>
                 <option value="{{ \App\Models\Appointment::ROLE_ASSOC_DEAN }}">Associate Dean</option>
+                <option value="{{ \App\Models\Appointment::ROLE_CHAIR }}">Chairperson</option>
               </select>
             </div>
 
@@ -87,7 +88,7 @@
         {{-- ░░░ START: Active Appointments (simple list) ░░░ --}}
         <div class="border-top pt-3">
           <h6 class="mb-2 d-flex align-items-center gap-2">
-            <i data-feather="briefcase"></i><span>Active appointments</span>
+            <i data-feather="briefcase"></i><span>Current Appointment</span>
           </h6>
 
           <div class="sv-request-list" id="sv-appt-list-{{ $faculty->id }}">
@@ -105,6 +106,21 @@
 
                   // Dynamic role label
                   if ($appt->role === \App\Models\Appointment::ROLE_DEPT_HEAD) {
+                    // Default: Dean; special cases: Principal for Lab School; Head for General Education
+                    $deptNameLower = $department ? strtolower($department->name) : '';
+                    if ($deptNameLower && (
+                        str_contains($deptNameLower, 'laboratory school') ||
+                        str_contains($deptNameLower, 'lab school') ||
+                        str_contains($deptNameLower, 'labschool')
+                      )) {
+                      $roleLabel = 'Principal';
+                    } elseif ($deptNameLower && str_contains($deptNameLower, 'general education')) {
+                      $roleLabel = 'Head';
+                    } else {
+                      $roleLabel = 'Dean';
+                    }
+                  } elseif ($appt->role === \App\Models\Appointment::ROLE_CHAIR) {
+                    // Chairperson label depends on program count
                     $roleLabel = $programCount >= 2 ? 'Department Chairperson' : 'Program Chair';
                   } else {
                     $roleLabel = match($appt->role) {
@@ -136,21 +152,20 @@
                             title="Edit appointment" aria-label="Edit appointment">
                       <i data-feather="edit-3"></i>
                     </button>
-                    @if ($appt->role !== \App\Models\Appointment::ROLE_FACULTY)
-                      <form method="POST"
-                            action="{{ route('superadmin.appointments.end', $appt->id) }}"
-                            class="d-inline"
-                            data-ajax="true">
-                        @csrf
-                        <button class="action-btn reject" type="submit" title="Delete appointment" aria-label="Delete appointment">
-                          <i data-feather="x"></i>
-                        </button>
-                      </form>
-                    @endif
+                    <form method="POST"
+                          action="{{ route('superadmin.appointments.destroy', $appt) }}"
+                          class="d-inline"
+                          data-ajax="true">
+                      @csrf
+                      @method('DELETE')
+                      <button class="action-btn reject" type="submit" title="Delete appointment" aria-label="Delete appointment" {{ $appt->role === \App\Models\Appointment::ROLE_FACULTY ? 'disabled aria-disabled=true' : '' }}>
+                        <i data-feather="trash-2"></i>
+                      </button>
+                    </form>
                   </div>
                 </div>
 
-                <div id="sv-fac-appt-edit-{{ $appt->id }}" class="collapse sv-details" data-bs-parent="#sv-appt-list-{{ $faculty->id }}">
+                <div id="sv-fac-appt-edit-{{ $appt->id }}" class="collapse sv-details" data-bs-parent="#sv-appt-list-{{ $faculty->id }}" data-current-role="{{ $appt->role }}" data-current-dept-id="{{ (int)$appt->scope_id }}">
                   <form method="POST"
                         action="{{ route('superadmin.appointments.update', $appt->id) }}"
                         class="row g-2 align-items-end sv-appt-form"
@@ -167,16 +182,14 @@
                           <option value="{{ \App\Models\Appointment::ROLE_FACULTY }}" {{ $appt->role === \App\Models\Appointment::ROLE_FACULTY ? 'selected' : '' }}>Faculty</option>
                         @endif
                         @if(!in_array(\App\Models\Appointment::ROLE_DEPT_HEAD, $activeRoleCodes, true) || $appt->role === \App\Models\Appointment::ROLE_DEPT_HEAD)
-                          <option value="{{ \App\Models\Appointment::ROLE_DEPT_HEAD }}" {{ $appt->role === \App\Models\Appointment::ROLE_DEPT_HEAD ? 'selected' : '' }}>Department Chairperson</option>
+                          <option value="{{ \App\Models\Appointment::ROLE_DEPT_HEAD }}" {{ $appt->role === \App\Models\Appointment::ROLE_DEPT_HEAD ? 'selected' : '' }}>Department Head (Dean/Head/Principal)</option>
                         @endif
                         @php $multiActive = $activeAppointments->count() >= 2; @endphp
-                        @if(!($multiActive && $appt->role === \App\Models\Appointment::ROLE_DEPT_HEAD))
-                          @if(!in_array(\App\Models\Appointment::ROLE_DEAN, $activeRoleCodes, true) || $appt->role === \App\Models\Appointment::ROLE_DEAN)
-                            <option value="{{ \App\Models\Appointment::ROLE_DEAN }}" {{ $appt->role === \App\Models\Appointment::ROLE_DEAN ? 'selected' : '' }}>Dean</option>
-                          @endif
-                          @if(!in_array(\App\Models\Appointment::ROLE_ASSOC_DEAN, $activeRoleCodes, true) || $appt->role === \App\Models\Appointment::ROLE_ASSOC_DEAN)
-                            <option value="{{ \App\Models\Appointment::ROLE_ASSOC_DEAN }}" {{ $appt->role === \App\Models\Appointment::ROLE_ASSOC_DEAN ? 'selected' : '' }}>Associate Dean</option>
-                          @endif
+                        @if(!in_array(\App\Models\Appointment::ROLE_ASSOC_DEAN, $activeRoleCodes, true) || $appt->role === \App\Models\Appointment::ROLE_ASSOC_DEAN)
+                          <option value="{{ \App\Models\Appointment::ROLE_ASSOC_DEAN }}" {{ $appt->role === \App\Models\Appointment::ROLE_ASSOC_DEAN ? 'selected' : '' }}>Associate Dean</option>
+                        @endif
+                        @if(!in_array(\App\Models\Appointment::ROLE_CHAIR, $activeRoleCodes, true) || $appt->role === \App\Models\Appointment::ROLE_CHAIR)
+                          <option value="{{ \App\Models\Appointment::ROLE_CHAIR }}" {{ $appt->role === \App\Models\Appointment::ROLE_CHAIR ? 'selected' : '' }}>Chairperson</option>
                         @endif
                       </select>
                     </div>
@@ -200,7 +213,13 @@
                 </div>
               @endforeach
             @else
-              <div class="text-muted">No active appointments for this faculty member.</div>
+              <div class="sv-appt-placeholder rounded border border-2 border-dashed p-3 text-center text-muted">
+                <div class="mb-2">
+                  <i data-feather="briefcase"></i>
+                </div>
+                <div class="fw-semibold">No active appointments</div>
+                <div class="small">Use the form above to add Department Head, Associate Dean, or Chairperson.</div>
+              </div>
             @endif
           </div>
         </div>
@@ -210,6 +229,10 @@
 
       {{-- ░░░ START: Modal Footer ░░░ --}}
       <style>
+        /* Placeholder styling */
+        #manageFaculty-{{ $faculty->id }} .border-dashed {
+          border-style: dashed !important;
+        }
         /* Faculty modal button styling */
         #manageFaculty-{{ $faculty->id }} .btn-danger {
           background: var(--sv-card-bg, #fff);
@@ -284,12 +307,8 @@
       </style>
       <div class="modal-footer d-flex justify-content-between">
         <div>
-          {{-- Revoke Faculty Access Button --}}
-          <button type="button" 
-                  class="btn btn-danger btn-sm"
-                  data-bs-toggle="modal"
-                  data-bs-target="#revokeFacultyModal-{{ $faculty->id }}"
-                  title="Revoke faculty access">
+          {{-- Revoke Faculty Access: opens confirmation modal (no direct submit here) --}}
+          <button type="button" class="btn btn-danger btn-sm" title="Revoke faculty access" data-bs-toggle="modal" data-bs-target="#revokeFacultyModal-{{ $faculty->id }}">
             <i data-feather="user-x" class="me-1"></i>
             Revoke Access
           </button>
@@ -307,246 +326,28 @@
   </div>
 </div>
 
-{{-- Mutual exclusivity JavaScript --}}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-  const modal = document.getElementById('manageFaculty-{{ $faculty->id }}');
-  if (!modal) return;
-  
-  const roleSelect = modal.querySelector('select[name="role"]');
-  const appointmentsList = modal.querySelector('#sv-appt-list-{{ $faculty->id }}');
-  if (!roleSelect || !appointmentsList) return;
-  
-  // Store original options
-  let originalOptions = [];
-  if (originalOptions.length === 0) {
-    roleSelect.querySelectorAll('option').forEach(option => {
-      originalOptions.push({
-        value: option.value,
-        text: option.textContent,
-        element: option.cloneNode(true)
-      });
-    });
-  }
-  
-  // Define mutually exclusive role pairs
-  const mutuallyExclusive = {
-    '{{ \App\Models\Appointment::ROLE_VCAA }}': '{{ \App\Models\Appointment::ROLE_ASSOC_VCAA }}',
-    '{{ \App\Models\Appointment::ROLE_ASSOC_VCAA }}': '{{ \App\Models\Appointment::ROLE_VCAA }}',
-    '{{ \App\Models\Appointment::ROLE_DEAN }}': '{{ \App\Models\Appointment::ROLE_ASSOC_DEAN }}',
-    '{{ \App\Models\Appointment::ROLE_ASSOC_DEAN }}': '{{ \App\Models\Appointment::ROLE_DEAN }}'
-  };
-  
-  // Get current roles from the DOM (dynamically updated)
-  function getCurrentRoles() {
-    const roleElements = appointmentsList.querySelectorAll('.sv-pill.is-accent');
-    const roles = [];
-    
-    roleElements.forEach(pill => {
-      const roleText = pill.textContent.trim();
-      // Map display text back to role constants
-      const roleMapping = {
-        'Faculty': '{{ \App\Models\Appointment::ROLE_FACULTY }}',
-        // Dynamic chair labels both map back to DEPT_HEAD (single or multi program)
-        'Department Chairperson': '{{ \App\Models\Appointment::ROLE_DEPT_HEAD }}',
-        'Dept Chair': '{{ \App\Models\Appointment::ROLE_DEPT_HEAD }}', // legacy mapping
-        'Department Chair': '{{ \App\Models\Appointment::ROLE_DEPT_HEAD }}', // legacy/fallback
-        'Program Chair': '{{ \App\Models\Appointment::ROLE_DEPT_HEAD }}',
-        'Department Head': '{{ \App\Models\Appointment::ROLE_DEPT_HEAD }}', // legacy/fallback
-        'Dean': '{{ \App\Models\Appointment::ROLE_DEAN }}',
-        'Associate Dean': '{{ \App\Models\Appointment::ROLE_ASSOC_DEAN }}',
-        'VCAA': '{{ \App\Models\Appointment::ROLE_VCAA }}',
-        'Associate VCAA': '{{ \App\Models\Appointment::ROLE_ASSOC_VCAA }}'
-      };
-      
-      if (roleMapping[roleText]) {
-        roles.push(roleMapping[roleText]);
-      }
-    });
-    
-    return roles;
-  }
-  
-  function updateRoleOptions() {
-    // Get current roles dynamically
-    const currentRoles = getCurrentRoles();
-    
-    // Clear current options
-    roleSelect.innerHTML = '';
-    
-    // Re-add only non-conflicting options
-    originalOptions.forEach(optionData => {
-      const roleValue = optionData.value;
-
-      // Always include empty option
-      if (!roleValue) {
-        roleSelect.appendChild(optionData.element.cloneNode(true));
-        return;
-      }
-
-      // Skip roles already assigned (exact match)
-      const alreadyAssigned = currentRoles.includes(roleValue);
-      if (alreadyAssigned) return;
-
-      // Check mutual exclusivity conflicts
-      const hasConflict = currentRoles.some(currentRole => mutuallyExclusive[roleValue] === currentRole);
-
-      if (!hasConflict) {
-        roleSelect.appendChild(optionData.element.cloneNode(true));
-      }
-    });
-  }
-  
-  // Update options when modal is shown
-  modal.addEventListener('shown.bs.modal', updateRoleOptions);
-  
-  // Listen for changes in the appointments list (when appointments are added/removed)
-  const observer = new MutationObserver(function(mutations) {
-    mutations.forEach(function(mutation) {
-      if (mutation.type === 'childList') {
-        updateRoleOptions();
-      }
-    });
-  });
-  
-  // Start observing the appointments list
-  observer.observe(appointmentsList, {
-    childList: true,
-    subtree: true
-  });
-  
-  // Also listen for successful AJAX form submissions
-  const addForm = modal.querySelector('.sv-appt-form');
-  if (addForm) {
-    addForm.addEventListener('ajaxSuccess', function() {
-      // Small delay to ensure DOM is updated
-      setTimeout(updateRoleOptions, 100);
-    });
-  }
-  
-  // Listen for successful appointment deletions
-  appointmentsList.addEventListener('ajaxSuccess', function() {
-    // Small delay to ensure DOM is updated
-    setTimeout(updateRoleOptions, 100);
-  });
-  
-  // Update options initially
-  updateRoleOptions();
-});
-</script>
+{{-- Scripts moved to resources/js/superadmin/manage-accounts/manage-accounts.js --}}
 
 {{-- ░░░ START: Revoke Faculty Confirmation Modal ░░░ --}}
 <div class="modal fade" id="revokeFacultyModal-{{ $faculty->id }}" tabindex="-1" aria-labelledby="revokeFacultyModalLabel-{{ $faculty->id }}" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
-      <style>
-        /* Revoke modal styling to match main modal */
-        #revokeFacultyModal-{{ $faculty->id }} .modal-content {
-          border-radius: 0.75rem;
-        }
-      </style>
       <div class="modal-header border-0 pb-2">
         <h5 class="modal-title d-flex align-items-center gap-2 text-danger" id="revokeFacultyModalLabel-{{ $faculty->id }}">
           <i data-feather="alert-triangle"></i>
-          Revoke Faculty Access
+          Confirm Revoke
         </h5>
       </div>
-      
       <div class="modal-body pt-0">
-        <div class="alert alert-warning d-flex align-items-start gap-2 mb-4">
-          <i data-feather="info" class="text-warning mt-1 flex-shrink-0"></i>
-          <div>
-            <strong>Warning:</strong> This action cannot be undone.
-          </div>
-        </div>
-        
-        <p class="mb-3">
-          Are you sure you want to revoke access for <strong>{{ $faculty->name }}</strong>?
-        </p>
-        
-        <div class="bg-light rounded p-3 mb-3">
-          <h6 class="mb-2 text-muted">This will:</h6>
+        <p class="mb-3">Are you sure you want to revoke access for <strong>{{ $faculty->name }}</strong>?</p>
+        <div class="bg-light rounded p-3 mb-0">
           <ul class="mb-0 text-sm">
-            <li>Remove all active appointments</li>
-            <li>Set their account status to rejected</li>
-            <li>Prevent them from accessing the system</li>
+            <li>Removes active appointments</li>
+            <li>Sets status to rejected</li>
+            <li>Blocks system access</li>
           </ul>
         </div>
       </div>
-      
-      <style>
-        /* Revoke confirmation modal button styling */
-        #revokeFacultyModal-{{ $faculty->id }} .btn-danger {
-          background: var(--sv-card-bg, #fff);
-          border: none;
-          color: #000;
-          transition: all 0.2s ease-in-out;
-          box-shadow: none;
-          display: inline-flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.5rem 1rem;
-          border-radius: 0.375rem;
-        }
-        #revokeFacultyModal-{{ $faculty->id }} .btn-danger:hover,
-        #revokeFacultyModal-{{ $faculty->id }} .btn-danger:focus {
-          background: linear-gradient(135deg, rgba(255, 240, 235, 0.88), rgba(255, 255, 255, 0.46));
-          backdrop-filter: blur(7px);
-          -webkit-backdrop-filter: blur(7px);
-          box-shadow: 0 4px 10px rgba(204, 55, 55, 0.12);
-          color: #CB3737;
-        }
-        #revokeFacultyModal-{{ $faculty->id }} .btn-danger:hover i,
-        #revokeFacultyModal-{{ $faculty->id }} .btn-danger:hover svg,
-        #revokeFacultyModal-{{ $faculty->id }} .btn-danger:focus i,
-        #revokeFacultyModal-{{ $faculty->id }} .btn-danger:focus svg {
-          stroke: #CB3737;
-        }
-        #revokeFacultyModal-{{ $faculty->id }} .btn-danger:active {
-          background: linear-gradient(135deg, rgba(255, 230, 225, 0.98), rgba(255, 255, 255, 0.62));
-          box-shadow: 0 1px 8px rgba(204, 55, 55, 0.16);
-        }
-        #revokeFacultyModal-{{ $faculty->id }} .btn-danger:active i,
-        #revokeFacultyModal-{{ $faculty->id }} .btn-danger:active svg {
-          stroke: #CB3737;
-        }
-        /* Cancel button styling */
-        #revokeFacultyModal-{{ $faculty->id }} .btn-light {
-          background: var(--sv-card-bg, #fff);
-          border: none;
-          color: #000;
-          transition: all 0.2s ease-in-out;
-          box-shadow: none;
-          display: inline-flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.5rem 1rem;
-          border-radius: 0.375rem;
-        }
-        #revokeFacultyModal-{{ $faculty->id }} .btn-light:hover,
-        #revokeFacultyModal-{{ $faculty->id }} .btn-light:focus {
-          background: linear-gradient(135deg, rgba(220, 220, 220, 0.88), rgba(240, 240, 240, 0.46));
-          backdrop-filter: blur(7px);
-          -webkit-backdrop-filter: blur(7px);
-          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
-          color: #000;
-        }
-        #revokeFacultyModal-{{ $faculty->id }} .btn-light:hover i,
-        #revokeFacultyModal-{{ $faculty->id }} .btn-light:hover svg,
-        #revokeFacultyModal-{{ $faculty->id }} .btn-light:focus i,
-        #revokeFacultyModal-{{ $faculty->id }} .btn-light:focus svg {
-          stroke: #000;
-        }
-        #revokeFacultyModal-{{ $faculty->id }} .btn-light:active {
-          background: linear-gradient(135deg, rgba(240, 242, 245, 0.98), rgba(255, 255, 255, 0.62));
-          box-shadow: 0 1px 8px rgba(0, 0, 0, 0.16);
-          color: #000;
-        }
-        #revokeFacultyModal-{{ $faculty->id }} .btn-light:active i,
-        #revokeFacultyModal-{{ $faculty->id }} .btn-light:active svg {
-          stroke: #000;
-        }
-      </style>
       <div class="modal-footer border-0 pt-2">
         <button type="button" class="btn btn-light" data-bs-dismiss="modal">
           <i data-feather="x" class="me-1"></i>
@@ -561,7 +362,7 @@ document.addEventListener('DOMContentLoaded', function() {
           @method('PATCH')
           <button type="submit" class="btn btn-danger">
             <i data-feather="user-x" class="me-1"></i>
-            Revoke Access
+            Confirm Revoke
           </button>
         </form>
       </div>
@@ -569,5 +370,23 @@ document.addEventListener('DOMContentLoaded', function() {
   </div>
 </div>
 {{-- ░░░ END: Revoke Faculty Confirmation Modal ░░░ --}}
+
+<script>
+  // Ensure confirmation modal is appended to body (avoid clipping/stuck stacking)
+  document.addEventListener('DOMContentLoaded', function() {
+    try {
+      var mId = 'revokeFacultyModal-{{ $faculty->id }}';
+      var modal = document.getElementById(mId);
+      if (modal && modal.parentElement !== document.body) {
+        document.body.appendChild(modal);
+      }
+      // Use Bootstrap defaults by removing explicit static constraints
+      if (modal) {
+        modal.removeAttribute('data-bs-backdrop');
+        modal.removeAttribute('data-bs-keyboard');
+      }
+    } catch (e) {}
+  });
+</script>
 
 

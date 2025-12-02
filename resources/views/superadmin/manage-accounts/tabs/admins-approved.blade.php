@@ -42,7 +42,7 @@
           <tr>
             <th><i data-feather="user"></i> Name</th>
             <th><i data-feather="briefcase"></i> Role</th>
-            <th><i data-feather="building"></i> Department</th>
+            <th><i data-feather="briefcase"></i> Department</th>
             <th class="text-end"><i data-feather="more-vertical"></i></th>
           </tr>
         </thead>

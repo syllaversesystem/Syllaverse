@@ -23,6 +23,12 @@
 
 {{-- ░░░ START: Table Section (Approvals-style wrapper) ░░░ --}}
   <div class="table-wrapper position-relative">
+    <style>
+      /* Ensure modals are above table/backdrop and not clipped */
+      .table-wrapper, .table-responsive { overflow: visible !important; }
+      .modal.fade.show { z-index: 2006 !important; }
+      .modal-backdrop.show { z-index: 2005 !important; }
+    </style>
     <div class="table-responsive">
       <table class="table superadmin-manage-account-table mb-0" id="svRejectedAdminsTable">
         <thead class="superadmin-manage-account-table-header">
@@ -155,7 +161,7 @@
                         <i data-feather="x" class="me-1"></i>
                         Cancel
                       </button>
-                      <form method="POST" action="{{ route('superadmin.delete.admin', $user->id) }}" class="d-inline" data-ajax="true" data-sv-revoke="true">
+                      <form method="POST" action="{{ route('superadmin.delete.admin', $user->id) }}" class="d-inline" data-ajax="true" data-sv-delete="true">
                         @csrf
                         <button type="submit" class="btn btn-danger">
                           <i data-feather="trash-2" class="me-1"></i>
@@ -225,7 +231,7 @@
                         <i data-feather="x" class="me-1"></i>
                         Cancel
                       </button>
-                      <form method="POST" action="{{ route('superadmin.delete.faculty', $user->id) }}" class="d-inline" data-ajax="true" data-sv-revoke="true">
+                      <form method="POST" action="{{ route('superadmin.delete.faculty', $user->id) }}" class="d-inline" data-ajax="true" data-sv-delete="true">
                         @csrf
                         <button type="submit" class="btn btn-danger">
                           <i data-feather="trash-2" class="me-1"></i>
@@ -258,3 +264,21 @@
     </div>
   </div>
   {{-- ░░░ END: Table Section ░░░ --}}
+
+  <script>
+    // Ensure confirmation modals are appended to <body> to avoid table stacking/overflow issues
+    document.addEventListener('DOMContentLoaded', function() {
+      try {
+        const ids = [
+          ...Array.from(document.querySelectorAll('[id^="svDeleteRejectedAdminModal-"]')).map(el => el.id),
+          ...Array.from(document.querySelectorAll('[id^="svDeleteRejectedFacultyModal-"]')).map(el => el.id)
+        ];
+        ids.forEach(id => {
+          const modal = document.getElementById(id);
+          if (modal && modal.parentElement !== document.body) {
+            document.body.appendChild(modal);
+          }
+        });
+      } catch (_) {}
+    });
+  </script>

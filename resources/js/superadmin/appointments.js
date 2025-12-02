@@ -1,2 +1,2 @@
-// Placeholder for Super Admin Appointments module
-(function(){ /* no-op */ })();
+// Placeholder entry to satisfy Vite build; wire up later.
+export default {};

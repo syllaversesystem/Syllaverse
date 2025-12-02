@@ -30,6 +30,8 @@ class Appointment extends Model
     public const ROLE_DEPT    = 'DEPT_CHAIR';
     // New naming: Department Head (preferred)
     public const ROLE_DEPT_HEAD = 'DEPT_HEAD';
+    // New role: Chairperson (department-scoped)
+    public const ROLE_CHAIR = 'CHAIR';
     public const ROLE_FACULTY = 'FACULTY';
     // Program-chair compatibility (shims) — program-scoped role was removed but
     // some legacy code still references these constants. Keep as shims to avoid
@@ -113,7 +115,7 @@ class Appointment extends Model
     public function scopeForFaculty($query, int $departmentId)
     {
         return $query->where('role', self::ROLE_FACULTY)
-            ->where('scope_type', self::SCOPE_FACULTY)
+            ->where('scope_type', self::SCOPE_DEPT)
             ->where('scope_id', $departmentId);
     }
 
@@ -134,7 +136,7 @@ class Appointment extends Model
             if (empty($appt->scope_type)) {
                 $appt->scope_type = match ($appt->role) {
                     // Program role removed
-                    self::ROLE_FACULTY      => self::SCOPE_FACULTY,
+                    self::ROLE_FACULTY      => self::SCOPE_DEPT,
                     self::ROLE_VCAA,
                     self::ROLE_ASSOC_VCAA   => self::SCOPE_INSTITUTION,
                     // Dean and Associate Dean are department-scoped in Syllaverse
@@ -150,7 +152,7 @@ class Appointment extends Model
             if (empty($appt->scope_type)) {
                 $appt->scope_type = match ($appt->role) {
                     // Program role removed
-                    self::ROLE_FACULTY      => self::SCOPE_FACULTY,
+                    self::ROLE_FACULTY      => self::SCOPE_DEPT,
                     self::ROLE_VCAA,
                     self::ROLE_ASSOC_VCAA   => self::SCOPE_INSTITUTION,
                     // Dean and Associate Dean are department-scoped in Syllaverse
@@ -167,7 +169,11 @@ class Appointment extends Model
         $this->attributes['role'] = $value;
         if (!array_key_exists('scope_type', $this->attributes)) {
             $this->attributes['scope_type'] = match ($value) {
-                self::ROLE_FACULTY => self::SCOPE_FACULTY,
+                self::ROLE_FACULTY => self::SCOPE_DEPT,
+                self::ROLE_CHAIR,
+                self::ROLE_DEPT_HEAD,
+                self::ROLE_DEAN,
+                self::ROLE_ASSOC_DEAN => self::SCOPE_DEPT,
                 default            => self::SCOPE_DEPT,
             };
         }
@@ -196,7 +202,7 @@ class Appointment extends Model
 
     public function isFaculty(): bool
     {
-        return $this->role === self::ROLE_FACULTY && $this->scope_type === self::SCOPE_FACULTY;
+        return $this->role === self::ROLE_FACULTY && $this->scope_type === self::SCOPE_DEPT;
     }
 
     public function setRoleAndScope(string $role, ?int $departmentId, ?int $programId): self
@@ -207,7 +213,7 @@ class Appointment extends Model
             $this->scope_type = self::SCOPE_PROG;
             $this->scope_id   = (int) $programId;
         } elseif ($role === self::ROLE_FACULTY) {
-            $this->scope_type = self::SCOPE_FACULTY;
+            $this->scope_type = self::SCOPE_DEPT;
             $this->scope_id   = (int) $departmentId;
         } else {
             $this->scope_type = self::SCOPE_DEPT;

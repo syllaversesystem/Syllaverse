@@ -47,17 +47,26 @@
   // Include all role requests including faculty for centralized superadmin management
   foreach ($pendingChairRequests as $r) {
     $uid   = $r->user_id;
-    // Dynamic label for Department Head: render as Dept Chair or Program Chair
-    if ($r->requested_role === ChairRequest::ROLE_DEPT_HEAD) {
-      $programCount = optional($r->department)->programs()->count() ?? 0;
-      $label = $programCount >= 2 ? 'Dept Chair' : 'Program Chair';
+    // Dynamic label rules per new mapping
+    $deptName = strtolower(trim(optional($r->department)->name ?? ''));
+    if ($r->requested_role === ChairRequest::ROLE_DEPT_HEAD || $r->requested_role === ChairRequest::ROLE_DEAN) {
+      // Department Head (Dean/Head/Principal) display rules
+      if ($deptName !== '' && (
+            str_contains($deptName, 'lab school') ||
+            str_contains($deptName, 'laboratory school')
+          )) {
+        $label = 'Principal';
+      } elseif ($deptName !== '' && str_contains($deptName, 'general education')) {
+        $label = 'Head';
+      } else {
+        $label = 'Dean';
+      }
     } else {
       $label = match ($r->requested_role) {
-        ChairRequest::ROLE_DEPT => 'Dept Chair',
+        ChairRequest::ROLE_CHAIR, ChairRequest::ROLE_DEPT => (optional($r->department)->programs()->count() ?? 0) >= 2 ? 'Dept Chair' : 'Program Chair',
         ChairRequest::ROLE_PROG => 'Program Chair',
         ChairRequest::ROLE_VCAA => 'VCAA',
         ChairRequest::ROLE_ASSOC_VCAA => 'Associate VCAA',
-        ChairRequest::ROLE_DEAN => 'Dean',
         ChairRequest::ROLE_ASSOC_DEAN => 'Associate Dean',
         ChairRequest::ROLE_FACULTY => 'Faculty',
         default => $r->requested_role,
@@ -296,83 +305,4 @@
   </div>
   {{-- ░░░ END: Table Section ░░░ --}}
 
-  {{-- ░░░ START: JavaScript for Faculty Actions ░░░ --}}
-  <script>
-  // Faculty management functions
-  function approveFaculty(id) {
-      if (confirm('Approve this faculty account?')) {
-          fetch(`/superadmin/manage-accounts/faculty/${id}/approve`, {
-              method: 'POST',
-              headers: {
-                  'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                  'Accept': 'application/json'
-              }
-          }).then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    location.reload();
-                } else {
-                    alert('Failed to approve faculty');
-                }
-            });
-      }
-  }
 
-  function rejectFaculty(id) {
-      if (confirm('Reject this faculty account?')) {
-          fetch(`/superadmin/manage-accounts/faculty/${id}/reject`, {
-              method: 'POST',
-              headers: {
-                  'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                  'Accept': 'application/json'
-              }
-          }).then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    location.reload();
-                } else {
-                    alert('Failed to reject faculty');
-                }
-            });
-      }
-  }
-
-  function suspendFaculty(id) {
-      if (confirm('Suspend this faculty account?')) {
-          fetch(`/superadmin/manage-accounts/faculty/${id}/suspend`, {
-              method: 'POST',
-              headers: {
-                  'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                  'Accept': 'application/json'
-              }
-          }).then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    location.reload();
-                } else {
-                    alert('Failed to suspend faculty');
-                }
-            });
-      }
-  }
-
-  function reactivateFaculty(id) {
-      if (confirm('Reactivate this faculty account?')) {
-          fetch(`/superadmin/manage-accounts/faculty/${id}/reactivate`, {
-              method: 'POST',
-              headers: {
-                  'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                  'Accept': 'application/json'
-              }
-          }).then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    location.reload();
-                } else {
-                    alert('Failed to reactivate faculty');
-                }
-            });
-      }
-  }
-  </script>
-  {{-- ░░░ END: JavaScript for Faculty Actions ░░░ --}}
