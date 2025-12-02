@@ -36,10 +36,18 @@
                 <div class="svx-card-body flex-grow-1">
                   <div class="d-flex align-items-center justify-content-between mb-1 small text-muted">
                     <span class="svx-course-pill"><i class="bi bi-book"></i> {{ $syllabus->course->code ?? '-' }}</span>
-                    <span class="badge bg-warning text-dark submission-status-badge-small">
-                      <i class="bi bi-clock-history"></i>
-                      Pending Review
-                    </span>
+                    @php($st = $syllabus->submission_status)
+                    @if($st === 'final_approval')
+                      <span class="badge bg-danger-subtle text-danger submission-status-badge-small">
+                        <i class="bi bi-clipboard-check"></i>
+                        Final Approval
+                      </span>
+                    @else
+                      <span class="badge bg-warning text-dark submission-status-badge-small">
+                        <i class="bi bi-clock-history"></i>
+                        Pending Review
+                      </span>
+                    @endif
                   </div>
                   <h6 class="fw-semibold mb-0 syllabus-title">{{ $syllabus->title }}</h6>
                   @if(!empty($syllabus->course?->title))
@@ -53,7 +61,21 @@
                   <div class="text-muted small mt-2">
                     <i class="bi bi-person"></i> Submitted by {{ $syllabus->faculty->name ?? 'Unknown' }}
                   </div>
-                  
+                  <!-- Action buttons -->
+                  <div class="d-flex align-items-center gap-2 mt-3">
+                    <button type="button" class="btn review-approve-btn"
+                            title="Approve"
+                            data-approve-url="{{ route('faculty.syllabi.approve', $syllabus->id) }}">
+                      <i class="bi bi-check-circle"></i> Approve
+                    </button>
+                    @if($st === 'pending_review')
+                    <button type="button" class="btn review-revise-btn"
+                            title="Return for Revision"
+                            data-revision-url="{{ route('faculty.syllabi.revision', $syllabus->id) }}">
+                      <i class="bi bi-arrow-clockwise"></i> Return
+                    </button>
+                    @endif
+                  </div>
                 </div>
                 
               </article>

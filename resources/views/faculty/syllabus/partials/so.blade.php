@@ -13,6 +13,7 @@
   $courseId = $syllabus->course_id ?? $syllabus->course->id ?? null;
   $deptId = $syllabus->program->department_id ?? $syllabus->program->dept_id ?? null;
 @endphp
+<div class="sv-partial" data-partial-key="so">
 <form id="soForm" method="POST" action="{{ route($rp . '.sos.update', $default['id']) }}">
   @csrf
   @method('PUT')
@@ -168,6 +169,8 @@
 
   {{-- Controls removed: Add Row / Save Order / Save All are handled via top Save and programmatic APIs now --}}
 </form>
+
+</div>
 
 {{-- ░░░ START: Load Predefined SOs Modal ░░░ --}}
 <div class="modal fade sv-so-modal" id="loadPredefinedSosModal" tabindex="-1" aria-labelledby="loadPredefinedSosModalLabel" aria-hidden="true" data-bs-backdrop="static">

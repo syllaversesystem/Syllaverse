@@ -24,7 +24,6 @@ use App\Http\Controllers\Faculty\Syllabus\IloCdioSdgController;
 use App\Http\Controllers\Faculty\SdgController;
 use App\Http\Controllers\Faculty\IgaController;
 use App\Http\Controllers\Faculty\CdioController;
-use App\Http\Controllers\Faculty\DepartmentsController;
 use App\Http\Controllers\Faculty\ProgramController;
 use App\Http\Controllers\Faculty\CourseController;
 use App\Http\Controllers\Faculty\MasterDataController;
@@ -82,12 +81,7 @@ Route::middleware([FacultyAuth::class])->group(function () {
 
 
 
-    // ---------- Departments Management ----------
-    Route::get('/faculty/departments', [DepartmentsController::class, 'index'])->name('faculty.departments.index');
-    Route::post('/faculty/departments', [DepartmentsController::class, 'store'])->name('faculty.departments.store');
-    Route::put('/faculty/departments/{department}', [DepartmentsController::class, 'update'])->name('faculty.departments.update');
-    Route::delete('/faculty/departments/{department}', [DepartmentsController::class, 'destroy'])->name('faculty.departments.destroy');
-    Route::get('/faculty/departments/table-content', [DepartmentsController::class, 'tableContent'])->name('faculty.departments.table-content');
+    // (Departments module moved to Superadmin)
 
     // ---------- Programs Management ----------
     Route::get('/faculty/programs', [ProgramController::class, 'index'])->name('faculty.programs.index');

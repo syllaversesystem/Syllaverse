@@ -62,6 +62,15 @@
           <span class="label">Manage Accounts</span>
         </a>
       </li>
+
+      <li class="nav-item">
+        <a class="nav-link d-flex align-items-center @if(request()->is('superadmin/departments*')) active @endif"
+           href="{{ route('superadmin.departments.index') }}"
+           aria-current="@if(request()->is('superadmin/departments*')) page @endif">
+          <i class="bi bi-building"></i>
+          <span class="label">Departments</span>
+        </a>
+      </li>
     </ul>  
   </div>  
   {{-- END: Navigation Links --}}  

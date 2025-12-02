@@ -107,24 +107,7 @@
         <div class="sidebar-separator"></div>
       </li>
 
-      {{-- Departments (Only for Institution-wide roles) --}}
-      @php 
-        $isActive = request()->routeIs('faculty.departments*');
-        $hasInstitutionWideRole = Auth::guard('faculty')->user()->appointments()
-          ->active()
-          ->whereIn('role', [\App\Models\Appointment::ROLE_VCAA, \App\Models\Appointment::ROLE_ASSOC_VCAA])
-          ->exists();
-      @endphp
-      @if($hasInstitutionWideRole)
-        <li class="nav-item">
-          <a class="nav-link d-flex align-items-center {{ $isActive ? 'active' : '' }}"
-             href="{{ route('faculty.departments.index') }}"
-             aria-current="{{ $isActive ? 'page' : '' }}">
-            <i class="bi bi-building"></i>
-            <span class="label">Departments</span>
-          </a>
-        </li>
-      @endif
+      {{-- Departments removed from Faculty (module moved to Superadmin) --}}
 
       {{-- Programs --}}
       @php $isActive = request()->routeIs('faculty.programs*'); @endphp

@@ -12,6 +12,7 @@
 --}}
 
 @vite('resources/css/components/alert-overlay.css')
+@vite('resources/js/components/alert-overlay.js')
 
 @php
   // START: Flash/Errors Bridge

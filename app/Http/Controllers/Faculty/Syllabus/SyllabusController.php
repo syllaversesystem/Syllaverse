@@ -60,9 +60,11 @@ class SyllabusController extends Controller
             return redirect()->route('faculty.syllabi.index')
                 ->with('error', 'Access denied: Approvals are visible only to Deans and Program/Department Chairpersons.');
         }
-        // Get syllabi pending review where current user is the assigned reviewer
-        $syllabi = Syllabus::with('course', 'program')
-            ->where('submission_status', 'pending_review')
+        // Get syllabi awaiting this user's action:
+        // - pending_review assigned to this user
+        // - final_approval assigned to this user (Dean/Associate Dean)
+        $syllabi = Syllabus::with('course', 'program', 'faculty')
+            ->whereIn('submission_status', ['pending_review', 'final_approval'])
             ->where('reviewed_by', auth()->id())
             ->orderBy('submitted_at', 'desc')
             ->get();

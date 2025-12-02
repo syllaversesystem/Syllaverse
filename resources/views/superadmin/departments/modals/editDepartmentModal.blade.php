@@ -1,149 +1,51 @@
 {{-- 
 -------------------------------------------------------------------------------
 * File: resources/views/superadmin/departments/modals/editDepartmentModal.blade.php
-* Description: Modal for editing a department with brand-aligned UI styling
--------------------------------------------------------------------------------
-📜 Log:
-[2025-10-02] Updated to match add department modal UI design - brand colors, improved styling, glass morphism buttons.
+* Description: Modal for editing a department (Superadmin)
 -------------------------------------------------------------------------------
 --}}
 
-{{-- ░░░ START: Edit Department Modal ░░░ --}}
-<div class="modal fade sv-appt-modal" id="editDepartmentModal" tabindex="-1" aria-labelledby="editDepartmentModalLabel" aria-hidden="true">
+<div class="modal fade sv-superadmin-dept-modal" id="editDepartmentModal" tabindex="-1" aria-labelledby="editDepartmentModalLabel" aria-hidden="true" data-bs-backdrop="static">
   <div class="modal-dialog modal-dialog-centered modal-lg">
     <form id="editDepartmentForm" method="POST" class="modal-content">
       @csrf
       @method('PUT')
+      <input type="hidden" id="editDepartmentId" name="id" value="">
 
-      {{-- ░░░ START: Local styles (scoped to this modal) ░░░ --}}
       <style>
-        /* Brand tokens */
-        #editDepartmentModal {
-          --sv-bg:   #FAFAFA;   /* light bg */
-          --sv-bdr:  #E3E3E3;   /* borders */
-          --sv-acct: #EE6F57;   /* accent/focus */
-          --sv-danger:#CB3737;  /* primary action (danger style) */
-        }
-        #editDepartmentModal .modal-header {
-          border-bottom: 1px solid var(--sv-bdr);
-          background: var(--sv-bg);
-        }
-        #editDepartmentModal .sv-card {
-          border: 1px solid var(--sv-bdr);
-          background: #fff;
-          border-radius: .75rem;
-        }
-        #editDepartmentModal .sv-section-title {
-          font-size: .8rem;
-          letter-spacing: .02em;
-          color: #6c757d;
-        }
-        #editDepartmentModal .input-group-text {
-          background: var(--sv-bg);
-          border-color: var(--sv-bdr);
-        }
-        #editDepartmentModal .form-control,
-        #editDepartmentModal .form-select {
-          border-color: var(--sv-bdr);
-        }
-        #editDepartmentModal .form-control:focus,
-        #editDepartmentModal .form-select:focus {
-          border-color: var(--sv-bdr);
-          box-shadow: none;
-          outline: none;
-        }
-        /* Remove browser default yellow/orange focus effects */
-        #editDepartmentModal textarea.form-control:focus {
-          border-color: var(--sv-bdr);
-          box-shadow: none;
-          outline: none;
-          background-color: #fff;
-        }
-        #editDepartmentModal .btn-danger {
-          background: var(--sv-card-bg, #fff);
-          border: none;
-          color: #000;
-          transition: all 0.2s ease-in-out;
-          box-shadow: none;
-          display: inline-flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.5rem 1rem;
-          border-radius: 0.375rem;
-        }
-        #editDepartmentModal .btn-danger:hover,
-        #editDepartmentModal .btn-danger:focus {
-          background: linear-gradient(135deg, rgba(255, 240, 235, 0.88), rgba(255, 255, 255, 0.46));
-          backdrop-filter: blur(7px);
-          -webkit-backdrop-filter: blur(7px);
-          box-shadow: 0 4px 10px rgba(204, 55, 55, 0.12);
-          color: #CB3737;
-        }
-        #editDepartmentModal .btn-danger:hover i,
-        #editDepartmentModal .btn-danger:hover svg,
-        #editDepartmentModal .btn-danger:focus i,
-        #editDepartmentModal .btn-danger:focus svg {
-          stroke: #CB3737;
-        }
-        /* Cancel button styling */
-        #editDepartmentModal .btn-light {
-          background: var(--sv-card-bg, #fff);
-          border: none;
-          color: #6c757d;
-          transition: all 0.2s ease-in-out;
-          box-shadow: none;
-          display: inline-flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.5rem 1rem;
-          border-radius: 0.375rem;
-        }
-        #editDepartmentModal .btn-light:hover,
-        #editDepartmentModal .btn-light:focus {
-          background: linear-gradient(135deg, rgba(220, 220, 220, 0.88), rgba(240, 240, 240, 0.46));
-          backdrop-filter: blur(7px);
-          -webkit-backdrop-filter: blur(7px);
-          box-shadow: 0 4px 10px rgba(108, 117, 125, 0.12);
-          color: #495057;
-        }
-        #editDepartmentModal .btn-light:hover i,
-        #editDepartmentModal .btn-light:hover svg,
-        #editDepartmentModal .btn-light:focus i,
-        #editDepartmentModal .btn-light:focus svg {
-          stroke: #495057;
-        }
-        #editDepartmentModal .sv-divider {
-          height: 1px;
-          background: var(--sv-bdr);
-          margin: .75rem 0;
-        }
+        #editDepartmentModal { --sv-bg:#FAFAFA; --sv-bdr:#E3E3E3; --sv-acct:#EE6F57; --sv-danger:#CB3737; }
+        #editDepartmentModal .modal-content { border-radius:16px; border:1px solid var(--sv-bdr); background:#fff; box-shadow:0 10px 30px rgba(0,0,0,.08), 0 2px 12px rgba(0,0,0,.06); overflow:hidden; }
+        #editDepartmentModal .modal-header { padding:.85rem 1rem; border-bottom:1px solid var(--sv-bdr); background:#fff; }
+        #editDepartmentModal .modal-title { font-weight:600; font-size:1rem; display:inline-flex; align-items:center; gap:.5rem; }
+        #editDepartmentModal .form-control, #editDepartmentModal .form-select { border-radius:12px; border:1px solid var(--sv-bdr); background:#fff; }
+        #editDepartmentModal .form-control:focus, #editDepartmentModal .form-select:focus { border-color:var(--sv-acct); box-shadow:0 0 0 3px rgba(238,111,87,.16); outline:none; }
+        #editDepartmentModal textarea.form-control:focus { border-color:var(--sv-bdr); box-shadow:none; outline:none; background:#fff; }
+        #editDepartmentModal .btn-danger { background:#fff; border:none; color:#000; transition:all .2s; box-shadow:none; display:inline-flex; align-items:center; gap:.5rem; padding:.5rem 1rem; border-radius:.375rem; }
+        #editDepartmentModal .btn-light { background:#fff; border:none; color:#6c757d; transition:all .2s; box-shadow:none; display:inline-flex; align-items:center; gap:.5rem; padding:.5rem 1rem; border-radius:.375rem; }
+        #editDepartmentModal .sv-divider { height:1px; background:var(--sv-bdr); margin:.75rem 0; }
       </style>
-      {{-- ░░░ END: Local styles ░░░ --}}
 
-      {{-- ░░░ START: Header ░░░ --}}
       <div class="modal-header">
-        <h5 class="modal-title fw-semibold" id="editDepartmentModalLabel">Edit Department</h5>
+        <h5 class="modal-title d-flex align-items-center gap-2" id="editDepartmentModalLabel">
+          <i data-feather="edit-3"></i>
+          <span>Edit Department</span>
+        </h5>
       </div>
-      {{-- ░░░ END: Header ░░░ --}}
 
-      {{-- ░░░ START: Body ░░░ --}}
       <div class="modal-body">
-        {{-- Inline error box (filled by JS on 422) --}}
         <div id="editDepartmentErrors" class="alert alert-danger d-none small mb-3" role="alert"></div>
 
-        <div class="mb-3">
+        <div class="department-field-group mb-3">
           <label for="editDepartmentName" class="form-label small fw-medium text-muted">Department Name</label>
           <input type="text" class="form-control form-control-sm" id="editDepartmentName" name="name" placeholder="e.g., College of Information and Computing Sciences" required>
         </div>
 
-        <div class="mb-3">
+        <div class="department-field-group mb-3">
           <label for="editDepartmentCode" class="form-label small fw-medium text-muted">Department Code</label>
           <input type="text" class="form-control form-control-sm" id="editDepartmentCode" name="code" placeholder="e.g., CICS" required>
         </div>
       </div>
-      {{-- ░░░ END: Body ░░░ --}}
 
-      {{-- ░░░ START: Footer ░░░ --}}
       <div class="modal-footer">
         <button type="button" class="btn btn-light" data-bs-dismiss="modal">
           <i data-feather="x"></i> Cancel
@@ -152,8 +54,6 @@
           <i data-feather="save"></i> Update
         </button>
       </div>
-      {{-- ░░░ END: Footer ░░░ --}}
     </form>
   </div>
 </div>
-{{-- ░░░ END: Edit Department Modal ░░░ --}}

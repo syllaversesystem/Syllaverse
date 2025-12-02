@@ -23,6 +23,7 @@
 
   <meta name="theme-color" content="#EE6F57" />
   <meta name="mobile-web-app-capable" content="yes">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
 
   {{-- END: Meta & Core Setup --}}
 
@@ -42,6 +43,32 @@
   {{-- END: Custom Vite CSS --}}
 
   @stack('styles')
+  </head>
+  <body class="bg-sv-light">
+
+    {{-- ✅ Floating Alert Overlay (Modular Blade Component) --}}
+    <x-alert-overlay />
+
+    <div class="d-flex" id="wrapper">
+      @include('includes.superadmin-sidebar')
+
+      <div id="page-content-wrapper" class="w-100">
+        @include('includes.superadmin-navbar')
+
+        {{-- Backdrop overlay for mobile drawer --}}
+        <div id="sidebar-backdrop" class="sidebar-backdrop d-none"></div>
+
+        <main class="container-fluid px-3 py-3">
+          @yield('content')
+        </main>
+      </div>
+    </div>
+
+    {{-- ░░░ START: Core JS (Bootstrap via Vite) ░░░ --}}
+    @vite('resources/js/app.js')
+    {{-- Load alert overlay controller early so events are caught --}}
+    @vite('resources/js/components/alert-overlay.js')
+    {{-- ░░░ END: Core JS ░░░ --}}
 </head>
 <body class="bg-sv-light">
 
@@ -72,8 +99,8 @@
   @vite('resources/js/superadmin/departments.js')
   @vite('resources/js/superadmin/alert-timer.js')   {{-- ✅ Alert timer --}}
   @vite('resources/js/superadmin/chair-requests.js')
-  @vite('resources/js/superadmin/appointments.js')
-  @vite('resources/js/superadmin/manage-accounts/manage-accounts.js')
+    @vite('resources/js/superadmin/appointments.js')
+    @vite('resources/js/superadmin/manage-accounts/manage-accounts.js')
   {{-- Assessment Tasks JS removed because AssessmentTaskGroup table may be absent in this deployment --}}
   {{-- ░░░ END: Page bundles ░░░ --}}
 

@@ -14,6 +14,7 @@ use App\Http\Controllers\SuperAdmin\AuthController;
 use App\Http\Controllers\SuperAdmin\ManageAdminController;
 use App\Http\Controllers\SuperAdmin\ChairRequestController;
 use App\Http\Controllers\SuperAdmin\AppointmentController;
+use App\Http\Controllers\SuperAdmin\DepartmentsController as SADepartmentsController;
 
 use App\Http\Middleware\SuperAdminAuth;
 
@@ -46,12 +47,14 @@ Route::middleware([SuperAdminAuth::class])->prefix('superadmin')->group(function
     Route::post('/manage-accounts/admin/{id}/approve', [ManageAdminController::class, 'approve'])->name('superadmin.approve.admin');
     Route::post('/manage-accounts/admin/{id}/reject',  [ManageAdminController::class, 'reject'])->name('superadmin.reject.admin');
     Route::post('/manage-accounts/admin/{id}/suspend', [ManageAdminController::class, 'suspend'])->name('superadmin.suspend.admin');
+    Route::post('/manage-accounts/admin/{id}/delete',  [ManageAdminController::class, 'delete'])->name('superadmin.delete.admin');
 
     // ---------- Manage Faculty Accounts ----------
     Route::post('/manage-accounts/faculty/{id}/approve', [ManageAdminController::class, 'approveFaculty'])->name('superadmin.approve.faculty');
     Route::post('/manage-accounts/faculty/{id}/reject', [ManageAdminController::class, 'rejectFaculty'])->name('superadmin.reject.faculty');
     Route::post('/manage-accounts/faculty/{id}/suspend', [ManageAdminController::class, 'suspendFaculty'])->name('superadmin.suspend.faculty');
     Route::post('/manage-accounts/faculty/{id}/reactivate', [ManageAdminController::class, 'reactivateFaculty'])->name('superadmin.reactivate.faculty');
+    Route::post('/manage-accounts/faculty/{id}/delete', [ManageAdminController::class, 'deleteFaculty'])->name('superadmin.delete.faculty');
     Route::patch('/manage-accounts/{id}/revoke', [ManageAdminController::class, 'revoke'])->name('superadmin.accounts.revoke');
 
     // ---------- Chair Requests (Approve/Reject) ----------
@@ -65,4 +68,11 @@ Route::middleware([SuperAdminAuth::class])->prefix('superadmin')->group(function
     Route::put('/appointments/{appointment}',      [AppointmentController::class, 'update'])->name('superadmin.appointments.update');
     Route::post('/appointments/{appointment}/end', [AppointmentController::class, 'end'])->name('superadmin.appointments.end');
     Route::delete('/appointments/{appointment}',   [AppointmentController::class, 'destroy'])->name('superadmin.appointments.destroy');
+
+    // ---------- Departments Management (Superadmin) ----------
+    Route::get('/departments', [SADepartmentsController::class, 'index'])->name('superadmin.departments.index');
+    Route::get('/departments/table-content', [SADepartmentsController::class, 'tableContent'])->name('superadmin.departments.table-content');
+    Route::post('/departments', [SADepartmentsController::class, 'store'])->name('superadmin.departments.store');
+    Route::put('/departments/{department}', [SADepartmentsController::class, 'update'])->name('superadmin.departments.update');
+    Route::delete('/departments/{department}', [SADepartmentsController::class, 'destroy'])->name('superadmin.departments.destroy');
 });

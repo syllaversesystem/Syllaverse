@@ -1,29 +1,27 @@
 {{-- 
 -------------------------------------------------------------------------------
 * File: resources/views/superadmin/departments/index.blade.php
-* Description: Manage Departments Page (with responsive table, modals, and FAB) – Syllaverse
--------------------------------------------------------------------------------
-📜 Log:
-[2025-07-28] Initial creation – department management page with responsive layout and modals.
-[2025-08-06] Added “Handled By” and “Programs” columns; removed “Created On” column.
-[2025-08-06] Removed alert block – now handled globally via <x-alert-overlay /> component.
-[2025-08-07] Fully customized mobile card layout with split dropdown column – refined spacing & typography.
+* Description: Manage Departments Page (Superadmin version) – Syllaverse
 -------------------------------------------------------------------------------
 --}}
 
 @extends('layouts.superadmin')
 
-@section('title', 'Departments • Super Admin • Syllaverse')
+@section('title', 'Departments • Superadmin • Syllaverse')
 @section('page-title', 'Manage Departments')
+
+@push('styles')
+@vite('resources/css/superadmin/departments/departments.css')
+@endpush
 
 @section('content')
 <div class="department-card">
 
-    {{-- ░░░ START: Toolbar Section ░░░ --}}
+    {{-- Toolbar --}}
     <div class="superadmin-manage-department-toolbar">
         <div class="input-group">
             <span class="input-group-text"><i data-feather="search"></i></span>
-            <input type="search" class="form-control" placeholder="Search departments..." aria-label="Search departments">
+            <input type="search" id="departmentsSearch" class="form-control" placeholder="Search departments..." aria-label="Search departments">
         </div>
 
         <span class="flex-spacer"></span>
@@ -36,9 +34,8 @@
             <i data-feather="plus"></i>
         </button>
     </div>
-    {{-- ░░░ END: Toolbar Section ░░░ --}}
 
-    {{-- ░░░ START: Table Section ░░░ --}}
+    {{-- Table --}}
     <div class="table-wrapper position-relative">
         <div class="table-responsive">
             <table class="table superadmin-manage-department-table mb-0">
@@ -50,104 +47,15 @@
                         <th class="text-end"><i data-feather="more-vertical"></i></th>
                     </tr>
                 </thead>
-                <tbody>
-                    @if($departments->isEmpty())
-                    <tr class="superadmin-manage-department-empty-row">
-                        <td colspan="6">
-                            <div class="empty-table">
-                                <h6>No departments found</h6>
-                                <p>Click the <i data-feather="plus"></i> button to add one.</p>
-                            </div>
-                        </td>
-                    </tr>
-                    @else
-                        @foreach($departments as $department)
-                        <tr>
-
-                            {{-- ░░░ START: Mobile Card Layout ░░░ --}}
-                            <td colspan="6" class="d-table-cell d-md-none p-0 border-0">
-                                <div class="dept-card-rowed">
-
-                                    <div class="dept-header-row">
-                                        <div class="dept-code">{{ $department->code }}</div>
-                                        <div class="dept-programs">
-                                            {{ $department->programs->count() }} {{ Str::plural('program', $department->programs->count()) }}
-                                        </div>
-                                        <div class="dropdown dept-card-dropdown">
-                                            <button class="btn btn-action-icon" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                                <i data-feather="more-vertical"></i>
-                                            </button>
-                                            <ul class="dropdown-menu dropdown-menu-end">
-                                                <li>
-                                                    <button class="dropdown-item"
-                                                        data-bs-toggle="modal"
-                                                        data-bs-target="#editDepartmentModal"
-                                                        data-id="{{ $department->id }}"
-                                                        data-name="{{ $department->name }}"
-                                                        data-code="{{ $department->code }}"
-                                                        onclick="setEditDepartment(this)">
-                                                        <i data-feather="edit" class="me-2"></i> Edit
-                                                    </button>
-                                                </li>
-                                                <li>
-                                                    <button class="dropdown-item text-danger"
-                                                        data-bs-toggle="modal"
-                                                        data-bs-target="#deleteDepartmentModal"
-                                                        data-id="{{ $department->id }}"
-                                                        data-name="{{ $department->name }}"
-                                                        data-code="{{ $department->code }}"
-                                                        onclick="setDeleteDepartment(this)">
-                                                        <i data-feather="trash" class="me-2"></i> Delete
-                                                    </button>
-                                                </li>
-                                            </ul>
-                                        </div>
-                                    </div>
-
-                                    <div class="dept-name">{{ $department->name }}</div>
-                                </div>
-                            </td>
-                            {{-- ░░░ END: Mobile Card Layout ░░░ --}}
-
-                            {{-- ░░░ START: Desktop Row Layout (hidden on mobile) ░░░ --}}
-                            <td class="d-none d-md-table-cell">{{ $department->code }}</td>
-                            <td class="d-none d-md-table-cell">{{ $department->name }}</td>
-                            <td class="d-none d-md-table-cell">
-                                {{ $department->programs->count() }} {{ Str::plural('program', $department->programs->count()) }}
-                            </td>
-                            <td class="d-none d-md-table-cell text-end">
-                                <button class="btn action-btn edit me-2"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#editDepartmentModal"
-                                    data-id="{{ $department->id }}"
-                                    data-name="{{ $department->name }}"
-                                    data-code="{{ $department->code }}"
-                                    onclick="setEditDepartment(this)">
-                                    <i data-feather="edit"></i>
-                                </button>
-                                <button class="btn action-btn delete"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#deleteDepartmentModal"
-                                    data-id="{{ $department->id }}"
-                                    data-name="{{ $department->name }}"
-                                    data-code="{{ $department->code }}"
-                                    onclick="setDeleteDepartment(this)">
-                                    <i data-feather="trash"></i>
-                                </button>
-                            </td>
-                            {{-- ░░░ END: Desktop Row Layout ░░░ --}}
-
-                        </tr>
-                        @endforeach
-                    @endif
+                <tbody id="departmentsTableBody">
+                    @include('superadmin.departments.partials.table-content', ['departments' => $departments])
                 </tbody>
             </table>
         </div>
     </div>
-    {{-- ░░░ END: Table Section ░░░ --}}
 </div>
 
-{{-- ░░░ START: Floating Action Button (Mobile Only) ░░░ --}}
+{{-- Mobile FAB --}}
 <button class="btn-brand-sm add-dept-fab d-md-none"
     data-bs-toggle="modal"
     data-bs-target="#addDepartmentModal"
@@ -155,42 +63,28 @@
     title="Add Department">
     <i data-feather="plus"></i>
 </button>
-{{-- ░░░ END: Floating Action Button (Mobile Only) ░░░ --}}
 
-{{-- ░░░ START: Modals Section ░░░ --}}
+{{-- Modals --}}
 @include('superadmin.departments.modals.addDepartmentModal')
 @include('superadmin.departments.modals.editDepartmentModal')
 @include('superadmin.departments.modals.deleteDepartmentModal')
 
-{{-- ░░░ START: Enhanced Modal Backdrop CSS ░░░ --}}
+{{-- Local styles: field groups and modal backdrop --}}
 <style>
-  /* Ensure modals appear properly and clean up correctly */
-  .modal {
-    z-index: 1055 !important;
-  }
-  .modal-backdrop {
-    z-index: 1050 !important;
-    transition: opacity 0.15s linear;
-  }
-  .modal.show .modal-dialog {
-    z-index: 1056 !important;
-  }
-  
-  /* Ensure body cleanup when modal is closed */
-  body:not(.modal-open) {
-    overflow: visible !important;
-    padding-right: 0 !important;
-  }
-  
-  /* Allow Bootstrap to handle backdrop visibility naturally */
-  .modal-backdrop.show {
-    opacity: 0.5;
-  }
-  .modal-backdrop:not(.show) {
-    opacity: 0;
-  }
+.department-field-group { margin-bottom: 1rem; }
+.department-field-group .form-label { font-weight: 500; color: var(--sv-text-muted); margin-bottom: 0.5rem; font-size: 0.875rem; }
+.department-field-group .form-control, .department-field-group .form-select { border: 1px solid var(--sv-bdr, #E3E3E3); border-radius: 0.375rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out; }
+.department-field-group .form-control:focus, .department-field-group .form-select:focus { border-color: var(--sv-bdr, #E3E3E3); box-shadow: none; outline: none; }
+.department-field-group textarea.form-control:focus { border-color: var(--sv-bdr, #E3E3E3); box-shadow: none; outline: none; background-color: #fff; }
+.modal { z-index: 1055 !important; }
+.modal-backdrop { z-index: 1050 !important; transition: opacity 0.15s linear; }
+.modal.show .modal-dialog { z-index: 1056 !important; }
+body:not(.modal-open) { overflow: visible !important; padding-right: 0 !important; }
+.modal-backdrop.show { opacity: 0.5; }
+.modal-backdrop:not(.show) { opacity: 0; }
 </style>
-{{-- ░░░ END: Enhanced Modal Backdrop CSS ░░░ --}}
-
-{{-- ░░░ END: Modals Section ░░░ --}}
 @endsection
+
+@push('scripts')
+@vite('resources/js/superadmin/departments.js')
+@endpush

@@ -58,6 +58,8 @@
                         'revision' => ['label' => 'Returned', 'icon' => 'bi-arrow-clockwise', 'class' => 'bg-warning text-dark'],
                         'approved' => ['label' => 'Reviewed', 'icon' => 'bi-check-circle', 'class' => 'bg-success'],
                         'final_approval' => ['label' => 'Final Approval', 'icon' => 'bi-award', 'class' => 'bg-primary'],
+                        // After Dean/Assoc Dean final approval, mark as Approved
+                        'final_approved' => ['label' => 'Approved', 'icon' => 'bi-check-circle', 'class' => 'bg-success'],
                       ];
                       $status = $statusConfig[$submissionStatus] ?? $statusConfig['draft'];
                     @endphp
@@ -103,6 +105,8 @@
                     }
                   @endphp
                   
+                  @php($isFinalApproved = $submissionStatus === 'final_approved')
+                  @if(!$isFinalApproved)
                   <button type="button" 
                           class="btn btn-sm btn-outline-primary submission-action-btn"
                           data-bs-toggle="modal" 
@@ -114,6 +118,7 @@
                           {{ $buttonDisabled ? 'disabled' : '' }}>
                     <i class="bi {{ $buttonIcon }}"></i> {{ $buttonText }}
                   </button>
+                  @endif
                   
                   @if($submissionStatus === 'pending_review')
                     <button type="button" class="btn btn-outline-danger btn-sm" disabled title="Cannot delete while pending review" aria-label="Delete disabled (pending review)">

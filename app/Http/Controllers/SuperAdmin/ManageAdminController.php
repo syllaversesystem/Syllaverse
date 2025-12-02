@@ -24,6 +24,41 @@ use Illuminate\Http\RedirectResponse;
 
 class ManageAdminController extends Controller
 {
+    /**
+     * Get the user's last known department id based on department-scoped appointments.
+     */
+    protected function getLastDepartmentId(User $user): ?int
+    {
+        // Get the most recent appointment and derive department id from its scope
+        $last = $user->appointments()
+            ->orderByDesc('updated_at')
+            ->orderByDesc('created_at')
+            ->first();
+
+        if (!$last) {
+            return null;
+        }
+
+        // Map various role/scope combos to a department id
+        // FACULTY: scope_type = Faculty, scope_id stores department id
+        if ($last->role === Appointment::ROLE_FACULTY) {
+            return $last->scope_id ? (int) $last->scope_id : null;
+        }
+
+        // Department-scoped leadership roles: scope_type = Department, scope_id is department id
+        if (in_array($last->role, [Appointment::ROLE_DEPT, Appointment::ROLE_DEPT_HEAD, Appointment::ROLE_ASSOC_DEAN], true)) {
+            return $last->scope_id ? (int) $last->scope_id : null;
+        }
+
+        // Legacy Program Chair: translate program -> department
+        if ($last->role === Appointment::ROLE_PROG && $last->scope_id) {
+            $program = Program::find((int) $last->scope_id);
+            return $program ? (int) $program->department_id : null;
+        }
+
+        // DEAN/VCAA etc. may be institution-scoped; no department to infer
+        return null;
+    }
     // ░░░ START: Index – load datasets for Manage Accounts page ░░░
     /** Show Manage Accounts datasets (admins, faculty/students, chairs, taxonomies). */
     public function index()
@@ -82,17 +117,42 @@ class ManageAdminController extends Controller
         $user = User::findOrFail($id);
 
         if ($user->role === 'admin') {
+            // Re-approve as Faculty with last known department
+            $lastDeptId = $this->getLastDepartmentId($user);
+
+            // Update user role/status
+            $user->role = 'faculty';
             $user->status = 'active';
             $user->save();
+
+            // Create a fresh active Faculty appointment only if we have a department id
+            if ($lastDeptId) {
+                $appt = new Appointment();
+                $appt->user_id = $user->id;
+                // Explicitly set role + scope to ensure scope_type and scope_id are valid
+                $appt->setRoleAndScope(Appointment::ROLE_FACULTY, $lastDeptId, null);
+                $appt->status = 'active';
+                $appt->save();
+            }
         }
 
         // AJAX path: keep current tab; caller decides what to refresh.
         if ($request->expectsJson() || $request->ajax()) {
+            $deptName = null;
+            $deptId = $this->getLastDepartmentId($user);
+            if ($deptId) { $deptName = optional(Department::find($deptId))->name; }
+            $msg = 'Account re-approved as Faculty.';
+            if ($deptName) {
+                $msg .= ' Assigned department: '.$deptName.'.';
+            } else {
+                $msg .= ' No last department found; appointment not created.';
+            }
             return response()->json([
                 'ok'       => true,
-                'message'  => 'Admin approved successfully.',
+                'message'  => $msg,
                 'admin_id' => (int) $user->id,
                 'status'   => 'active',
+                'needs_department' => $deptName ? false : true,
             ]);
         }
 
@@ -113,22 +173,25 @@ public function reject($id)
     $user = User::findOrFail($id);
 
     if ($user->role === 'admin') {
-        // Delete all active appointments for this admin before revoking
-        $deletedCount = $user->appointments()->where('status', 'active')->delete();
+        // End all active appointments for this admin before revoking (preserve history for re-approve)
+        $deletedCount = $user->appointments()->where('status', 'active')->update([
+            'status' => 'ended',
+            'end_at' => now(),
+        ]);
         
         // Set admin status to rejected
         $user->status = 'rejected';
         $user->save();
         
         // Log the deletion for audit purposes
-        \Log::info("Admin revoked: User {$user->id} ({$user->name}) - {$deletedCount} appointments deleted");
+        \Log::info("Admin revoked: User {$user->id} ({$user->name}) - {$deletedCount} appointments ended");
     }
 
     // Return JSON if AJAX
     if (request()->ajax()) {
         return response()->json([
             'status'  => 'success',
-            'message' => 'Admin revoked successfully. All appointments removed.'
+            'message' => 'Admin revoked successfully. All active appointments ended.'
         ]);
     }
 
@@ -168,6 +231,50 @@ public function suspend($id)
 
     // ░░░ START: Faculty Management ░░░
 
+    /**
+     * Permanently delete a rejected admin account.
+     * Removes related appointments and chair requests, then deletes the user.
+     */
+    public function delete(Request $request, $id): JsonResponse|RedirectResponse
+    {
+        $user = User::findOrFail($id);
+
+        if ($user->role !== 'admin') {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Invalid role for admin deletion.',
+            ], 422);
+        }
+
+        if ($user->status !== 'rejected') {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Only rejected accounts can be deleted.',
+            ], 422);
+        }
+
+        // Cleanup related data
+        try {
+            $user->appointments()->delete();
+            $user->chairRequests()->delete();
+        } catch (\Throwable $e) {
+            \Log::warning('Cleanup before admin delete failed: '.$e->getMessage());
+        }
+
+        $name = $user->name;
+        $user->delete();
+
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'ok' => true,
+                'message' => "Deleted admin {$name}.",
+                'removed_user_id' => (int) $id,
+            ]);
+        }
+
+        return redirect()->back()->with('success', "Deleted admin {$name}.");
+    }
+
 /**
  * Approve a faculty account
  */
@@ -178,12 +285,36 @@ public function approveFaculty($id)
     if ($user->role === 'faculty') {
         $user->status = 'active';
         $user->save();
+
+        // Ensure an active Faculty appointment exists with last known department
+        $hasActiveFacultyAppt = $user->appointments()->where('role', Appointment::ROLE_FACULTY)->where('status','active')->exists();
+        if (!$hasActiveFacultyAppt) {
+                $lastDeptId = $this->getLastDepartmentId($user);
+                if ($lastDeptId) {
+                    $appt = new Appointment();
+                    $appt->user_id = $user->id;
+                    // Ensure scope_type + scope_id set coherently for faculty
+                    $appt->setRoleAndScope(Appointment::ROLE_FACULTY, $lastDeptId, null);
+                    $appt->status = 'active';
+                    $appt->save();
+                }
+        }
     }
 
     if (request()->ajax()) {
+        $deptId = $this->getLastDepartmentId($user);
+        $deptName = $deptId ? optional(Department::find($deptId))->name : null;
+            $msg = 'Account re-approved as Faculty.';
+            if ($deptName) {
+                $msg .= ' Assigned department: '.$deptName.'.';
+            } else {
+                $msg .= ' No last department found; appointment not created.';
+            }
         return response()->json([
+            'ok' => true,
             'status' => 'success',
-            'message' => 'Faculty approved successfully.'
+                'message' => $msg,
+                'needs_department' => $deptName ? false : true,
         ]);
     }
 
@@ -201,19 +332,66 @@ public function rejectFaculty($id)
         $user->status = 'rejected';
         $user->save();
         
-        // Remove any active appointments
-        $user->appointments()->where('status', 'active')->delete();
+        // End any active appointments (preserve history)
+        $user->appointments()->where('status', 'active')->update([
+            'status' => 'ended',
+            'end_at' => now(),
+        ]);
     }
 
     if (request()->ajax()) {
         return response()->json([
             'status' => 'success',
-            'message' => 'Faculty rejected successfully.'
+            'message' => 'Faculty rejected successfully. All active appointments ended.'
         ]);
     }
 
     return redirect()->back()->with('success', 'Faculty rejected successfully.');
 }
+
+    /**
+     * Permanently delete a rejected faculty account.
+     * Removes related appointments and chair requests, then deletes the user.
+     */
+    public function deleteFaculty(Request $request, $id): JsonResponse|RedirectResponse
+    {
+        $user = User::findOrFail($id);
+
+        if ($user->role !== 'faculty') {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Invalid role for faculty deletion.',
+            ], 422);
+        }
+
+        if ($user->status !== 'rejected') {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Only rejected accounts can be deleted.',
+            ], 422);
+        }
+
+        // Cleanup related data
+        try {
+            $user->appointments()->delete();
+            $user->chairRequests()->delete();
+        } catch (\Throwable $e) {
+            \Log::warning('Cleanup before faculty delete failed: '.$e->getMessage());
+        }
+
+        $name = $user->name;
+        $user->delete();
+
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'ok' => true,
+                'message' => "Deleted faculty {$name}.",
+                'removed_user_id' => (int) $id,
+            ]);
+        }
+
+        return redirect()->back()->with('success', "Deleted faculty {$name}.");
+    }
 
 /**
  * Suspend a faculty account
@@ -273,7 +451,10 @@ public function revoke($id)
     $user = User::findOrFail($id);
 
     // Remove all active appointments
-    $user->appointments()->where('status', 'active')->delete();
+    $user->appointments()->where('status', 'active')->update([
+        'status' => 'ended',
+        'end_at' => now(),
+    ]);
 
     // Set user status to rejected
     $user->status = 'rejected';
@@ -282,12 +463,12 @@ public function revoke($id)
     if (request()->ajax()) {
         return response()->json([
             'status' => 'success',
-            'message' => "Access revoked for {$user->name}. All appointments have been removed and account status set to rejected.",
+            'message' => "Access revoked for {$user->name}. All active appointments have been ended and account status set to rejected.",
             'removed_user_id' => $user->id
         ]);
     }
 
-    return redirect()->back()->with('success', "Access revoked for {$user->name}. All appointments have been removed.");
+    return redirect()->back()->with('success', "Access revoked for {$user->name}. All active appointments have been ended.");
 }
 
     // ░░░ END: Faculty Management ░░░

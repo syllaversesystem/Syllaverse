@@ -13,6 +13,7 @@
 --}}
 
 @php $rp = $routePrefix ?? 'faculty.syllabi'; @endphp
+<div class="sv-partial" data-partial-key="cdio">
 <form id="cdioForm" method="POST" action="{{ route($rp . '.cdios.update', $default['id']) }}">
   @csrf
   @method('PUT')
@@ -160,6 +161,7 @@
   </table>
 
 </form>
+</div>
 
 {{-- Load Predefined CDIOs Modal --}}
 <div class="modal fade sv-cdio-modal" id="loadPredefinedCdiosModal" tabindex="-1" aria-labelledby="loadPredefinedCdiosModalLabel" aria-hidden="true" data-bs-backdrop="static">

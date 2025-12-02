@@ -1,167 +1,216 @@
 // -----------------------------------------------------------------------------
-// File: public/js/superadmin/departments.js
-// Description: Handles feather icons, modal data setup, and draggable FAB on Manage Departments page – Syllaverse
+// File: resources/js/superadmin/departments.js
+// Description: Handles icons, modals, and AJAX form submissions for Superadmin Departments
 // -----------------------------------------------------------------------------
-// 📜 Log:
-// [2025-07-28] Initial creation – extracted inline scripts from blade, added draggable FAB and modal setup logic.
-// [2025-07-28] Updated feather.replace() with safety check to prevent JS crash if feather is undefined.
-// [2025-08-07] Refined: feather icons now re-render inside dropdowns; modal toggle restored after FAB drag.
-// -----------------------------------------------------------------------------
+import { Modal } from 'bootstrap';
+
+function refreshDepartmentsTable() {
+    const csrfEl = document.querySelector('meta[name="csrf-token"]');
+    const csrf = csrfEl ? csrfEl.getAttribute('content') : '';
+    fetch('/superadmin/departments/table-content', {
+        method: 'GET',
+        headers: {
+            'X-CSRF-TOKEN': csrf,
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        }
+    })
+        .then(response => {
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                const tableBody = document.getElementById('departmentsTableBody');
+                if (tableBody) {
+                    tableBody.innerHTML = data.html;
+                    if (typeof feather !== 'undefined') feather.replace();
+                }
+            } else {
+                if (window.showAlertOverlay) window.showAlertOverlay('error', data.message || 'Failed to refresh table');
+            }
+        })
+        .catch(error => {
+            if (window.showAlertOverlay) window.showAlertOverlay('error', 'Error refreshing table: ' + error.message);
+        });
+}
 
 document.addEventListener('DOMContentLoaded', function () {
-    // 🪶 Replace all feather icons safely
-    if (typeof feather !== 'undefined') {
-        feather.replace();
-    } else {
-        console.warn("⚠️ Feather icons not loaded: skipping feather.replace()");
-    }
+    if (typeof feather !== 'undefined') feather.replace();
 
-    // 🔁 Refresh feather icons when dropdowns open (for action menus)
     document.querySelectorAll('.dropdown').forEach(dropdown => {
         dropdown.addEventListener('shown.bs.dropdown', function () {
             if (typeof feather !== 'undefined') feather.replace();
         });
     });
 
-    // 📝 Setup Edit Department modal
+    const addModal = document.getElementById('addDepartmentModal');
+    if (addModal) {
+        addModal.addEventListener('show.bs.modal', function () {
+            const form = document.getElementById('addDepartmentForm');
+            const errorDiv = document.getElementById('addDepartmentErrors');
+            if (form) form.reset();
+            if (errorDiv) { errorDiv.classList.add('d-none'); errorDiv.innerHTML = ''; }
+        });
+    }
+
+    // Expose helpers for buttons in partial
     window.setEditDepartment = function (button) {
         const id = button.dataset.id;
         const name = button.dataset.name;
         const code = button.dataset.code;
         const form = document.getElementById('editDepartmentForm');
-
+        if (!form) return;
         form.action = `/superadmin/departments/${id}`;
-        form.querySelector('#editDepartmentName').value = name;
-        form.querySelector('#editDepartmentCode').value = code;
+        const idInput = document.getElementById('editDepartmentId');
+        const nameInput = form.querySelector('#editDepartmentName');
+        const codeInput = form.querySelector('#editDepartmentCode');
+        if (idInput) idInput.value = id;
+        if (nameInput) nameInput.value = name;
+        if (codeInput) codeInput.value = code;
+        const errorDiv = document.getElementById('editDepartmentErrors');
+        if (errorDiv) { errorDiv.classList.add('d-none'); errorDiv.innerHTML = ''; }
     };
 
-    // 🗑️ Setup Delete Department modal
     window.setDeleteDepartment = function (button) {
         const id = button.dataset.id;
         const name = button.dataset.name;
         const code = button.dataset.code;
-        
-        // Set form action
-        document.getElementById('deleteDepartmentForm').action = `/superadmin/departments/${id}`;
-        
-        // Populate department details in modal
-        document.getElementById('deleteDepartmentName').textContent = name || 'Unknown';
-        document.getElementById('deleteDepartmentCode').textContent = code || 'Unknown';
+        const deleteForm = document.getElementById('deleteDepartmentForm');
+        const idInput = document.getElementById('deleteDepartmentId');
+        if (deleteForm) deleteForm.action = `/superadmin/departments/${id}`;
+        if (idInput) idInput.value = id;
+        const nameElement = document.getElementById('deleteDepartmentName');
+        const codeElement = document.getElementById('deleteDepartmentCode');
+        if (nameElement) nameElement.textContent = name || 'Unknown';
+        if (codeElement) codeElement.textContent = code || 'Unknown';
     };
 
-    // 🎯 Setup draggable FAB
-    const fab = document.getElementById("draggableAddFab");
-    if (!fab) return;
-
-    let offsetX = 0, offsetY = 0;
-    let isDragging = false;
-    let isDraggableMode = false;
-    let holdTimeout, dragStartEvent, holdStarted = false;
-
-    function onHoldStart(e) {
-        if (e.type === 'mousedown' && e.button !== 0) return;
-        holdStarted = true;
-        dragStartEvent = e;
-        holdTimeout = setTimeout(() => {
-            isDraggableMode = true;
-            fab.classList.add('draggable-mode');
-            startDrag(dragStartEvent);
-        }, 1000);
-    }
-
-    function onHoldEnd() {
-        clearTimeout(holdTimeout);
-        holdStarted = false;
-        dragStartEvent = null;
-    }
-
-    function startDrag(e) {
-        if (!isDraggableMode) return;
-
-        isDragging = true;
-        fab.classList.add('dragging');
-        const rect = fab.getBoundingClientRect();
-
-        let clientX, clientY;
-        if (e.type?.startsWith('touch')) {
-            clientX = e.touches[0].clientX;
-            clientY = e.touches[0].clientY;
-        } else {
-            clientX = e.clientX;
-            clientY = e.clientY;
-        }
-
-        offsetX = clientX - rect.left;
-        offsetY = clientY - rect.top;
-        fab.setAttribute('data-bs-toggle', '');
-        fab.setAttribute('data-bs-target', '');
-    }
-
-    function onDragMove(e) {
-        if (!isDragging || !isDraggableMode) return;
-        e.preventDefault();
-
-        let x, y;
-        if (e.type.startsWith('touch')) {
-            x = e.touches[0].clientX;
-            y = e.touches[0].clientY;
-        } else {
-            x = e.clientX;
-            y = e.clientY;
-        }
-
-        const winW = window.innerWidth;
-        const winH = window.innerHeight;
-
-        const left = Math.min(Math.max(0, x - offsetX), winW - fab.offsetWidth);
-        const top = Math.min(Math.max(0, y - offsetY), winH - fab.offsetHeight);
-
-        fab.style.left = `${left}px`;
-        fab.style.top = `${top}px`;
-        fab.style.right = "auto";
-        fab.style.bottom = "auto";
-    }
-
-    function onDragEnd() {
-        if (isDragging || isDraggableMode) {
-            isDragging = false;
-            isDraggableMode = false;
-            fab.classList.remove('dragging', 'draggable-mode');
-
-            // ✅ Restore modal attributes after drag ends
-            fab.setAttribute('data-bs-toggle', 'modal');
-            fab.setAttribute('data-bs-target', '#addDepartmentModal');
-        }
-
-        clearTimeout(holdTimeout);
-        holdStarted = false;
-        dragStartEvent = null;
-    }
-
-    // 🚫 Prevent accidental modal open during drag
-    fab.addEventListener('click', e => {
-        if (isDraggableMode || isDragging || holdStarted) {
+    // Add
+    const addForm = document.getElementById('addDepartmentForm');
+    if (addForm) {
+        addForm.removeAttribute('action');
+        addForm.addEventListener('submit', async function (e) {
             e.preventDefault();
-            e.stopPropagation();
-        }
-    });
+            const csrfEl = document.querySelector('meta[name="csrf-token"]');
+            const csrf = csrfEl ? csrfEl.getAttribute('content') : '';
+            const formData = new FormData(this);
+            const submitBtn = document.getElementById('addDepartmentSubmit');
+            const errorDiv = document.getElementById('addDepartmentErrors');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i data-feather="loader" class="spinner"></i> Creating...';
+            if (typeof feather !== 'undefined') feather.replace();
+            errorDiv.classList.add('d-none'); errorDiv.innerHTML = '';
+            try {
+                const res = await fetch('/superadmin/departments', { method: 'POST', headers: { 'X-CSRF-TOKEN': csrf }, body: formData });
+                const data = await res.json();
+                if (!res.ok || !data.success) throw data;
+                if (window.showAlertOverlay) window.showAlertOverlay('success', data.message || 'Department created');
+                const addEl = document.getElementById('addDepartmentModal');
+                Modal.getOrCreateInstance(addEl).hide();
+                refreshDepartmentsTable();
+            } catch (err) {
+                if (err && err.errors) {
+                    errorDiv.classList.remove('d-none');
+                    errorDiv.innerHTML = Object.values(err.errors).flat().map(m => `<div>${m}</div>`).join('');
+                }
+                if (window.showAlertOverlay) window.showAlertOverlay('error', (err && err.message) || 'Failed to create department');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i data-feather="plus"></i> Create';
+                if (typeof feather !== 'undefined') feather.replace();
+            }
+        });
+    }
 
-    // 👆 Hold to drag listeners
-    fab.addEventListener('mousedown', onHoldStart);
-    fab.addEventListener('touchstart', onHoldStart);
-    fab.addEventListener('mouseup', onHoldEnd);
-    fab.addEventListener('mouseleave', onHoldEnd);
-    fab.addEventListener('touchend', onHoldEnd);
+    // Edit
+    const editForm = document.getElementById('editDepartmentForm');
+    if (editForm) {
+        editForm.removeAttribute('action');
+        editForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const id = document.getElementById('editDepartmentId').value;
+            const csrfEl = document.querySelector('meta[name="csrf-token"]');
+            const csrf = csrfEl ? csrfEl.getAttribute('content') : '';
+            const formData = new FormData(this);
+            const submitBtn = document.getElementById('editDepartmentSubmit');
+            const errorDiv = document.getElementById('editDepartmentErrors');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i data-feather="loader" class="spinner"></i> Updating...';
+            if (typeof feather !== 'undefined') feather.replace();
+            errorDiv.classList.add('d-none'); errorDiv.innerHTML = '';
+            try {
+                const res = await fetch(`/superadmin/departments/${id}`, { method: 'POST', headers: { 'X-CSRF-TOKEN': csrf, 'X-HTTP-Method-Override': 'PUT' }, body: formData });
+                const data = await res.json();
+                if (!res.ok || !data.success) throw data;
+                if (window.showAlertOverlay) window.showAlertOverlay('success', data.message || 'Department updated');
+                const editEl = document.getElementById('editDepartmentModal');
+                Modal.getOrCreateInstance(editEl).hide();
+                refreshDepartmentsTable();
+            } catch (err) {
+                if (err && err.errors) {
+                    errorDiv.classList.remove('d-none');
+                    errorDiv.innerHTML = Object.values(err.errors).flat().map(m => `<div>${m}</div>`).join('');
+                }
+                if (window.showAlertOverlay) window.showAlertOverlay('error', (err && err.message) || 'Failed to update department');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i data-feather="save"></i> Update';
+                if (typeof feather !== 'undefined') feather.replace();
+            }
+        });
+    }
 
-    // 🧲 Drag start (in draggable mode only)
-    fab.addEventListener('mousedown', e => { if (isDraggableMode) startDrag(e); });
-    fab.addEventListener('touchstart', e => { if (isDraggableMode) startDrag(e); });
+    // Delete
+    const deleteForm = document.getElementById('deleteDepartmentForm');
+    if (deleteForm) {
+        deleteForm.removeAttribute('action');
+        deleteForm.addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const id = document.getElementById('deleteDepartmentId').value;
+            const csrfEl = document.querySelector('meta[name="csrf-token"]');
+            const csrf = csrfEl ? csrfEl.getAttribute('content') : '';
+            const formData = new FormData(this);
+            try {
+                const res = await fetch(`/superadmin/departments/${id}`, { method: 'POST', headers: { 'X-CSRF-TOKEN': csrf, 'X-HTTP-Method-Override': 'DELETE' }, body: formData });
+                const data = await res.json();
+                if (!res.ok || !data.success) throw data;
+                if (window.showAlertOverlay) window.showAlertOverlay('success', data.message || 'Department deleted');
+                const delEl = document.getElementById('deleteDepartmentModal');
+                Modal.getOrCreateInstance(delEl).hide();
+                refreshDepartmentsTable();
+            } catch (err) {
+                if (window.showAlertOverlay) window.showAlertOverlay('error', (err && err.message) || 'Failed to delete department');
+            }
+        });
+    }
 
-    // 🔄 Drag move events
-    window.addEventListener('mousemove', onDragMove);
-    window.addEventListener('touchmove', onDragMove);
+    // Search
+    (function wireDepartmentsSearch() {
+        const input = document.getElementById('departmentsSearch');
+        const tbody = document.getElementById('departmentsTableBody');
+        if (!input || !tbody) return;
+        let t = null;
+        input.addEventListener('input', () => {
+            clearTimeout(t);
+            t = setTimeout(async () => {
+                const q = input.value.trim();
+                try {
+                    const url = new URL(window.location.origin + '/superadmin/departments/table-content');
+                    if (q) url.searchParams.set('q', q);
+                    const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+                    const data = await res.json();
+                    if (data.success) {
+                        tbody.innerHTML = data.html;
+                        if (typeof feather !== 'undefined') feather.replace();
+                    }
+                } catch { /* ignore */ }
+            }, 250);
+        });
+    })();
 
-    // 🧷 Drag end
-    window.addEventListener('mouseup', onDragEnd);
-    window.addEventListener('touchend', onDragEnd);
+    // Spinner style
+    const style = document.createElement('style');
+    style.textContent = `.spinner { animation: spin 1s linear infinite; } @keyframes spin {from{transform:rotate(0)} to{transform:rotate(360deg)}}`;
+    document.head.appendChild(style);
 });

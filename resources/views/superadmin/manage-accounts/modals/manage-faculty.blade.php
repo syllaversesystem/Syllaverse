@@ -59,7 +59,7 @@
               <label class="form-label small">Role</label>
               <select name="role" class="form-select form-select-sm" required>
                 <option value="">— Select Role —</option>
-                <option value="{{ \App\Models\Appointment::ROLE_DEPT_HEAD }}">Department Head</option>
+                <option value="{{ \App\Models\Appointment::ROLE_DEPT_HEAD }}">Department Chairperson</option>
                 <option value="{{ \App\Models\Appointment::ROLE_DEAN }}">Dean</option>
                 <option value="{{ \App\Models\Appointment::ROLE_ASSOC_DEAN }}">Associate Dean</option>
               </select>
@@ -105,11 +105,11 @@
 
                   // Dynamic role label
                   if ($appt->role === \App\Models\Appointment::ROLE_DEPT_HEAD) {
-                    $roleLabel = $programCount >= 2 ? 'Department Chair' : 'Program Chair';
+                    $roleLabel = $programCount >= 2 ? 'Department Chairperson' : 'Program Chair';
                   } else {
                     $roleLabel = match($appt->role) {
                       \App\Models\Appointment::ROLE_FACULTY => 'Faculty',
-                      \App\Models\Appointment::ROLE_DEPT => 'Department Chair',
+                      \App\Models\Appointment::ROLE_DEPT => 'Department Chairperson',
                       \App\Models\Appointment::ROLE_PROG => 'Program Chair',
                       \App\Models\Appointment::ROLE_DEAN => 'Dean',
                       \App\Models\Appointment::ROLE_ASSOC_DEAN => 'Associate Dean',
@@ -167,7 +167,7 @@
                           <option value="{{ \App\Models\Appointment::ROLE_FACULTY }}" {{ $appt->role === \App\Models\Appointment::ROLE_FACULTY ? 'selected' : '' }}>Faculty</option>
                         @endif
                         @if(!in_array(\App\Models\Appointment::ROLE_DEPT_HEAD, $activeRoleCodes, true) || $appt->role === \App\Models\Appointment::ROLE_DEPT_HEAD)
-                          <option value="{{ \App\Models\Appointment::ROLE_DEPT_HEAD }}" {{ $appt->role === \App\Models\Appointment::ROLE_DEPT_HEAD ? 'selected' : '' }}>Department Head</option>
+                          <option value="{{ \App\Models\Appointment::ROLE_DEPT_HEAD }}" {{ $appt->role === \App\Models\Appointment::ROLE_DEPT_HEAD ? 'selected' : '' }}>Department Chairperson</option>
                         @endif
                         @php $multiActive = $activeAppointments->count() >= 2; @endphp
                         @if(!($multiActive && $appt->role === \App\Models\Appointment::ROLE_DEPT_HEAD))
@@ -348,9 +348,11 @@ document.addEventListener('DOMContentLoaded', function() {
       const roleMapping = {
         'Faculty': '{{ \App\Models\Appointment::ROLE_FACULTY }}',
         // Dynamic chair labels both map back to DEPT_HEAD (single or multi program)
-        'Department Chair': '{{ \App\Models\Appointment::ROLE_DEPT_HEAD }}',
+        'Department Chairperson': '{{ \App\Models\Appointment::ROLE_DEPT_HEAD }}',
+        'Dept Chair': '{{ \App\Models\Appointment::ROLE_DEPT_HEAD }}', // legacy mapping
+        'Department Chair': '{{ \App\Models\Appointment::ROLE_DEPT_HEAD }}', // legacy/fallback
         'Program Chair': '{{ \App\Models\Appointment::ROLE_DEPT_HEAD }}',
-        'Department Head': '{{ \App\Models\Appointment::ROLE_DEPT_HEAD }}', // fallback if still displayed
+        'Department Head': '{{ \App\Models\Appointment::ROLE_DEPT_HEAD }}', // legacy/fallback
         'Dean': '{{ \App\Models\Appointment::ROLE_DEAN }}',
         'Associate Dean': '{{ \App\Models\Appointment::ROLE_ASSOC_DEAN }}',
         'VCAA': '{{ \App\Models\Appointment::ROLE_VCAA }}',

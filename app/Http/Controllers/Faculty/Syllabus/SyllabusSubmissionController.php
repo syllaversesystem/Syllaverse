@@ -11,6 +11,7 @@ use App\Models\Appointment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 class SyllabusSubmissionController extends Controller
 {
@@ -265,14 +266,42 @@ class SyllabusSubmissionController extends Controller
                             'message' => 'Selected approver not found'
                         ], 400);
                     }
-                    // Stamp approved_by fields if provided
-                    $syllabus->approved_by = $approverId;
+                    // Stamp approval signature fields if provided
+                    // Only set the numeric approver id if the column exists to avoid SQL errors
+                    try {
+                        if (Schema::hasColumn('syllabi', 'approved_by')) {
+                            $syllabus->setAttribute('approved_by', $approverId);
+                        }
+                    } catch (\Throwable $t) {
+                        // ignore schema check issues
+                    }
                     $syllabus->approved_by_name = $approver->name;
+                    // Derive approver title (Dean / Associate Dean) when possible
+                    try {
+                        $deptId = optional($syllabus->program)->department_id;
+                        $appt = $approver->appointments()
+                            ->where('status', 'active')
+                            ->where(function($q) use ($deptId) {
+                                $q->where('role', Appointment::ROLE_DEAN)
+                                  ->orWhere(function($qq) use ($deptId) {
+                                      $qq->where('role', Appointment::ROLE_ASSOC_DEAN);
+                                      if ($deptId) { $qq->where('scope_id', $deptId); }
+                                  });
+                            })
+                            ->first();
+                        if ($appt) {
+                            $syllabus->approved_by_title = $appt->role === Appointment::ROLE_DEAN ? 'Dean' : 'Associate Dean';
+                        }
+                    } catch (\Throwable $t) {
+                        // non-fatal if we cannot infer title
+                    }
                     try {
                         $syllabus->approved_by_date = now()->format('Y-m-d');
                     } catch (\Throwable $t) {
                         $syllabus->approved_by_date = date('Y-m-d');
                     }
+                    // Assign final approver to reviewed_by so Approvals list can filter by user
+                    $syllabus->reviewed_by = $approverId;
                 }
                 
                 // Update syllabus status
@@ -330,69 +359,132 @@ class SyllabusSubmissionController extends Controller
     {
         try {
             $user = auth()->user();
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Not authenticated'
+                ], 401);
+            }
             $syllabus = Syllabus::findOrFail($syllabusId);
-
-            // Only the assigned reviewer can approve when status is pending_review
-            if ($syllabus->submission_status !== 'pending_review') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Syllabus is not pending review'
-                ], 400);
-            }
-            // If no reviewer is assigned yet, claim it to the current reviewer
-            if (empty($syllabus->reviewed_by)) {
-                $syllabus->reviewed_by = $user->id;
-                try { $syllabus->save(); } catch (\Throwable $t) {}
-            }
-            if ((int)$syllabus->reviewed_by !== (int)$user->id) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'You are not the assigned reviewer for this syllabus'
-                ], 403);
-            }
 
             $remarks = $request->input('remarks');
 
-            DB::beginTransaction();
+            // Branch by current submission status
+            if ($syllabus->submission_status === 'pending_review') {
+                // Only the assigned reviewer can approve when status is pending_review
+                if (empty($syllabus->reviewed_by)) {
+                    $syllabus->reviewed_by = $user->id;
+                    try { $syllabus->save(); } catch (\Throwable $t) {}
+                }
+                if ((int)$syllabus->reviewed_by !== (int)$user->id) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'You are not the assigned reviewer for this syllabus'
+                    ], 403);
+                }
 
-            $fromStatus = $syllabus->submission_status;
-            $syllabus->submission_status = 'approved';
-            $syllabus->submission_remarks = $remarks;
-            // Stamp the Reviewed date so the status partial reflects approval time
-            try {
-                $syllabus->reviewed_by_date = now()->format('Y-m-d');
-            } catch (\Throwable $t) {
-                $syllabus->reviewed_by_date = date('Y-m-d');
+                DB::beginTransaction();
+
+                $fromStatus = $syllabus->submission_status;
+                $syllabus->submission_status = 'approved';
+                $syllabus->submission_remarks = $remarks;
+                // Stamp the Reviewed date so the status partial reflects approval time
+                try { $syllabus->reviewed_by_date = now()->format('Y-m-d'); }
+                catch (\Throwable $t) { $syllabus->reviewed_by_date = date('Y-m-d'); }
+                $syllabus->save();
+
+                // Determine submitted_by safely when faculty_id may be null
+                $submittedByApprove = $syllabus->faculty_id
+                    ?: optional($syllabus->facultyMembers()->wherePivot('role', 'owner')->first())->id
+                    ?: optional($syllabus->facultyMembers()->first())->id
+                    ?: $user->id;
+
+                SyllabusSubmission::create([
+                    'syllabus_id' => $syllabus->id,
+                    'submitted_by' => $submittedByApprove,
+                    'from_status' => $fromStatus,
+                    'to_status' => 'approved',
+                    'action_by' => $user->id,
+                    'remarks' => $remarks,
+                    'action_at' => now(),
+                ]);
+
+                DB::commit();
+
+                return response()->json(['success' => true, 'message' => 'Syllabus approved successfully']);
             }
-            $syllabus->save();
 
-            // Determine submitted_by safely when faculty_id may be null
-            $submittedByApprove = $syllabus->faculty_id
-                ?: optional($syllabus->facultyMembers()->wherePivot('role', 'owner')->first())->id
-                ?: optional($syllabus->facultyMembers()->first())->id
-                ?: $user->id;
+            if ($syllabus->submission_status === 'final_approval') {
+                // Only the assigned final approver (Dean / Associate Dean) can finalize
+                if ((int)$syllabus->reviewed_by !== (int)$user->id) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'You are not the assigned final approver for this syllabus'
+                    ], 403);
+                }
 
-            SyllabusSubmission::create([
-                'syllabus_id' => $syllabus->id,
-                'submitted_by' => $submittedByApprove,
-                'from_status' => $fromStatus,
-                'to_status' => 'approved',
-                'action_by' => $user->id,
-                'remarks' => $remarks,
-                'action_at' => now(),
-            ]);
+                DB::beginTransaction();
+                $fromStatus = $syllabus->submission_status;
 
-            DB::commit();
+                // Stamp Approved By block based on current approver
+                try {
+                    // Optionally set numeric approved_by if the column exists
+                    if (Schema::hasColumn('syllabi', 'approved_by')) {
+                        $syllabus->setAttribute('approved_by', $user->id);
+                    }
+                } catch (\Throwable $t) { /* ignore schema check errors */ }
+                $syllabus->approved_by_name = $user->name;
+                // Infer approver title from appointments
+                try {
+                    $deptId = optional($syllabus->program)->department_id;
+                    $appt = $user->appointments()
+                        ->where('status', 'active')
+                        ->where(function($q) use ($deptId) {
+                            $q->where('role', Appointment::ROLE_DEAN)
+                              ->orWhere(function($qq) use ($deptId) {
+                                  $qq->where('role', Appointment::ROLE_ASSOC_DEAN);
+                                  if ($deptId) { $qq->where('scope_id', $deptId); }
+                              });
+                        })
+                        ->first();
+                    if ($appt) {
+                        $syllabus->approved_by_title = $appt->role === Appointment::ROLE_DEAN ? 'Dean' : 'Associate Dean';
+                    }
+                } catch (\Throwable $t) { /* ignore */ }
+                try { $syllabus->approved_by_date = now()->format('Y-m-d'); }
+                catch (\Throwable $t) { $syllabus->approved_by_date = date('Y-m-d'); }
+
+                // Transition to final_approved so it no longer appears in Approvals
+                $syllabus->submission_status = 'final_approved';
+                $syllabus->submission_remarks = $remarks;
+                $syllabus->save();
+
+                // History record
+                SyllabusSubmission::create([
+                    'syllabus_id' => $syllabus->id,
+                    'submitted_by' => $syllabus->faculty_id ?: $user->id,
+                    'from_status' => $fromStatus,
+                    'to_status' => 'final_approved',
+                    'action_by' => $user->id,
+                    'remarks' => $remarks,
+                    'action_at' => now(),
+                ]);
+
+                DB::commit();
+                return response()->json(['success' => true, 'message' => 'Syllabus final-approved successfully']);
+            }
 
             return response()->json([
-                'success' => true,
-                'message' => 'Syllabus approved successfully'
-            ]);
-        } catch (\Exception $e) {
-            DB::rollBack();
+                'success' => false,
+                'message' => 'Syllabus is not in an approvable state'
+            ], 400);
+        } catch (\Throwable $e) {
+            // Ensure we roll back any open transaction
+            try { DB::rollBack(); } catch (\Throwable $__) {}
             Log::error('Error approving syllabus', [
                 'syllabus_id' => $syllabusId,
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
             return response()->json([
                 'success' => false,

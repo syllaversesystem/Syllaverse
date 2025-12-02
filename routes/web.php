@@ -8,6 +8,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Faculty\AuthController as FacultyAuthController;
 use App\Http\Controllers\AIChatController;
+use App\Http\Controllers\AssessmentMappingAIController;
 
 // ------------------------------------------------
 // Redirect root to Super Admin login
@@ -20,6 +21,8 @@ Route::get('/', function () {
 // AI Chat endpoint (faculty syllabus contextual suggestions)
 // ------------------------------------------------
 Route::post('/faculty/syllabi/{syllabus}/ai-chat', [AIChatController::class, 'chat'])->name('faculty.syllabi.ai.chat');
+// AI auto-map endpoint (Assessment Mappings)
+Route::post('/faculty/syllabi/{syllabus}/assessment-mappings/ai-map', [AssessmentMappingAIController::class, 'autoMap'])->name('faculty.assessment-mappings.ai-map');
 
 // ------------------------------------------------
 // Generic login route (for Laravel default authentication redirects)

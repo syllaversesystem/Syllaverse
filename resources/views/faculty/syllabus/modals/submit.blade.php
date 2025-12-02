@@ -615,8 +615,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const bsModal = bootstrap.Modal.getInstance(modal);
         bsModal.hide();
         
-        // Redirect back to syllabi list (close the syllabus)
-        window.location.href = "{{ route('faculty.syllabi.index') }}";
+        // Redirect both review and final approval submissions to Approvals page
+        window.location.href = "{{ route('faculty.syllabi.approvals') }}";
       } else {
         alert(data.message || 'Failed to submit syllabus');
         submitBtn.disabled = false;

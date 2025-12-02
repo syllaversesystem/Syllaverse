@@ -238,7 +238,7 @@
                      {{ old('request_dept_head') ? 'checked' : '' }}
                      {{ $hasPendingRequests ? 'disabled' : '' }}>
               <label class="form-check-label fw-semibold" for="request_dept_head">
-                Department Head
+                Department Chairperson
               </label>
               <div class="form-text small text-muted">Leads department operations and faculty</div>
             </div>

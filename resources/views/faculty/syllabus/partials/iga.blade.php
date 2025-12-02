@@ -6,6 +6,7 @@
 --}}
 
 @php $rp = $routePrefix ?? 'faculty.syllabi'; @endphp
+<div class="sv-partial" data-partial-key="iga">
 <form id="igaForm" method="POST" action="{{ route($rp . '.iga.update', $default['id'] ?? $syllabus->id ?? null) }}">
   @csrf
   @method('PUT')
@@ -170,6 +171,8 @@
 
   {{-- Action area intentionally minimal; saving is handled by main syllabus Save button. --}}
 </form>
+
+</div>
 
 {{-- Local IGA quick-save button removed; toolbar Save handles persistence --}}
 
