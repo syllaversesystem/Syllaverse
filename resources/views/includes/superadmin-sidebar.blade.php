@@ -45,14 +45,7 @@
   {{-- START: Navigation Links --}}  
   <div class="flex-grow-1">  
     <ul class="nav flex-column px-3">  
-      <li class="nav-item">
-        <a class="nav-link d-flex align-items-center @if(request()->is('superadmin/dashboard')) active @endif"
-           href="{{ route('superadmin.dashboard') }}"
-           aria-current="@if(request()->is('superadmin/dashboard')) page @endif">
-          <i class="bi bi-speedometer2"></i>
-          <span class="label">Dashboard</span>
-        </a>
-      </li>
+      
 
       <li class="nav-item">
         <a class="nav-link d-flex align-items-center @if(request()->is('superadmin/manage-accounts')) active @endif"

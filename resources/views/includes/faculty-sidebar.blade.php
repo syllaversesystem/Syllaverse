@@ -56,17 +56,6 @@
   <div class="flex-grow-1">
     <ul class="nav flex-column px-3">
 
-      {{-- Dashboard --}}
-      @php $isActive = request()->routeIs('faculty.dashboard'); @endphp
-      <li class="nav-item">
-        <a class="nav-link d-flex align-items-center {{ $isActive ? 'active' : '' }}"
-           href="{{ route('faculty.dashboard') }}"
-           aria-current="{{ $isActive ? 'page' : '' }}">
-          <i class="bi bi-speedometer2"></i>
-          <span class="label">Dashboard</span>
-        </a>
-      </li>
-
       {{-- Syllabi --}}
       @php $isActive = request()->routeIs('faculty.syllabi*') && !request()->routeIs('faculty.syllabi.approvals*'); @endphp
       <li class="nav-item">
