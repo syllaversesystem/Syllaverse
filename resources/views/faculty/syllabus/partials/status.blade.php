@@ -97,14 +97,7 @@
                          placeholder="Title"
                          value="{{ old('prepared_by_title', $syllabus->prepared_by_title ?? '') }}"
                          data-original="{{ $syllabus->prepared_by_title ?? '' }}">
-                  <small class="text-muted d-block mt-1">
-                    Date: <input type="date" 
-                                 name="prepared_by_date" 
-                                 class="form-control form-control-sm d-inline-block" 
-                                 style="width: auto; min-width: 140px;"
-                                 value="{{ old('prepared_by_date', $syllabus->prepared_by_date ?? '') }}"
-                                 data-original="{{ $syllabus->prepared_by_date ?? '' }}">
-                  </small>
+                  
                 </div>
               </td>
               <td class="text-center">
@@ -131,14 +124,7 @@
                          placeholder="Title"
                          value="{{ old('reviewed_by_title', $syllabus->reviewed_by_title ?? '') }}"
                          data-original="{{ $syllabus->reviewed_by_title ?? '' }}">
-                  <small class="text-muted d-block mt-1">
-                    Date: <input type="date" 
-                                 name="reviewed_by_date" 
-                                 class="form-control form-control-sm d-inline-block" 
-                                 style="width: auto; min-width: 140px;"
-                                 value="{{ old('reviewed_by_date', $syllabus->reviewed_by_date ?? '') }}"
-                                 data-original="{{ $syllabus->reviewed_by_date ?? '' }}">
-                  </small>
+                  
                 </div>
               </td>
               <td class="text-center">
@@ -159,29 +145,11 @@
                          placeholder="Title"
                          value="{{ old('approved_by_title', $syllabus->approved_by_title ?? '') }}"
                          data-original="{{ $syllabus->approved_by_title ?? '' }}">
-                  <small class="text-muted d-block mt-1">
-                    Date: <input type="date" 
-                                 name="approved_by_date" 
-                                 class="form-control form-control-sm d-inline-block" 
-                                 style="width: auto; min-width: 140px;"
-                                 value="{{ old('approved_by_date', $syllabus->approved_by_date ?? '') }}"
-                                 data-original="{{ $syllabus->approved_by_date ?? '' }}">
-                  </small>
+                  
                 </div>
               </td>
             </tr>
-            <tr>
-              <td colspan="3">
-                <div class="remarks-section">
-                  <label class="form-label fw-semibold mb-1">Remarks:</label>
-                  <textarea name="status_remarks" 
-                            class="form-control form-control-sm" 
-                            rows="2" 
-                            placeholder="Enter any remarks or comments about this syllabus..."
-                            data-original="{{ $syllabus->status_remarks ?? '' }}">{{ old('status_remarks', $syllabus->status_remarks ?? '') }}</textarea>
-                </div>
-              </td>
-            </tr>
+            
           </tbody>
         </table>
       </div>

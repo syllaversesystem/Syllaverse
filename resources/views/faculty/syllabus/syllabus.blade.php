@@ -10,6 +10,7 @@
 
 @php($routePrefix = 'faculty.syllabi')
 @php($reviewMode = ($reviewMode ?? (request()->boolean('review') || request()->get('from') === 'approvals')))
+@php($fromApprovals = (request()->get('from') === 'approvals'))
 @section('title')
   {{ $syllabus->course?->code ? $syllabus->course->code.' • ' : '' }}Syllabus
 @endsection
@@ -17,7 +18,9 @@
 @php($submissionStatus = $syllabus->submission_status ?? 'draft')
 @php($isDraft = ($submissionStatus === 'draft'))
 @php($isPendingReview = ($submissionStatus === 'pending_review'))
-@php($isLockedSubmitted = in_array($submissionStatus, ['pending_review','approved','final_approval']))
+@php($isLockedSubmitted = in_array($submissionStatus, ['pending_review','approved','final_approval','final_approved']))
+@php($isFinalApproved = ($submissionStatus === 'final_approved'))
+@php($isApproved = ($submissionStatus === 'approved'))
 @section('content')
 <div class="syllabus-doc" id="syllabus-document" data-syllabus-id="{{ $syllabus->id }}">
   <!-- Canonical syllabus form used by module-level saves via form="syllabusForm" -->
@@ -40,21 +43,21 @@
         <span id="unsaved-count-badge" class="badge bg-warning text-dark mt-1 w-100 text-center" style="display:none;">0</span>
       </button>
       @endif
-      @if(!$reviewMode && !$isDraft && !$isLockedSubmitted)
+      @if((($reviewMode && !$fromApprovals) || $isApproved || (!$reviewMode && !$isDraft && !$isLockedSubmitted)))
       <button id="syllabusCommentsToggleBtn" type="button" class="btn btn-outline-secondary d-flex flex-column align-items-center gap-1 toolbar-btn mt-3" title="Toggle Reviewer Comments" data-disable-comments="0">
         <i class="bi bi-chat-left-text fs-5"></i>
         <span class="small">Comments</span>
         <span id="comments-count-badge" class="badge sv-comments-badge" style="display:none;">0</span>
       </button>
       @endif
-      @if(!$reviewMode && !$isLockedSubmitted)
+      @if((($reviewMode && !$fromApprovals) || !$isLockedSubmitted || $isApproved))
       <button id="syllabusSubmitBtn" type="button" class="btn btn-outline-primary d-flex flex-column align-items-center gap-1 toolbar-btn mt-3" title="Submit For Review">
         <i class="bi bi-send fs-5"></i>
         <span class="small">Submit</span>
       </button>
       @endif
 
-      @if(!$isLockedSubmitted)
+      @if((($reviewMode && !$fromApprovals) || !$isLockedSubmitted || $isApproved || ($isFinalApproved && !$fromApprovals)))
       <!-- AI Assist button (opens floating overlay) -->
       <button class="btn btn-outline-secondary d-flex flex-column align-items-center gap-1 toolbar-btn mt-3" type="button" id="syllabusAiBtn" title="AI Assist" aria-haspopup="true" aria-expanded="false" aria-controls="syllabusAiPanel">
         <i class="bi bi-stars fs-5"></i>
@@ -62,7 +65,7 @@
       </button>
       @endif
 
-      @if(!$isLockedSubmitted)
+      @if((($reviewMode && !$fromApprovals) || !$isLockedSubmitted || $isApproved || ($isFinalApproved && !$fromApprovals)))
       <!-- Settings button + floating overlay panel (no dropdown wrapper) -->
       <button class="btn btn-outline-secondary d-flex flex-column align-items-center gap-1 toolbar-btn mt-3" type="button" id="syllabusSettingsBtn" title="Settings">
         <i class="bi bi-gear fs-5"></i>
@@ -103,8 +106,9 @@
 <button type="button" id="syllabusSubmitProxyBtn" class="d-none" data-bs-toggle="modal" data-bs-target="#submitSyllabusModal"></button>
 <!-- Include submit modal so submit button works on this page -->
 @includeIf('faculty.syllabus.modals.submit')
-{{-- Right-side toolbar (review/comments/AI). Show when not locked or in review. --}}
-@if((!$isLockedSubmitted) || $reviewMode)
+{{-- Right-side toolbar (review/comments/AI). Show when not locked, in review, or approved.
+     Hide entirely when opened from Approvals in final approval stage. --}}
+@if(((!$isLockedSubmitted) || $reviewMode || $isApproved || ($isFinalApproved && !$fromApprovals)) && !($fromApprovals && $submissionStatus === 'final_approval'))
   @include('faculty.syllabus.partials.toolbar-syllabus')
 @endif
 @if($reviewMode)
@@ -221,6 +225,8 @@
     const isReview = !!({{ $reviewMode ? 'true' : 'false' }});
     const isDraft = !!({{ $isDraft ? 'true' : 'false' }});
     const isLockedSubmitted = !!({{ $isLockedSubmitted ? 'true' : 'false' }});
+    const isApproved = !!({{ ($submissionStatus === 'approved') ? 'true' : 'false' }});
+    const isFinalApproved = !!({{ $isFinalApproved ? 'true' : 'false' }});
     (function(){
       if (!isReview || isDraft) return; // allow comments in review mode even for submitted statuses
       const doc = document.getElementById('syllabus-document');
@@ -478,6 +484,23 @@
           if (!url) return;
           const token = getCsrfToken();
           try {
+            // First, persist any non-empty review comments before approving
+            try {
+              const commentsWrap = document.getElementById('svReviewComments');
+              const syllabusId = document.getElementById('syllabus-document')?.getAttribute('data-syllabus-id');
+              const cards = Array.from(commentsWrap ? commentsWrap.querySelectorAll('.sv-comment-card') : []);
+              for (const card of cards) {
+                const key = card.getAttribute('data-partial-key');
+                const title = (card.querySelector('.sv-card-title')?.textContent || '').trim();
+                const body = (card.querySelector('.sv-comment-input')?.value || '').trim();
+                if ((!title || title === '') && (!body || body === '')) continue;
+                const fdComment = new FormData();
+                fdComment.append('partial_key', key || '');
+                if (title) fdComment.append('title', title);
+                if (body) fdComment.append('body', body);
+                await fetch(`/faculty/syllabi/${syllabusId}/comments`, { method: 'POST', headers: { 'X-CSRF-TOKEN': token, 'Accept':'application/json' }, body: fdComment });
+              }
+            } catch(e) { console.warn('Saving comments before approve failed', e); }
             setLoading(approveConfirmBtn, true);
             const res = await fetch(url, { method: 'POST', headers: { 'X-CSRF-TOKEN': token, 'Accept': 'application/json' } });
             if (!res.ok) {
@@ -589,8 +612,8 @@
     // -----------------------------
     // Non-review mode: toggle right toolbar to view reviewer comments (read-only)
     // -----------------------------
-    // Viewer mode (non-review, not locked): enable smart right-toolbar (comments/AI)
-    if (!isReview && !isLockedSubmitted) {
+    // Viewer mode (non-review): enable smart right-toolbar (comments/AI). Allow on approved even if locked.
+    if (!isReview && (isApproved || isFinalApproved || !isLockedSubmitted)) {
       const toggleBtn = document.getElementById('syllabusCommentsToggleBtn');
       const rightBar = document.querySelector('.syllabus-right-toolbar');
       const commentsEl = rightBar ? rightBar.querySelector('#svReviewComments') : null;
@@ -800,17 +823,29 @@
       }
     }
 
-    // Settings: IGA visibility toggle (persisted per syllabus in localStorage)
+    // Universal submit wiring: ensure Submit works in review mode as well
+    try {
+      const submitBtnAny = document.getElementById('syllabusSubmitBtn');
+      if (submitBtnAny && !submitBtnAny.dataset.boundUniversal) {
+        submitBtnAny.dataset.boundUniversal = '1';
+        submitBtnAny.addEventListener('click', function(){
+          submitBtnAny.disabled = true; submitBtnAny.classList.add('disabled');
+          try { openSubmitModal(); } finally { submitBtnAny.disabled = false; submitBtnAny.classList.remove('disabled'); }
+        });
+      }
+    } catch(e) { /* noop */ }
+
+    // Settings: CDIO visibility toggle (persisted per syllabus in localStorage)
     try {
       const docEl = document;
       const container = docEl.getElementById('syllabus-document');
       const syllabusId = container ? container.getAttribute('data-syllabus-id') : '';
-      const igaPartial = docEl.querySelector('.sv-partial[data-partial-key="iga"]');
-      const key = 'sv_show_iga_' + (syllabusId || 'default');
-      function applyIgaVisibility(show){ if (igaPartial) igaPartial.style.display = show ? '' : 'none'; }
-      let showIga = true; // default: visible
-      try { const v = localStorage.getItem(key); if (v !== null) showIga = (v === 'true'); } catch(e) {}
-      applyIgaVisibility(showIga);
+      const cdioPartial = docEl.querySelector('.sv-partial[data-partial-key="cdio"]');
+      const key = 'sv_show_cdio_' + (syllabusId || 'default');
+      function applyCdioVisibility(show){ if (cdioPartial) cdioPartial.style.display = show ? '' : 'none'; }
+      let showCdio = true; // default: visible
+      try { const v = localStorage.getItem(key); if (v !== null) showCdio = (v === 'true'); } catch(e) {}
+      applyCdioVisibility(showCdio);
       // settings panel creation and wiring
       const settingsBtn = docEl.getElementById('syllabusSettingsBtn');
       let settingsPanel = docEl.getElementById('syllabusSettingsPanel');
@@ -820,20 +855,20 @@
         settingsPanel.className = 'sv-settings-panel';
         settingsPanel.innerHTML = `
           <div class="form-check form-switch d-flex align-items-center gap-2">
-            <input class="form-check-input" type="checkbox" id="toggleIgaVisibility">
-            <label class="form-check-label" for="toggleIgaVisibility">Show IGA section</label>
+            <input class="form-check-input" type="checkbox" id="toggleCdioVisibility">
+            <label class="form-check-label" for="toggleCdioVisibility">Show CDIO section</label>
           </div>
         `;
         document.body.appendChild(settingsPanel);
       }
 
-      const toggleIga = docEl.getElementById('toggleIgaVisibility');
-      if (toggleIga) {
-        toggleIga.checked = !!showIga;
-        toggleIga.setAttribute('aria-checked', showIga ? 'true' : 'false');
-        toggleIga.addEventListener('change', function(){
-          const val = !!toggleIga.checked;
-          applyIgaVisibility(val);
+      const toggleCdio = docEl.getElementById('toggleCdioVisibility');
+      if (toggleCdio) {
+        toggleCdio.checked = !!showCdio;
+        toggleCdio.setAttribute('aria-checked', showCdio ? 'true' : 'false');
+        toggleCdio.addEventListener('change', function(){
+          const val = !!toggleCdio.checked;
+          applyCdioVisibility(val);
           try { localStorage.setItem(key, val ? 'true' : 'false'); } catch(e) {}
         });
       }
@@ -874,13 +909,13 @@
     } catch(e) { console.warn('IGA toggle init failed', e); }
 
     // AI chat initialization moved to standalone module (syllabus-ai-chat.js)
-    // Hide right toolbar only when locked-submitted outside review
-    if (isLockedSubmitted && !isReview) {
+    // Hide right toolbar only when locked-submitted outside review and not approved
+    if (isLockedSubmitted && !isReview && !isApproved && !isFinalApproved) {
       const rt = document.querySelector('.syllabus-right-toolbar');
       if (rt) rt.remove();
     }
-    // Locked submitted (pending_review/approved/final_approval): force read-only like review but without comments
-    if (!isReview && isLockedSubmitted) {
+    // Locked submitted (pending_review/approved/final_approval): force read-only like review (but allow editing when final_approved outside approvals)
+    if (!isReview && isLockedSubmitted && !isFinalApproved) {
       try {
         document.getElementById('syllabus-document')?.classList.add('is-submitted-locked');
         // Disable all form fields
@@ -893,7 +928,7 @@
           });
         // Hide Save button
         const saveBtn = document.getElementById('syllabusSaveBtn'); if (saveBtn) saveBtn.style.display='none';
-        const submitBtn = document.getElementById('syllabusSubmitBtn'); if (submitBtn) submitBtn.style.display='none';
+        const submitBtn = document.getElementById('syllabusSubmitBtn'); if (submitBtn && !isApproved) submitBtn.style.display='none';
       } catch(e) {}
     }
     if (!form) return;
