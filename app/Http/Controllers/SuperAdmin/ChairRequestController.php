@@ -107,7 +107,8 @@ class ChairRequestController extends Controller
                 $scopeId   = 0;
             }
 
-            $this->endConflictingActive($apptRole, $scopeType, $scopeId);
+            // Replace any existing active role(s) for this user
+            $this->endAllActiveForUser($chairRequest->user_id);
 
             Appointment::create([
                 'user_id'     => $chairRequest->user_id,
@@ -229,8 +230,8 @@ class ChairRequestController extends Controller
                         $scopeId = 0;
                     }
 
-                // End conflicting appointments
-                $this->endConflictingActive($apptRole, $scopeType, $scopeId);
+                // Replace any existing active role(s) for this user
+                $this->endAllActiveForUser($chairRequest->user_id);
 
                 // Create new appointment
                 Appointment::create([
@@ -318,6 +319,15 @@ class ChairRequestController extends Controller
 
         foreach ($conflicts as $conflict) {
             $conflict->endNow();
+        }
+    }
+
+    /** End all active appointments for a given user to ensure role replacement. */
+    protected function endAllActiveForUser(int $userId): void
+    {
+        $active = Appointment::query()->active()->where('user_id', $userId)->get();
+        foreach ($active as $appt) {
+            $appt->endNow();
         }
     }
 

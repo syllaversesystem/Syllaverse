@@ -1,7 +1,7 @@
 {{-- Delete CDIO Modal (Faculty) --}}
 <div class="modal sv-faculty-dept-modal" id="deleteCdioModal" tabindex="-1" aria-labelledby="deleteCdioModalLabel" aria-hidden="true" data-bs-backdrop="static">
   <div class="modal-dialog modal-dialog-centered modal-md">
-    <div class="modal-content">
+    <div class="modal-content sv-modal-content">
       <style>
         #deleteCdioModal { --sv-bg:#FAFAFA; --sv-bdr:#E3E3E3; --sv-danger:#CB3737; }
         #deleteCdioModal .modal-content{ border-radius:16px; border:1px solid var(--sv-bdr); background:#fff; box-shadow:0 10px 30px rgba(0,0,0,.08), 0 2px 12px rgba(0,0,0,.06); overflow:hidden; }
@@ -17,7 +17,7 @@
         .text-truncate-2 { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
       </style>
 
-      <div class="modal-header">
+      <div class="modal-header sv-modal-header">
         <h5 class="modal-title fw-semibold d-flex align-items-center gap-2" id="deleteCdioModalLabel">
           <i data-feather="trash-2"></i>
           <span>Delete CDIO</span>

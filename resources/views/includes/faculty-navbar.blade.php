@@ -97,19 +97,30 @@
                     $roleLabel = 'VCAA';
                   } elseif ($appt->role === \App\Models\Appointment::ROLE_ASSOC_VCAA) {
                     $roleLabel = 'Assoc VCAA';
-                  } elseif ($appt->role === \App\Models\Appointment::ROLE_DEAN) {
-                    $roleLabel = 'Dean';
+                  } elseif ($appt->role === \App\Models\Appointment::ROLE_DEPT_HEAD) {
+                    // Department Head umbrella label; show Dean/Head/Principal based on department name
+                    $dept = $departments->firstWhere('id', $appt->scope_id);
+                    $deptNameLower = $dept ? strtolower($dept->name) : '';
+                    if ($deptNameLower && (
+                      str_contains($deptNameLower, 'laboratory school') ||
+                      str_contains($deptNameLower, 'lab school') ||
+                      str_contains($deptNameLower, 'labschool')
+                    )) {
+                      $roleLabel = 'Principal';
+                    } elseif ($deptNameLower && str_contains($deptNameLower, 'general education')) {
+                      $roleLabel = 'Head';
+                    } else {
+                      $roleLabel = 'Dean';
+                    }
                   } elseif ($appt->role === \App\Models\Appointment::ROLE_ASSOC_DEAN) {
                     $roleLabel = 'Assoc Dean';
-                  } elseif ($appt->role === \App\Models\Appointment::ROLE_DEPT) {
-                    $roleLabel = 'Dept Chair';
-                  } elseif ($appt->role === \App\Models\Appointment::ROLE_PROG) {
-                    $roleLabel = 'Prog Chair';
-                  } elseif ($appt->role === \App\Models\Appointment::ROLE_DEPT_HEAD) {
-                    // Dynamic mapping for Department Head: Dept Chair if >=2 programs, else Prog Chair
+                  } elseif ($appt->role === \App\Models\Appointment::ROLE_CHAIR) {
+                    // Chairperson label depends on program count
                     $dept = $departments->firstWhere('id', $appt->scope_id);
                     $programsCount = $dept ? (int) ($dept->programs_count ?? 0) : 0;
                     $roleLabel = $programsCount >= 2 ? 'Dept Chair' : 'Prog Chair';
+                  } elseif ($appt->role === \App\Models\Appointment::ROLE_PROG) {
+                    $roleLabel = 'Prog Chair';
                   } elseif ($appt->role === \App\Models\Appointment::ROLE_FACULTY) {
                     $roleLabel = 'Faculty';
                   }

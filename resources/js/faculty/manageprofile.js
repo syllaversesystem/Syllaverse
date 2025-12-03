@@ -338,12 +338,30 @@ document.addEventListener('DOMContentLoaded', () => {
   if (deleteBtn) {
     deleteBtn.addEventListener('click', async () => {
       const modalEl = document.getElementById('mpDeleteConfirmModal');
-      const confirmBtn = document.getElementById('mpDeleteConfirmBtn');
+      const deleteForm = document.getElementById('mpDeleteAccountForm');
       const Modal = window.bootstrap?.Modal;
-      if (modalEl && confirmBtn && Modal) {
+      if (modalEl && deleteForm && Modal) {
+        // Append modal to body to avoid z-index/backdrop stacking issues
+        if (modalEl.parentElement !== document.body) {
+          document.body.appendChild(modalEl);
+        }
         const modal = new Modal(modalEl, { backdrop: 'static' });
-        const onConfirm = async () => {
-          confirmBtn.disabled = true;
+
+        // Ensure backdrop cleanup on hide
+        const onHidden = () => {
+          try {
+            document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
+            document.body.classList.remove('modal-open');
+            document.body.style.removeProperty('padding-right');
+          } catch {}
+          modalEl.removeEventListener('hidden.bs.modal', onHidden);
+        };
+        modalEl.addEventListener('hidden.bs.modal', onHidden);
+
+        const onSubmit = async (e) => {
+          e.preventDefault();
+          const submitBtn = deleteForm.querySelector('button[type="submit"]');
+          if (submitBtn) submitBtn.disabled = true;
           deleteBtn.disabled = true;
           try {
             const res = await fetch('/faculty/manage-profile', {
@@ -361,16 +379,15 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error(err);
             alert('Unexpected error');
           } finally {
-            confirmBtn.disabled = false;
+            if (submitBtn) submitBtn.disabled = false;
             deleteBtn.disabled = false;
-            confirmBtn.removeEventListener('click', onConfirm);
+            deleteForm.removeEventListener('submit', onSubmit);
           }
         };
-        confirmBtn.addEventListener('click', onConfirm, { once: true });
+        deleteForm.addEventListener('submit', onSubmit, { once: true });
         modal.show();
       } else {
-        // Fallback to native confirm
-        if (!confirm('This will delete your account permanently. Continue?')) return;
+        // No modal available: proceed with immediate delete without native confirm
         deleteBtn.disabled = true;
         try {
           const res = await fetch('/faculty/manage-profile', {
