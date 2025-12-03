@@ -117,42 +117,21 @@ class ManageAdminController extends Controller
         $user = User::findOrFail($id);
 
         if ($user->role === 'admin') {
-            // Re-approve as Faculty with last known department
-            $lastDeptId = $this->getLastDepartmentId($user);
-
-            // Update user role/status
-            $user->role = 'faculty';
+            // Activate admin account without changing role or forcing a Faculty appointment.
+            // Role-specific appointments (Dept Head / Chair / Assoc Dean / Faculty) are handled via ChairRequest approvals.
             $user->status = 'active';
             $user->save();
-
-            // Create a fresh active Faculty appointment only if we have a department id
-            if ($lastDeptId) {
-                $appt = new Appointment();
-                $appt->user_id = $user->id;
-                // Explicitly set role + scope to ensure scope_type and scope_id are valid
-                $appt->setRoleAndScope(Appointment::ROLE_FACULTY, $lastDeptId, null);
-                $appt->status = 'active';
-                $appt->save();
-            }
         }
 
         // AJAX path: keep current tab; caller decides what to refresh.
         if ($request->expectsJson() || $request->ajax()) {
-            $deptName = null;
-            $deptId = $this->getLastDepartmentId($user);
-            if ($deptId) { $deptName = optional(Department::find($deptId))->name; }
-            $msg = 'Account re-approved as Faculty.';
-            if ($deptName) {
-                $msg .= ' Assigned department: '.$deptName.'.';
-            } else {
-                $msg .= ' No last department found; appointment not created.';
-            }
+            $msg = 'Admin account approved. No role changes applied.';
             return response()->json([
                 'ok'       => true,
                 'message'  => $msg,
                 'admin_id' => (int) $user->id,
                 'status'   => 'active',
-                'needs_department' => $deptName ? false : true,
+                'needs_department' => false,
             ]);
         }
 

@@ -152,8 +152,29 @@ function showAlertOverlay(type, message) {
 	`;
 	container.appendChild(el);
 	if (window.feather) window.feather.replace();
-	// Auto-hide after 4s
-	setTimeout(() => { el.classList.remove('show'); el.remove(); }, 4000);
+
+	// Prefer a precise hide based on CSS transition end of loading bar
+	const barEl = el.querySelector('.loading-bar');
+	let hideScheduled = false;
+	const hideNow = () => {
+		if (hideScheduled) return;
+		hideScheduled = true;
+		try {
+			el.classList.remove('show');
+			// If CSS fade-out exists, wait a short tick before remove
+			setTimeout(() => { try { el.remove(); } catch(_) {} }, 150);
+		} catch(_) {
+			try { el.remove(); } catch(_) {}
+		}
+	};
+
+	// If the loading bar animates, listen for transition end
+	if (barEl) {
+		barEl.addEventListener('transitionend', hideNow, { once: true });
+		barEl.addEventListener('animationend', hideNow, { once: true });
+	}
+	// Fallback: hard timeout to avoid lingering card
+	setTimeout(hideNow, 2500);
 }
 
 function attachAjaxHandlers() {
@@ -181,17 +202,34 @@ function attachAjaxHandlers() {
 			const parent = form.closest('[data-sv-scope]') || form.closest('.sv-request-list') || document.body;
 			dispatchAjaxSuccess(parent, { result });
 
-			// Do not refresh page; rely on ajaxSuccess listeners to update UI.
-			// Optionally close any open Bootstrap modal containing this form.
-			const modalEl = form.closest('.modal');
-			if (modalEl && window.bootstrap) {
+						// Do not refresh page; rely on ajaxSuccess listeners to update UI.
+						// Do not close Manage Faculty/Admin appointment modals on add/update/delete.
+						const modalEl = form.closest('.modal');
+						const isApptModal = modalEl && modalEl.classList.contains('sv-appt-modal');
+						if (modalEl && !isApptModal) {
 				try {
-					// Avoid aria-hidden focus warning by blurring the active element before hide
-					if (document.activeElement && typeof document.activeElement.blur === 'function') {
-						document.activeElement.blur();
+					if (window.bootstrap && window.bootstrap.Modal) {
+						// Avoid aria-hidden focus warning by blurring the active element before hide
+						if (document.activeElement && typeof document.activeElement.blur === 'function') {
+							document.activeElement.blur();
+						}
+						const modal = window.bootstrap.Modal.getInstance(modalEl) || new window.bootstrap.Modal(modalEl);
+						modal.hide();
+					} else {
+						// Fallback: click any dismiss button or force-hide
+						const dismissBtn = modalEl.querySelector('[data-bs-dismiss="modal"]');
+						if (dismissBtn) {
+							try { dismissBtn.click(); } catch(_) {}
+						}
+						// Force hide as last resort
+						modalEl.classList.remove('show');
+						modalEl.setAttribute('aria-hidden', 'true');
+						modalEl.style.display = 'none';
+						// Remove any lingering backdrops and normalize body
+						document.querySelectorAll('.modal-backdrop').forEach(b => { try { b.remove(); } catch(_) {} });
+						document.body.classList.remove('modal-open');
+						document.body.style.removeProperty('padding-right');
 					}
-					const modal = window.bootstrap.Modal.getInstance(modalEl) || new window.bootstrap.Modal(modalEl);
-					modal.hide();
 				} catch (_) {}
 			}
 		} catch (err) {
@@ -296,6 +334,8 @@ document.addEventListener('hide.bs.modal', function (e) {
 		try { active.blur(); } catch (_) {}
 	}
 });
+
+// Removed: no delete confirmation modal in Rejected module; deletes submit directly via AJAX forms
 
 document.addEventListener('hidden.bs.modal', function (e) {
 	const modalEl = e.target;
@@ -625,6 +665,11 @@ document.addEventListener('ajaxSuccess', function(e) {
 	}
 	// Success notice for update
 	showAlertOverlay('success', 'Appointment updated.');
+
+	// Also refresh the Approved table to reflect role pills and department
+	try {
+		refreshApprovedTablePartial();
+	} catch(_) {}
 });
 
 // Handle deletions by removing the item on success when server doesn't return appointment
@@ -968,6 +1013,49 @@ document.addEventListener('ajaxSuccess', function(e) {
 	// Handle delete user from Rejected tab
 	const isDeleteUser = targetEl.matches('[data-ajax="true"][data-sv-delete="true"]');
 	if (isDeleteUser) {
+		// If delete initiated from shared modal, remove specified row
+		const formEl = targetEl.closest('form');
+		if (formEl && formEl.dataset && formEl.dataset.svRow) {
+			try {
+				const rowSel = formEl.dataset.svRow;
+				const rowEl = document.querySelector(rowSel);
+				if (rowEl) {
+					rowEl.parentElement && rowEl.parentElement.removeChild(rowEl);
+				}
+			} catch(_) {}
+		}
+		// Close the confirmation modal
+		const confirmModal = targetEl.closest('.modal');
+		if (confirmModal) {
+			try {
+				if (window.bootstrap && window.bootstrap.Modal) {
+					if (document.activeElement && typeof document.activeElement.blur === 'function') {
+						document.activeElement.blur();
+					}
+					const cmInst = window.bootstrap.Modal.getInstance(confirmModal) || new window.bootstrap.Modal(confirmModal);
+					cmInst.hide();
+					setTimeout(() => {
+						try { if (cmInst.dispose) cmInst.dispose(); } catch(_) {}
+						document.querySelectorAll('.modal-backdrop').forEach(b => { try { b.remove(); } catch(_) {} });
+						document.body.classList.remove('modal-open');
+						document.body.style.removeProperty('padding-right');
+					}, 100);
+				} else {
+					// Fallback: click dismiss or force-hide
+					const dismissBtn = confirmModal.querySelector('[data-bs-dismiss="modal"]');
+					if (dismissBtn) {
+						try { dismissBtn.click(); } catch(_) {}
+					}
+					confirmModal.classList.remove('show');
+					confirmModal.setAttribute('aria-hidden', 'true');
+					confirmModal.style.display = 'none';
+					document.querySelectorAll('.modal-backdrop').forEach(b => { try { b.remove(); } catch(_) {} });
+					document.body.classList.remove('modal-open');
+					document.body.style.removeProperty('padding-right');
+				}
+			} catch(_) {}
+		}
+
 		const rejectedRow = targetEl.closest('tr[id^="sv-rejected-row-"]');
 		const tableBody = targetEl.closest('tbody');
 		if (rejectedRow && tableBody) {
@@ -987,6 +1075,10 @@ document.addEventListener('ajaxSuccess', function(e) {
 				tableBody.appendChild(emptyRow);
 			}
 		}
+
+		// Refresh the Rejected table from server to keep in sync
+		try { refreshRejectedTablePartial(); } catch(_) {}
+
 		showAlertOverlay('success', 'Account deleted.');
 		return;
 	}
@@ -1012,6 +1104,9 @@ document.addEventListener('ajaxSuccess', function(e) {
 	}
 	// Success notice for delete
 	showAlertOverlay('success', 'Appointment deleted.');
+
+	// Refresh Approved table after delete
+	try { refreshApprovedTablePartial(); } catch(_) {}
 	// If list empty, show placeholder
 	if (!list.querySelector('.sv-request-item')) {
 		// Auto-create a fallback Faculty role using the deleted department (or leadership dept)
@@ -1066,4 +1161,38 @@ document.addEventListener('ajaxSuccess', function(e) {
 		}
 	}
 });
+
+// Helper: refresh Approved table tbody from server
+async function refreshApprovedTablePartial() {
+	const table = document.querySelector('#svApprovedAdminsTable');
+	if (!table) return;
+	const res = await fetch(window.location.href, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+	const html = await res.text();
+	const parser = new DOMParser();
+	const doc = parser.parseFromString(html, 'text/html');
+	const newTbody = doc.querySelector('#svApprovedAdminsTable tbody');
+	if (!newTbody) return;
+	const currentTbody = table.querySelector('tbody');
+	if (currentTbody) currentTbody.replaceWith(newTbody); else table.appendChild(newTbody);
+	if (window.feather && typeof window.feather.replace === 'function') {
+		window.feather.replace();
+	}
+}
+
+// Helper: refresh Rejected table tbody from server
+async function refreshRejectedTablePartial() {
+	const table = document.querySelector('#svRejectedAdminsTable');
+	if (!table) return;
+	const res = await fetch(window.location.href, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+	const html = await res.text();
+	const parser = new DOMParser();
+	const doc = parser.parseFromString(html, 'text/html');
+	const newTbody = doc.querySelector('#svRejectedAdminsTable tbody');
+	if (!newTbody) return;
+	const currentTbody = table.querySelector('tbody');
+	if (currentTbody) currentTbody.replaceWith(newTbody); else table.appendChild(newTbody);
+	if (window.feather && typeof window.feather.replace === 'function') {
+		window.feather.replace();
+	}
+}
 

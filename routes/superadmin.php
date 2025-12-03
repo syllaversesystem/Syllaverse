@@ -15,6 +15,9 @@ use App\Http\Controllers\SuperAdmin\ManageAdminController;
 use App\Http\Controllers\SuperAdmin\ChairRequestController;
 use App\Http\Controllers\SuperAdmin\AppointmentController;
 use App\Http\Controllers\SuperAdmin\DepartmentsController as SADepartmentsController;
+use App\Http\Controllers\SuperAdmin\PendingAccountsController;
+use App\Http\Controllers\SuperAdmin\ApprovedAccountsController;
+use App\Http\Controllers\SuperAdmin\RejectedAccountsController;
 
 use App\Http\Middleware\SuperAdminAuth;
 
@@ -38,6 +41,12 @@ Route::middleware([SuperAdminAuth::class])->prefix('superadmin')->group(function
 
     // ✅ Modularized Manage Accounts View
     Route::get('/manage-accounts', [ManageAdminController::class, 'index'])->name('superadmin.manage-accounts');
+    // Pending Accounts Module (Approvals extracted)
+    Route::get('/pending-accounts', [PendingAccountsController::class, 'index'])->name('superadmin.pending-accounts');
+    // Approved Accounts Module
+    Route::get('/approved-accounts', [ApprovedAccountsController::class, 'index'])->name('superadmin.approved-accounts');
+    // Rejected Accounts Module
+    Route::get('/rejected-accounts', [RejectedAccountsController::class, 'index'])->name('superadmin.rejected-accounts');
 
     Route::view('/class-suspension', 'superadmin.class-suspension')->name('superadmin.class-suspension');
     Route::view('/system-logs', 'superadmin.system-logs')->name('superadmin.system-logs');

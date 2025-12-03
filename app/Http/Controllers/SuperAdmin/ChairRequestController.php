@@ -74,17 +74,17 @@ class ChairRequestController extends Controller
         DB::transaction(function () use ($chairRequest, $role, $deptId, $progId, $startAt, $notes, $deciderId) {
             // Determine appointment role and scope based on the chair request type.
             if ($role === ChairRequest::ROLE_DEPT || $role === ChairRequest::ROLE_CHAIR) {
-                // Chairperson ⇒ Department Chair appointment
-                $apptRole  = Appointment::ROLE_DEPT;
+                // Chairperson ⇒ canonical CHAIR role, department-scoped
+                $apptRole  = Appointment::ROLE_CHAIR;
                 $scopeType = Appointment::SCOPE_DEPT;
                 $scopeId   = $deptId;
             } elseif ($role === ChairRequest::ROLE_DEPT_HEAD || $role === ChairRequest::ROLE_DEAN) {
-                // Dean is department-scoped (one dean per department)
-                $apptRole  = Appointment::ROLE_DEAN;
+                // Department Head (Dean/Head/Principal) ⇒ canonical DEPT_HEAD role
+                $apptRole  = Appointment::ROLE_DEPT_HEAD;
                 $scopeType = Appointment::SCOPE_DEPT;
                 $scopeId   = $deptId;
             } elseif ($role === ChairRequest::ROLE_ASSOC_DEAN) {
-                // Associate Dean is department-scoped (assists dean within department)
+                // Associate Dean ⇒ canonical ASSOC_DEAN role, department-scoped
                 $apptRole  = Appointment::ROLE_ASSOC_DEAN;
                 $scopeType = Appointment::SCOPE_DEPT;
                 $scopeId   = $deptId;
@@ -94,9 +94,9 @@ class ChairRequestController extends Controller
                 $scopeType = Appointment::SCOPE_PROG;
                 $scopeId   = $progId;
             } elseif ($role === ChairRequest::ROLE_FACULTY) {
-                // Faculty role uses SCOPE_FACULTY but scope_id references the department
+                // Faculty role should use department scope
                 $apptRole  = Appointment::ROLE_FACULTY;
-                $scopeType = Appointment::SCOPE_FACULTY;
+                $scopeType = Appointment::SCOPE_DEPT;
                 $scopeId   = $deptId;
             } else {
                 // Institution-level roles: use the same role string and institution scope.
@@ -201,33 +201,33 @@ class ChairRequestController extends Controller
 
                 // Determine appointment details based on role
                     if ($role === ChairRequest::ROLE_DEPT || $role === ChairRequest::ROLE_CHAIR) {
-                        // Chairperson ⇒ Department Chair appointment
-                        $apptRole = Appointment::ROLE_DEPT;
+                        // Chairperson ⇒ canonical CHAIR role
+                        $apptRole = Appointment::ROLE_CHAIR;
                         $scopeType = Appointment::SCOPE_DEPT;
                         $scopeId = $deptId; // must be non-null due to pre-validation
                     } elseif ($role === ChairRequest::ROLE_DEPT_HEAD || $role === ChairRequest::ROLE_DEAN) {
-                        // Dept Head (Dean/Head/Principal) ⇒ Dean appointment
-                        $apptRole = Appointment::ROLE_DEAN;
+                        // Department Head (Dean/Head/Principal) ⇒ canonical DEPT_HEAD role
+                        $apptRole = Appointment::ROLE_DEPT_HEAD;
                         $scopeType = Appointment::SCOPE_DEPT;
                         $scopeId = $deptId; // must be non-null due to pre-validation
                     } elseif ($role === ChairRequest::ROLE_ASSOC_DEAN) {
-                    $apptRole = Appointment::ROLE_ASSOC_DEAN;
-                    $scopeType = Appointment::SCOPE_DEPT;
-                    $scopeId = $deptId; // must be non-null due to pre-validation
-                } elseif ($role === ChairRequest::ROLE_PROG) {
-                    $apptRole = Appointment::ROLE_PROG;
-                    $scopeType = Appointment::SCOPE_PROG;
-                    $scopeId = $progId;
-                } elseif ($role === ChairRequest::ROLE_FACULTY) {
-                    $apptRole = Appointment::ROLE_FACULTY;
-                    $scopeType = Appointment::SCOPE_FACULTY;
-                    $scopeId = $deptId; // must be non-null due to pre-validation
-                } else {
-                    // Institution-level roles (VCAA, Associate VCAA)
-                    $apptRole = $role;
-                    $scopeType = Appointment::SCOPE_INSTITUTION;
-                    $scopeId = 0;
-                }
+                        $apptRole = Appointment::ROLE_ASSOC_DEAN;
+                        $scopeType = Appointment::SCOPE_DEPT;
+                        $scopeId = $deptId; // must be non-null due to pre-validation
+                    } elseif ($role === ChairRequest::ROLE_PROG) {
+                        $apptRole = Appointment::ROLE_PROG;
+                        $scopeType = Appointment::SCOPE_PROG;
+                        $scopeId = $progId;
+                    } elseif ($role === ChairRequest::ROLE_FACULTY) {
+                        $apptRole = Appointment::ROLE_FACULTY;
+                        $scopeType = Appointment::SCOPE_DEPT;
+                        $scopeId = $deptId; // must be non-null due to pre-validation
+                    } else {
+                        // Institution-level roles (VCAA, Associate VCAA)
+                        $apptRole = $role;
+                        $scopeType = Appointment::SCOPE_INSTITUTION;
+                        $scopeId = 0;
+                    }
 
                 // End conflicting appointments
                 $this->endConflictingActive($apptRole, $scopeType, $scopeId);
@@ -311,7 +311,7 @@ class ChairRequestController extends Controller
     {
         $conflicts = Appointment::query()
             ->active()
-            ->where('role', $role === ChairRequest::ROLE_DEPT ? Appointment::ROLE_DEPT : $role)
+            ->where('role', $role === ChairRequest::ROLE_DEPT ? Appointment::ROLE_CHAIR : $role)
             ->where('scope_type', $scopeType)
             ->where('scope_id', $scopeId)
             ->get();

@@ -8,23 +8,7 @@
 -------------------------------------------------------------------------------
 --}}
 <nav id="sidebar" class="bg-sv-light shadow-sm d-flex flex-column" role="navigation" aria-label="Faculty sidebar">
-  <style>
-    /* Stabilize nav link sizing across modules */
-    #sidebar .nav-link {
-      font-size: 0.95rem;
-      line-height: 1.25rem;
-      padding: 0.5rem 0.75rem;
-    }
-    #sidebar .nav-link .label {
-      font-size: 0.95rem;
-      line-height: 1.25rem;
-    }
-    /* Prevent external tab styles from shrinking sidebar links */
-    #sidebar .nav-link.active,
-    #sidebar .nav-link:focus {
-      font-size: 0.95rem;
-    }
-  </style>
+  {{-- Use default nav-link sizing to match Superadmin sidebar --}}
 
   {{-- ░░░ START: Logo Header ░░░ --}}
   <div class="sidebar-header">

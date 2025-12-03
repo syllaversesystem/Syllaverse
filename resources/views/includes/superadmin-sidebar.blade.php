@@ -47,40 +47,43 @@
     <ul class="nav flex-column px-3">  
       
 
-      <li class="nav-item">
-        <a class="nav-link d-flex align-items-center @if(request()->is('superadmin/manage-accounts')) active @endif"
-           href="{{ route('superadmin.manage-accounts') }}"
-           aria-current="@if(request()->is('superadmin/manage-accounts')) page @endif">
-          <i class="bi bi-people-gear"></i>
-          <span class="label">Manage Accounts</span>
-        </a>
-      </li>
+      {{-- Removed: Manage Accounts composite page link (split into modules) --}}
 
-      <!-- Manage Accounts modules -->
       <li class="nav-item">
-        <a class="nav-link d-flex align-items-center @if(request()->is('superadmin/manage-accounts/approved')) active @endif"
-           href="{{ url('superadmin/manage-accounts/approved') }}"
-           aria-current="@if(request()->is('superadmin/manage-accounts/approved')) page @endif">
-          <i class="bi bi-shield-check"></i>
-          <span class="label">Approved Accounts</span>
-        </a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link d-flex align-items-center @if(request()->is('superadmin/manage-accounts/rejected')) active @endif"
-           href="{{ url('superadmin/manage-accounts/rejected') }}"
-           aria-current="@if(request()->is('superadmin/manage-accounts/rejected')) page @endif">
-          <i class="bi bi-shield-x"></i>
-          <span class="label">Rejected Accounts</span>
-        </a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link d-flex align-items-center @if(request()->is('superadmin/manage-accounts/pending')) active @endif"
-           href="{{ url('superadmin/manage-accounts/pending') }}"
-           aria-current="@if(request()->is('superadmin/manage-accounts/pending')) page @endif">
+        <a class="nav-link d-flex align-items-center @if(request()->is('superadmin/pending-accounts')) active @endif"
+           href="{{ route('superadmin.pending-accounts') }}"
+           aria-current="@if(request()->is('superadmin/pending-accounts')) page @endif">
           <i class="bi bi-hourglass-split"></i>
           <span class="label">Pending Accounts</span>
         </a>
       </li>
+
+      <li class="nav-item">
+        <a class="nav-link d-flex align-items-center @if(request()->is('superadmin/approved-accounts')) active @endif"
+           href="{{ route('superadmin.approved-accounts') }}"
+           aria-current="@if(request()->is('superadmin/approved-accounts')) page @endif">
+          <i class="bi bi-check2-circle"></i>
+          <span class="label">Approved Accounts</span>
+        </a>
+      </li>
+
+      <li class="nav-item">
+        <a class="nav-link d-flex align-items-center @if(request()->is('superadmin/rejected-accounts')) active @endif"
+           href="{{ route('superadmin.rejected-accounts') }}"
+           aria-current="@if(request()->is('superadmin/rejected-accounts')) page @endif">
+          <i class="bi bi-x-circle"></i>
+          <span class="label">Rejected Accounts</span>
+        </a>
+      </li>
+
+      {{-- Separator (align with Faculty sidebar style) --}}
+      <li class="nav-item">
+        <div class="sidebar-separator"></div>
+      </li>
+
+      
+
+      
 
       <li class="nav-item">
         <a class="nav-link d-flex align-items-center @if(request()->is('superadmin/departments*')) active @endif"
@@ -90,6 +93,9 @@
           <span class="label">Departments</span>
         </a>
       </li>
+      
+
+      
     </ul>  
   </div>  
   {{-- END: Navigation Links --}}  
