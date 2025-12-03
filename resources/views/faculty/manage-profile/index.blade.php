@@ -117,7 +117,7 @@
                 <div class="col-md-6">
                   <div class="form-check">
                     <input class="form-check-input" type="checkbox" id="mpRole_dean" name="roles[]" value="dean" data-pending="{{ $pendingRole['dean'] ? '1' : '0' }}" data-current="{{ $activeRolePresent['dean'] ? '1' : '0' }}" {{ $activeRolePresent['dean'] ? 'checked' : '' }} {{ $pendingRole['assoc_dean'] ? 'disabled' : '' }} title="{{ $pendingRole['assoc_dean'] ? 'Disabled: pending Associate Dean request exists' : '' }}">
-                    <label class="form-check-label fw-semibold" for="mpRole_dean">Dean @if($activeRolePresent['dean']) <span class="text-success small ms-1">(Current)</span>@endif</label>
+                    <label class="form-check-label fw-semibold" for="mpRole_dean">Department Head (Dean/Head/Principal) @if($activeRolePresent['dean']) <span class="text-success small ms-1">(Current)</span>@endif</label>
                   </div>
                 </div>
                 <div class="col-md-6">
@@ -151,7 +151,7 @@
                 <div class="col-md-6">
                   <div class="form-check">
                     <input class="form-check-input" type="checkbox" id="mpRole_dept_chair" name="roles[]" value="dept_chair" data-pending="{{ $pendingRole['dept_chair'] ? '1' : '0' }}" data-current="{{ $activeRolePresent['dept_chair'] ? '1' : '0' }}" {{ $activeRolePresent['dept_chair'] ? 'checked' : '' }} {{ $pendingRole['dept_chair'] ? 'disabled' : '' }} title="{{ $pendingRole['dept_chair'] ? 'Disabled: pending Department Chair request exists' : '' }}">
-                    <label class="form-check-label fw-semibold" for="mpRole_dept_chair">Department Chairperson @if($activeRolePresent['dept_chair']) <span class="text-success small ms-1">(Current)</span>@endif</label>
+                    <label class="form-check-label fw-semibold" for="mpRole_dept_chair">Chairperson @if($activeRolePresent['dept_chair']) <span class="text-success small ms-1">(Current)</span>@endif</label>
                   </div>
                 </div>
                 <div class="col-md-6">

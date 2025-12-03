@@ -125,10 +125,15 @@ class ManageProfileController extends Controller
 
         try {
             DB::transaction(function() use ($user, $roles, $deptMap) {
+                // Canonical ChairRequest roles per specification
                 $roleMap = [
-                    'dept_chair' => ChairRequest::ROLE_DEPT_HEAD,
-                    'dean' => ChairRequest::ROLE_DEAN,
+                    // Department Head (Dean/Head/Principal)
+                    'dean' => ChairRequest::ROLE_DEPT_HEAD,
+                    // Associate Dean
                     'assoc_dean' => ChairRequest::ROLE_ASSOC_DEAN,
+                    // Chairperson
+                    'dept_chair' => ChairRequest::ROLE_CHAIR,
+                    // Faculty
                     'faculty' => ChairRequest::ROLE_FACULTY,
                 ];
 
