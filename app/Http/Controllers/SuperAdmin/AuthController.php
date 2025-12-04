@@ -34,7 +34,7 @@ class AuthController extends Controller
             // Regenerate session ID but preserve other guards' data (admin/faculty)
             $request->session()->regenerate();
             Session::put('is_superadmin', true);
-            return redirect()->intended('/superadmin/dashboard');
+            return redirect()->intended(route('superadmin.dashboard'));
         }
 
         return redirect()->route('superadmin.login.form')

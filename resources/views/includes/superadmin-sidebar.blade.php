@@ -49,6 +49,20 @@
 
       {{-- Removed: Manage Accounts composite page link (split into modules) --}}
 
+      {{-- Dashboard --}}
+      <li class="nav-item">
+        <a class="nav-link d-flex align-items-center @if(request()->is('superadmin/dashboard')) active @endif"
+           href="{{ route('superadmin.dashboard') }}"
+           aria-current="@if(request()->is('superadmin/dashboard')) page @endif">
+          <i class="bi bi-layout-text-sidebar"></i>
+          <span class="label">Dashboard</span>
+        </a>
+      </li>
+      {{-- Divider below Dashboard --}}
+      <li class="nav-item">
+        <div class="sidebar-separator"></div>
+      </li>
+
       <li class="nav-item">
         <a class="nav-link d-flex align-items-center @if(request()->is('superadmin/pending-accounts')) active @endif"
            href="{{ route('superadmin.pending-accounts') }}"

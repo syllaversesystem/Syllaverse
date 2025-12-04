@@ -12,6 +12,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\SuperAdmin\AuthController;
 use App\Http\Controllers\SuperAdmin\ManageAdminController;
+use App\Http\Controllers\SuperAdmin\DashboardController;
 use App\Http\Controllers\SuperAdmin\ChairRequestController;
 use App\Http\Controllers\SuperAdmin\AppointmentController;
 use App\Http\Controllers\SuperAdmin\DepartmentsController as SADepartmentsController;
@@ -36,8 +37,8 @@ Route::middleware([SuperAdminAuth::class])->prefix('superadmin')->group(function
     // ---------- Logout ----------
     Route::post('/logout', [AuthController::class, 'logout'])->name('superadmin.logout');
 
-    // ---------- Dashboard & Pages ----------
-    Route::view('/dashboard', 'superadmin.dashboard')->name('superadmin.dashboard');
+    // ---------- Dashboard ----------
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('superadmin.dashboard');
 
     // ✅ Modularized Manage Accounts View
     Route::get('/manage-accounts', [ManageAdminController::class, 'index'])->name('superadmin.manage-accounts');

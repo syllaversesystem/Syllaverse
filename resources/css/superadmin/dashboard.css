@@ -1,0 +1,122 @@
+:root{--sv-card-radius:14px;--sv-shadow:0 4px 16px rgba(16,24,40,.06);--sv-shadow-hover:0 8px 28px rgba(16,24,40,.12)}
+.stat-card{border:1px solid #eef2f6;border-left-width:4px;border-radius:var(--sv-card-radius);background:#fff;box-shadow:var(--sv-shadow);transition:transform .18s ease,box-shadow .18s ease;display:flex;flex-direction:column}
+.stat-card:hover{transform:translateY(-2px);box-shadow:var(--sv-shadow-hover)}
+.stat-plain:hover{transform:none;box-shadow:var(--sv-shadow)}
+.stat-card .stat-icon{width:44px;height:44px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center}
+.stat-card .stat-icon i{font-size:1.1rem}
+.stat-card .stat-label{color:#6b7280;font-size:.8rem;letter-spacing:.02em}
+.stat-card .stat-value{font-weight:700;font-size:1.75rem;line-height:1.1}
+.stat-card .stat-footer{border-top:1px dashed #edf2f7;padding-top:.5rem;margin-top:.75rem;display:flex;align-items:center;justify-content:space-between}
+
+/* Color variants */
+.stat-primary{border-left-color:#0d6efd}
+.stat-primary .stat-icon{background:rgba(13,110,253,.1);color:#0d6efd}
+.stat-success{border-left-color:#198754}
+.stat-success .stat-icon{background:rgba(25,135,84,.1);color:#198754}
+.stat-warning{border-left-color:#ffc107}
+.stat-warning .stat-icon{background:rgba(255,193,7,.15);color:#b08900}
+.stat-danger{border-left-color:#dc3545}
+.stat-danger .stat-icon{background:rgba(220,53,69,.1);color:#dc3545}
+
+/* Button-like link */
+.stat-link{font-size:.85rem;color:#dc3545;text-decoration:none;display:inline-flex;align-items:center;gap:.25rem}
+.stat-link:hover{color:#bb2d3b;text-decoration:underline}
+
+/* Pending (warning) card: make CTA dark yellow */
+.stat-warning .stat-link{color:#b08900}
+.stat-warning .stat-link:hover{color:#8f7300}
+
+/* Plain variant: no accent color on the left */
+.stat-plain{border-left-width:1px;border-left-color:#eef2f6}
+
+/* Grid container for stats with span support */
+.sv-stats-grid{display:grid;gap:12px;grid-template-columns:repeat(1,minmax(0,1fr))}
+.sv-grid-item{height:100%}
+@media (min-width:576px){
+	.sv-stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (min-width:992px){
+	.sv-stats-grid{grid-template-columns:repeat(5,minmax(0,1fr));grid-template-rows:repeat(5, auto)}
+	.sv-span-2x2{grid-column:1 / span 2;grid-row:span 2}
+	.sv-span-2x2 .stat-card{min-height:420px}
+	/* Graph card explicit placement: cols 3→5, rows 2→4 */
+	.sv-span-graph{grid-column:3 / span 3;grid-row:2 / span 2}
+	.sv-span-graph .stat-card{min-height:420px}
+	/* Utility to place items on row 5 */
+	.sv-row-5{grid-row:5}
+	/* Full-width footer card: cols 1→5, rows 5→6 */
+	.sv-span-full-row-5{grid-column:1 / span 5;grid-row:5 / span 2}
+	/* Let the full-width card auto-size to its table content */
+	.sv-span-full-row-5 .stat-card{min-height:auto}
+	/* Remove gap above row 4 by pulling items up */
+	.sv-row-4-tight{margin-top:-12px}
+}
+
+/* Custom utility classes to replace Bootstrap */
+.sv-flex{display:flex}
+.sv-column{flex-direction:column}
+.sv-ai-center{align-items:center}
+.sv-justify-between{justify-content:space-between}
+.sv-gap-2{gap:8px}
+.sv-p-3{padding:16px}
+.sv-h-100{height:100%}
+.sv-mb-0{margin-bottom:0}
+.sv-mb-2{margin-bottom:8px}
+.sv-flex-grow{flex:1 1 auto}
+.sv-overflow-auto{overflow:auto}
+.sv-text-muted{color:#6b7280}
+.sv-small{font-size:12px}
+.sv-fw-semibold{font-weight:600}
+.sv-text-center{text-align:center}
+
+/* Table styles */
+.sv-table{width:100%;border-collapse:collapse}
+.sv-table thead th{text-align:left;padding:10px 12px;border-bottom:1px solid rgba(0,0,0,.08);font-weight:600;background:#fafafa;position:sticky;top:0;z-index:1}
+.sv-table tbody td{padding:10px 12px;border-bottom:1px solid rgba(0,0,0,.06)}
+.sv-table tbody tr:nth-child(odd){background:#fff}
+.sv-table tbody tr:nth-child(even){background:#fbfbfb}
+.sv-table tbody tr:hover{background:#f7f7f7}
+.sv-table td, .sv-table th{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sv-table--compact thead th{padding:8px 10px}
+.sv-table--compact tbody td{padding:8px 10px}
+.sv-table--no-wrap td, .sv-table--no-wrap th{white-space:nowrap}
+.sv-table--elevated{border-radius:8px;overflow:hidden}
+.sv-table--elevated thead th{box-shadow:0 1px 0 rgba(0,0,0,.06)}
+.sv-table tbody tr:focus-within{outline:2px solid rgba(13,110,253,.25)}
+.sv-table tbody tr.selected{background:#eef6ff}
+.sv-table-container{padding-right:6px} /* avoid scrollbar overlaying content */
+
+/* Tighter row height modifier */
+.sv-table--rows-tight tbody td{padding:6px 10px; line-height:1.2}
+.sv-table--rows-tight thead th{padding:8px 10px}
+.sv-table--rows-tight tbody tr{border-bottom:1px solid rgba(0,0,0,.05)}
+
+/* Column widths and alignment for Leadership Directory */
+.sv-col-name{width:50%}
+.sv-col-role{width:25%}
+.sv-col-dept{width:25%; text-align:left}
+
+/* Minimal modern variant: cleaner lines, calmer palette */
+.sv-table--minimal thead th{background:#f9fafb;color:#4b5563;border-bottom:1px solid #e5e7eb}
+.sv-table--minimal tbody td{border-bottom:1px solid #eef2f6}
+.sv-table--minimal tbody tr:hover{background:#f8fafc}
+.sv-table--minimal{font-size:13px}
+.sv-table--minimal .sv-text-muted{color:#6b7280}
+.sv-table--tight-gap tbody td{padding:6px 12px}
+
+/* Professional variant: elevated, clean, modern */
+.sv-table--pro{font-size:13px;border-radius:10px;overflow:hidden;border:1px solid #eef2f6}
+.sv-table--pro thead th{background:#f9fafb;color:#334155;padding:12px 14px;border-bottom:1px solid #e5e7eb;position:sticky;top:0;z-index:1}
+.sv-table--pro tbody td{padding:10px 14px;border-bottom:1px solid #eef2f6}
+.sv-table--pro tbody tr:nth-child(odd){background:#fff}
+.sv-table--pro tbody tr:nth-child(even){background:#fbfbfb}
+.sv-table--pro tbody tr:hover{background:#f8fafc}
+.sv-table--pro td,.sv-table--pro th{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sv-table--pro .sv-fw-semibold{color:#111827}
+.sv-table--pro .sv-text-muted{color:#6b7280}
+
+/* Progress bar (professional) */
+.sv-progress{width:100%;height:8px;background:#eef2f6;border-radius:999px;overflow:hidden}
+.sv-progress__bar{height:100%;background:#dc3545;border-radius:999px;transition:width .25s ease}
+.sv-progress--ok .sv-progress__bar{background:#198754}
+.sv-progress--warn .sv-progress__bar{background:#ffc107}
