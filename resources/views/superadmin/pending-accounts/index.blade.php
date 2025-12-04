@@ -374,24 +374,19 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!ok) throw new Error('Request failed');
 
       const msg = actionType === 'approve' ? 'Request approved.' : 'Request rejected.';
-      const timeout = showAlert(msg, 'success', 3000);
+      showAlert(msg, 'success', 3000);
 
-      // Align disappearance with alert timer
-      setTimeout(() => {
-        if (isDetailAction) {
-          // Remove the specific request item
-          detailItem?.remove();
-          const detailContainer = row?.nextElementSibling?.querySelector('.sv-request-list');
-          const remaining = detailContainer ? detailContainer.querySelectorAll('.sv-request-item').length : 0;
-          if (remaining === 0) {
-            // No more requests – remove master+detail rows
-            removeRow(row);
-          }
-        } else {
-          // Single-request or signup rows: remove entire row block
+      // Instantly update table: remove affected row(s) immediately
+      if (isDetailAction) {
+        detailItem?.remove();
+        const detailContainer = row?.nextElementSibling?.querySelector('.sv-request-list');
+        const remaining = detailContainer ? detailContainer.querySelectorAll('.sv-request-item').length : 0;
+        if (remaining === 0) {
           removeRow(row);
         }
-      }, timeout + 150);
+      } else {
+        removeRow(row);
+      }
     } catch (err) {
       showAlert('Action failed. Please retry.', 'danger');
     }
