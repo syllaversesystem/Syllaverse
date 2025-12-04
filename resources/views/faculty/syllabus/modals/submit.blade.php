@@ -296,9 +296,9 @@
         <input type="hidden" name="action_type" id="actionTypeInput">
         
         <div class="modal-body">
-          {{-- Review stage: Select reviewer (Program/Department Chairperson) --}}
+          {{-- Review stage: Select reviewer (Chairperson) --}}
           <div id="reviewStageSection">
-            <label class="form-label">Select Reviewer (Program/Department Chairperson) <span class="text-danger">*</span></label>
+            <label class="form-label">Select Reviewer (Chairperson) <span class="text-danger">*</span></label>
             <input type="text" id="reviewerSearchInput" class="form-control mb-3" placeholder="Search by name or email...">
             
             <div id="reviewerCardsContainer" class="reviewer-cards-container">
@@ -308,12 +308,12 @@
               </div>
             </div>
             
-            <small class="text-muted d-block mt-2">Select one reviewer to submit this syllabus</small>
+            <small class="text-muted d-block mt-2">Select one Chairperson to submit this syllabus</small>
           </div>
 
-          {{-- Approval stage: Select approver (Dean / Associate Dean) --}}
+          {{-- Approval stage: Select approver (Department Head / Associate Dean) --}}
           <div id="approvalStageSection" style="display: none;">
-            <label class="form-label">Select Final Approver (Dean/Associate Dean) <span class="text-danger">*</span></label>
+            <label class="form-label">Select Final Approver (Department Head/Associate Dean) <span class="text-danger">*</span></label>
             <input type="text" id="finalApproverSearchInput" class="form-control mb-3" placeholder="Search by name or email...">
 
             <div id="finalApproverCardsContainer" class="reviewer-cards-container">
@@ -322,7 +322,7 @@
               </div>
             </div>
 
-            <small class="text-muted d-block mt-2">Select one approver to submit for final approval</small>
+            <small class="text-muted d-block mt-2">Select one approver (Dept Head or Associate Dean) for final approval</small>
           </div>
         </div>
         

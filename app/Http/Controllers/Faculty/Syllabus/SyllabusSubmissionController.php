@@ -38,20 +38,16 @@ class SyllabusSubmissionController extends Controller
                 ], 400);
             }
 
-            // Get users who are Department Chairs for the department and Program Chairs for the program (if provided)
-            // Be tolerant of scope_type inconsistencies: match by role and scope_id primarily.
-            // Business rule: Chair role is department-scoped. Label depends on program count in department.
-            // Allow both legacy dept chair and new dept head role identifiers
-            $chairRoles = [Appointment::ROLE_DEPT, Appointment::ROLE_DEPT_HEAD];
-            $reviewersQuery = User::whereHas('appointments', function($query) use ($departmentId, $chairRoles) {
+            // Reviewers: canonical CHAIR only, department-scoped
+            $reviewersQuery = User::whereHas('appointments', function($query) use ($departmentId) {
                 $query->where('status', 'active')
                       ->where('scope_id', $departmentId)
-                      ->whereIn('role', $chairRoles);
+                      ->where('role', Appointment::ROLE_CHAIR);
             })
-            ->with(['appointments' => function($query) use ($departmentId, $chairRoles) {
+            ->with(['appointments' => function($query) use ($departmentId) {
                 $query->where('status', 'active')
                       ->where('scope_id', $departmentId)
-                      ->whereIn('role', $chairRoles);
+                      ->where('role', Appointment::ROLE_CHAIR);
             }])
             ->get();
 
@@ -61,18 +57,15 @@ class SyllabusSubmissionController extends Controller
             ]);
 
             // Decide label based on number of programs in the department
+            // Label for CHAIR depends on program count in the department
             $programCount = DB::table('programs')->where('department_id', $departmentId)->count();
-            $labelForDept = $programCount <= 1 ? 'Program Chairperson' : 'Department Chairperson';
+            $labelForDept = ($programCount >= 2) ? 'Department Chairperson' : 'Program Chairperson';
 
             $reviewers = $reviewersQuery
             ->map(function($user) use ($labelForDept) {
                 $appointment = $user->appointments->first();
                 $roleLabel = $labelForDept;
-                $roleValue = $appointment->role ?? Appointment::ROLE_DEPT;
-                // Normalize role string for frontend (treat DEPT_HEAD equivalent to DEPT_CHAIR)
-                if ($roleValue === Appointment::ROLE_DEPT_HEAD) {
-                    $roleValue = Appointment::ROLE_DEPT; // unify legacy expectation
-                }
+                $roleValue = $appointment->role ?? Appointment::ROLE_CHAIR;
                 return [
                     'id' => $user->id,
                     'name' => $user->name,
@@ -82,32 +75,7 @@ class SyllabusSubmissionController extends Controller
                 ];
             });
 
-            // Auto-fallback: if none found for department, show all active Program Chairs across institution
-            if ($reviewers->isEmpty()) {
-                $fallback = User::whereHas('appointments', function($query) {
-                        $query->where('status', 'active')
-                              ->where('role', Appointment::ROLE_PROG);
-                    })
-                    ->with(['appointments' => function($query) {
-                        $query->where('status', 'active')
-                              ->where('role', Appointment::ROLE_PROG);
-                    }])
-                    ->get()
-                    ->map(function($user) {
-                        $appointment = $user->appointments->first();
-                        return [
-                            'id' => $user->id,
-                            'name' => $user->name,
-                            'email' => $user->email,
-                            'role' => $appointment->role ?? Appointment::ROLE_PROG,
-                            'role_label' => 'Program Chairperson',
-                        ];
-                    });
-
-                if ($fallback->isNotEmpty()) {
-                    $reviewers = $fallback;
-                }
-            }
+            // No fallback: reviewers must be canonical CHAIR
 
             return response()->json([
                 'success' => true,
@@ -143,31 +111,36 @@ class SyllabusSubmissionController extends Controller
                 ], 400);
             }
 
-            // Deans: institution-scoped; Associate Deans: department-scoped
+            // Final approvers: canonical DEPT_HEAD and ASSOC_DEAN, both department-scoped
             $approvers = User::whereHas('appointments', function($query) use ($departmentId) {
                     $query->where('status', 'active')
-                          ->where(function($q) use ($departmentId) {
-                              $q->where('role', Appointment::ROLE_DEAN)
-                                ->orWhere(function($qq) use ($departmentId) {
-                                    $qq->where('role', Appointment::ROLE_ASSOC_DEAN)
-                                       ->where('scope_id', $departmentId);
-                                });
-                          });
+                          ->where('scope_id', $departmentId)
+                          ->whereIn('role', [Appointment::ROLE_DEPT_HEAD, Appointment::ROLE_ASSOC_DEAN]);
                 })
                 ->with(['appointments' => function($query) use ($departmentId) {
                     $query->where('status', 'active')
-                          ->where(function($q) use ($departmentId) {
-                              $q->where('role', Appointment::ROLE_DEAN)
-                                ->orWhere(function($qq) use ($departmentId) {
-                                    $qq->where('role', Appointment::ROLE_ASSOC_DEAN)
-                                       ->where('scope_id', $departmentId);
-                                });
-                          });
+                          ->where('scope_id', $departmentId)
+                          ->whereIn('role', [Appointment::ROLE_DEPT_HEAD, Appointment::ROLE_ASSOC_DEAN]);
                 }])
                 ->get()
-                ->map(function($user) {
+                ->map(function($user) use ($departmentId) {
                     $appointment = $user->appointments->first();
-                    $roleLabel = ($appointment && $appointment->role === Appointment::ROLE_DEAN) ? 'Dean' : 'Associate Dean';
+                    // Determine Department Head label based on department classification
+                    $dept = DB::table('departments')->where('id', $departmentId)->first();
+                    $deptName = $dept->name ?? '';
+                    $deptHeadLabel = 'Dean';
+                    // Heuristics: Lab School → Principal; General Education → Head; else Dean
+                    if (is_string($deptName)) {
+                        $lower = strtolower($deptName);
+                        if (str_contains($lower, 'lab') || str_contains($lower, 'school')) {
+                            $deptHeadLabel = 'Principal';
+                        } elseif (str_contains($lower, 'general education')) {
+                            $deptHeadLabel = 'Head';
+                        } else {
+                            $deptHeadLabel = 'Dean';
+                        }
+                    }
+                    $roleLabel = ($appointment && $appointment->role === Appointment::ROLE_DEPT_HEAD) ? $deptHeadLabel : 'Associate Dean';
                     return [
                         'id' => $user->id,
                         'name' => $user->name,

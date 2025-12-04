@@ -45,20 +45,19 @@ class SyllabusController extends Controller
     }
     public function approvals()
     {
-        // Restrict access: only Dean/Associate Dean and Program/Department Chairpersons
+        // Restrict access: only Department Head, Associate Dean, and Chairperson
         $user = \Auth::guard('faculty')->user() ?? auth()->user();
-        // Authorize via active appointments: Dept Chair, Dean, Associate Dean
+        // Authorize via active appointments: Dept Head, Associate Dean, Chair
         $hasAccess = $user && $user->appointments()
             ->active()
             ->whereIn('role', [
-                \App\Models\Appointment::ROLE_DEPT,
                 \App\Models\Appointment::ROLE_DEPT_HEAD,
-                \App\Models\Appointment::ROLE_DEAN,
                 \App\Models\Appointment::ROLE_ASSOC_DEAN,
+                \App\Models\Appointment::ROLE_CHAIR,
             ])->exists();
         if (!$hasAccess) {
             return redirect()->route('faculty.syllabi.index')
-                ->with('error', 'Access denied: Approvals are visible only to Deans and Program/Department Chairpersons.');
+                ->with('error', 'Access denied: Approvals are visible only to Department Heads, Associate Deans, and Chairpersons.');
         }
         // Get syllabi awaiting this user's action:
         // - pending_review assigned to this user

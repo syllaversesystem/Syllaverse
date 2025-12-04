@@ -22,7 +22,7 @@
     {{-- Profile Dropdown --}}
     <div class="dropdown d-flex align-items-center">
       <a class="d-flex align-items-center text-decoration-none dropdown-toggle superadmin-dropdown" href="#" id="profileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-        <span class="fw-semibold text-dark d-none d-lg-inline">Super Admin</span>
+        <span class="fw-semibold text-dark d-none d-lg-inline">Admin</span>
       </a>
       <ul class="dropdown-menu dropdown-menu-end shadow-sm animate__animated animate__fadeIn" aria-labelledby="profileDropdown" style="min-width: 180px;">
         <li>

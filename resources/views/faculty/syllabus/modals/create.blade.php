@@ -307,7 +307,25 @@
             <input type="text" id="facultySearchInput" class="form-control mb-3" placeholder="Search faculty by name or employee code...">
             
             <div id="facultyCardsContainer" class="faculty-cards-container">
-              @foreach(\App\Models\User::where('role', 'faculty')->where('status', 'active')->where('id', '!=', auth()->id())->orderBy('name')->get() as $faculty)
+              @php
+                $currentUser = auth()->user();
+                $currentDeptId = optional($currentUser?->appointments()
+                  ->where('status','active')
+                  ->first())->scope_id;
+
+                $faculties = \App\Models\User::where('id', '!=', auth()->id())
+                  ->whereHas('appointments', function($q) use ($currentDeptId){
+                    $q->where('status','active');
+                    if ($currentDeptId) { $q->where('scope_id', $currentDeptId); }
+                  })
+                  ->with(['appointments' => function($q) use ($currentDeptId){
+                    $q->where('status','active');
+                    if ($currentDeptId) { $q->where('scope_id', $currentDeptId); }
+                  }])
+                  ->orderBy('name')
+                  ->get();
+              @endphp
+              @foreach($faculties as $faculty)
                 <div class="faculty-card" 
                      data-faculty-id="{{ $faculty->id }}" 
                      data-name="{{ strtolower($faculty->name) }}" 
@@ -344,7 +362,7 @@
               <input type="text" name="title" class="form-control" placeholder="e.g., Syllabus in BAT 403" required>
             </div>
             <div class="col-md-6">
-              <label class="form-label">Program <span class="text-muted">(optional)</span></label>
+              <label class="form-label">Program</label>
               <select name="program_id" class="form-select">
                 <option value="">-- Select Program --</option>
                 @foreach($programs as $program)

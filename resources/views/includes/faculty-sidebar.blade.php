@@ -58,10 +58,9 @@
         $hasApprovalsAccess = $user && $user->appointments()
           ->active()
           ->whereIn('role', [
-            \App\Models\Appointment::ROLE_DEPT,
             \App\Models\Appointment::ROLE_DEPT_HEAD,
-            \App\Models\Appointment::ROLE_DEAN,
             \App\Models\Appointment::ROLE_ASSOC_DEAN,
+            \App\Models\Appointment::ROLE_CHAIR,
           ])->exists();
       @endphp
       @if($hasApprovalsAccess)

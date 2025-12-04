@@ -17,7 +17,7 @@
   {{-- START: Meta and Head Resources --}}
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Super Admin Login • Syllaverse</title>
+  <title>Admin Login • Syllaverse</title>
   <link rel="icon" href="{{ asset('images/favicon.png') }}" type="image/png" />
 
   {{-- Bootstrap Fonts --}}

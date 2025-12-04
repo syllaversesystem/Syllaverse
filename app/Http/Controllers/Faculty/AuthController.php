@@ -93,7 +93,8 @@ class AuthController extends Controller
 
             if ($user->status === 'active') {
                 Auth::guard('faculty')->login($user);
-                return redirect()->route('faculty.dashboard');
+                // Redirect approved faculty to Syllabi index instead of dashboard
+                return redirect()->route('faculty.syllabi.index');
             }
 
             // Pending: if profile is incomplete, allow login to complete it
