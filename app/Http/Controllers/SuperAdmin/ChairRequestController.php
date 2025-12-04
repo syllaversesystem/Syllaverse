@@ -24,6 +24,20 @@ use Carbon\Carbon;
 
 class ChairRequestController extends Controller
 {
+    /**
+     * After a decision, keep only the processed request and delete all older ones for the same user.
+     */
+    protected function pruneOtherRequests(int $userId, int $keepRequestId): void
+    {
+        try {
+            ChairRequest::where('user_id', $userId)
+                ->where('id', '!=', $keepRequestId)
+                ->delete();
+        } catch (\Throwable $e) {
+            \Log::warning('Prune chair requests failed: '.$e->getMessage());
+        }
+    }
+    
     public function approve(Request $request, int $id)
     {
         $request->validate([
@@ -130,6 +144,9 @@ class ChairRequestController extends Controller
             }
         });
 
+        // Keep only the latest request for this user; delete older ones
+        $this->pruneOtherRequests($chairRequest->user_id, $chairRequest->id);
+
         return back()->with('success', 'Chair request approved and appointment created.');
     }
 
@@ -161,6 +178,9 @@ class ChairRequestController extends Controller
                 $user->save();
             }
         }
+
+        // Keep only the latest request for this user; delete older ones
+        $this->pruneOtherRequests($chairRequest->user_id, $chairRequest->id);
 
         return back()->with('success', 'Chair request rejected.');
     }
@@ -258,6 +278,9 @@ class ChairRequestController extends Controller
             }
         });
 
+        // After batch approval, ensure only the latest request remains for this user
+        $this->pruneOtherRequestsKeepLatest($userId);
+
         return back()->with('success', "Successfully approved all {$approvedCount} chair requests for {$pendingRequests->first()->user->name}.");
     }
 
@@ -301,6 +324,9 @@ class ChairRequestController extends Controller
             }
         });
 
+        // After batch rejection, ensure only the latest request remains for this user
+        $this->pruneOtherRequestsKeepLatest($userId);
+
         return back()->with('success', "Successfully rejected all {$rejectedCount} chair requests for {$pendingRequests->first()->user->name}.");
     }
 
@@ -335,5 +361,19 @@ class ChairRequestController extends Controller
     protected function resolveDeciderId(Request $request): ?int
     {
         return $request->user()?->id ?? Auth::id() ?? null;
+    }
+
+    /** Keep only the most recent ChairRequest for a user; delete all others. */
+    protected function pruneOtherRequestsKeepLatest(int $userId): void
+    {
+        $latest = ChairRequest::where('user_id', $userId)
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->first();
+        if (!$latest) return;
+
+        ChairRequest::where('user_id', $userId)
+            ->where('id', '!=', $latest->id)
+            ->delete();
     }
 }
