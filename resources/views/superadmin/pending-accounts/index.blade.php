@@ -306,3 +306,98 @@
   </div>
   </div>
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const table = document.getElementById('svMergedApprovalsTable');
+  if (!table) return;
+
+  function showAlert(message, type = 'success', timeout = 2500) {
+    const evt = new CustomEvent('sv:alert', { detail: { message, type, timeout } });
+    window.dispatchEvent(evt);
+    return timeout;
+  }
+
+  function removeRow(row) {
+    if (!row) return;
+    const detailRow = row.nextElementSibling;
+    // Remove the row and any immediate detail row
+    row.remove();
+    if (detailRow && detailRow.classList.contains('sv-detail-row')) {
+      detailRow.remove();
+    }
+    ensureEmptyState();
+  }
+
+  function ensureEmptyState() {
+    const tbody = table.querySelector('tbody');
+    const dataRows = [...tbody.querySelectorAll('tr')].filter(tr => !tr.classList.contains('superadmin-manage-account-empty-row'));
+    const hasData = dataRows.length > 0;
+    const emptyRow = tbody.querySelector('.superadmin-manage-account-empty-row');
+    if (!hasData) {
+      if (!emptyRow) {
+        const tr = document.createElement('tr');
+        tr.className = 'superadmin-manage-account-empty-row';
+        tr.innerHTML = `<td colspan="5"><div class="sv-empty"><h6>No approvals pending</h6><p>New admin signups and administrative role requests will appear here.</p></div></td>`;
+        tbody.appendChild(tr);
+      }
+    } else if (emptyRow) {
+      emptyRow.remove();
+    }
+  }
+
+  async function handleSubmit(e) {
+    const form = e.target.closest('form');
+    if (!form) return;
+    // Only intercept our approve/reject forms
+    const btn = form.querySelector('button.action-btn');
+    const isApproveReject = btn && (btn.classList.contains('approve') || btn.classList.contains('reject'));
+    if (!isApproveReject) return;
+
+    e.preventDefault();
+    const row = form.closest('tr');
+    const detailItem = form.closest('.sv-request-item');
+    const isDetailAction = !!detailItem;
+    const actionType = btn.classList.contains('approve') ? 'approve' : 'reject';
+
+    try {
+      const resp = await fetch(form.action, {
+        method: 'POST',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRF-TOKEN': form.querySelector('input[name=_token]')?.value || ''
+        },
+      });
+      const j = await resp.json().catch(() => ({ ok: resp.ok }));
+      const ok = (j && (j.success || j.ok)) || resp.ok;
+      if (!ok) throw new Error('Request failed');
+
+      const msg = actionType === 'approve' ? 'Request approved.' : 'Request rejected.';
+      const timeout = showAlert(msg, 'success', 3000);
+
+      // Align disappearance with alert timer
+      setTimeout(() => {
+        if (isDetailAction) {
+          // Remove the specific request item
+          detailItem?.remove();
+          const detailContainer = row?.nextElementSibling?.querySelector('.sv-request-list');
+          const remaining = detailContainer ? detailContainer.querySelectorAll('.sv-request-item').length : 0;
+          if (remaining === 0) {
+            // No more requests – remove master+detail rows
+            removeRow(row);
+          }
+        } else {
+          // Single-request or signup rows: remove entire row block
+          removeRow(row);
+        }
+      }, timeout + 150);
+    } catch (err) {
+      showAlert('Action failed. Please retry.', 'danger');
+    }
+  }
+
+  table.addEventListener('submit', handleSubmit);
+});
+</script>
+@endpush

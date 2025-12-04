@@ -101,6 +101,7 @@ class AppointmentController extends Controller
 
 		return response()->json([
 			'ok' => true,
+			'success' => true,
 			'appointment' => $appt,
 			'department_name' => $departmentName,
 			'program_count' => $programCount,
@@ -145,6 +146,7 @@ class AppointmentController extends Controller
 
 		return response()->json([
 			'ok' => true,
+			'success' => true,
 			'appointment' => $appointment,
 			'department_name' => $departmentName,
 			'program_count' => $programCount,
@@ -155,7 +157,7 @@ class AppointmentController extends Controller
 	public function end(Appointment $appointment): JsonResponse
 	{
 		$appointment->endNow();
-		return response()->json(['ok' => true, 'appointment' => $appointment]);
+		return response()->json(['ok' => true, 'success' => true, 'appointment' => $appointment]);
 	}
 
 	/** Permanently delete an appointment. */
@@ -184,13 +186,14 @@ class AppointmentController extends Controller
 
 			return response()->json([
 				'ok' => true,
+				'success' => true,
 				'appointment' => $appt,
 				'department_name' => $departmentName,
 				'program_count' => $programCount,
 			]);
 		}
 
-		return response()->json(['ok' => true]);
+		return response()->json(['ok' => true, 'success' => true]);
 	}
 }
 
