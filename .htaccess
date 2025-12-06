@@ -1,20 +1,9 @@
-<IfModule mod_negotiation.c>
-    Options -MultiViews -Indexes
-</IfModule>
-
 <IfModule mod_rewrite.c>
+    <IfModule mod_negotiation.c>
+        Options -MultiViews -Indexes
+    </IfModule>
+
     RewriteEngine On
-  # If your app is in a subdirectory, set the base (adjust as needed)
-  RewriteBase /
-
-  # Ensure index files are recognized
-  DirectoryIndex index.php index
-
-    # Protect sensitive directories from direct access
-    RewriteRule ^(app|bootstrap|config|database|resources|routes|storage|tests|vendor)/ - [F,L,NC]
-
-    # Block access to sensitive files
-    RewriteRule ^(\.env|composer\.(json|lock)|artisan|phpunit\.xml|server\.php)$ - [F,L,NC]
 
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
@@ -34,13 +23,3 @@
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
 </IfModule>
-
-# Force the root-level `index` (without extension) to be interpreted as PHP if used
-<IfModule mod_mime.c>
-  AddType application/x-httpd-php .php
-  AddType application/x-httpd-php .html
-</IfModule>
-
-<Files "index">
-  ForceType application/x-httpd-php
-</Files>

@@ -11,6 +11,38 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Faculty Login • Syllaverse</title>
   <link rel="icon" href="{{ asset('images/favicon.png') }}" type="image/png" />
+  <link rel="canonical" href="{{ url('/faculty/login') }}" />
+  <meta name="description" content="Faculty Login to Syllaverse — Sign in with your BSU GSuite account to manage syllabi and coursework." />
+  <meta name="robots" content="index,follow" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Faculty Login • Syllaverse" />
+  <meta property="og:description" content="Sign in with your BSU GSuite account to access the faculty dashboard." />
+  <meta property="og:url" content="{{ url('/faculty/login') }}" />
+  <meta property="og:image" content="{{ asset('images/syllaverse-logo.png') }}" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Faculty Login • Syllaverse" />
+  <meta name="twitter:description" content="Sign in with your BSU GSuite account to access the faculty dashboard." />
+  <meta name="twitter:image" content="{{ asset('images/syllaverse-logo.png') }}" />
+
+  <!-- JSON-LD Structured Data for WebPage -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": "Faculty Login • Syllaverse",
+    "url": "{{ url('/faculty/login') }}",
+    "isPartOf": {
+      "@type": "WebSite",
+      "name": "Syllaverse",
+      "url": "{{ url('/') }}"
+    },
+    "description": "Faculty Login to Syllaverse — Sign in with your BSU GSuite account to manage syllabi and coursework."
+  }
+  </script>
 
   {{-- Bootstrap & Fonts --}}
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />

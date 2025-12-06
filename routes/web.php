@@ -11,10 +11,10 @@ use App\Http\Controllers\AIChatController;
 use App\Http\Controllers\AssessmentMappingAIController;
 
 // ------------------------------------------------
-// Redirect root to Faculty login
+// Redirect root to Faculty login (301 for SEO)
 // ------------------------------------------------
 Route::get('/', function () {
-    return redirect()->route('faculty.login.form');
+    return redirect()->to(route('faculty.login.form'), 301);
 });
 
 // ------------------------------------------------
