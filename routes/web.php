@@ -11,10 +11,10 @@ use App\Http\Controllers\AIChatController;
 use App\Http\Controllers\AssessmentMappingAIController;
 
 // ------------------------------------------------
-// Redirect root to Super Admin login
+// Redirect root to Faculty login
 // ------------------------------------------------
 Route::get('/', function () {
-    return redirect()->route('superladmin.login.form');
+    return redirect()->route('faculty.login.form');
 });
 
 // ------------------------------------------------
