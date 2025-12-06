@@ -18,6 +18,13 @@ Route::get('/', function () {
 });
 
 // ------------------------------------------------
+// Redirect /admin to Super Admin login (301)
+// ------------------------------------------------
+Route::get('/admin', function () {
+    return redirect()->to(route('superadmin.login.form'), 301);
+})->name('admin.redirect');
+
+// ------------------------------------------------
 // AI Chat endpoint (faculty syllabus contextual suggestions)
 // ------------------------------------------------
 Route::post('/faculty/syllabi/{syllabus}/ai-chat', [AIChatController::class, 'chat'])->name('faculty.syllabi.ai.chat');
