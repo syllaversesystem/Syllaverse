@@ -10,10 +10,15 @@ class SuperAdmin extends Authenticatable
     protected $fillable = [
         'username',
         'password',
-        // Add other relevant fields
+        'email',
+        'email_verified_at',
     ];
 
     protected $hidden = [
         'password',
+    ];
+
+    protected $casts = [
+        'email_verified_at' => 'datetime',
     ];
 }

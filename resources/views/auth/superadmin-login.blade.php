@@ -39,9 +39,8 @@
 
     {{-- Session Error --}}
     @if(session('error'))
-      <div class="alert alert-danger alert-dismissible fade show" role="alert">
+      <div class="alert alert-danger" role="alert">
         {{ session('error') }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
       </div>
     @endif
 
@@ -63,6 +62,17 @@
         @error('password')
           <div class="invalid-feedback text-start">{{ $message }}</div>
         @enderror
+          <button type="button" class="toggle-password" aria-label="Show password" title="Show/Hide password">
+            <i data-feather="eye"></i>
+          </button>
+        </div>
+
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" value="1" id="remember" name="remember">
+          <label class="form-check-label" for="remember">Remember me</label>
+        </div>
+        <a href="{{ route('superadmin.forgot') }}" class="text-decoration-none sv-muted-link">Forgot?</a>
       </div>
 
       <button type="submit" class="btn btn-brand" id="loginBtn">
