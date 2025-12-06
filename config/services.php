@@ -36,9 +36,10 @@ return [
     ],
 
     'google' => [
-    'client_id' => env('GOOGLE_CLIENT_ID'),
-    'client_secret' => env('GOOGLE_CLIENT_SECRET'),
-    'redirect' => '',
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        // Faculty OAuth callback URL; can be overridden per environment
+        'redirect' => env('GOOGLE_REDIRECT_URI_FACULTY'),
     ],
 
     'openai' => [
@@ -47,9 +48,7 @@ return [
 
 
 
-'gemini' => [
-    'key' => env('GEMINI_API_KEY'),
-],
+
 
 
 ];

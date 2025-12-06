@@ -56,6 +56,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Asset URL
+    |--------------------------------------------------------------------------
+    |
+    | This URL is used by the asset() helper and Vite to prefix asset links
+    | when your public directory is not at the web root. Set ASSET_URL in
+    | .env (e.g., https://your-domain.com/public) to ensure CSS/JS/images
+    | resolve correctly in production.
+    |
+    */
+
+    'asset_url' => env('ASSET_URL'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |

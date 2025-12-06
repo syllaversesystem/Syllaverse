@@ -1,5 +1,5 @@
 <!-- Section divider above Assessment Mapping: centered AI mapping button (no functionality yet) -->
-<div class="sv-partial-sep" role="separator" aria-label="Section divider" style="display:none;">
+<div class="sv-partial-sep" role="separator" aria-label="Section divider">
 	<style>
 		.sv-partial-sep { display:flex; align-items:center; gap:10px; margin: 12px 0 16px; }
 		.sv-partial-sep .sep-line { flex:1 1 auto; height:1px; background:#e2e5e9; }

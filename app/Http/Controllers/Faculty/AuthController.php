@@ -23,8 +23,13 @@ class AuthController extends Controller
      */
     public function redirectToGoogle(): RedirectResponse
     {
+        // Prefer config('services.google.redirect'); fallback to env
+        $redirectUrl = config('services.google.redirect') ?: env('GOOGLE_REDIRECT_URI_FACULTY');
+
+        \Log::info('[Faculty OAuth] Using redirectUrl', ['redirect' => $redirectUrl]);
+
         return Socialite::driver('google')
-            ->redirectUrl(env('GOOGLE_REDIRECT_URI_FACULTY'))
+            ->redirectUrl($redirectUrl)
             ->redirect();
     }
 
@@ -34,9 +39,14 @@ class AuthController extends Controller
     public function handleGoogleCallback(): RedirectResponse
     {
         try {
+            // Use the same redirect URL as in redirectToGoogle to avoid mismatches
+            $redirectUrl = config('services.google.redirect') ?: env('GOOGLE_REDIRECT_URI_FACULTY');
+
+            \Log::info('[Faculty OAuth] Callback with redirectUrl', ['redirect' => $redirectUrl]);
+
             $googleUser = Socialite::driver('google')
                 ->stateless()
-                ->redirectUrl(env('GOOGLE_REDIRECT_URI_FACULTY'))
+                ->redirectUrl($redirectUrl)
                 ->user();
 
             $email = $googleUser->getEmail();

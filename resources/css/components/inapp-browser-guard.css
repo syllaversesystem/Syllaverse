@@ -1,0 +1,10 @@
+.inapp-guard-overlay{position:fixed;inset:0;background:rgba(15,18,25,.72);backdrop-filter:saturate(180%) blur(6px);display:flex;align-items:center;justify-content:center;z-index:1060;padding:16px}
+.inapp-guard-card{max-width:460px;width:100%;background:#fff;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.25);padding:20px;text-align:center}
+.inapp-guard-icon{font-size:28px;margin-bottom:6px}
+.inapp-guard-actions{display:flex;gap:12px;justify-content:center;margin-top:12px}
+.btn-primary{background:#1a73e8;color:#fff;border:none;border-radius:8px;padding:10px 14px;cursor:pointer}
+.btn-secondary{background:#e9ecef;color:#333;border:none;border-radius:8px;padding:10px 14px;cursor:pointer}
+@media (prefers-color-scheme: dark){
+  .inapp-guard-card{background:#1f2937;color:#fff}
+  .btn-secondary{background:#374151;color:#fff}
+}

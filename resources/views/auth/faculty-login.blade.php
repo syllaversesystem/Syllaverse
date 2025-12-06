@@ -15,6 +15,8 @@
   {{-- Bootstrap & Fonts --}}
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
+  {{-- In-app browser guard CSS via Vite --}}
+  @vite('resources/css/components/inapp-browser-guard.css')
 
   {{-- Feather Icons --}}
   <script src="https://unpkg.com/feather-icons"></script>
@@ -195,5 +197,7 @@
   <script>
     feather.replace();
   </script>
+  {{-- In-app browser guard JS via Vite --}}
+  @vite('resources/js/components/inapp-browser-guard.js')
 </body>
 </html>

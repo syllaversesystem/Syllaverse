@@ -35,7 +35,7 @@
   {{-- START: Login Card --}}
   <div class="login-card">
     <img src="{{ asset('images/syllaverse-logo.png') }}" alt="Syllaverse Logo" class="logo">
-    <h4>Super Admin Login</h4>
+    <h4>Admin Login</h4>
 
     {{-- Session Error --}}
     @if(session('error'))
@@ -60,7 +60,6 @@
       <div class="form-floating mb-3 password-wrapper">
         <input type="password" id="password" name="password" class="form-control @error('password') is-invalid @enderror" placeholder="Password" required>
         <label for="password">Password</label>
-        <i data-feather="eye" class="toggle-password"></i>
         @error('password')
           <div class="invalid-feedback text-start">{{ $message }}</div>
         @enderror
