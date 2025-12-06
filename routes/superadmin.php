@@ -10,6 +10,7 @@
 // -----------------------------------------------------------------------------
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Middleware\SuperAdminRemember;
 use App\Http\Controllers\SuperAdmin\AuthController;
 use App\Http\Controllers\SuperAdmin\ManageAdminController;
 use App\Http\Controllers\SuperAdmin\DashboardController;
@@ -23,13 +24,29 @@ use App\Http\Controllers\SuperAdmin\RejectedAccountsController;
 use App\Http\Middleware\SuperAdminAuth;
 
 // ---------- Public Super Admin Login ----------
-Route::middleware('guest')->group(function () {
+Route::middleware(['guest', SuperAdminRemember::class])->group(function () {
     Route::get('/superadmin/login', function () {
+        // If session restored via remember-me, skip login and go to dashboard
+        if (\Illuminate\Support\Facades\Session::get('is_superadmin')) {
+            return redirect()->route('superadmin.dashboard');
+        }
         return view('auth.superadmin-login');
     })->name('superadmin.login.form');
 
     Route::post('/superadmin/login', [AuthController::class, 'login'])->name('superadmin.login');
+
+    // Forgot page & reset request
+    Route::get('/superadmin/forgot', function () {
+        return view('auth.superadmin-forgot');
+    })->name('superadmin.forgot');
+    Route::post('/superadmin/forgot', [AuthController::class, 'forgotRequest'])->name('superadmin.forgot.request');
 });
+
+// Signed reset link routes (no guest restriction to allow opening via email)
+Route::get('/superadmin/reset', [AuthController::class, 'resetForm'])->name('superadmin.reset.form');
+Route::post('/superadmin/reset', [AuthController::class, 'resetUpdate'])->name('superadmin.reset.update');
+// Email change verification (signed)
+Route::get('/superadmin/email/verify', [AuthController::class, 'verifyEmailChange'])->name('superadmin.email.verify');
 
 // ---------- Super Admin Protected Routes ----------
 Route::middleware([SuperAdminAuth::class])->prefix('superadmin')->group(function () {
@@ -52,6 +69,8 @@ Route::middleware([SuperAdminAuth::class])->prefix('superadmin')->group(function
     Route::view('/class-suspension', 'superadmin.class-suspension')->name('superadmin.class-suspension');
     Route::view('/system-logs', 'superadmin.system-logs')->name('superadmin.system-logs');
     Route::view('/notifications', 'superadmin.notifications')->name('superadmin.notifications');
+    // Superadmin email change request
+    Route::post('/email/change', [AuthController::class, 'requestEmailChange'])->name('superadmin.email.change');
 
     // ---------- Manage Admin Accounts ----------
     Route::post('/manage-accounts/admin/{id}/approve', [ManageAdminController::class, 'approve'])->name('superadmin.approve.admin');
