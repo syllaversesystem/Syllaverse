@@ -1,27 +1,20 @@
 <?php
 
-/**
- * Alternate Laravel front controller for hosting setups where the document root
- * cannot be pointed to the `public/` directory. Copy this file to your web root
- * (e.g., public_html/) and rename to `index.php`. Ensure the Laravel project
- * folders (`vendor/`, `bootstrap/`, `app/`, `storage/`, `.env`) sit alongside
- * this file in the same directory.
- */
+use Illuminate\Foundation\Application;
+use Illuminate\Http\Request;
 
 define('LARAVEL_START', microtime(true));
 
-// Autoload dependencies (path relative to web root)
+// Determine if the application is in maintenance mode...
+if (file_exists($maintenance = __DIR__ . '/storage/framework/maintenance.php')) {
+    require $maintenance;
+}
+
+// Register the Composer autoloader...
 require __DIR__ . '/vendor/autoload.php';
 
-// Bootstrap the Laravel application (path relative to web root)
+// Bootstrap Laravel and handle the request...
+/** @var Application $app */
 $app = require_once __DIR__ . '/bootstrap/app.php';
 
-$kernel = $app->make(Illuminate\Contracts\Http\Kernel::class);
-
-$response = $kernel->handle(
-    $request = Illuminate\Http\Request::capture()
-);
-
-$response->send();
-
-$kernel->terminate($request, $response);
+$app->handleRequest(Request::capture());
