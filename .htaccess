@@ -1,0 +1,9 @@
+# Force the root-level `index` (without extension) to be interpreted as PHP
+<IfModule mod_mime.c>
+  AddType application/x-httpd-php .php
+  AddType application/x-httpd-php .html
+</IfModule>
+
+<Files "index">
+  ForceType application/x-httpd-php
+</Files>
