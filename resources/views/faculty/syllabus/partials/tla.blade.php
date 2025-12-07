@@ -334,3 +334,47 @@ document.addEventListener('DOMContentLoaded', function() {
   };
 });
 </script>
+<script>
+// Inject realtime TLA context for AI chat without requiring a rebuild
+document.addEventListener('DOMContentLoaded', function() {
+  try {
+    const table = document.getElementById('tlaTable');
+    if (!table) return;
+    const headerTitle = 'Teaching, Learning, and Assessment (TLA) Activities';
+    const columns = 'Columns: Ch. | Topics / Reading List | Wks. | Topic Outcomes | ILO | SO | Delivery Method';
+    const rows = Array.from(table.querySelectorAll('tbody tr')).filter(r => r.id !== 'tla-placeholder');
+    const lines = [];
+    lines.push('PARTIAL_BEGIN:tla');
+    lines.push(headerTitle);
+    lines.push(columns);
+    if (rows.length) {
+      rows.forEach((row, index) => {
+        const getVal = sel => {
+          const el = row.querySelector(sel);
+          if (!el) return '-';
+          const v = (el.value ?? '').toString().trim();
+          if (v) return v;
+          const inner = el.querySelector && el.querySelector('input,textarea');
+          if (inner && inner.value) return inner.value.toString().trim() || '-';
+          const txt = (el.textContent || '').trim();
+          return txt || '-';
+        };
+        const ch = getVal('[name*="[ch]"]');
+        const topic = getVal('[name*="[topic]"]');
+        const wks = getVal('[name*="[wks]"]');
+        const outcomes = getVal('[name*="[outcomes]"]');
+        const ilo = getVal('[name*="[ilo]"]');
+        const so = getVal('[name*="[so]"]');
+        const delivery = getVal('[name*="[delivery]"]');
+        lines.push(`ROW:${index+1} | Ch:${ch} | Wks:${wks} | Topic:${topic} | Outcomes:${outcomes} | ILO:${ilo} | SO:${so} | Delivery:${delivery}`);
+        lines.push(`FIELDS_ROW:${index+1} | ch=${ch} | wks=${wks} | topic=${topic} | outcomes=${outcomes} | ilo=${ilo} | so=${so} | delivery=${delivery}`);
+      });
+    } else {
+      lines.push('[No TLA rows entered yet – AI may suggest a weekly plan]');
+      lines.push('FIELDS_ROW:0 | ch=- | wks=- | topic=- | outcomes=- | ilo=- | so=- | delivery=-');
+    }
+    lines.push('PARTIAL_END:tla');
+    window._svRealtimeContext = lines.join('\n');
+  } catch(e) { /* ignore */ }
+});
+</script>

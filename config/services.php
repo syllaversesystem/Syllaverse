@@ -40,6 +40,8 @@ return [
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
         // Faculty OAuth callback URL; can be overridden per environment
         'redirect' => env('GOOGLE_REDIRECT_URI_FACULTY'),
+        // Superadmin OAuth callback URL
+        'redirect_superadmin' => env('GOOGLE_REDIRECT_URI_SUPERADMIN', env('GOOGLE_REDIRECT_URI_ADMIN')),
     ],
 
     'openai' => [

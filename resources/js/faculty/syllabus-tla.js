@@ -13,12 +13,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const tlaTable = document.querySelector('#tlaTable');
   const tlaBody = tlaTable?.querySelector('tbody');
   const addRowBtn = document.getElementById('add-tla-row');
+  const syllabusId = (function(){
+    const form = document.querySelector('#syllabusForm');
+    try { return form?.action?.split('/')?.pop() || null; } catch(e){ return null; }
+  })();
 
   // require at least the form and the TLA table body; csrfToken and add button are optional
   if (!form || !tlaBody) return;
 
-  // ➕ Add row (frontend only - no DB call)
-  function addTlaRow() {
+  // ➕ Add row (persist to DB via append; fallback to frontend only)
+  async function addTlaRow() {
     // Remove placeholder if it exists
     const placeholder = tlaBody.querySelector('#tla-placeholder');
     if (placeholder) {
@@ -27,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let firstRow = tlaBody.querySelector('tr:not(#tla-placeholder)');
     
-    // If no rows exist, create a template row
+    // If no rows exist, create a template row (and persist via append if possible)
     if (!firstRow) {
       const templateRow = document.createElement('tr');
       templateRow.className = 'text-center align-middle';
@@ -50,6 +54,24 @@ document.addEventListener('DOMContentLoaded', () => {
       
       updateTlaIndices();
       
+      // Try to persist immediately via append endpoint
+      if (syllabusId) {
+        try {
+          const res = await fetch(`/faculty/syllabi/${syllabusId}/tla/append`, {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
+          });
+          const j = await res.json();
+          if (j && j.success && j.row && j.row.id) {
+            templateRow.setAttribute('data-tla-id', j.row.id);
+            const idInput = templateRow.querySelector('.tla-id-field');
+            const delBtn = templateRow.querySelector('.remove-tla-row');
+            if (idInput) idInput.value = j.row.id;
+            if (delBtn) delBtn.setAttribute('data-id', j.row.id);
+          }
+        } catch(e) { /* silent fallback */ }
+      }
+
       // Focus first input
       const firstInput = templateRow.querySelector('input, textarea');
       if (firstInput) setTimeout(() => firstInput.focus(), 100);
@@ -99,6 +121,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     tlaBody.appendChild(newRow);
     updateTlaIndices();
+    // Try to persist the newly added row too, assigning its DB id
+    if (syllabusId) {
+      try {
+        const res = await fetch(`/faculty/syllabi/${syllabusId}/tla/append`, {
+          method: 'POST',
+          headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
+        });
+        const j = await res.json();
+        if (j && j.success && j.row && j.row.id) {
+          newRow.setAttribute('data-tla-id', j.row.id);
+          const idInput2 = newRow.querySelector('.tla-id-field');
+          const delBtn2 = newRow.querySelector('.remove-tla-row');
+          if (idInput2) idInput2.value = j.row.id;
+          if (delBtn2) delBtn2.setAttribute('data-id', j.row.id);
+        }
+      } catch(e) { /* silent fallback */ }
+    }
 
     newRow.classList.add('tla-new-row');
     setTimeout(() => newRow.classList.remove('tla-new-row'), 1000);
@@ -114,6 +153,15 @@ document.addEventListener('DOMContentLoaded', () => {
       // Silently fail
     }
   }
+  // 🚀 Auto-append a blank row on load if none exist so AI snapshot has content
+  (async function ensureInitialRow(){
+    try {
+      const hasRows = tlaBody.querySelector('tr:not(#tla-placeholder)');
+      if (!hasRows && syllabusId) {
+        await addTlaRow();
+      }
+    } catch(e) {}
+  })();
 
   // 💾 Save all TLA rows
   async function saveTlaRows(event) {

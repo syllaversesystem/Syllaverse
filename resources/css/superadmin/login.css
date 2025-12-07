@@ -68,6 +68,7 @@ body {
 
 .form-floating label {
   transition: 0.3s ease all;
+  pointer-events: none; /* prevent label from blocking clicks */
 }
 
 .form-control {
@@ -91,6 +92,26 @@ body {
   transform: translateY(-50%);
   cursor: pointer;
   color: #888;
+  background: transparent;
+  border: none;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  z-index: 3; /* ensure above label/input */
+  display: none; /* hidden by default */
+  align-items: center;
+  justify-content: center;
+}
+.password-wrapper.has-value .toggle-password { display: flex; }
+.password-wrapper .form-control { padding-right: 3rem; }
+
+.toggle-password.is-disabled { cursor: default; opacity: 0.6; }
+
+.toggle-password:hover { color: #CB3737; }
+
+.toggle-password svg {
+  width: 20px;
+  height: 20px;
 }
 
 .btn-brand {
@@ -106,6 +127,16 @@ body {
 
 .btn-brand:hover {
   background: #CB3737;
+}
+
+/* Checkbox light red focus/checked styles */
+.form-check-input:focus {
+  box-shadow: 0 0 0 0.2rem rgba(203, 55, 55, 0.15);
+  border-color: #CB3737;
+}
+.form-check-input:checked {
+  background-color: #EE6F57;
+  border-color: #EE6F57;
 }
 
 .loading-dots::after {
@@ -124,6 +155,14 @@ footer {
   font-size: 0.85rem;
   color: #777;
   margin-top: 1.5rem;
+}
+
+/* Muted link to match footer color, with red hover */
+.sv-muted-link {
+  color: #777;
+}
+.sv-muted-link:hover {
+  color: #CB3737;
 }
 
 @media (max-width: 576px) {

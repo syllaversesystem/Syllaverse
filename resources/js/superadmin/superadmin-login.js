@@ -10,14 +10,16 @@
 import feather from 'feather-icons';
 import 'bootstrap';
 
-// START: Toggle Password Visibility
+// START: Toggle Password Visibility (two-way)
 function togglePassword() {
   const passwordInput = document.getElementById("password");
-  const icon = document.querySelector(".toggle-password");
-  const type = passwordInput.getAttribute("type") === "password" ? "text" : "password";
-  passwordInput.setAttribute("type", type);
-  icon.setAttribute("data-feather", type === "password" ? "eye" : "eye-off");
-  feather.replace();
+  const toggleBtn = document.querySelector(".toggle-password");
+  if (!passwordInput || !toggleBtn) return;
+  const isPassword = passwordInput.getAttribute("type") === "password";
+  passwordInput.setAttribute("type", isPassword ? "text" : "password");
+  // Render the correct SVG directly to avoid relying on data-feather after replacement
+  const iconName = isPassword ? 'eye-off' : 'eye';
+  toggleBtn.innerHTML = feather.icons[iconName]?.toSvg() || `<i data-feather="${iconName}"></i>`;
 }
 // END: Toggle Password Visibility
 
@@ -41,8 +43,39 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   const toggleBtn = document.querySelector(".toggle-password");
+  const passwordInput = document.getElementById("password");
+  const wrapper = document.querySelector('.password-wrapper');
+  if (passwordInput && wrapper) {
+    const updateHasValue = () => {
+      if (passwordInput.value && passwordInput.value.length > 0) {
+        wrapper.classList.add('has-value');
+      } else {
+        wrapper.classList.remove('has-value');
+        // Ensure hidden state when empty
+        if (passwordInput.getAttribute('type') !== 'password') {
+          passwordInput.setAttribute('type', 'password');
+        }
+        // Reset icon to eye (hidden)
+        const toggleBtn = document.querySelector('.toggle-password');
+        if (toggleBtn) {
+          toggleBtn.innerHTML = feather.icons['eye']?.toSvg() || `<i data-feather="eye"></i>`;
+        }
+      }
+    };
+    passwordInput.addEventListener('input', updateHasValue);
+    passwordInput.addEventListener('change', updateHasValue);
+    updateHasValue();
+  }
   if (toggleBtn) {
-    toggleBtn.addEventListener("click", togglePassword);
+    // Ensure initial icon is SVG
+    toggleBtn.innerHTML = feather.icons['eye']?.toSvg() || `<i data-feather="eye"></i>`;
+    toggleBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      togglePassword();
+      // Keep focus on the password field for better UX
+      if (passwordInput) passwordInput.focus();
+    });
   }
 });
 // END: Init on Load
