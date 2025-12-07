@@ -41,6 +41,22 @@
   box-shadow: 0 4px 8px rgba(204, 55, 55, 0.1);
 }
 
+/* Reusable hover style for buttons to mimic sidebar nav-link hover */
+.btn-navlike {
+  background-color: #ffffff;
+  color: #333333;
+  border: 1px solid #e5e5e5;
+  transition: all 0.2s ease;
+}
+
+.btn-navlike:hover {
+  background: linear-gradient(135deg, rgba(255, 240, 235, 0.8), rgba(255, 255, 255, 0.4));
+  backdrop-filter: blur(6px);
+  color: #CB3737;
+  box-shadow: 0 4px 8px rgba(204, 55, 55, 0.1);
+  border-color: rgba(204, 55, 55, 0.25);
+}
+
 #sidebar .nav-link.active {
   background: linear-gradient(135deg, rgba(255, 230, 225, 0.9), rgba(255, 255, 255, 0.5));
   backdrop-filter: blur(8px);

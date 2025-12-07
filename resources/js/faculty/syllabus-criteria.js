@@ -291,6 +291,53 @@ function initCriteriaModule() {
 
     function fireCriteriaChanged(){ document.dispatchEvent(new Event('criteriaChanged')); }
 
+    // Realtime snapshot: build and merge Criteria block into global context
+    function sanitize(val){
+      if (val == null) return '-';
+      const s = String(val).trim();
+      return s.length ? s : '-';
+    }
+    function buildCriteriaBlock(){
+      const lines = [];
+      lines.push('PARTIAL_BEGIN:criteria_assessment');
+      lines.push('TITLE: Criteria for Assessment');
+      lines.push('COLUMNS: Section | Description | Percent');
+      const sections = document.querySelectorAll('.cis-criteria .sections-container .section');
+      sections.forEach(function(sectionEl, idx){
+        const main = sectionEl.querySelector('.main-input');
+        const heading = sanitize(main ? main.value : '');
+        const subLines = sectionEl.querySelectorAll('.sub-list .sub-line');
+        if (subLines.length === 0) {
+          lines.push(`ROW: ${heading} | - | -`);
+        } else {
+          subLines.forEach(function(line){
+            const desc = sanitize(line.querySelector('.sub-input')?.value || '');
+            let pct = (line.querySelector('.sub-percent')?.value || '').toString().trim();
+            if (pct) {
+              pct = pct.endsWith('%') ? pct : (/^\d+(?:\.\d+)?$/.test(pct) ? pct + '%' : pct);
+            }
+            const pctSan = sanitize(pct);
+            lines.push(`ROW: ${heading} | ${desc} | ${pctSan}`);
+          });
+        }
+      });
+      if (!sections.length) {
+        lines.push('NOTE: No criteria sections defined yet.');
+      }
+      lines.push('PARTIAL_END:criteria_assessment');
+      return lines.join('\n');
+    }
+    function mergeRealtimeCriteria(){
+      const block = buildCriteriaBlock();
+      const existing = window._svRealtimeContext || '';
+      const others = existing
+        .split(/\n{2,}/)
+        .filter(s => s && !/PARTIAL_BEGIN:criteria_assessment[\s\S]*PARTIAL_END:criteria_assessment/.test(s))
+        .join('\n\n');
+      const merged = others ? (others + '\n\n' + block) : block;
+      window._svRealtimeContext = merged;
+    }
+
     try { const __critInit = document.getElementById('criteria_data_input'); if (__critInit) __critInit.dataset.original = __critInit.value || '[]'; } catch (e) { /* noop */ }
 
     function recomputeAutosizeAll(){
@@ -300,7 +347,21 @@ function initCriteriaModule() {
 
     let __critSerializeTimer = null;
     document.addEventListener('criteriaChanged', function(){
-      try { if (__critSerializeTimer) clearTimeout(__critSerializeTimer); __critSerializeTimer = setTimeout(function(){ try { window.serializeCriteriaData(); } catch (e) {} }, 80); } catch (e) { /* noop */ }
+      try {
+        if (__critSerializeTimer) clearTimeout(__critSerializeTimer);
+        __critSerializeTimer = setTimeout(function(){
+          try { window.serializeCriteriaData(); } catch (e) { /* noop */ }
+          try { mergeRealtimeCriteria(); } catch (e) { /* noop */ }
+        }, 80);
+      } catch (e) { /* noop */ }
+    });
+
+    // Also update realtime context on explicit events from typing
+    document.addEventListener('criteria:sectionMainChanged', function(){
+      try { mergeRealtimeCriteria(); } catch (e) { /* noop */ }
+    });
+    document.addEventListener('criteria:subChanged', function(){
+      try { mergeRealtimeCriteria(); } catch (e) { /* noop */ }
     });
 
     function updateAddSectionState(){
@@ -507,5 +568,8 @@ function initCriteriaModule() {
 
 // Initialize immediately when imported
 try { initCriteriaModule(); } catch (e) { /* noop */ }
+
+// Initial realtime merge when module initializes
+try { document.addEventListener('DOMContentLoaded', function(){ try { const evt = new Event('criteriaChanged'); document.dispatchEvent(evt); } catch (e) { /* noop */ } }); } catch (e) { /* noop */ }
 
 export { initCriteriaModule };

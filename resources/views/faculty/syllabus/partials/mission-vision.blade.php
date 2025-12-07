@@ -42,6 +42,50 @@ Description: Institutional Vision & Mission section (refactored for semantic, ac
 
 @push('scripts')
   @vite(['resources/js/faculty/syllabus-mission-vision.js'])
+  <script>
+    (function(){
+      function sanitize(val){
+        if (val == null) return '-';
+        const s = String(val).trim();
+        return s.length ? s : '-';
+      }
+      function buildMvBlock(){
+        const vision = document.getElementById('vision-text');
+        const mission = document.getElementById('mission-text');
+        const v = sanitize(vision?.value);
+        const m = sanitize(mission?.value);
+        const lines = [];
+        lines.push('PARTIAL_BEGIN:mission_vision');
+        lines.push('TITLE: Institutional Vision & Mission');
+        lines.push('COLUMNS: Label | Text');
+        lines.push(`ROW: Vision | ${v}`);
+        lines.push(`ROW: Mission | ${m}`);
+        lines.push('PARTIAL_END:mission_vision');
+        return lines.join('\n');
+      }
+      function updateRealtime(){
+        const mv = buildMvBlock();
+        const existing = window._svRealtimeContext || '';
+        const others = existing
+          .split(/\n{2,}/)
+          .filter(s => s && !/PARTIAL_BEGIN:mission_vision[\s\S]*PARTIAL_END:mission_vision/.test(s))
+          .join('\n\n');
+        const merged = others ? (others + '\n\n' + mv) : mv;
+        window._svRealtimeContext = merged;
+      }
+      ['input','change'].forEach(evt => {
+        document.addEventListener(evt, function(e){
+          if (e && e.target && (e.target.id === 'vision-text' || e.target.id === 'mission-text')) {
+            updateRealtime();
+          }
+        }, true);
+      });
+      document.addEventListener('DOMContentLoaded', updateRealtime);
+      window.addEventListener('load', updateRealtime);
+      // Initial run
+      updateRealtime();
+    })();
+  </script>
 @endpush
 
 @once

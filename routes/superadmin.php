@@ -20,6 +20,8 @@ use App\Http\Controllers\SuperAdmin\DepartmentsController as SADepartmentsContro
 use App\Http\Controllers\SuperAdmin\PendingAccountsController;
 use App\Http\Controllers\SuperAdmin\ApprovedAccountsController;
 use App\Http\Controllers\SuperAdmin\RejectedAccountsController;
+use App\Http\Controllers\SuperAdmin\ProfileController as SuperAdminProfileController;
+use App\Http\Controllers\SuperAdmin\GoogleLinkController;
 
 use App\Http\Middleware\SuperAdminAuth;
 
@@ -37,7 +39,9 @@ Route::middleware(['guest', SuperAdminRemember::class])->group(function () {
 
     // Forgot page & reset request
     Route::get('/superadmin/forgot', function () {
-        return view('auth.superadmin-forgot');
+        $admin = \App\Models\SuperAdmin::first();
+        $email = $admin?->email ?? '—';
+        return view('auth.superadmin-forgot', compact('email'));
     })->name('superadmin.forgot');
     Route::post('/superadmin/forgot', [AuthController::class, 'forgotRequest'])->name('superadmin.forgot.request');
 });
@@ -71,6 +75,14 @@ Route::middleware([SuperAdminAuth::class])->prefix('superadmin')->group(function
     Route::view('/notifications', 'superadmin.notifications')->name('superadmin.notifications');
     // Superadmin email change request
     Route::post('/email/change', [AuthController::class, 'requestEmailChange'])->name('superadmin.email.change');
+
+    // Manage Profile
+    Route::get('/manage-profile', [SuperAdminProfileController::class, 'edit'])->name('superadmin.manage-profile');
+    Route::post('/manage-profile', [SuperAdminProfileController::class, 'update'])->name('superadmin.manage-profile.update');
+
+    // Google account linking
+    Route::get('/google/link', [GoogleLinkController::class, 'link'])->name('superadmin.google.link');
+    Route::get('/google/callback', [GoogleLinkController::class, 'callback'])->name('superadmin.google.callback');
 
     // ---------- Manage Admin Accounts ----------
     Route::post('/manage-accounts/admin/{id}/approve', [ManageAdminController::class, 'approve'])->name('superadmin.approve.admin');

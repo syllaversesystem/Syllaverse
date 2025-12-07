@@ -140,7 +140,7 @@ class AuthController extends Controller
                 'newEmail' => $new,
                 'appName' => config('app.name', 'Syllaverse'),
             ], function ($m) use ($new) {
-                $m->to($new)->subject('Syllaverse • Verify Super Admin Email');
+                $m->to($new)->subject('Syllaverse • Verify Admin Email');
             });
             return back()->with('status', 'Verification link sent to the new email.');
         } catch (\Throwable $e) {

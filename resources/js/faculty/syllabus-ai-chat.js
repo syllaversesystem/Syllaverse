@@ -154,6 +154,9 @@
     const partials = document.querySelectorAll('.sv-partial');
     partials.forEach(p => {
       const key = p.getAttribute('data-partial-key') || 'unknown';
+      // Explicitly skip TLAS (Strategies) section if present
+      const containsTlas = !!p.querySelector('.sv-tlas-table') || !!p.querySelector('#tla_strategies');
+      if (key === 'tlas' || containsTlas) return;
       // Avoid giant status/meta sections
       if (key === 'status') return;
       let text = p.textContent || '';
@@ -171,6 +174,31 @@
         sections.unshift(item);
       }
     }
+      // Ensure TLA minimal block is included in context with exact title and structure
+      try {
+        const tlaTable = document.getElementById('tlaTable');
+        if (tlaTable) {
+          const headerTitle = 'Teaching, Learning, and Assessment (TLA) Activities';
+          const columns = ['Ch.', 'Topics / Reading List', 'Wks.', 'Topic Outcomes', 'ILO', 'SO', 'Delivery Method'];
+          const rows = Array.from(tlaTable.querySelectorAll('tbody tr')).filter(r => r.id !== 'tla-placeholder');
+          const items = rows.slice(0, 8).map((row, i) => {
+              const getVal = sel => {
+                const el = row.querySelector(sel);
+                if (!el) return '';
+                if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') return (el.value || '').trim();
+                return (el.textContent || '').trim();
+              };
+              const topic = getVal('[name*="[topic]"]');
+              const delivery = getVal('[name*="[delivery]"]');
+              const wks = getVal('[name*="[wks]"]');
+              const clamp = (s, n) => s ? (s.length > n ? s.slice(0,n) + ' …' : s) : '';
+              return `Week:${wks} | Topic:${clamp(topic, 120)} | Delivery:${clamp(delivery, 80)}`;
+              }).join('\n');
+            // Always include the TLA block, even if there are no rows yet
+            const emptyNote = rows.length ? '' : '\n[No TLA rows entered yet – AI may suggest a weekly plan]';
+            sections.push('PARTIAL_BEGIN:tla\n' + headerTitle + '\nColumns: ' + columns.join(' | ') + (items ? ('\n' + items) : '') + emptyNote + '\nPARTIAL_END:tla');
+        }
+      } catch(e) {}
     let combined = sections.join("\n\n");
     const MAX_TOTAL = 6000;
     if (combined.length > MAX_TOTAL) combined = combined.slice(0, MAX_TOTAL) + "\n[Context truncated]";
@@ -182,6 +210,9 @@
     const partials = Array.from(document.querySelectorAll('.sv-partial'));
     function serializePartial(p){
       const key = p.getAttribute('data-partial-key') || 'unknown';
+      // Skip TLAS (Strategies) block entirely
+      const containsTlas = !!p.querySelector('.sv-tlas-table') || !!p.querySelector('#tla_strategies');
+      if (key === 'tlas' || containsTlas) return null;
       if (key === 'status') return null; // skip status meta
       // Collect headings
       const headingTexts = Array.from(p.querySelectorAll('h1,h2,h3,h4,h5,h6,th'))
@@ -309,11 +340,13 @@
       try {
         const tlaTable = p.querySelector('#tlaTable');
         if (tlaTable) {
+          // Include table structure heading and columns for clarity
+          lines.push('HEADINGS:Teaching, Learning, and Assessment (TLA) Activities');
+          lines.push('COLUMNS:Ch. | Topics / Reading List | Wks. | Topic Outcomes | ILO | SO | Delivery Method');
           const bodyRows = Array.from(tlaTable.querySelectorAll('tbody tr'))
             .filter(r => r.id !== 'tla-placeholder');
-          if (bodyRows.length) {
-            lines.push('TLA_START');
-            bodyRows.forEach((row, index) => {
+          lines.push('TLA_START');
+          bodyRows.forEach((row, index) => {
               const getVal = (sel) => (row.querySelector(sel)?.value || '').toString().trim();
               const ch = getVal('[name*="[ch]"]');
               const topic = getVal('[name*="[topic]"]');
@@ -322,14 +355,35 @@
               const ilo = getVal('[name*="[ilo]"]');
               const so = getVal('[name*="[so]"]');
               const delivery = getVal('[name*="[delivery]"]');
+              // Fallback to textContent if value is empty
+              function fallbackEmpty(val, sel){
+                if (val) return val;
+                const el = row.querySelector(sel);
+                if (!el) return '';
+                const inner = el.querySelector('input,textarea');
+                if (inner && typeof inner.value === 'string' && inner.value.trim()) return inner.value.trim();
+                const txt = (el.textContent || '').trim();
+                return txt || '-';
+              }
+              const chVal = fallbackEmpty(ch, '.tla-ch') || '-';
+              const topicVal = fallbackEmpty(topic, '.tla-topic') || '-';
+              const wksVal = fallbackEmpty(wks, '.tla-wks') || '-';
+              const outcomesVal = fallbackEmpty(outcomes, '.tla-outcomes') || '-';
+              const iloVal = fallbackEmpty(ilo, '.tla-ilo') || '-';
+              const soVal = fallbackEmpty(so, '.tla-so') || '-';
+              const deliveryVal = fallbackEmpty(delivery, '.tla-delivery') || '-';
               const clamp = (s, n) => s ? (s.length > n ? s.slice(0,n) + ' …' : s) : '';
-              const t = clamp(topic, 200);
-              const oc = clamp(outcomes, 220);
-              const dv = clamp(delivery, 160);
-              lines.push(`ROW:${index+1} | Ch:${ch} | Wks:${wks} | Topic:${t} | Outcomes:${oc} | ILO:${ilo} | SO:${so} | Delivery:${dv}`);
-            });
-            lines.push('TLA_END');
+              const t = clamp(topicVal, 200);
+              const oc = clamp(outcomesVal, 220);
+              const dv = clamp(deliveryVal, 160);
+              lines.push(`ROW:${index+1} | Ch:${chVal} | Wks:${wksVal} | Topic:${t} | Outcomes:${oc} | ILO:${iloVal} | SO:${soVal} | Delivery:${dv}`);
+              // Also emit detailed field lines for this row
+              lines.push(`FIELDS_ROW:${index+1} | ch=${chVal} | wks=${wksVal} | topic=${topicVal} | outcomes=${outcomesVal} | ilo=${iloVal} | so=${soVal} | delivery=${deliveryVal}`);
+          });
+          if (!bodyRows.length) {
+            lines.push('FIELDS_ROW:0 | ch=- | wks=- | topic=- | outcomes=- | ilo=- | so=- | delivery=-');
           }
+          lines.push('TLA_END');
         }
       } catch(e) { /* ignore TLA snapshot errors */ }
       // Special handling: Course Policies (five areas)
@@ -520,7 +574,12 @@
         if (bodyRows.length) {
           lines.push('TLA_START');
           bodyRows.forEach((row, index) => {
-            const getVal = (sel) => (row.querySelector(sel)?.value || '').toString().trim();
+            const getVal = (sel) => {
+              const el = row.querySelector(sel);
+              if (!el) return '';
+              if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') return (el.value || '').trim();
+              return (el.textContent || '').trim();
+            };
             const ch = getVal('[name*="[ch]"]');
             const topic = getVal('[name*="[topic]"]');
             const wks = getVal('[name*="[wks]"]');
@@ -626,7 +685,10 @@
     const fd = new FormData(); fd.append('message', val);
     try {
       const snap = collectFullSnapshot();
-      if (snap) fd.append('context', snap);
+      // Merge realtime injected context if provided by page scripts (e.g., partials inline)
+      const extra = (typeof window._svRealtimeContext === 'string') ? window._svRealtimeContext : '';
+      const merged = extra ? (snap ? (snap + "\n\n" + extra) : extra) : snap;
+      if (merged) fd.append('context', merged);
       // include prior conversation history (excluding this freshly added user message)
       const hist = buildHistoryPayload(true);
       if (hist && hist.length) fd.append('history', JSON.stringify(hist));
@@ -644,6 +706,21 @@
       if (loadingRow) loadingRow.remove();
       appendMsg('ai', reply);
     }).catch(() => { if (loadingRow) loadingRow.remove(); appendMsg('ai', 'Network error reaching AI service.'); });
+  }
+  // Predefined prompt: Teaching, Learning, and Assessment (TLA) Activities
+  function sendTlaPrompt(){
+    const aiInput = document.getElementById('svAiChatInput');
+    const preset = [
+      'Analyze the Teaching, Learning, and Assessment (TLA) Activities table.',
+      'Use the provided TLA snapshot block with columns: Ch. | Topics / Reading List | Wks. | Topic Outcomes | ILO | SO | Delivery Method.',
+      'Summarize weekly flow and identify gaps or redundancies in outcomes, ILO/SO alignment, and delivery methods.',
+      'Recommend concise edits per row (limit to 1-2 lines each) to improve coherence and alignment.',
+      'Output a compact Markdown table reflecting the improved TLA rows with the same columns.'
+    ].join(' ');
+    if (aiInput) {
+      aiInput.value = preset;
+      sendMessage();
+    }
   }
   // Predefined prompt: Assessment Method & Distribution Map
   function sendAssessmentMapPrompt(){
@@ -674,7 +751,7 @@
   document.addEventListener('DOMContentLoaded', init);
   // expose for debugging
   try {
-    window._aiChat = { sendMessage, appendMsg, sendAssessmentMapPrompt };
+    window._aiChat = { sendMessage, appendMsg, sendAssessmentMapPrompt, sendTlaPrompt };
     window._aiChatSnapshot = () => collectFullSnapshot();
   } catch(e) {}
 })();

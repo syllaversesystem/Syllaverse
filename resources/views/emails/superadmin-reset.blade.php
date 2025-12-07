@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{{ $appName }} • Super Admin Password Reset</title>
+  <title>{{ $appName }} • Admin Password Reset</title>
   <style>
     body { font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif; background:#f6f7fb; margin:0; padding:24px; }
     .card { max-width:600px; margin:0 auto; background:#ffffff; border-radius:12px; padding:24px; box-shadow:0 2px 10px rgba(0,0,0,0.06); }
@@ -16,7 +16,7 @@
   </head>
 <body>
   <div class="card">
-    <h1>Reset Your Super Admin Password</h1>
+    <h1>Reset Your Admin Password</h1>
     <p>Click the button below to reset your password. This link expires in 30 minutes.</p>
     <p>
       <a class="btn" href="{{ $signedUrl }}" target="_blank" rel="noopener noreferrer">Reset Password</a>

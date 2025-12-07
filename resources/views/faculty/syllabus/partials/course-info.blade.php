@@ -235,3 +235,74 @@
 {{-- contact hours are now shown as lec/lab columns with combined text; editing still available via the text field --}}
 
   {{-- (Removed) Inline Criteria for Assessment to avoid duplication; use main page include. --}}
+
+@push('scripts')
+<script>
+  (function(){
+    function sanitize(val){
+      if (val == null) return '-';
+      const s = String(val).trim();
+      return s.length ? s : '-';
+    }
+    function getVal(name){
+      const el = document.querySelector(`[name="${name}"]`);
+      return sanitize(el ? el.value : '-');
+    }
+    const fieldPairs = [
+      ['Course Title','course_title'],
+      ['Course Code','course_code'],
+      ['Course Category','course_category'],
+      ['Pre-requisite(s)','course_prerequisites'],
+      ['Semester','semester'],
+      ['Year Level','year_level'],
+      ['Credit Hours','credit_hours_text'],
+      ['Instructor Name','instructor_name'],
+      ['Employee No.','employee_code'],
+      ['Reference CMO','reference_cmo'],
+      ['Instructor Designation','instructor_designation'],
+      ['Date Prepared','date_prepared'],
+      ['Instructor Email','instructor_email'],
+      ['Revision No.','revision_no'],
+      ['Period of Study','academic_year'],
+      ['Revision Date','revision_date'],
+      ['Course Rationale and Description','course_description'],
+      ['Contact Hours','contact_hours']
+    ];
+    function buildCourseInfoBlock(){
+      const lines = [];
+      lines.push('PARTIAL_BEGIN:course_info');
+      lines.push('TITLE: Course Information');
+      lines.push('COLUMNS: Field | Value');
+      for (const [label, name] of fieldPairs){
+        const val = getVal(name);
+        lines.push(`ROW: ${label} | ${val}`);
+      }
+      lines.push('PARTIAL_END:course_info');
+      return lines.join('\n');
+    }
+    function updateRealtime(){
+      const ci = buildCourseInfoBlock();
+      const existing = window._svRealtimeContext || '';
+      const others = existing
+        .split(/\n{2,}/)
+        .filter(s => s && !/PARTIAL_BEGIN:course_info[\s\S]*PARTIAL_END:course_info/.test(s))
+        .join('\n\n');
+      const merged = others ? (others + '\n\n' + ci) : ci;
+      window._svRealtimeContext = merged;
+    }
+    // Bind input/change for all related fields
+    function bind(){
+      fieldPairs.forEach(([label, name]) => {
+        const el = document.querySelector(`[name="${name}"]`);
+        if (el){
+          ['input','change'].forEach(evt => el.addEventListener(evt, updateRealtime, {capture:true}));
+        }
+      });
+    }
+    document.addEventListener('DOMContentLoaded', function(){ bind(); updateRealtime(); });
+    window.addEventListener('load', function(){ bind(); updateRealtime(); });
+    // Initial run
+    updateRealtime();
+  })();
+</script>
+@endpush
