@@ -54,9 +54,13 @@ class DashboardController extends Controller
             foreach ($departments as $dept) {
                 $appts = $activeAppts->get($dept->id) ?? collect();
                 foreach ($appts as $appt) {
+                    // Determine role label with program-count based logic
+                    $programCount = Program::where('department_id', $dept->id)->count();
                     $label = match ($appt->role) {
-                        'DEPT_HEAD' => 'Dept Head',
-                        'CHAIR' => 'Chair',
+                        // Dept head shown as Dean
+                        'DEPT_HEAD' => 'Dean',
+                        // Chair depends on how many programs the department has
+                        'CHAIR' => ($programCount >= 2 ? 'Department Chair' : 'Program Chair'),
                         'ASSOC_DEAN' => 'Assoc Dean',
                         default => $appt->role,
                     };
