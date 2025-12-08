@@ -273,9 +273,166 @@ class AIChatController extends Controller
                     // ignore bad history payloads
                 }
             }
+            // Attach a general TEXTBOOKS excerpts block to ground responses
+            try {
+                $tbLines = [];
+                $tbLines[] = 'TEXTBOOKS_BEGIN';
+                // List all textbook/reference titles
+                try {
+                    $textbooks = method_exists($syllabus, 'textbooks')
+                        ? $syllabus->textbooks()->orderBy('type')->get()
+                        : DB::table('syllabus_textbooks')->where('syllabus_id', $syllabus->id)->orderBy('type')->get();
+                    foreach ($textbooks as $tb) {
+                        $title = (string)($tb->original_name ?? $tb->title ?? '');
+                        $type  = (string)($tb->type ?? 'main');
+                        $isRef = (bool)($tb->is_reference ?? (empty($tb->file_path)));
+                        $kind  = $isRef ? 'reference' : 'file';
+                        $tbLines[] = 'TEXTBOOK: ['.$type.'] '.$title.' ('.$kind.')';
+                    }
+                } catch (\Throwable $e) { /* ignore list errors */ }
+
+                // Add compact excerpts from textbook_chunks if available (general, not chapter-specific)
+                try {
+                    $MAX_ITEMS = 8;    // number of chunk excerpts
+                    $MAX_LEN   = 1000; // per excerpt length cap
+                    $chunks = DB::table('textbook_chunks')
+                        ->select(['textbook_chunks.*'])
+                        ->join('syllabus_textbooks', function($join){
+                            $join->on('syllabus_textbooks.id', '=', 'textbook_chunks.textbook_id');
+                        })
+                        ->where('syllabus_textbooks.syllabus_id', $syllabus->id)
+                        ->orderBy('textbook_chunks.textbook_id')
+                        ->orderBy('textbook_chunks.chunk_index')
+                        ->limit($MAX_ITEMS)
+                        ->get();
+                    $added = 0;
+                    foreach ($chunks as $ch) {
+                        if ($added >= $MAX_ITEMS) break;
+                        $bookTitle = '';
+                        try {
+                            $tb = DB::table('syllabus_textbooks')->where('id', $ch->textbook_id)->first();
+                            if ($tb) $bookTitle = (string)($tb->original_name ?? '');
+                        } catch (\Throwable $e) {}
+                        $excerpt = (string)($ch->content ?? $ch->chunk_text ?? '');
+                        if ($excerpt === '') continue;
+                        if (mb_strlen($excerpt) > $MAX_LEN) {
+                            $excerpt = mb_substr($excerpt, 0, $MAX_LEN)."\n[Excerpt trimmed]";
+                        }
+                        $tbLines[] = 'EXCERPT_BEGIN';
+                        if ($bookTitle !== '') $tbLines[] = 'BOOK: '.$bookTitle;
+                        $tbLines[] = $excerpt;
+                        $tbLines[] = 'EXCERPT_END';
+                        $added++;
+                    }
+                    if ($added === 0) {
+                        $tbLines[] = 'NOTE: Uploaded textbooks present but no excerpts available yet.';
+                    }
+                } catch (\Throwable $e) {
+                    $tbLines[] = 'NOTE: Error retrieving textbook excerpts.';
+                }
+                $tbLines[] = 'TEXTBOOKS_END';
+                if (count($tbLines) > 2) {
+                    $messages[] = ['role' => 'system', 'content' => implode("\n", $tbLines)];
+                }
+            } catch (\Throwable $e) { /* ignore textbook block failures */ }
+
             $messages[] = ['role' => 'user', 'content' => $userMessage];
 
             // Do not add TLA-specific output guidance
+
+            // Attach Textbooks/References and optional chunk excerpts (Phase 2)
+            try {
+                $phaseStr = (string)$request->input('phase', '');
+                $isPhase2 = ($phaseStr === '2');
+                if ($isPhase2) {
+                    $lowerMsg = mb_strtolower($userMessage);
+                    $mentionsChapter1 = (preg_match('/chapter\s*1|\bintroduction\b/i', $userMessage) === 1);
+                    $tbLines = [];
+                    $tbLines[] = 'TEXTBOOKS_BEGIN';
+                    // List textbook and reference titles
+                    try {
+                        if (method_exists($syllabus, 'textbooks')) {
+                            $textbooks = $syllabus->textbooks()->orderBy('type')->get();
+                        } else {
+                            // Use Syllaverse table name: syllabus_textbooks
+                            $textbooks = DB::table('syllabus_textbooks')
+                                ->where('syllabus_id', $syllabus->id)
+                                ->orderBy('type')->get();
+                        }
+                        foreach ($textbooks as $tb) {
+                            $title = (string)($tb->original_name ?? $tb->title ?? '');
+                            $type  = (string)($tb->type ?? 'main');
+                            $isRef = (bool)($tb->is_reference ?? (empty($tb->file_path)));
+                            $kind  = $isRef ? 'reference' : 'file';
+                            $tbLines[] = 'TEXTBOOK: ['.$type.'] '.$title.' ('.$kind.')';
+                        }
+                    } catch (\Throwable $e) {
+                        // Non-fatal listing error
+                    }
+                    // Attach limited chunk excerpts if available and relevant
+                    try {
+                        $maxChunks = 5; // keep excerpts compact
+                        $wantChunks = $mentionsChapter1 || (strpos($lowerMsg, 'chapter') !== false);
+                        if ($wantChunks) {
+                            // Use actual Syllaverse table: textbook_chunks, filter by Chapter 1 patterns in content
+                            $query = DB::table('textbook_chunks')
+                                ->select(['textbook_chunks.*'])
+                                ->join('syllabus_textbooks', function($join){
+                                    $join->on('syllabus_textbooks.id', '=', 'textbook_chunks.textbook_id');
+                                })
+                                ->where('syllabus_textbooks.syllabus_id', $syllabus->id)
+                                ->orderBy('textbook_chunks.chunk_index');
+                            // Chapter 1 heuristics: lines like "1 Introduction", "Chapter 1", "1.1" etc.
+                            $query = $query->where(function($q){
+                                $q->where('textbook_chunks.content', 'like', '%Chapter 1%')
+                                  ->orWhere('textbook_chunks.content', 'like', '%\n1 Introduction%')
+                                  ->orWhere('textbook_chunks.content', 'like', '%1.1 What is%')
+                                  ->orWhere('textbook_chunks.content', 'like', '%1.2 %')
+                                  ->orWhere('textbook_chunks.content', 'like', '%1.3 %');
+                            });
+                            $chunks = $query->limit($maxChunks)->get();
+                            $added = 0;
+                            foreach ($chunks as $ch) {
+                                if ($added >= $maxChunks) break;
+                                $bookTitle = '';
+                                try {
+                                    $tb = DB::table('syllabus_textbooks')->where('id', $ch->textbook_id)->first();
+                                    if ($tb) $bookTitle = (string)($tb->original_name ?? '');
+                                } catch (\Throwable $e) {}
+                                $chapter   = '1';
+                                $section   = '';
+                                $excerpt   = (string)($ch->content ?? '');
+                                if ($excerpt === '') continue;
+                                $maxLen = 1600; // ~1.6k chars per chunk
+                                if (mb_strlen($excerpt) > $maxLen) {
+                                    $excerpt = mb_substr($excerpt, 0, $maxLen).'\n[Excerpt trimmed]';
+                                }
+                                $tbLines[] = 'EXCERPT_BEGIN';
+                                $meta = [];
+                                if ($bookTitle !== '') $meta[] = 'BOOK: '.$bookTitle;
+                                $meta[] = 'CHAPTER: '.$chapter;
+                                if ($section !== '') $meta[] = 'SECTION: '.$section;
+                                if (!empty($meta)) $tbLines[] = implode(' | ', $meta);
+                                $tbLines[] = $excerpt;
+                                $tbLines[] = 'EXCERPT_END';
+                                $added++;
+                            }
+                            if ($added === 0) {
+                                $tbLines[] = 'NOTE: No matching textbook excerpts found for Chapter 1 — Introduction.';
+                            }
+                        } else {
+                            // Hint model that uploaded files are chunked server-side
+                            $tbLines[] = 'NOTE: Uploaded textbook files are pre-processed into chunks server-side; references are plain text entries.';
+                        }
+                    } catch (\Throwable $e) {
+                        $tbLines[] = 'NOTE: Error retrieving textbook excerpts — proceeding without chunk content.';
+                    }
+                    $tbLines[] = 'TEXTBOOKS_END';
+                    $messages[] = ['role' => 'system', 'content' => implode("\n", $tbLines)];
+                }
+            } catch (\Throwable $e) {
+                // ignore textbook block errors
+            }
 
             $maxTokens = 300;
             $payload = [

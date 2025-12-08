@@ -847,6 +847,53 @@
         } catch(err) {
           console.warn('[AIChat][Phase2][Policies] Error building policies summary:', err);
         }
+
+        // Textbooks & References — collect titles from the upload partial
+        try {
+          const tbTables = Array.from(document.querySelectorAll('table.cis-table'));
+          // Find a table that contains textbook controls (buttons with classes used in the partial)
+          const tbRoot = tbTables.find(t => t.querySelector('.textbook-action-upload') || t.querySelector('.textbook-action-reference'));
+          const rows = tbRoot ? Array.from(tbRoot.querySelectorAll('tr.textbook-file-row')) : [];
+          const entries = [];
+          rows.forEach(r => {
+            const type = r.getAttribute('data-type') || 'main';
+            // Prefer link text (uploaded file title)
+            const link = r.querySelector('a.textbook-file-link');
+            let title = (link ? link.textContent : '').trim();
+            // If no link or empty, try any inline text reference inside second cell
+            if (!title) {
+              const tcell = r.children[1];
+              if (tcell) {
+                // Remove icon text nodes, take visible text
+                title = (tcell.textContent || '').trim();
+              }
+            }
+            // Detect reference rows heuristically (no href)
+            const isRef = !link || !link.getAttribute('href');
+            entries.push({ type, title, is_reference: !!isRef });
+          });
+          const md = [];
+          md.push('### Textbooks and References');
+          md.push('| Type | Title | Kind |');
+          md.push('|:--|:--|:--|');
+          if (entries.length) {
+            entries.forEach(e => {
+              const kind = e.is_reference ? 'reference' : 'file';
+              md.push(`| ${e.type} | ${e.title || '-'} | ${kind} |`);
+            });
+            // Hint the model that uploaded files are chunked server-side
+            md.push('');
+            md.push('Note: Uploaded textbook files are pre-processed into chunks server-side; reference texts are stored as plain entries.');
+          } else {
+            md.push('| - | - | - |');
+            md.push('');
+            md.push('Note: No textbooks or references listed in the current view.');
+          }
+          overview += '\n\n' + md.join('\n');
+          console.debug('[AIChat][Phase2][Textbooks] Entries:', entries.length);
+        } catch(err) {
+          console.warn('[AIChat][Phase2][Textbooks] Error building textbooks section:', err);
+        }
         // Attach raw block at the end for fidelity
         const critRaw = (mCrit && mCrit[0]) ? ("\n\n" + mCrit[0]) : '';
         let payload = overview + '\n\n' + tlaBlock + critRaw;
