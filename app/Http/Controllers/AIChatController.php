@@ -216,85 +216,15 @@ class AIChatController extends Controller
 
         try {
             $messages = [];
-            // Prefer external teaching prompt as first system message when available
-            if ($externalTeachingPrompt) {
-                $messages[] = ['role' => 'system', 'content' => $externalTeachingPrompt];
-            }
-            // Always include internal guidance to ensure full coverage
-            $messages[] = ['role' => 'system', 'content' => $systemPrompt];
-            // Fixed institution mission & vision block
-            if (!$tlaOnly) {
-                try {
-                    $instVision = config('institution.vision');
-                    $instMission = config('institution.mission');
-                    if ($instVision || $instMission) {
-                        $core = [];
-                        $core[] = 'INSTITUTION_CORE_BEGIN';
-                        if ($instVision) { $core[] = 'Vision: ' . $instVision; }
-                        if ($instMission) { $core[] = 'Mission: ' . $instMission; }
-                        $core[] = 'INSTITUTION_CORE_END';
-                        $messages[] = [ 'role' => 'system', 'content' => implode("\n", $core) ];
-                    }
-                } catch (\Throwable $e) { /* ignore */ }
-            }
+            // Include context only when provided (phased snapshots)
+            $phase = (string)$request->input('phase', '');
             if ($context !== '') {
-                // If the user is asking about TLA and a TLA block exists, slim the context to ONLY the TLA block to avoid token limits
-                // Already in TLA-only mode above if TLA was present; no further slimming needed
-                // Trim context to a larger cap now that we rely on unified snapshot
-                $maxContextChars = 18000; // safety cap
-                if (mb_strlen($context) > $maxContextChars) {
-                    $context = mb_substr($context, 0, $maxContextChars) . "\n[Context trimmed]";
-                }
-                // Post-trim diagnostics: verify critical blocks still present
-                try {
-                    $len2 = mb_strlen($context);
-                    $hasTla2 = (strpos($context, 'PARTIAL_BEGIN:tla') !== false);
-                    $hasCriteria2 = (strpos($context, 'PARTIAL_BEGIN:criteria_assessment') !== false);
-                    $hasCourseInfo2 = (strpos($context, 'PARTIAL_BEGIN:course_info') !== false);
-                    $hasMv2 = (strpos($context, 'PARTIAL_BEGIN:mission_vision') !== false);
-                    $head2 = mb_substr($context, 0, min(300, $len2));
-                    $tail2 = $len2 > 160 ? mb_substr($context, $len2 - 160) : '';
-                    Log::info('AIChat post-trim context', [
-                        'len' => $len2,
-                        'hasTla' => $hasTla2,
-                        'hasCriteria' => $hasCriteria2,
-                        'hasCourseInfo' => $hasCourseInfo2,
-                        'hasMv' => $hasMv2,
-                        'preview' => $head2 . ($tail2 !== '' ? "\n…\n" . $tail2 : ''),
-                    ]);
-                } catch (\Throwable $e) { /* ignore diagnostics errors */ }
-                // Summarize detected sections so the model can rely on a compact list
-                // Omit snapshot sections summary in TLA-only mode
-                // Full context payload (ensure high priority by placing as system message)
-                $messages[] = ['role' => 'system', 'content' => "SYLLABUS_CONTEXT_BEGIN\n".$context."\nSYLLABUS_CONTEXT_END"]; // mark boundaries
+                // Attach context as a system message with clear boundaries
+                $messages[] = ['role' => 'system', 'content' => "SYLLABUS_CONTEXT_BEGIN\n".$context."\nSYLLABUS_CONTEXT_END"]; 
             }
-            // Strengthen edit/replace behavior when the user explicitly asks for it
-            $umsg = mb_strtolower($userMessage);
-            $wantsEdits = (strpos($umsg, 'replace') !== false) || (strpos($umsg, 'edit') !== false) || (strpos($umsg, 'rewrite') !== false) || (strpos($umsg, 'improve') !== false) || (strpos($umsg, 'suggest') !== false);
-            if ($wantsEdits) {
-                $messages[] = ['role' => 'system', 'content' => 'Prioritize concrete replacements. Populate the "Proposed Edits" table with 3–7 rows referencing actual section keys and field labels from context. Keep Suggested Text as the full replacement value. Keep Rationale to ≤12 words.'];
-            }
-            // Creation boost when user wants to create/draft a syllabus
-            $wantsCreate = (strpos($umsg, 'create') !== false) || (strpos($umsg, 'draft') !== false) || (strpos($umsg, 'new syllabus') !== false) || (strpos($umsg, 'start syllabus') !== false) || (strpos($umsg, 'generate syllabus') !== false);
-            if ($wantsCreate) {
-                $messages[] = ['role' => 'system', 'content' => 'Provide a "Starter Pack": (1) Course overview (draft), (2) 3–6 ILOs as "ILO <n>: <description>", (3) initial Assessment Tasks with suggested weights totaling 100%, (4) brief Alignment notes (ILO ↔ tasks), and (5) a short Policies checklist. Use [TBD] for unknown specifics. Keep concise.'];
-            }
+            // Do not add edit/replace or creation boosters
             // Append compact DB context and program extras unless in TLA-only mode
-            try {
-                if (!$tlaOnly) {
-                    $syllabus->loadMissing([
-                        'course.department',
-                        'course.prerequisites',
-                        'course.ilos',
-                        'program.department',
-                        'textbooks',
-                    ]);
-                    // Omit DB context and program extras intentionally for snapshot reduction.
-                    // If needed later, re-enable with appropriate caps.
-                }
-            } catch (\Throwable $e) {
-                // best-effort, ignore DB/program context errors
-            }
+            // Do not append DB context or program extras
             // Schema injection on generation requests
             $u = mb_strtolower($userMessage);
             $wantsIlo = (strpos($u, 'generate') !== false && (strpos($u, 'ilo') !== false || strpos($u, 'learning outcome') !== false));
@@ -302,15 +232,7 @@ class AIChatController extends Controller
             $wantsSo  = (strpos($u, 'generate') !== false && (strpos($u, 'so') !== false || strpos($u, 'student outcome') !== false));
             $wantsCdio= (strpos($u, 'generate') !== false && strpos($u, 'cdio') !== false);
             $wantsSdg = (strpos($u, 'generate') !== false && strpos($u, 'sdg') !== false);
-            if ($wantsIlo || $wantsIga || $wantsSo || $wantsCdio || $wantsSdg) {
-                $schema = [];
-                if ($wantsIlo) $schema[] = 'For ILOs: output each as "ILO <number>: <description>". Prefer a numbered list; if more than three, a table with columns: ILO | Description.';
-                if ($wantsIga) $schema[] = 'For IGA: output each entry with "Title" and "Description". Prefer bullets; if more than three, use a table: Title | Description.';
-                if ($wantsSo)  $schema[] = 'For SO: output each entry with "Title" and "Description". Prefer bullets; if more than three, use a table: Title | Description.';
-                if ($wantsCdio)$schema[] = 'For CDIO: output each entry with "Title" and "Description". Prefer bullets; if more than three, use a table: Title | Description.';
-                if ($wantsSdg) $schema[] = 'For SDG: output each entry with "Title" and "Description". Prefer bullets; if more than three, use a table: Title | Description.';
-                $messages[] = ['role' => 'system', 'content' => implode(' ', $schema)];
-            }
+            // Do not inject schema guidance
             // Optional prior conversation history
             $historyRaw = (string)$request->input('history', '');
             if ($historyRaw !== '') {
@@ -345,17 +267,9 @@ class AIChatController extends Controller
             }
             $messages[] = ['role' => 'user', 'content' => $userMessage];
 
-            // If the user asks to read/analyze TLA and a TLA block exists, enforce compact table output
-            try {
-                $u2 = mb_strtolower($userMessage);
-                $mentionsTla = (strpos($u2, 'tla') !== false) || (strpos($u2, 'teaching, learning, and assessment') !== false);
-                $hasTlaBlock = ($context !== '' && (strpos($context, 'PARTIAL_BEGIN:tla') !== false));
-                if ($mentionsTla && $hasTlaBlock) {
-                    $messages[] = ['role' => 'system', 'content' => 'When reading TLA Activities, output a compact Markdown table with columns: Ch. | Topics / Reading List | Wks. | Topic Outcomes | ILO | SO | Delivery Method. Use only the rows in PARTIAL_BEGIN:tla (TLA_START/TLA_END). Avoid TLAS. Keep rows concise.'];
-                }
-            } catch (\Throwable $e) { /* ignore */ }
+            // Do not add TLA-specific output guidance
 
-            $maxTokens = $wantsCreate ? 600 : 300;
+            $maxTokens = 300;
             $payload = [
                 'model' => $model,
                 'messages' => $messages,

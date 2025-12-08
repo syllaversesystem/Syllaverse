@@ -78,7 +78,6 @@
             <span></span>
             <span>
               Teaching, Learning, and Assessment (TLA) Activities
-              <span id="tlaSnapshotBadge" class="badge bg-warning text-dark ms-2" style="display:none; font-weight:600;">Snapshot updated</span>
             </span>
             <span class="tla-header-actions d-inline-flex gap-1" style="white-space:nowrap;">
               <button type="button" class="btn btn-sm" id="add-tla-row" title="Add TLA Row" aria-label="Add TLA Row" style="background:transparent;">

@@ -171,43 +171,7 @@
         sections.unshift(item);
       }
     }
-      // Ensure TLA minimal block is included and PREPENDED with exact title and structure
-      try {
-        const tlaTable = document.getElementById('tlaTable');
-        if (tlaTable) {
-          const headerTitle = 'Teaching, Learning, and Assessment (TLA) Activities';
-          const columns = ['Ch.', 'Topics / Reading List', 'Wks.', 'Topic Outcomes', 'ILO', 'SO', 'Delivery Method'];
-          const rows = Array.from(tlaTable.querySelectorAll('tbody tr')).filter(r => r.id !== 'tla-placeholder');
-          const items = rows.slice(0, 8).map((row, i) => {
-              const getVal = sel => {
-                const el = row.querySelector(sel);
-                if (!el) return '';
-                if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') return (el.value || '').trim();
-                return (el.textContent || '').trim();
-              };
-              const topic = getVal('[name*="[topic]"]');
-              const delivery = getVal('[name*="[delivery]"]');
-              const wks = getVal('[name*="[wks]"]');
-              const clamp = (s, n) => s ? (s.length > n ? s.slice(0,n) + ' …' : s) : '';
-              return `Week:${wks} | Topic:${clamp(topic, 120)} | Delivery:${clamp(delivery, 80)}`;
-              }).join('\n');
-            // Always include the TLA block, even if there are no rows yet
-            const emptyNote = rows.length ? '' : '\n[No TLA rows entered yet – AI may suggest a weekly plan]';
-            // Include explicit TLA_START/TLA_END markers to align with IGA/SO/CDIO/SDG blocks
-            const tlaBlock = (
-              'PARTIAL_BEGIN:tla\n' +
-              headerTitle + '\n' +
-              'TLA_START\n' +
-              'Columns: ' + columns.join(' | ') +
-              (items ? ('\n' + items) : '') +
-              emptyNote + '\n' +
-              'TLA_END\n' +
-              'PARTIAL_END:tla'
-            );
-            // Prepend to maximize visibility to the model
-            sections.unshift(tlaBlock);
-        }
-      } catch(e) {}
+      // Do not inject TLA into lightweight context; rely on full snapshot/realtime
     let combined = sections.join("\n\n");
     const MAX_TOTAL = 6000;
     if (combined.length > MAX_TOTAL) combined = combined.slice(0, MAX_TOTAL) + "\n[Context truncated]";
@@ -220,6 +184,7 @@
     function serializePartial(p){
       const key = p.getAttribute('data-partial-key') || 'unknown';
       if (key === 'status') return null; // skip status meta
+      if (key === 'tla') return null; // do not add TLA to full snapshot
       // Collect headings
       const headingTexts = Array.from(p.querySelectorAll('h1,h2,h3,h4,h5,h6,th'))
         .map(h => h.textContent.trim())
@@ -342,56 +307,7 @@
           lines.push('SDG_END');
         }
       } catch(e) { /* ignore SDG snapshot errors */ }
-      // Special handling: TLA rows (Teaching, Learning, and Assessment Activities)
-      try {
-        const tlaTable = p.querySelector('#tlaTable');
-        if (tlaTable) {
-          // Include table structure heading and columns for clarity
-          lines.push('HEADINGS:Teaching, Learning, and Assessment (TLA) Activities');
-          lines.push('COLUMNS:Ch. | Topics / Reading List | Wks. | Topic Outcomes | ILO | SO | Delivery Method');
-          const bodyRows = Array.from(tlaTable.querySelectorAll('tbody tr'))
-            .filter(r => r.id !== 'tla-placeholder');
-          lines.push('TLA_START');
-          bodyRows.forEach((row, index) => {
-              const getVal = (sel) => (row.querySelector(sel)?.value || '').toString().trim();
-              const ch = getVal('[name*="[ch]"]');
-              const topic = getVal('[name*="[topic]"]');
-              const wks = getVal('[name*="[wks]"]');
-              const outcomes = getVal('[name*="[outcomes]"]');
-              const ilo = getVal('[name*="[ilo]"]');
-              const so = getVal('[name*="[so]"]');
-              const delivery = getVal('[name*="[delivery]"]');
-              // Fallback to textContent if value is empty
-              function fallbackEmpty(val, sel){
-                if (val) return val;
-                const el = row.querySelector(sel);
-                if (!el) return '';
-                const inner = el.querySelector('input,textarea');
-                if (inner && typeof inner.value === 'string' && inner.value.trim()) return inner.value.trim();
-                const txt = (el.textContent || '').trim();
-                return txt || '-';
-              }
-              const chVal = fallbackEmpty(ch, '.tla-ch') || '-';
-              const topicVal = fallbackEmpty(topic, '.tla-topic') || '-';
-              const wksVal = fallbackEmpty(wks, '.tla-wks') || '-';
-              const outcomesVal = fallbackEmpty(outcomes, '.tla-outcomes') || '-';
-              const iloVal = fallbackEmpty(ilo, '.tla-ilo') || '-';
-              const soVal = fallbackEmpty(so, '.tla-so') || '-';
-              const deliveryVal = fallbackEmpty(delivery, '.tla-delivery') || '-';
-              const clamp = (s, n) => s ? (s.length > n ? s.slice(0,n) + ' …' : s) : '';
-              const t = clamp(topicVal, 200);
-              const oc = clamp(outcomesVal, 220);
-              const dv = clamp(deliveryVal, 160);
-              lines.push(`ROW:${index+1} | Ch:${chVal} | Wks:${wksVal} | Topic:${t} | Outcomes:${oc} | ILO:${iloVal} | SO:${soVal} | Delivery:${dv}`);
-              // Also emit detailed field lines for this row
-              lines.push(`FIELDS_ROW:${index+1} | ch=${chVal} | wks=${wksVal} | topic=${topicVal} | outcomes=${outcomesVal} | ilo=${iloVal} | so=${soVal} | delivery=${deliveryVal}`);
-          });
-          if (!bodyRows.length) {
-            lines.push('FIELDS_ROW:0 | ch=- | wks=- | topic=- | outcomes=- | ilo=- | so=- | delivery=-');
-          }
-          lines.push('TLA_END');
-        }
-      } catch(e) { /* ignore TLA snapshot errors */ }
+      // (Removed) Do not serialize TLA rows in full snapshot
       // Special handling: Course Policies (five areas)
       try {
         const isPolicies = (key === 'course-policies') || p.classList.contains('course-policies');
@@ -578,51 +494,7 @@
         snapshotParts.push(lines.join('\n'));
       }
     } catch(e) { /* ignore SDG fallback errors */ }
-    // Fallback: include TLA block even if not wrapped in .sv-partial
-    try {
-      const hasTlaBlock = snapshotParts.some(s => s.includes('PARTIAL_BEGIN:tla'));
-      const tlaTable = document.getElementById('tlaTable');
-      if (!hasTlaBlock && tlaTable) {
-        const bodyRows = Array.from(tlaTable.querySelectorAll('tbody tr'))
-          .filter(r => r.id !== 'tla-placeholder');
-        const lines = [];
-        lines.push('PARTIAL_BEGIN:tla');
-        lines.push('HEADINGS:Teaching, Learning, and Assessment (TLA) Activities');
-        if (bodyRows.length) {
-          lines.push('TLA_START');
-          bodyRows.forEach((row, index) => {
-            const getVal = (sel) => {
-              const el = row.querySelector(sel);
-              if (!el) return '';
-              if (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT') return (el.value || '').trim();
-              return (el.textContent || '').trim();
-            };
-            const ch = getVal('[name*="[ch]"]');
-            const topic = getVal('[name*="[topic]"]');
-            const wks = getVal('[name*="[wks]"]');
-            const outcomes = getVal('[name*="[outcomes]"]');
-            const ilo = getVal('[name*="[ilo]"]');
-            const so = getVal('[name*="[so]"]');
-            const delivery = getVal('[name*="[delivery]"]');
-            const clamp = (s, n) => s ? (s.length > n ? s.slice(0,n) + ' …' : s) : '';
-            const t = clamp(topic, 200);
-            const oc = clamp(outcomes, 220);
-            const dv = clamp(delivery, 160);
-            lines.push(`ROW:${index+1} | Ch:${ch} | Wks:${wks} | Topic:${t} | Outcomes:${oc} | ILO:${ilo} | SO:${so} | Delivery:${dv}`);
-          });
-          lines.push('TLA_END');
-        } else {
-          // Emit explicit empty structure to aid downstream parsers
-          lines.push('TLA_START');
-          lines.push('Columns: Ch. | Topics / Reading List | Wks. | Topic Outcomes | ILO | SO | Delivery Method');
-          lines.push('FIELDS_ROW:0 | ch=- | wks=- | topic=- | outcomes=- | ilo=- | so=- | delivery=-');
-          lines.push('TLA_END');
-        }
-        lines.push('PARTIAL_END:tla');
-        // Prepend to ensure TLA appears at the very top of the snapshot
-        snapshotParts.unshift(lines.join('\n'));
-      }
-    } catch(e) { /* ignore TLA fallback errors */ }
+    // (Removed) Do not add TLA fallback block to full snapshot
     // Fallback: include Course Policies block even if not wrapped in .sv-partial
     try {
       const hasPolicies = snapshotParts.some(s => s.includes('PARTIAL_BEGIN:course-policies'));
@@ -710,54 +582,64 @@
     const loadingRow = appendLoading();
     const fd = new FormData(); fd.append('message', val);
     try {
-      const snap = collectFullSnapshot();
-      const extra = (typeof window._svRealtimeContext === 'string') ? window._svRealtimeContext : '';
-      let merged = extra ? (snap ? (snap + "\n\n" + extra) : extra) : snap;
-      // Remove any high-level Strategies block to avoid confusing the model
-      try { if (merged) merged = merged.replace(/PARTIAL_BEGIN:tlas[\s\S]*?PARTIAL_END:tlas/g, '').trim(); } catch(e) {}
-      // Prefer the realtime TLA block explicitly, then fallback to full snapshot
+      // Phase 1: send a minimal snapshot (mission_vision, course_info, ilo, so, iga, cdio, sdg)
+      function collectPhase1Snapshot(){
+        const full = collectFullSnapshot() || '';
+        const real = (typeof window._svRealtimeContext === 'string') ? window._svRealtimeContext : '';
+        const keys = ['mission_vision','course_info','tlas','ilo','so','iga','cdio','sdg'];
+        const blocks = [];
+        const found = [];
+        keys.forEach(k => {
+          const re = new RegExp(`PARTIAL_BEGIN:${k}[\\s\\S]*?PARTIAL_END:${k}`, 'm');
+          let m = full.match(re);
+          if (!m && real) { m = real.match(re); }
+          if (m && m[0]) { blocks.push(m[0]); found.push(k); }
+        });
+        // Build a compact table overview for Phase 1
+        function summarizeBlock(b){
+          if (!b) return '-';
+          // Prefer HEADINGS line then first TEXT or first ROW
+          const mHead = b.match(/HEADINGS:(.+)/);
+          const mText = b.match(/TEXT_START\n([\s\S]*?)\nTEXT_END/);
+          const mRow = b.match(/^(ROW:.*)$/m);
+          const head = mHead ? mHead[1].trim() : '';
+          const txt = mText ? mText[1].trim().replace(/\s+/g,' ') : (mRow ? mRow[1] : '');
+          const s = (head ? head + ' — ' : '') + txt;
+          return s.length > 240 ? (s.slice(0,240) + ' …') : (s || '-');
+        }
+        const overviewRows = keys.map(k => {
+          const re = new RegExp(`PARTIAL_BEGIN:${k}[\\s\\S]*?PARTIAL_END:${k}`, 'm');
+          const blk = blocks.find(b => re.test(b));
+          const present = blk ? 'Yes' : 'No';
+          const summary = blk ? summarizeBlock(blk) : '-';
+          return `| ${k} | ${present} | ${summary} |`;
+        });
+        const table = [
+          '| Section | Present | Summary |',
+          '|:--|:--:|:--|',
+          ...overviewRows
+        ].join('\n');
+        let payload = table + (blocks.length ? ('\n\n' + blocks.join('\n\n')) : '');
+        const MAX = 8000; // keep small for phase 1
+        if (payload.length > MAX) payload = payload.slice(0, MAX) + '\n[Context trimmed]';
+        try { console.debug('[AIChat][Phase1] Found keys:', found); } catch(e) {}
+        return payload;
+      }
+      const phase1 = collectPhase1Snapshot();
       try {
-        const realBlock = extra && extra.match(/PARTIAL_BEGIN:tla[\s\S]*?PARTIAL_END:tla/);
-        if (realBlock && realBlock[0]) {
-          merged = realBlock[0];
-          console.debug('[AIChat] Using realtime TLA block');
-        } else if (merged && merged.includes('PARTIAL_BEGIN:tla')) {
-          const m = merged.match(/PARTIAL_BEGIN:tla[\s\S]*?PARTIAL_END:tla/);
-          if (m && m[0]) {
-            merged = m[0];
-            console.debug('[AIChat] TLA-only context extracted from full snapshot');
-          }
+        if (phase1) {
+          const preview = phase1.slice(0, 1000);
+          console.debug('[AIChat][Phase1] Sending essentials snapshot', { length: phase1.length, preview });
+          // Log full payload as a separate entry for deep inspection
+          console.debug('[AIChat][Phase1] Payload FULL:\n' + phase1);
+        } else {
+          console.debug('[AIChat][Phase1] No essentials snapshot found');
         }
       } catch(e) {}
-      // Fallback: if TLA block is absent, synthesize an empty, explicit TLA structure
-      try {
-        const hasTla = !!merged && merged.includes('PARTIAL_BEGIN:tla');
-        if (!hasTla) {
-          const tlaFallback = [
-            'PARTIAL_BEGIN:tla',
-            'Teaching, Learning, and Assessment (TLA) Activities',
-            'TLA_START',
-            'Columns: Ch. | Topics / Reading List | Wks. | Topic Outcomes | ILO | SO | Delivery Method',
-            '[No TLA rows entered yet – AI should ask clarifying questions and avoid using TLAS]',
-            'FIELDS_ROW:0 | ch=- | wks=- | topic=- | outcomes=- | ilo=- | so=- | delivery=-',
-            'TLA_END',
-            'PARTIAL_END:tla'
-          ].join('\n');
-          merged = merged ? (tlaFallback + '\n\n' + merged) : tlaFallback;
-          console.debug('[AIChat] Injected empty TLA fallback');
-        }
-      } catch(e) {}
-      if (merged) fd.append('context', merged);
-      // Debug: log full merged snapshot for verification
-      try {
-        console.debug('[AIChat] Full context snapshot', merged);
-        const hasRowLines = /\nROW:\d+\s\|/.test(merged||'') || /\nFIELDS_ROW:\d+\s\|/.test(merged||'');
-        console.debug('[AIChat] Snapshot has ROW lines:', hasRowLines);
-      } catch(e) {}
-      try {
-        const hasTla = !!merged && merged.includes('PARTIAL_BEGIN:tla');
-        console.debug('[AIChat] Sending TLA-only context', { hasTla, preview: (merged||'').slice(0, 800) });
-      } catch(e) {}
+      if (phase1) {
+        fd.append('context', phase1);
+        fd.append('phase', '1');
+      }
       const hist = buildHistoryPayload(true);
       if (hist && hist.length) fd.append('history', JSON.stringify(hist));
     } catch(e) { /* noop */ }
