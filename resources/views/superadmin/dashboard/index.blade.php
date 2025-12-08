@@ -134,7 +134,7 @@
                   <tr>
                     <th class="sv-text-muted sv-small sv-col-name">Name</th>
                     <th class="sv-text-muted sv-small sv-col-role">Role</th>
-                    <th class="sv-text-muted sv-small sv-col-dept">Department (Code)</th>
+                    <th class="sv-text-muted sv-small sv-col-dept">Department</th>
                   </tr>
                 </thead>
                 <tbody>
