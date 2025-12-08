@@ -154,9 +154,6 @@
     const partials = document.querySelectorAll('.sv-partial');
     partials.forEach(p => {
       const key = p.getAttribute('data-partial-key') || 'unknown';
-      // Explicitly skip TLAS (Strategies) section if present
-      const containsTlas = !!p.querySelector('.sv-tlas-table') || !!p.querySelector('#tla_strategies');
-      if (key === 'tlas' || containsTlas) return;
       // Avoid giant status/meta sections
       if (key === 'status') return;
       let text = p.textContent || '';
@@ -174,7 +171,7 @@
         sections.unshift(item);
       }
     }
-      // Ensure TLA minimal block is included in context with exact title and structure
+      // Ensure TLA minimal block is included and PREPENDED with exact title and structure
       try {
         const tlaTable = document.getElementById('tlaTable');
         if (tlaTable) {
@@ -196,7 +193,19 @@
               }).join('\n');
             // Always include the TLA block, even if there are no rows yet
             const emptyNote = rows.length ? '' : '\n[No TLA rows entered yet – AI may suggest a weekly plan]';
-            sections.push('PARTIAL_BEGIN:tla\n' + headerTitle + '\nColumns: ' + columns.join(' | ') + (items ? ('\n' + items) : '') + emptyNote + '\nPARTIAL_END:tla');
+            // Include explicit TLA_START/TLA_END markers to align with IGA/SO/CDIO/SDG blocks
+            const tlaBlock = (
+              'PARTIAL_BEGIN:tla\n' +
+              headerTitle + '\n' +
+              'TLA_START\n' +
+              'Columns: ' + columns.join(' | ') +
+              (items ? ('\n' + items) : '') +
+              emptyNote + '\n' +
+              'TLA_END\n' +
+              'PARTIAL_END:tla'
+            );
+            // Prepend to maximize visibility to the model
+            sections.unshift(tlaBlock);
         }
       } catch(e) {}
     let combined = sections.join("\n\n");
@@ -210,9 +219,6 @@
     const partials = Array.from(document.querySelectorAll('.sv-partial'));
     function serializePartial(p){
       const key = p.getAttribute('data-partial-key') || 'unknown';
-      // Skip TLAS (Strategies) block entirely
-      const containsTlas = !!p.querySelector('.sv-tlas-table') || !!p.querySelector('#tla_strategies');
-      if (key === 'tlas' || containsTlas) return null;
       if (key === 'status') return null; // skip status meta
       // Collect headings
       const headingTexts = Array.from(p.querySelectorAll('h1,h2,h3,h4,h5,h6,th'))
@@ -461,6 +467,17 @@
         snapshotParts.unshift(pol);
       }
     } catch(e) { /* ignore reorder errors */ }
+    // Ensure TLA appears early as well so it's not trimmed
+    try {
+      const idxTla = snapshotParts.findIndex(s => s.indexOf('PARTIAL_BEGIN:tla') !== -1);
+      // place TLA right after Course Policies if both exist, else at the top
+      if (idxTla > 0) {
+        const tla = snapshotParts.splice(idxTla, 1)[0];
+        const polIdxNow = snapshotParts.findIndex(s => s.indexOf('PARTIAL_BEGIN:course-policies') !== -1);
+        const insertPos = (polIdxNow === 0) ? 1 : 0;
+        snapshotParts.splice(insertPos, 0, tla);
+      }
+    } catch(e) { /* ignore reorder errors */ }
     // Fallback: include SO block even if not wrapped in .sv-partial
     try {
       const hasSoBlock = snapshotParts.some(s => s.includes('PARTIAL_BEGIN:so'));
@@ -594,9 +611,16 @@
             lines.push(`ROW:${index+1} | Ch:${ch} | Wks:${wks} | Topic:${t} | Outcomes:${oc} | ILO:${ilo} | SO:${so} | Delivery:${dv}`);
           });
           lines.push('TLA_END');
+        } else {
+          // Emit explicit empty structure to aid downstream parsers
+          lines.push('TLA_START');
+          lines.push('Columns: Ch. | Topics / Reading List | Wks. | Topic Outcomes | ILO | SO | Delivery Method');
+          lines.push('FIELDS_ROW:0 | ch=- | wks=- | topic=- | outcomes=- | ilo=- | so=- | delivery=-');
+          lines.push('TLA_END');
         }
         lines.push('PARTIAL_END:tla');
-        snapshotParts.push(lines.join('\n'));
+        // Prepend to ensure TLA appears at the very top of the snapshot
+        snapshotParts.unshift(lines.join('\n'));
       }
     } catch(e) { /* ignore TLA fallback errors */ }
     // Fallback: include Course Policies block even if not wrapped in .sv-partial
@@ -657,7 +681,7 @@
       const hasSDG = full.includes('SDG_START');
       const hasPOL = full.includes('PARTIAL_BEGIN:course-policies');
       const hasPOLBlock = full.includes('POLICIES_START');
-      const hasTLA = full.includes('PARTIAL_BEGIN:tla') && full.includes('TLA_START');
+      const hasTLA = full.includes('PARTIAL_BEGIN:tla');
       console.debug('[AIChat][snapshot]', { length: full.length, hasSO, hasIGA, hasCDIO, hasSDG, hasPOL, hasPOLBlock, hasTLA });
     } catch(e) {}
     return full;
@@ -675,6 +699,8 @@
     if (!aiInput) return;
     const val = (aiInput.value || '').trim();
     if (!val) return;
+    // Ensure latest realtime context is captured before snapshot
+    try { if (typeof window.rebuildTlaRealtimeContext === 'function') window.rebuildTlaRealtimeContext(); } catch(e) {}
     appendMsg('you', val);
     aiInput.value = '';
     autosizeTextarea(aiInput);
@@ -685,11 +711,53 @@
     const fd = new FormData(); fd.append('message', val);
     try {
       const snap = collectFullSnapshot();
-      // Merge realtime injected context if provided by page scripts (e.g., partials inline)
       const extra = (typeof window._svRealtimeContext === 'string') ? window._svRealtimeContext : '';
-      const merged = extra ? (snap ? (snap + "\n\n" + extra) : extra) : snap;
+      let merged = extra ? (snap ? (snap + "\n\n" + extra) : extra) : snap;
+      // Remove any high-level Strategies block to avoid confusing the model
+      try { if (merged) merged = merged.replace(/PARTIAL_BEGIN:tlas[\s\S]*?PARTIAL_END:tlas/g, '').trim(); } catch(e) {}
+      // Prefer the realtime TLA block explicitly, then fallback to full snapshot
+      try {
+        const realBlock = extra && extra.match(/PARTIAL_BEGIN:tla[\s\S]*?PARTIAL_END:tla/);
+        if (realBlock && realBlock[0]) {
+          merged = realBlock[0];
+          console.debug('[AIChat] Using realtime TLA block');
+        } else if (merged && merged.includes('PARTIAL_BEGIN:tla')) {
+          const m = merged.match(/PARTIAL_BEGIN:tla[\s\S]*?PARTIAL_END:tla/);
+          if (m && m[0]) {
+            merged = m[0];
+            console.debug('[AIChat] TLA-only context extracted from full snapshot');
+          }
+        }
+      } catch(e) {}
+      // Fallback: if TLA block is absent, synthesize an empty, explicit TLA structure
+      try {
+        const hasTla = !!merged && merged.includes('PARTIAL_BEGIN:tla');
+        if (!hasTla) {
+          const tlaFallback = [
+            'PARTIAL_BEGIN:tla',
+            'Teaching, Learning, and Assessment (TLA) Activities',
+            'TLA_START',
+            'Columns: Ch. | Topics / Reading List | Wks. | Topic Outcomes | ILO | SO | Delivery Method',
+            '[No TLA rows entered yet – AI should ask clarifying questions and avoid using TLAS]',
+            'FIELDS_ROW:0 | ch=- | wks=- | topic=- | outcomes=- | ilo=- | so=- | delivery=-',
+            'TLA_END',
+            'PARTIAL_END:tla'
+          ].join('\n');
+          merged = merged ? (tlaFallback + '\n\n' + merged) : tlaFallback;
+          console.debug('[AIChat] Injected empty TLA fallback');
+        }
+      } catch(e) {}
       if (merged) fd.append('context', merged);
-      // include prior conversation history (excluding this freshly added user message)
+      // Debug: log full merged snapshot for verification
+      try {
+        console.debug('[AIChat] Full context snapshot', merged);
+        const hasRowLines = /\nROW:\d+\s\|/.test(merged||'') || /\nFIELDS_ROW:\d+\s\|/.test(merged||'');
+        console.debug('[AIChat] Snapshot has ROW lines:', hasRowLines);
+      } catch(e) {}
+      try {
+        const hasTla = !!merged && merged.includes('PARTIAL_BEGIN:tla');
+        console.debug('[AIChat] Sending TLA-only context', { hasTla, preview: (merged||'').slice(0, 800) });
+      } catch(e) {}
       const hist = buildHistoryPayload(true);
       if (hist && hist.length) fd.append('history', JSON.stringify(hist));
     } catch(e) { /* noop */ }
@@ -707,37 +775,6 @@
       appendMsg('ai', reply);
     }).catch(() => { if (loadingRow) loadingRow.remove(); appendMsg('ai', 'Network error reaching AI service.'); });
   }
-  // Predefined prompt: Teaching, Learning, and Assessment (TLA) Activities
-  function sendTlaPrompt(){
-    const aiInput = document.getElementById('svAiChatInput');
-    const preset = [
-      'Analyze the Teaching, Learning, and Assessment (TLA) Activities table.',
-      'Use the provided TLA snapshot block with columns: Ch. | Topics / Reading List | Wks. | Topic Outcomes | ILO | SO | Delivery Method.',
-      'Summarize weekly flow and identify gaps or redundancies in outcomes, ILO/SO alignment, and delivery methods.',
-      'Recommend concise edits per row (limit to 1-2 lines each) to improve coherence and alignment.',
-      'Output a compact Markdown table reflecting the improved TLA rows with the same columns.'
-    ].join(' ');
-    if (aiInput) {
-      aiInput.value = preset;
-      sendMessage();
-    }
-  }
-  // Predefined prompt: Assessment Method & Distribution Map
-  function sendAssessmentMapPrompt(){
-    const aiInput = document.getElementById('svAiChatInput');
-    const preset = [
-      'Validate the Assessment Method & Distribution Map.',
-      'Output a compact Markdown table with columns: Code | Assessment Task | I/R/D | (%) | ILO1 | ILO2 | ILO3 | ILO4 | C | P | A.',
-      'For each task, verify that ILO item totals equal C+P+A, and that all (%) weights sum to 100% overall (and reconcile lecture/lab subtotals if present).',
-      'If any mismatch or gap exists, provide a Corrected Map table with balanced ILO coverage and appropriate domain totals.',
-      'Add one-line rationales per task and finish with a Proposed Edits table referencing Code and exact column names changed.'
-    ].join(' ');
-    if (aiInput) {
-      aiInput.value = preset;
-      // trigger send
-      sendMessage();
-    }
-  }
   function init(){
     const aiInput = document.getElementById('svAiChatInput');
     const aiSend = document.getElementById('svAiChatSend');
@@ -747,11 +784,59 @@
       aiInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
       autosizeTextarea(aiInput);
     }
+    // Optional keyboard shortcut: Shift+T to open TLA context viewer
+    document.addEventListener('keydown', (e) => {
+      if (e.shiftKey && e.key.toLowerCase() === 't') {
+        try { if (typeof window._aiChat?.openTlaContextViewer === 'function') window._aiChat.openTlaContextViewer(); } catch(err) {}
+      }
+    });
   }
   document.addEventListener('DOMContentLoaded', init);
   // expose for debugging
   try {
-    window._aiChat = { sendMessage, appendMsg, sendAssessmentMapPrompt, sendTlaPrompt };
+    function extractTlaBlocks(full){
+      const blocks = [];
+      if (!full) return blocks;
+      const re = /PARTIAL_BEGIN:tla[\s\S]*?PARTIAL_END:tla/g;
+      let m;
+      while ((m = re.exec(full))){ blocks.push(m[0]); }
+      return blocks;
+    }
+    function openTlaContextViewer(){
+      const full = collectFullSnapshot();
+      const real = (typeof window._svRealtimeContext === 'string') ? window._svRealtimeContext : '';
+      const blocks = extractTlaBlocks(full);
+      const mergedView = [
+        '--- Full Snapshot (extracted TLA) ---',
+        (blocks[0] || '[No TLA block found in full snapshot]'),
+        '',
+        '--- Realtime Context ---',
+        (real || '[No realtime context]')
+      ].join('\n');
+      const overlay = document.createElement('div');
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9999;display:flex;align-items:center;justify-content:center;';
+      const modal = document.createElement('div');
+      modal.style.cssText = 'width:80%;max-width:960px;max-height:80%;background:#fff;border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,0.25);display:flex;flex-direction:column;';
+      const head = document.createElement('div');
+      head.style.cssText = 'padding:12px 16px;border-bottom:1px solid #e5e5e5;display:flex;justify-content:space-between;align-items:center;font-weight:600;';
+      head.textContent = 'TLA Context Viewer';
+      const closeBtn = document.createElement('button');
+      closeBtn.textContent = 'Close';
+      closeBtn.style.cssText = 'margin-left:auto;padding:6px 10px;border:1px solid #ccc;background:#f7f7f7;border-radius:6px;cursor:pointer;';
+      closeBtn.addEventListener('click', () => overlay.remove());
+      head.appendChild(closeBtn);
+      const body = document.createElement('div');
+      body.style.cssText = 'padding:12px 16px;overflow:auto;';
+      const pre = document.createElement('pre');
+      pre.style.cssText = 'white-space:pre-wrap;word-wrap:break-word;font-size:12px;line-height:1.4;';
+      pre.textContent = mergedView;
+      body.appendChild(pre);
+      modal.appendChild(head);
+      modal.appendChild(body);
+      overlay.appendChild(modal);
+      document.body.appendChild(overlay);
+    }
+    window._aiChat = { sendMessage, appendMsg, openTlaContextViewer };
     window._aiChatSnapshot = () => collectFullSnapshot();
   } catch(e) {}
 })();

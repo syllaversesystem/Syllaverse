@@ -60,7 +60,7 @@
               <select name="role" class="form-select form-select-sm" required>
                 <option value="">— Select Role —</option>
                 <option value="{{ \App\Models\Appointment::ROLE_FACULTY }}">Faculty</option>
-                <option value="{{ \App\Models\Appointment::ROLE_DEPT_HEAD }}">Department Head (Dean/Head/Principal)</option>
+                <option value="{{ \App\Models\Appointment::ROLE_DEPT_HEAD }}">Department Head</option>
                 <option value="{{ \App\Models\Appointment::ROLE_ASSOC_DEAN }}">Associate Dean</option>
                 <option value="{{ \App\Models\Appointment::ROLE_CHAIR }}">Chairperson</option>
               </select>

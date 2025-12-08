@@ -176,7 +176,7 @@
                         @php
                           $roleLabel = match ($r->requested_role) {
                             \App\Models\ChairRequest::ROLE_DEPT => 'Chairperson',
-                            \App\Models\ChairRequest::ROLE_DEPT_HEAD => 'Department Head (Dean/Head/Principal)',
+                            \App\Models\ChairRequest::ROLE_DEPT_HEAD => 'Department Head',
                             \App\Models\ChairRequest::ROLE_CHAIR => 'Chairperson',
                             \App\Models\ChairRequest::ROLE_PROG => 'Program Chair',
                             \App\Models\ChairRequest::ROLE_VCAA => 'Vice Chancellor for Academic Affairs (VCAA)',

@@ -22,6 +22,56 @@ class AIChatController extends Controller
     {
         $userMessage = trim((string)$request->input('message', ''));
         $context = trim((string)$request->input('context', ''));
+        $tlaOnly = false;
+        // Reorder: bring TLA block to the very top to avoid model missing it
+        try {
+            if ($context !== '' && strpos($context, 'PARTIAL_BEGIN:tla') !== false) {
+                if (preg_match('/PARTIAL_BEGIN:tla[\s\S]*?PARTIAL_END:tla/', $context, $m)) {
+                    $tlaBlock = $m[0];
+                    $rest = trim(preg_replace('/PARTIAL_BEGIN:tla[\s\S]*?PARTIAL_END:tla/', '', $context)) ?: '';
+                    // Force TLA-only mode: drop all other snapshot blocks entirely
+                    $context = $tlaBlock;
+                    $tlaOnly = true;
+                }
+            }
+        } catch (\Throwable $e) { /* ignore reorder errors */ }
+        // Server-side diagnostics: confirm context receipt and presence of key blocks
+        try {
+            $len = mb_strlen($context);
+            $hasTla = ($context !== '' && (strpos($context, 'PARTIAL_BEGIN:tla') !== false));
+            // If TLA Activities block exists in snapshot, add a short structural guide for the model
+            try {
+                if ($context !== '' && strpos($context, 'PARTIAL_BEGIN:tla') !== false) {
+                    // Extract optional columns line and count rows
+                    $cols = null; $rowCount = 0;
+                    if (preg_match('/COLUMNS:\s*(.+)/', $context, $m)) { $cols = trim($m[1]); }
+                    if (preg_match_all('/^ROW:\d+\s\|/m', $context, $m)) { $rowCount = count($m[0]); }
+                    $guide = "Use the on-page TLA Activities partial (PARTIAL_BEGIN:tla) only. "
+                        ."It is structured with TLA_START/TLA_END and per-row lines (ROW and FIELDS_ROW). "
+                        ."Columns: ".($cols ?: 'Ch. | Topics / Reading List | Wks. | Topic Outcomes | ILO | SO | Delivery Method').". "
+                        ."Detected rows: ".$rowCount.". Do not use TLAS (Teaching & Learning Strategies) as a substitute.";
+                    $messages[] = ['role' => 'system', 'content' => $guide];
+                }
+            } catch (\Throwable $e) { /* ignore TLA guide errors */ }
+            $hasCriteria = ($context !== '' && (strpos($context, 'PARTIAL_BEGIN:criteria_assessment') !== false));
+            $hasCourseInfo = ($context !== '' && (strpos($context, 'PARTIAL_BEGIN:course_info') !== false));
+            $hasMv = ($context !== '' && (strpos($context, 'PARTIAL_BEGIN:mission_vision') !== false));
+            $preview = '';
+            if ($len > 0) {
+                // Take first 400 chars and last 200 chars for quick preview
+                $head = mb_substr($context, 0, min(400, $len));
+                $tail = $len > 200 ? mb_substr($context, $len - 200) : '';
+                $preview = $head . ($tail !== '' ? "\n…\n" . $tail : '');
+            }
+            Log::info('AIChat incoming context', [
+                'len' => $len,
+                'hasTla' => $hasTla,
+                'hasCriteria' => $hasCriteria,
+                'hasCourseInfo' => $hasCourseInfo,
+                'hasMv' => $hasMv,
+                'preview' => $preview,
+            ]);
+        } catch (\Throwable $e) { /* ignore diagnostics errors */ }
         if ($userMessage === '') {
             return response()->json(['error' => 'Empty message'], 422);
         }
@@ -173,40 +223,49 @@ class AIChatController extends Controller
             // Always include internal guidance to ensure full coverage
             $messages[] = ['role' => 'system', 'content' => $systemPrompt];
             // Fixed institution mission & vision block
-            try {
-                $instVision = config('institution.vision');
-                $instMission = config('institution.mission');
-                if ($instVision || $instMission) {
-                    $core = [];
-                    $core[] = 'INSTITUTION_CORE_BEGIN';
-                    if ($instVision) { $core[] = 'Vision: ' . $instVision; }
-                    if ($instMission) { $core[] = 'Mission: ' . $instMission; }
-                    $core[] = 'INSTITUTION_CORE_END';
-                    $messages[] = [ 'role' => 'system', 'content' => implode("\n", $core) ];
-                }
-            } catch (\Throwable $e) { /* ignore */ }
+            if (!$tlaOnly) {
+                try {
+                    $instVision = config('institution.vision');
+                    $instMission = config('institution.mission');
+                    if ($instVision || $instMission) {
+                        $core = [];
+                        $core[] = 'INSTITUTION_CORE_BEGIN';
+                        if ($instVision) { $core[] = 'Vision: ' . $instVision; }
+                        if ($instMission) { $core[] = 'Mission: ' . $instMission; }
+                        $core[] = 'INSTITUTION_CORE_END';
+                        $messages[] = [ 'role' => 'system', 'content' => implode("\n", $core) ];
+                    }
+                } catch (\Throwable $e) { /* ignore */ }
+            }
             if ($context !== '') {
+                // If the user is asking about TLA and a TLA block exists, slim the context to ONLY the TLA block to avoid token limits
+                // Already in TLA-only mode above if TLA was present; no further slimming needed
                 // Trim context to a larger cap now that we rely on unified snapshot
                 $maxContextChars = 18000; // safety cap
                 if (mb_strlen($context) > $maxContextChars) {
                     $context = mb_substr($context, 0, $maxContextChars) . "\n[Context trimmed]";
                 }
-                // Summarize detected sections so the model can rely on a compact list
+                // Post-trim diagnostics: verify critical blocks still present
                 try {
-                    $sections = [];
-                    if (preg_match_all('/PARTIAL_BEGIN:([^\s\n\r]+)/', $context, $m)) {
-                        foreach ($m[1] as $k) { $sections[] = trim($k); }
-                    }
-                    $hasPolicies = (strpos($context, 'PARTIAL_BEGIN:course-policies') !== false);
-                    $hasPoliciesBlock = (strpos($context, 'POLICIES_START') !== false);
-                    $sum = [];
-                    $sum[] = 'SNAPSHOT_SECTIONS_BEGIN';
-                    if (!empty($sections)) { $sum[] = 'Sections: '.implode(', ', array_unique($sections)); }
-                    $sum[] = 'Course Policies: '.($hasPolicies ? 'present' : 'absent').'; POLICIES block: '.($hasPoliciesBlock ? 'present' : 'absent');
-                    $sum[] = 'SNAPSHOT_SECTIONS_END';
-                    $messages[] = ['role' => 'system', 'content' => implode("\n", $sum)];
-                } catch (\Throwable $e) { /* ignore summary errors */ }
-                // Full context payload
+                    $len2 = mb_strlen($context);
+                    $hasTla2 = (strpos($context, 'PARTIAL_BEGIN:tla') !== false);
+                    $hasCriteria2 = (strpos($context, 'PARTIAL_BEGIN:criteria_assessment') !== false);
+                    $hasCourseInfo2 = (strpos($context, 'PARTIAL_BEGIN:course_info') !== false);
+                    $hasMv2 = (strpos($context, 'PARTIAL_BEGIN:mission_vision') !== false);
+                    $head2 = mb_substr($context, 0, min(300, $len2));
+                    $tail2 = $len2 > 160 ? mb_substr($context, $len2 - 160) : '';
+                    Log::info('AIChat post-trim context', [
+                        'len' => $len2,
+                        'hasTla' => $hasTla2,
+                        'hasCriteria' => $hasCriteria2,
+                        'hasCourseInfo' => $hasCourseInfo2,
+                        'hasMv' => $hasMv2,
+                        'preview' => $head2 . ($tail2 !== '' ? "\n…\n" . $tail2 : ''),
+                    ]);
+                } catch (\Throwable $e) { /* ignore diagnostics errors */ }
+                // Summarize detected sections so the model can rely on a compact list
+                // Omit snapshot sections summary in TLA-only mode
+                // Full context payload (ensure high priority by placing as system message)
                 $messages[] = ['role' => 'system', 'content' => "SYLLABUS_CONTEXT_BEGIN\n".$context."\nSYLLABUS_CONTEXT_END"]; // mark boundaries
             }
             // Strengthen edit/replace behavior when the user explicitly asks for it
@@ -220,241 +279,21 @@ class AIChatController extends Controller
             if ($wantsCreate) {
                 $messages[] = ['role' => 'system', 'content' => 'Provide a "Starter Pack": (1) Course overview (draft), (2) 3–6 ILOs as "ILO <n>: <description>", (3) initial Assessment Tasks with suggested weights totaling 100%, (4) brief Alignment notes (ILO ↔ tasks), and (5) a short Policies checklist. Use [TBD] for unknown specifics. Keep concise.'];
             }
-            // Append compact DB context (course, program, department, prerequisites, course ILOs)
+            // Append compact DB context and program extras unless in TLA-only mode
             try {
-                $syllabus->loadMissing([
-                    'course.department',
-                    'course.prerequisites',
-                    'course.ilos',
-                    'program.department',
-                    'textbooks',
-                ]);
-                $db = [];
-                if ($syllabus->course) {
-                    $c = $syllabus->course;
-                    $deptName = $c->department ? ($c->department->name . (isset($c->department->code) && $c->department->code ? ' ('.$c->department->code.')' : '')) : '';
-                    $db[] = '## Course';
-                    $db[] = 'Code: '.($c->code ?? '');
-                    $db[] = 'Title: '.($c->title ?? '');
-                    $db[] = 'Category: '.($c->course_category ?? '');
-                    $db[] = 'Department: '.($deptName ?: '');
-                    $db[] = 'Contact Hours: LEC '.((string)($c->contact_hours_lec ?? '0')).' | LAB '.((string)($c->contact_hours_lab ?? '0'));
-                    if (!empty($c->description)) {
-                        $desc = $c->description;
-                        if (mb_strlen($desc) > 1200) $desc = mb_substr($desc, 0, 1200).'…';
-                        $db[] = 'Description: '.$desc;
-                    }
-                    if ($c->prerequisites && $c->prerequisites->count()) {
-                        $db[] = '';
-                        $db[] = '### Prerequisites';
-                        $db[] = '| Code | Title |';
-                        $db[] = '| --- | --- |';
-                        foreach ($c->prerequisites as $p) {
-                            $db[] = '| '.($p->code ?? '').' | '.(str_replace(["\n","|"],' ', $p->title ?? '')) .' |';
-                        }
-                    }
-                    if ($c->ilos && $c->ilos->count()) {
-                        $db[] = '';
-                        $db[] = '### Course ILOs (master)';
-                        $db[] = '| ILO | Description |';
-                        $db[] = '| --- | --- |';
-                        foreach ($c->ilos as $ilo) {
-                            $db[] = '| '.($ilo->code ?? '').' | '.(str_replace(["\n","|"],' ', $ilo->description ?? '')) .' |';
-                        }
-                    }
-                }
-                if ($syllabus->program) {
-                    $p = $syllabus->program;
-                    $db[] = '';
-                    $db[] = '## Program';
-                    $db[] = 'Name: '.($p->name ?? '');
-                    $db[] = 'Code: '.($p->code ?? '');
-                    if ($p->department) {
-                        $db[] = 'Department: '.($p->department->name ?? '').(isset($p->department->code) && $p->department->code ? ' ('.$p->department->code.')' : '');
-                    }
-                    if (!empty($p->description)) {
-                        $pd = $p->description; if (mb_strlen($pd) > 1200) $pd = mb_substr($pd, 0, 1200).'…';
-                        $db[] = 'Description: '.$pd;
-                    }
-                }
-                if ($syllabus->course && $syllabus->course->department && (!$syllabus->program || !$syllabus->program->department)) {
-                    $d = $syllabus->course->department;
-                    $db[] = '';
-                    $db[] = '## Department';
-                    $db[] = 'Name: '.($d->name ?? '');
-                    if (!empty($d->code)) $db[] = 'Code: '.$d->code;
-                }
-                $dbContext = trim(implode("\n", array_filter($db, fn($l) => $l !== null)));
-                if ($dbContext !== '') {
-                    $maxDb = 6000;
-                    if (mb_strlen($dbContext) > $maxDb) $dbContext = mb_substr($dbContext, 0, $maxDb)."\n[DB context truncated]";
-                    $messages[] = ['role' => 'system', 'content' => "DB_CONTEXT_BEGIN\n".$dbContext."\nDB_CONTEXT_END"];
-                }
-
-                // Include Student Outcomes (SOs): prefer syllabus-specific; fallback to department master
-                try {
-                    $sySo = SyllabusSo::where('syllabus_id', $syllabus->id)->orderBy('position')->get();
-                    $deptId = $syllabus->program->department_id ?? $syllabus->program->dept_id ?? ($syllabus->course->department->id ?? null);
-                    $source = 'syllabus';
-                    $items = [];
-                    if ($sySo && $sySo->count() > 0) {
-                        foreach ($sySo as $idx => $so) {
-                            $code = trim($so->code ?? ('SO'.($idx+1)));
-                            $title = trim($so->title ?? '');
-                            $desc = trim($so->description ?? '');
-                            if (mb_strlen($title) > 160) $title = mb_substr($title, 0, 160).'…';
-                            if (mb_strlen($desc) > 320) $desc = mb_substr($desc, 0, 320).'…';
-                            $items[] = $code.': '.($title !== '' ? $title.' | ' : '').$desc;
-                        }
-                    } else if ($deptId) {
-                        $source = 'department';
-                        $deptSOs = StudentOutcome::where('department_id', $deptId)->orderBy('id')->get();
-                        foreach ($deptSOs as $i => $so) {
-                            $code = 'SO'.($i+1);
-                            $title = trim($so->title ?? '');
-                            $desc = trim($so->description ?? '');
-                            if (mb_strlen($title) > 160) $title = mb_substr($title, 0, 160).'…';
-                            if (mb_strlen($desc) > 320) $desc = mb_substr($desc, 0, 320).'…';
-                            $items[] = $code.': '.($title !== '' ? $title.' | ' : '').$desc;
-                        }
-                    }
-                    if (!empty($items)) {
-                        $soBlock = [];
-                        $soBlock[] = 'PROGRAM_SOS_BEGIN';
-                        $soBlock[] = 'Source: '.$source;
-                        foreach ($items as $ln) { $soBlock[] = $ln; }
-                        $soBlock[] = 'PROGRAM_SOS_END';
-                        $messages[] = ['role' => 'system', 'content' => implode("\n", $soBlock)];
-                    }
-                } catch (\Throwable $e) { /* ignore SO context errors */ }
-
-                // Include CDIO skills: prefer syllabus-specific; optional fallback to master list (first 8)
-                try {
-                    $syCdio = SyllabusCdio::where('syllabus_id', $syllabus->id)->orderBy('position')->get();
-                    $items = [];
-                    $source = 'syllabus';
-                    if ($syCdio && $syCdio->count() > 0) {
-                        foreach ($syCdio as $idx => $cd) {
-                            $code = trim($cd->code ?? ('CDIO'.($idx+1)));
-                            $title = trim($cd->title ?? '');
-                            $desc = trim($cd->description ?? '');
-                            if (mb_strlen($title) > 160) $title = mb_substr($title, 0, 160).'…';
-                            if (mb_strlen($desc) > 320) $desc = mb_substr($desc, 0, 320).'…';
-                            $items[] = $code.': '.($title !== '' ? $title.' | ' : '').$desc;
-                        }
-                    } else {
-                        // Master fallback: provide a compact generic list to guide selection
-                        $source = 'master';
-                        $masters = Cdio::orderBy('id')->limit(8)->get();
-                        foreach ($masters as $i => $cd) {
-                            $code = 'CDIO'.($i+1);
-                            $title = trim($cd->title ?? '');
-                            $desc = trim($cd->description ?? '');
-                            if (mb_strlen($title) > 160) $title = mb_substr($title, 0, 160).'…';
-                            if (mb_strlen($desc) > 320) $desc = mb_substr($desc, 0, 320).'…';
-                            $items[] = $code.': '.($title !== '' ? $title.' | ' : '').$desc;
-                        }
-                    }
-                    if (!empty($items)) {
-                        $cdioBlock = [];
-                        $cdioBlock[] = 'PROGRAM_CDIOS_BEGIN';
-                        $cdioBlock[] = 'Source: '.$source;
-                        foreach ($items as $ln) { $cdioBlock[] = $ln; }
-                        $cdioBlock[] = 'PROGRAM_CDIOS_END';
-                        $messages[] = ['role' => 'system', 'content' => implode("\n", $cdioBlock)];
-                    }
-                } catch (\Throwable $e) { /* ignore CDIO context errors */ }
-
-                // Include SDG skills: prefer syllabus-specific; optional fallback to master list (first 8)
-                try {
-                    $sySdg = SyllabusSdg::where('syllabus_id', $syllabus->id)
-                        ->orderBy('sort_order')
-                        ->orderBy('id')
-                        ->get();
-                    $items = [];
-                    $source = 'syllabus';
-                    if ($sySdg && $sySdg->count() > 0) {
-                        foreach ($sySdg as $idx => $sd) {
-                            $code = trim($sd->code ?? ('SDG'.($idx+1)));
-                            $title = trim($sd->title ?? '');
-                            $desc = trim($sd->description ?? '');
-                            if (mb_strlen($title) > 160) $title = mb_substr($title, 0, 160).'…';
-                            if (mb_strlen($desc) > 320) $desc = mb_substr($desc, 0, 320).'…';
-                            $items[] = $code.': '.($title !== '' ? $title.' | ' : '').$desc;
-                        }
-                    } else {
-                        // Master fallback: provide a compact generic list to guide selection
-                        $source = 'master';
-                        $masters = Sdg::orderBy('id')->limit(8)->get();
-                        foreach ($masters as $i => $sd) {
-                            $code = 'SDG'.($i+1);
-                            $title = trim($sd->title ?? '');
-                            $desc = trim($sd->description ?? '');
-                            if (mb_strlen($title) > 160) $title = mb_substr($title, 0, 160).'…';
-                            if (mb_strlen($desc) > 320) $desc = mb_substr($desc, 0, 320).'…';
-                            $items[] = $code.': '.($title !== '' ? $title.' | ' : '').$desc;
-                        }
-                    }
-                    if (!empty($items)) {
-                        $sdgBlock = [];
-                        $sdgBlock[] = 'PROGRAM_SDGS_BEGIN';
-                        $sdgBlock[] = 'Source: '.$source;
-                        foreach ($items as $ln) { $sdgBlock[] = $ln; }
-                        $sdgBlock[] = 'PROGRAM_SDGS_END';
-                        $messages[] = ['role' => 'system', 'content' => implode("\n", $sdgBlock)];
-                    }
-                } catch (\Throwable $e) { /* ignore SDG context errors */ }
-
-                // Include textbook references and brief excerpts if available (textbook_chunks)
-                if ($syllabus->textbooks && $syllabus->textbooks->count()) {
-                    $tbLines = [ 'TEXTBOOKS_BEGIN' ];
-                    $remain = 8000; // total cap for all excerpts
-                    foreach ($syllabus->textbooks as $tb) {
-                        $title = (string)($tb->original_name ?? '');
-                        $tbLines[] = 'TEXTBOOK: ' . $title;
-                        try {
-                            // Prefer pre-processed chunks if present
-                            $chunks = DB::table('textbook_chunks')
-                                ->where('textbook_id', $tb->id)
-                                ->orderBy('chunk_index')
-                                ->limit(6)
-                                ->pluck('content');
-                            if ($chunks->isEmpty()) {
-                                // On-demand ingestion for existing files without chunks
-                                try { app(TextbookChunkService::class)->ingest($tb->file_path, $tb->id); } catch (\Throwable $e) { /* skip */ }
-                                $chunks = DB::table('textbook_chunks')
-                                    ->where('textbook_id', $tb->id)
-                                    ->orderBy('chunk_index')
-                                    ->limit(6)
-                                    ->pluck('content');
-                            }
-                            $excerpt = '';
-                            foreach ($chunks as $ch) {
-                                if ($remain <= 0) break;
-                                $slice = (string)$ch;
-                                if ($slice === '') continue;
-                                if (mb_strlen($slice) > $remain) $slice = mb_substr($slice, 0, $remain);
-                                $excerpt .= ($excerpt === '' ? '' : "\n") . $slice;
-                                $remain -= mb_strlen($slice);
-                                if (mb_strlen($excerpt) >= 1600) break; // per-book soft cap
-                            }
-                            if ($excerpt !== '') {
-                                $tbLines[] = 'EXCERPT_BEGIN';
-                                $tbLines[] = $excerpt;
-                                $tbLines[] = 'EXCERPT_END';
-                            }
-                        } catch (\Throwable $e) {
-                            // ignore if table missing or query fails
-                        }
-                    }
-                    $tbLines[] = 'TEXTBOOKS_END';
-                    $tbBlock = implode("\n", $tbLines);
-                    if ($tbBlock !== '') {
-                        $messages[] = ['role' => 'system', 'content' => $tbBlock];
-                    }
+                if (!$tlaOnly) {
+                    $syllabus->loadMissing([
+                        'course.department',
+                        'course.prerequisites',
+                        'course.ilos',
+                        'program.department',
+                        'textbooks',
+                    ]);
+                    // Omit DB context and program extras intentionally for snapshot reduction.
+                    // If needed later, re-enable with appropriate caps.
                 }
             } catch (\Throwable $e) {
-                // best-effort, ignore DB context errors
+                // best-effort, ignore DB/program context errors
             }
             // Schema injection on generation requests
             $u = mb_strtolower($userMessage);
@@ -506,6 +345,16 @@ class AIChatController extends Controller
             }
             $messages[] = ['role' => 'user', 'content' => $userMessage];
 
+            // If the user asks to read/analyze TLA and a TLA block exists, enforce compact table output
+            try {
+                $u2 = mb_strtolower($userMessage);
+                $mentionsTla = (strpos($u2, 'tla') !== false) || (strpos($u2, 'teaching, learning, and assessment') !== false);
+                $hasTlaBlock = ($context !== '' && (strpos($context, 'PARTIAL_BEGIN:tla') !== false));
+                if ($mentionsTla && $hasTlaBlock) {
+                    $messages[] = ['role' => 'system', 'content' => 'When reading TLA Activities, output a compact Markdown table with columns: Ch. | Topics / Reading List | Wks. | Topic Outcomes | ILO | SO | Delivery Method. Use only the rows in PARTIAL_BEGIN:tla (TLA_START/TLA_END). Avoid TLAS. Keep rows concise.'];
+                }
+            } catch (\Throwable $e) { /* ignore */ }
+
             $maxTokens = $wantsCreate ? 600 : 300;
             $payload = [
                 'model' => $model,
@@ -513,6 +362,24 @@ class AIChatController extends Controller
                 'temperature' => 0.7,
                 'max_tokens' => $maxTokens,
             ];
+
+            // Final payload summary (no sensitive content): count and section keys
+            try {
+                $secKeys = [];
+                foreach ($messages as $msg) {
+                    $c = (string)($msg['content'] ?? '');
+                    if ($c === '') continue;
+                    if (preg_match_all('/PARTIAL_BEGIN:([^\s\n\r]+)/', $c, $mm)) {
+                        foreach ($mm[1] as $k) { $secKeys[] = trim($k); }
+                    }
+                }
+                $secKeys = array_unique($secKeys);
+                Log::info('AIChat payload summary', [
+                    'messages' => count($messages),
+                    'sectionKeys' => $secKeys,
+                    'model' => $model,
+                ]);
+            } catch (\Throwable $e) { /* ignore */ }
 
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer '.$apiKey,

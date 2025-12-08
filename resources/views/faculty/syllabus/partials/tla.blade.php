@@ -76,7 +76,10 @@
         <th colspan="8" class="text-center">
           <div class="d-flex justify-content-between align-items-center">
             <span></span>
-            <span>Teaching, Learning, and Assessment (TLA) Activities</span>
+            <span>
+              Teaching, Learning, and Assessment (TLA) Activities
+              <span id="tlaSnapshotBadge" class="badge bg-warning text-dark ms-2" style="display:none; font-weight:600;">Snapshot updated</span>
+            </span>
             <span class="tla-header-actions d-inline-flex gap-1" style="white-space:nowrap;">
               <button type="button" class="btn btn-sm" id="add-tla-row" title="Add TLA Row" aria-label="Add TLA Row" style="background:transparent;">
                 <i data-feather="plus"></i>
@@ -335,46 +338,114 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-// Inject realtime TLA context for AI chat without requiring a rebuild
+// Realtime TLA context: rebuild on add/remove/typing using MutationObserver and input listeners
 document.addEventListener('DOMContentLoaded', function() {
-  try {
-    const table = document.getElementById('tlaTable');
-    if (!table) return;
-    const headerTitle = 'Teaching, Learning, and Assessment (TLA) Activities';
-    const columns = 'Columns: Ch. | Topics / Reading List | Wks. | Topic Outcomes | ILO | SO | Delivery Method';
-    const rows = Array.from(table.querySelectorAll('tbody tr')).filter(r => r.id !== 'tla-placeholder');
-    const lines = [];
-    lines.push('PARTIAL_BEGIN:tla');
-    lines.push(headerTitle);
-    lines.push(columns);
-    if (rows.length) {
-      rows.forEach((row, index) => {
-        const getVal = sel => {
-          const el = row.querySelector(sel);
-          if (!el) return '-';
-          const v = (el.value ?? '').toString().trim();
-          if (v) return v;
-          const inner = el.querySelector && el.querySelector('input,textarea');
-          if (inner && inner.value) return inner.value.toString().trim() || '-';
-          const txt = (el.textContent || '').trim();
-          return txt || '-';
-        };
-        const ch = getVal('[name*="[ch]"]');
-        const topic = getVal('[name*="[topic]"]');
-        const wks = getVal('[name*="[wks]"]');
-        const outcomes = getVal('[name*="[outcomes]"]');
-        const ilo = getVal('[name*="[ilo]"]');
-        const so = getVal('[name*="[so]"]');
-        const delivery = getVal('[name*="[delivery]"]');
-        lines.push(`ROW:${index+1} | Ch:${ch} | Wks:${wks} | Topic:${topic} | Outcomes:${outcomes} | ILO:${ilo} | SO:${so} | Delivery:${delivery}`);
-        lines.push(`FIELDS_ROW:${index+1} | ch=${ch} | wks=${wks} | topic=${topic} | outcomes=${outcomes} | ilo=${ilo} | so=${so} | delivery=${delivery}`);
-      });
-    } else {
-      lines.push('[No TLA rows entered yet – AI may suggest a weekly plan]');
-      lines.push('FIELDS_ROW:0 | ch=- | wks=- | topic=- | outcomes=- | ilo=- | so=- | delivery=-');
+  const table = document.getElementById('tlaTable');
+  if (!table) return;
+  const tbody = table.querySelector('tbody');
+  const headerTitle = 'Teaching, Learning, and Assessment (TLA) Activities';
+  const columns = 'Columns: Ch. | Topics / Reading List | Wks. | Topic Outcomes | ILO | SO | Delivery Method';
+  const badge = document.getElementById('tlaSnapshotBadge');
+
+  function getRowValue(row, sel) {
+    const el = row.querySelector(sel);
+    if (!el) return '-';
+    const v = (el.value ?? '').toString().trim();
+    if (v) return v;
+    const inner = el.querySelector && el.querySelector('input,textarea');
+    if (inner && inner.value) return inner.value.toString().trim() || '-';
+    const txt = (el.textContent || '').trim();
+    return txt || '-';
+  }
+
+  function rebuildTlaRealtimeContext() {
+    try {
+      const rows = Array.from(tbody.querySelectorAll('tr')).filter(r => r.id !== 'tla-placeholder');
+      const lines = [];
+      lines.push('PARTIAL_BEGIN:tla');
+      lines.push(headerTitle);
+      lines.push('TLA_START');
+      lines.push(columns);
+      if (rows.length) {
+        rows.forEach((row, index) => {
+          const ch = getRowValue(row, '[name*="[ch]"]');
+          const topic = getRowValue(row, '[name*="[topic]"]');
+          const wks = getRowValue(row, '[name*="[wks]"]');
+          const outcomes = getRowValue(row, '[name*="[outcomes]"]');
+          const ilo = getRowValue(row, '[name*="[ilo]"]');
+          const so = getRowValue(row, '[name*="[so]"]');
+          const delivery = getRowValue(row, '[name*="[delivery]"]');
+          lines.push(`ROW:${index+1} | Ch:${ch} | Wks:${wks} | Topic:${topic} | Outcomes:${outcomes} | ILO:${ilo} | SO:${so} | Delivery:${delivery}`);
+          lines.push(`FIELDS_ROW:${index+1} | ch=${ch} | wks=${wks} | topic=${topic} | outcomes=${outcomes} | ilo=${ilo} | so=${so} | delivery=${delivery}`);
+        });
+      } else {
+        lines.push('[No TLA rows entered yet – AI may suggest a weekly plan]');
+        lines.push('FIELDS_ROW:0 | ch=- | wks=- | topic=- | outcomes=- | ilo=- | so=- | delivery=-');
+      }
+      lines.push('TLA_END');
+      lines.push('PARTIAL_END:tla');
+      const block = lines.join('\n');
+      const extra = (typeof window._svRealtimeContext === 'string') ? window._svRealtimeContext : '';
+      // Replace existing TLA block if present; otherwise, append
+      if (extra && extra.includes('PARTIAL_BEGIN:tla')) {
+        const replaced = extra.replace(/PARTIAL_BEGIN:tla[\s\S]*?PARTIAL_END:tla/g, block);
+        window._svRealtimeContext = replaced;
+      } else {
+        window._svRealtimeContext = extra ? (extra + '\n\n' + block) : block;
+      }
+      try { console.debug('[TLA][realtime]', { length: block.length, rows: rows.length }); } catch(e) {}
+      // Flash badge for a short duration to indicate snapshot updated
+      if (badge) {
+        badge.style.display = 'inline-block';
+        badge.style.opacity = '1';
+        setTimeout(() => {
+          badge.style.transition = 'opacity 400ms ease-in-out';
+          badge.style.opacity = '0';
+          setTimeout(() => { badge.style.display = 'none'; badge.style.transition = ''; badge.style.opacity = '1'; }, 450);
+        }, 600);
+      }
+    } catch(e) { /* ignore */ }
+  }
+
+  // Expose globally so chat can force a rebuild before sending
+  try { window.rebuildTlaRealtimeContext = rebuildTlaRealtimeContext; } catch(e) {}
+
+  // Initial build
+  rebuildTlaRealtimeContext();
+
+  // Input listeners: update on typing and changes
+  tbody.addEventListener('input', function(e) {
+    if (e.target && (e.target.matches('input') || e.target.matches('textarea') || e.target.matches('select'))) {
+      rebuildTlaRealtimeContext();
     }
-    lines.push('PARTIAL_END:tla');
-    window._svRealtimeContext = lines.join('\n');
-  } catch(e) { /* ignore */ }
+  });
+  tbody.addEventListener('change', function(e) {
+    if (e.target && (e.target.matches('input') || e.target.matches('textarea') || e.target.matches('select'))) {
+      rebuildTlaRealtimeContext();
+    }
+  });
+
+  // Observe add/remove rows via MutationObserver
+  const mo = new MutationObserver((mutations) => {
+    let needsRebuild = false;
+    for (const m of mutations) {
+      if (m.type === 'childList' && (m.addedNodes.length || m.removedNodes.length)) {
+        needsRebuild = true; break;
+      }
+      if (m.type === 'attributes' && m.target && m.target.matches('input,textarea,select')) {
+        needsRebuild = true; break;
+      }
+    }
+    if (needsRebuild) rebuildTlaRealtimeContext();
+  });
+  mo.observe(tbody, { childList: true, subtree: true, attributes: true, attributeFilter: ['value'] });
+
+  // Add button: ensure rebuild after adding (actual row add handled elsewhere)
+  const addBtn = document.getElementById('add-tla-row');
+  if (addBtn) addBtn.addEventListener('click', () => setTimeout(rebuildTlaRealtimeContext, 50));
+
+  // Delete flow: rebuild on modal confirm if rows are removed by external handlers
+  const confirmDel = document.getElementById('confirmDeleteTla');
+  if (confirmDel) confirmDel.addEventListener('click', () => setTimeout(rebuildTlaRealtimeContext, 100));
 });
 </script>
