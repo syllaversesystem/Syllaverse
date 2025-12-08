@@ -218,8 +218,16 @@ class AIChatController extends Controller
             $messages = [];
             // Include context only when provided (phased snapshots)
             $phase = (string)$request->input('phase', '');
-            if ($context !== '') {
-                // Attach context as a system message with clear boundaries
+            $contextPhase1 = (string)$request->input('context_phase1', '');
+            $contextPhase2 = (string)$request->input('context_phase2', '');
+            if ($contextPhase1 !== '') {
+                $messages[] = ['role' => 'system', 'content' => "SYLLABUS_CONTEXT_PHASE1_BEGIN\n".$contextPhase1."\nSYLLABUS_CONTEXT_PHASE1_END"]; 
+            }
+            if ($contextPhase2 !== '') {
+                $messages[] = ['role' => 'system', 'content' => "SYLLABUS_CONTEXT_PHASE2_BEGIN\n".$contextPhase2."\nSYLLABUS_CONTEXT_PHASE2_END"]; 
+            }
+            // Backward compatibility: single context field
+            if ($context !== '' && $contextPhase1 === '' && $contextPhase2 === '') {
                 $messages[] = ['role' => 'system', 'content' => "SYLLABUS_CONTEXT_BEGIN\n".$context."\nSYLLABUS_CONTEXT_END"]; 
             }
             // Do not add edit/replace or creation boosters
