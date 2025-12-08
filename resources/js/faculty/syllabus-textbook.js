@@ -5,14 +5,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
   const mainInput = document.getElementById('textbook_main_files');
   const otherInput = document.getElementById('textbook_other_files');
+  const referenceInput = document.getElementById('textbook_reference_files');
   const base = window.syllabusBasePath || '/faculty/syllabi';
 
   if (!csrfToken || typeof syllabusId === 'undefined') return;
 
   // 🔁 Re-fetch section and rebuild rows
   function refreshSection(type) {
-    const inputId = type === 'main' ? 'textbook_main_files' : 'textbook_other_files';
-    const label = type === 'main' ? 'Textbook' : 'Other Books and Articles';
+    const inputId = type === 'main' ? 'textbook_main_files' : (type === 'other' ? 'textbook_other_files' : 'textbook_reference_files');
+    const label = type === 'main' ? 'Textbook' : (type === 'other' ? 'Other Books and Articles' : 'References');
 
     fetch(`${base}/${syllabusId}/textbook/list?type=${type}`)
       .then(res => res.json())
@@ -48,11 +49,16 @@ document.addEventListener('DOMContentLoaded', () => {
       newRow.className = 'textbook-file-row';
       newRow.setAttribute('data-id', file.id);
       newRow.setAttribute('data-type', type);
+      const isRef = !!file.is_reference || !file.url;
+      const icon = isRef ? 'bi-journal-text text-secondary' : iconFor(file.name);
+      const nameCellHtml = isRef
+        ? `<span class="textbook-ref-name" title="${(file.name || '').replace(/"/g, '&quot;')}">${file.name}</span>`
+        : `<a href="${file.url}" target="_blank" class="textbook-file-link" title="${(file.name || '').replace(/"/g, '&quot;')}">${file.name}</a>`;
       newRow.innerHTML = `
         <td class="text-center align-middle">${index + 1}</td>
         <td class="align-middle">
-          <i class="bi ${iconFor(file.name)} textbook-file-icon"></i>
-          <a href="${file.url}" target="_blank" class="textbook-file-link" title="${file.name}">${file.name}</a>
+          <i class="bi ${icon} textbook-file-icon"></i>
+          ${nameCellHtml}
         </td>
         <td class="text-end align-middle">
           <button type="button" class="btn btn-outline-secondary btn-sm textbook-edit-btn edit-textbook-btn me-1" title="Rename">
@@ -79,23 +85,55 @@ document.addEventListener('DOMContentLoaded', () => {
     const files = Array.from(input.files);
     if (!files.length) return;
 
+    const progressWrap = document.getElementById(type === 'main' ? 'textbook_main_progress' : 'textbook_other_progress');
+    const progressBar = progressWrap ? progressWrap.querySelector('.progress-bar') : null;
+    const progressLabel = document.getElementById(type === 'main' ? 'textbook_main_progress_label' : 'textbook_other_progress_label');
+    const showProgress = (pct, text) => {
+      if (!progressWrap || !progressBar) return;
+      progressWrap.style.display = '';
+      const v = Math.max(0, Math.min(100, Math.round(pct || 0)));
+      progressBar.style.width = v + '%';
+      progressBar.setAttribute('aria-valuenow', String(v));
+      if (progressLabel && text) progressLabel.textContent = text;
+    };
+
     const formData = new FormData();
     files.forEach(file => formData.append('textbook_files[]', file));
     formData.append('type', type);
 
-    fetch(`${base}/${syllabusId}/textbook`, {
-      method: 'POST',
-      headers: { 'X-CSRF-TOKEN': csrfToken },
-      body: formData,
-    })
-      .then(res => res.json())
-      .then(result => {
-        if (result.success) {
-          refreshSection(type);
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${base}/${syllabusId}/textbook`, true);
+    xhr.setRequestHeader('X-CSRF-TOKEN', csrfToken);
+
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) {
+        const pct = (e.loaded / e.total) * 100;
+        showProgress(pct, `Uploading… ${Math.round(pct)}%`);
+      } else {
+        showProgress(50, 'Uploading…');
+      }
+    };
+
+    xhr.onreadystatechange = () => {
+      if (xhr.readyState === 4) {
+        try {
+          const result = JSON.parse(xhr.responseText || '{}');
+          if (xhr.status >= 200 && xhr.status < 300 && result.success) {
+            showProgress(100, 'Processing…');
+            refreshSection(type);
+          } else {
+            console.error('Upload failed:', result.message || xhr.statusText);
+          }
+        } catch (err) {
+          console.error('Upload failed:', err);
+        } finally {
+          input.value = '';
+          setTimeout(() => { if (progressWrap) progressWrap.style.display = 'none'; }, 600);
         }
-        input.value = '';
-      })
-      .catch(err => console.error('Upload failed:', err));
+      }
+    };
+
+    xhr.send(formData);
   }
 
   // 🗑️ Delete file
@@ -122,8 +160,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Inline rename
     if (btn.classList.includes && btn.classList.includes('edit-textbook-btn') || btn.classList.contains('edit-textbook-btn')) {
       const nameCell = row.querySelector('td:nth-child(2)') || row.children[1];
-      const link = nameCell.querySelector('a.textbook-name');
-      const currentFull = (link?.textContent || link?.getAttribute('title') || '').trim();
+      const link = nameCell.querySelector('a.textbook-file-link');
+      const span = nameCell.querySelector('span.textbook-ref-name');
+      const currentFull = (link?.textContent || link?.getAttribute('title') || span?.textContent || span?.getAttribute('title') || '').trim();
       const lastDot = currentFull.lastIndexOf('.');
       const currentExt = lastDot > 0 ? currentFull.slice(lastDot + 1) : '';
       const currentBase = lastDot > 0 ? currentFull.slice(0, lastDot) : currentFull;
@@ -183,6 +222,75 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   if (mainInput) mainInput.addEventListener('change', () => guardAndUpload(mainInput, 'main'));
   if (otherInput) otherInput.addEventListener('change', () => guardAndUpload(otherInput, 'other'));
+  if (referenceInput) referenceInput.addEventListener('change', () => guardAndUpload(referenceInput, 'reference'));
+
+  // 🧭 Actions: Upload or Add reference (no Bootstrap dependency)
+  document.addEventListener('click', (e) => {
+    const uploadLink = e.target.closest('.textbook-action-upload');
+    if (uploadLink) {
+      e.preventDefault();
+      const targetId = uploadLink.getAttribute('data-target');
+      const input = document.getElementById(targetId);
+      if (input) input.click();
+      return;
+    }
+
+    const refLink = e.target.closest('.textbook-action-reference');
+    if (refLink) {
+      e.preventDefault();
+      const type = refLink.getAttribute('data-type') || 'main';
+      const modal = document.getElementById('addReferenceModal');
+      const textarea = document.getElementById('addReferenceText');
+      const typeInput = document.getElementById('addReferenceType');
+
+      if (modal && textarea && typeInput && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+        typeInput.value = type;
+        textarea.value = '';
+        const m = bootstrap.Modal.getOrCreateInstance(modal);
+        m.show();
+        setTimeout(() => textarea.focus(), 250);
+      } else {
+        // Fallback prompt if Bootstrap or modal isn't available
+        const text = window.prompt('Add reference (e.g., citation text):');
+        if (!text) return;
+        fetch(`${base}/${syllabusId}/textbook`, {
+          method: 'POST',
+          headers: { 'X-CSRF-TOKEN': csrfToken, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type, reference: text })
+        })
+          .then(res => res.json())
+          .then(result => { if (result.success) refreshSection(type); })
+          .catch(err => console.error('Add reference failed:', err));
+      }
+      return;
+    }
+  });
+
+  // Confirm add reference from modal
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('#confirmAddReference');
+    if (!btn) return;
+    const textarea = document.getElementById('addReferenceText');
+    const typeInput = document.getElementById('addReferenceType');
+    const modal = document.getElementById('addReferenceModal');
+    const type = (typeInput?.value || 'main');
+    const text = (textarea?.value || '').trim();
+    if (!text) { alert('Please enter a reference.'); return; }
+
+    fetch(`${base}/${syllabusId}/textbook`, {
+      method: 'POST',
+      headers: { 'X-CSRF-TOKEN': csrfToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type, reference: text })
+    })
+      .then(res => res.json())
+      .then(result => {
+        if (result.success) {
+          try { const m = bootstrap.Modal.getInstance(modal); if (m) m.hide(); } catch(_){}
+          refreshSection(type);
+        }
+      })
+      .catch(err => console.error('Add reference failed:', err));
+  });
 });
 
 

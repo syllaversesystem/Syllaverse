@@ -81,10 +81,18 @@
     <tr>
       <th class="align-top text-start cis-label" rowspan="{{ $textbooksMain->count() + 1 }}">Textbook</th>
       <td colspan="3" class="p-2 text-start">
-        <div class="textbook-upload-area" onclick="document.getElementById('textbook_main_files').click()">
-          <i class="bi bi-cloud-upload textbook-upload-icon"></i>
-          <span class="text-dark" style="font-size: 0.875rem;">Click to upload</span>
-          <small class="text-muted" style="font-size: 0.75rem;">PDF/Word • 300MB max</small>
+        <button type="button" class="btn btn-outline-secondary btn-sm me-1 textbook-action-upload" data-target="textbook_main_files">
+          <i class="bi bi-cloud-upload"></i> Upload file
+        </button>
+        <button type="button" class="btn btn-outline-secondary btn-sm textbook-action-reference" data-type="main">
+          <i class="bi bi-journal-plus"></i> Add reference
+        </button>
+        <small class="text-muted ms-2" style="font-size: 0.75rem;">PDF/Word • 300MB max</small>
+        <div class="mt-2" id="textbook_main_progress" style="display:none;">
+          <div class="progress" style="height: 6px;">
+            <div class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+          </div>
+          <small class="text-muted d-block mt-1" id="textbook_main_progress_label">Uploading…</small>
         </div>
         <input 
           type="file" 
@@ -131,10 +139,18 @@
     <tr>
       <th class="align-top text-start cis-label" rowspan="{{ $textbooksOther->count() + 1 }}">Other Books and Articles</th>
       <td colspan="3" class="p-2 text-start">
-        <div class="textbook-upload-area" onclick="document.getElementById('textbook_other_files').click()">
-          <i class="bi bi-cloud-upload textbook-upload-icon"></i>
-          <span class="text-dark" style="font-size: 0.875rem;">Click to upload</span>
-          <small class="text-muted" style="font-size: 0.75rem;">PDF/Word • 300MB max</small>
+        <button type="button" class="btn btn-outline-secondary btn-sm me-1 textbook-action-upload" data-target="textbook_other_files">
+          <i class="bi bi-cloud-upload"></i> Upload file
+        </button>
+        <button type="button" class="btn btn-outline-secondary btn-sm textbook-action-reference" data-type="other">
+          <i class="bi bi-journal-plus"></i> Add reference
+        </button>
+        <small class="text-muted ms-2" style="font-size: 0.75rem;">PDF/Word • 300MB max</small>
+        <div class="mt-2" id="textbook_other_progress" style="display:none;">
+          <div class="progress" style="height: 6px;">
+            <div class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+          </div>
+          <small class="text-muted d-block mt-1" id="textbook_other_progress_label">Uploading…</small>
         </div>
         <input 
           type="file" 
@@ -172,11 +188,80 @@
         </td>
       </tr>
     @endforeach
+
+    
   </tbody>
 </table>
 
 <script>
   window.syllabusId = window.syllabusId ?? @json($syllabus->id);
+</script>
+
+{{-- ░░░ START: Add Reference Modal ░░░ --}}
+<div class="modal fade sv-ref-modal" id="addReferenceModal" tabindex="-1" aria-labelledby="addReferenceModalLabel" aria-hidden="true" data-bs-backdrop="static">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      @csrf
+
+      <style>
+        /* Scoped styles for Add Reference modal (inspired by ILO modal) */
+        #addReferenceModal { z-index: 10010 !important; }
+        #addReferenceModal .modal-dialog, #addReferenceModal .modal-content { position: relative; z-index: 10011; }
+        #addReferenceModal .modal-header { padding: .85rem 1rem; border-bottom: 1px solid #E3E3E3; background: #fff; }
+        #addReferenceModal .modal-title { font-weight: 600; font-size: 1rem; display: inline-flex; align-items: center; gap: .5rem; }
+        #addReferenceModal .modal-content { border-radius: 16px; border: 1px solid #E3E3E3; background: #fff; box-shadow: 0 10px 30px rgba(0,0,0,.08), 0 2px 12px rgba(0,0,0,.06); overflow: hidden; }
+        #addReferenceModal .form-label { font-weight: 600; }
+        #addReferenceModal textarea { min-height: 110px; resize: vertical; }
+        #addReferenceModal .btn-light, #addReferenceModal .btn-primary { border: none; box-shadow: none; }
+        #addReferenceModal .btn-light { background: #fff; color: #000; }
+        #addReferenceModal .btn-light:hover{ background: linear-gradient(135deg, rgba(220,220,220,.88), rgba(240,240,240,.46)); }
+        #addReferenceModal .btn-primary { background: #CB3737; }
+        #addReferenceModal .btn-primary:hover{ filter: brightness(.95); }
+        .modal-backdrop { z-index: 10008 !important; }
+      </style>
+
+      <div class="modal-header">
+        <h5 class="modal-title d-flex align-items-center gap-2" id="addReferenceModalLabel">
+          <i data-feather="book"></i>
+          <span>Add Reference</span>
+        </h5>
+      </div>
+
+      <div class="modal-body">
+        <div class="mb-3">
+          <label for="addReferenceText" class="form-label">Reference (citation text)</label>
+          <textarea id="addReferenceText" class="form-control" placeholder="e.g., Author, Title, Publisher, Year, DOI/URL..."></textarea>
+          <input type="hidden" id="addReferenceType" value="main">
+        </div>
+        <div class="text-muted" style="font-size: .85rem;">Tip: Paste a full citation or brief reference text. You can rename it later.</div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">
+          <i data-feather="x"></i> Cancel
+        </button>
+        <button type="button" class="btn btn-primary" id="confirmAddReference">
+          <i data-feather="plus"></i> Save Reference
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{{-- ░░░ END: Add Reference Modal ░░░ --}}
+
+<script>
+  // Relocate Add Reference modal under <body> to avoid stacking context issues
+  document.addEventListener('DOMContentLoaded', function(){
+    try {
+      const modal = document.getElementById('addReferenceModal');
+      if (modal && modal.parentElement !== document.body) {
+        document.body.appendChild(modal);
+        modal.style.zIndex = '10012';
+        const dlg = modal.querySelector('.modal-dialog');
+        if (dlg) dlg.style.zIndex = '10013';
+      }
+    } catch (e) { console.error('Reference modal relocation failed', e); }
+  });
 </script>
 
 

@@ -29,10 +29,18 @@ class SyllabusTextbookController extends Controller
             ]);
 
             // Max is in kilobytes. 300 MB = 300 * 1024 = 307200 KB
-            $request->validate([
-                'textbook_files.*' => 'required|mimes:pdf,doc,docx,xls,xlsx,csv,txt|max:307200',
-                'type' => 'nullable|in:main,other',
-            ]);
+            // Two paths: file upload OR adding a text-only reference
+            if ($request->hasFile('textbook_files')) {
+                $request->validate([
+                    'textbook_files.*' => 'required|mimes:pdf,doc,docx,xls,xlsx,csv,txt|max:307200',
+                    'type' => 'nullable|in:main,other',
+                ]);
+            } else {
+                $request->validate([
+                    'reference' => 'required|string|max:500',
+                    'type' => 'nullable|in:main,other',
+                ]);
+            }
 
             $uploaded = [];
             $defaultType = $request->input('type', 'main');
@@ -57,6 +65,24 @@ class SyllabusTextbookController extends Controller
                         'name' => $textbook->original_name,
                         'url' => Storage::url($textbook->file_path),
                         'type' => $textbook->type,
+                    ];
+                }
+            } else {
+                // Create a text-only reference item (no file)
+                $refText = trim($request->input('reference'));
+                if ($refText !== '') {
+                    $textbook = $syllabus->textbooks()->create([
+                        'file_path' => null,
+                        'original_name' => $refText,
+                        'type' => $defaultType,
+                    ]);
+
+                    $uploaded[] = [
+                        'id' => $textbook->id,
+                        'name' => $textbook->original_name,
+                        'url' => null,
+                        'type' => $textbook->type,
+                        'is_reference' => true,
                     ];
                 }
             }
@@ -103,8 +129,9 @@ class SyllabusTextbookController extends Controller
                 'file' => [
                     'id' => $textbook->id,
                     'name' => $textbook->original_name,
-                    'url' => Storage::url($textbook->file_path),
+                    'url' => $textbook->file_path ? Storage::url($textbook->file_path) : null,
                     'type' => $textbook->type,
+                    'is_reference' => $textbook->file_path ? false : true,
                 ],
             ]);
         } catch (\Throwable $e) {
@@ -169,8 +196,9 @@ class SyllabusTextbookController extends Controller
                 return [
                     'id' => $textbook->id,
                     'name' => $textbook->original_name,
-                    'url' => Storage::url($textbook->file_path),
+                    'url' => $textbook->file_path ? Storage::url($textbook->file_path) : null,
                     'type' => $textbook->type,
+                    'is_reference' => $textbook->file_path ? false : true,
                 ];
             });
 
