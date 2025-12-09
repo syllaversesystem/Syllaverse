@@ -239,6 +239,12 @@ class AIChatController extends Controller
 
         try {
             $messages = [];
+            // Prepend teaching/system prompt: prefer external, else fallback to built-in
+            if ($externalTeachingPrompt && trim($externalTeachingPrompt) !== '') {
+                $messages[] = ['role' => 'system', 'content' => $externalTeachingPrompt];
+            } else if ($systemPrompt && trim($systemPrompt) !== '') {
+                $messages[] = ['role' => 'system', 'content' => $systemPrompt];
+            }
             // Include context when provided (phased snapshots)
             if ($contextPhase1 !== '') {
                 $messages[] = ['role' => 'system', 'content' => "SYLLABUS_CONTEXT_PHASE1_BEGIN\n".$contextPhase1."\nSYLLABUS_CONTEXT_PHASE1_END"]; 

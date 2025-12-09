@@ -43,7 +43,7 @@ class AssessmentMappingAIController extends Controller
         }
 
         // Instruction: produce ONLY JSON of assessment schedule/mappings
-        $userInstruction = <<<TXT
+                $userInstruction = <<<TXT
 You are SyllaverseAI. Based on the provided syllabus snapshot, generate the Assessment Schedule (weeks × codes) and normalized Assessment Mappings rows.
 
 Return ONLY JSON with the following shape:
@@ -56,9 +56,9 @@ Return ONLY JSON with the following shape:
 
 Rules:
 - Term length is 18 weeks (clamp entries to 1–18).
-- Midterm Exam (ME) must be week 9.
-- Final Exam (FE) and/or Project Final Submission must be week 18.
-- "Uploading and Submission of Grades" is an admin note in week 18 (do not include as a graded mapping).
+ - Midterm Exam (ME) must be week 9.
+ - Final Exam (FE) must be week 17.
+ - Week 18 is administrative only: "Release of Examination Results" and "Submission of Grades" (do not include as graded mappings).
 - Use task codes consistent with the snapshot when possible; otherwise choose concise conventional codes.
 - Do not include any text outside the JSON.
 TXT;
