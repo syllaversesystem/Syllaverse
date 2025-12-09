@@ -51,7 +51,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const title = (it?.title || '').trim();
       const titleDisplay = title ? title : '—';
       const cells = [];
-      cells.push(`<td class="so-title text-wrap">${escapeHtml(titleDisplay)}</td>`);
+      // Title: remove text-wrap; add title attribute for hover visibility
+      cells.push(`<td class="so-title" title="${escapeAttr(titleDisplay)}">${escapeHtml(titleDisplay)}</td>`);
       cells.push(`<td class="so-desc-cell text-wrap text-break">${escapeHtml(it.description || '')}</td>`);
       cells.push(`
         <td class="so-actions text-end">

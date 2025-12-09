@@ -18,9 +18,10 @@
     <div class="table-responsive">
       <table class="table mb-0 align-middle so-table" id="sdgTable">
         <colgroup>
-            <col style="width:1%;" />
-            <col />
-            <col style="width:1%;" />
+          <!-- Default Title column width set to 200px for consistent layout -->
+          <col style="width:200px;" />
+          <col />
+          <col style="width:1%;" />
         </colgroup>
         <thead>
           <tr>
@@ -72,14 +73,15 @@
   #sdgTableWrapper, .so-table-wrapper { height: auto; }
   .so-table-wrapper .table-responsive { max-height: none; overflow-y: visible; }
   #sdgTable td.sdg-dept { white-space: nowrap; width: 1%; }
-  /* Title column: shrink-to-fit with sensible bounds and ellipsis */
-  #sdgTable td.sdg-title {
+  /* Title column: compact with wrapping and 200px cap */
+  #sdgTable td.sdg-title,
+  #sdgTable td:first-child {
     color: #000 !important;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    min-width: 220px;      /* don't get too tiny on wide desc */
-    max-width: 480px;      /* avoid eating too much from description */
+    white-space: normal;        /* allow wrapping */
+    overflow-wrap: anywhere;    /* break long tokens */
+    word-break: break-word;     /* legacy fallback */
+    min-width: 200px;
+    max-width: 200px;
   }
   #sdgTable td.sdg-desc-cell { white-space: normal; overflow-wrap: anywhere; word-break: break-word; }
   #sdgTable td.sdg-actions { white-space: nowrap; width: 1%; }

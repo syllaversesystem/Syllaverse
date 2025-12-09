@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const title = (it?.title || '').trim() || '—';
       return `
         <tr data-iga-id="${it.id}" data-title="${escapeAttr(it.title || '')}" data-description="${escapeAttr(it.description || '')}">
-          <td class="iga-title text-wrap" title="${escapeAttr(title)}">${escapeHtml(title)}</td>
+          <td class="iga-title" title="${escapeAttr(title)}">${escapeHtml(title)}</td>
           <td class="iga-desc-cell text-wrap text-break">${escapeHtml(it.description || '')}</td>
           <td class="iga-actions text-end">
             <button type="button" class="btn action-btn edit me-2" data-action="edit-iga" data-id="${it.id}" title="Edit"><i data-feather="edit"></i></button>

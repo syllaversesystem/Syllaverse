@@ -2,6 +2,7 @@
 @extends('layouts.faculty')
 
 @section('title', 'Master Data • Faculty • Syllaverse')
+@section('page-title', 'Master Data')
 
 @section('content')
 <div class="master-data-management manage-account" id="masterDataContainer">

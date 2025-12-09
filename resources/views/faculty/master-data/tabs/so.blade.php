@@ -23,7 +23,8 @@
     <div class="table-responsive">
       <table class="table mb-0 align-middle so-table" id="soTable" data-role-can-see-dept-col="0">
         <colgroup>
-          <col style="width:28%;" />
+          <!-- Default Title column width set to the new max for consistent layout -->
+          <col style="width:200px;" />
           <col />
           <col style="width:1%;" />
         </colgroup>
@@ -160,7 +161,22 @@
   /* Make Department column compact */
   /* Department column removed */
   /* Title column: keep compact and ellipsize long titles */
-  #soTable td.so-title { color: #000 !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* Rows are populated dynamically; target first column cells robustly */
+  #soTable td:first-child {
+    color: #000 !important;
+    white-space: normal;         /* allow wrapping */
+    overflow-wrap: anywhere;     /* break long tokens */
+    word-break: break-word;      /* legacy fallback */
+    min-width: 200px;            /* keep compact bounds */
+    max-width: 200px;
+  }
+  /* Ensure individual title cells respect the cap and wrapping */
+  #soTable td.so-title {
+    width: 200px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
   #soTable td.so-desc-cell { white-space: normal; overflow-wrap: anywhere; word-break: break-word; }
   #soTable td.so-actions { white-space: nowrap; width: 1%; }
   /* Remove any residual hover background from external styles */

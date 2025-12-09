@@ -27,7 +27,8 @@
     <div class="table-responsive">
       <table class="table mb-0 align-middle so-table" id="cdioTable">
         <colgroup>
-          <col style="width:1%;" />
+          <!-- Default Title column width set to 200px for consistent layout -->
+          <col style="width:200px;" />
           <col />
           <col style="width:1%;" />
         </colgroup>
@@ -75,8 +76,16 @@
   #cdioTable thead th { font-weight:600; color: var(--sv-text-muted,#666); }
   #cdioTable thead th i[data-feather], #cdioTable thead th svg[data-feather] { width:1rem !important; height:1rem !important; vertical-align:text-bottom; margin-right:.45rem; display:inline-block !important; stroke: var(--sv-text-muted,#666) !important; color: var(--sv-text-muted,#666) !important; }
 
-  /* Title column: compact, ellipsis if needed */
-  #cdioTable td.cdio-title { color:#000 !important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:220px; max-width:480px; }
+  /* Title column: compact with wrapping and 200px cap */
+  #cdioTable td.cdio-title,
+  #cdioTable td:first-child {
+    color:#000 !important;
+    white-space: normal;       /* allow wrapping */
+    overflow-wrap: anywhere;   /* break long tokens */
+    word-break: break-word;    /* legacy fallback */
+    min-width:200px;
+    max-width:200px;
+  }
   /* Description fills remaining space */
   #cdioTable td.cdio-desc { white-space:normal; overflow-wrap:anywhere; word-break:break-word; }
   #cdioTable td.cdio-actions { white-space:nowrap; width:1%; }

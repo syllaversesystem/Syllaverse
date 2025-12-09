@@ -39,6 +39,7 @@
       <table class="table mb-0 align-middle so-table" id="iloTable">
         <colgroup>
           <col style="width:1%;" />
+          <col style="width:200px;" />
           <col />
           <col style="width:1%;" />
         </colgroup>
@@ -81,8 +82,8 @@
   /* Reuse common master-data styles already defined in other tabs. Add only ILO-specific tweaks as needed. */
   #iloTable thead th { font-weight:600; color: var(--sv-text-muted,#666); }
   #iloTable thead th i[data-feather], #iloTable thead th svg[data-feather] { width:1rem !important; height:1rem !important; vertical-align:text-bottom; margin-right:.45rem; stroke: var(--sv-text-muted,#666) !important; }
-  #iloTable td.ilo-code { color:#000 !important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:140px; max-width:260px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
-  #iloTable td.ilo-desc { white-space:normal; overflow-wrap:anywhere; word-break:break-word; }
+  #iloTable td.ilo-code { color:#000 !important; white-space:normal; overflow-wrap:anywhere; word-break:break-word; min-width:200px; max-width:200px; width:200px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+  #iloTable td.ilo-desc { white-space:normal; overflow-wrap:anywhere; word-break:break-word; width:auto; max-width:none; }
   #iloTable td.ilo-actions { white-space:nowrap; width:1%; }
   #iloTable td.ilo-drag { cursor: grab; width:1%; white-space:nowrap; }
   #iloTable tr.dragging { opacity: .6; }

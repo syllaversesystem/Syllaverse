@@ -44,7 +44,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const rowsHtml = filtered.map(it => {
       const title = (it?.title || '').trim() || '—';
       const cells = [];
-      cells.push(`<td class="sdg-title text-wrap">${escapeHtml(title)}</td>`);
+      // Title: add title attribute; rely on CSS wrapping with 200px cap
+      cells.push(`<td class="sdg-title" title="${escapeAttr(title)}">${escapeHtml(title)}</td>`);
       cells.push(`<td class="sdg-desc-cell text-wrap text-break">${escapeHtml(it.description || '')}</td>`);
       cells.push(`
         <td class="sdg-actions text-end">

@@ -19,9 +19,10 @@
     <div class="table-responsive">
       <table class="table mb-0 align-middle so-table" id="igaTable">
         <colgroup>
-          <col style="width:1%;" /> <!-- Title -->
-          <col />                   <!-- Description (fills) -->
-          <col style="width:1%;" /> <!-- Actions -->
+          <!-- Default Title column width set to 200px for consistent layout -->
+          <col style="width:200px;" />
+          <col />
+          <col style="width:1%;" />
         </colgroup>
         <thead>
           <tr>
@@ -72,8 +73,16 @@
   #igaTableWrapper, .so-table-wrapper { height: auto; }
   .so-table-wrapper .table-responsive { max-height: none; overflow-y: visible; }
   #igaTable td.iga-dept { white-space: nowrap; width: 1%; }
-  /* Make IGA title column fit its contents (compact, no wrapping) */
-  #igaTable td.iga-title { color: #000 !important; white-space: nowrap; }
+  /* IGA title column: compact with wrapping and 200px cap */
+  #igaTable td.iga-title,
+  #igaTable td:first-child {
+    color: #000 !important;
+    white-space: normal;        /* allow wrapping */
+    overflow-wrap: anywhere;    /* break long tokens */
+    word-break: break-word;     /* legacy fallback */
+    min-width: 200px;
+    max-width: 200px;
+  }
   /* Let Description fill remaining width and wrap nicely */
   #igaTable td.iga-desc-cell { width: 100%; white-space: normal; overflow-wrap: anywhere; word-break: break-word; }
   #igaTable td.iga-desc-cell { white-space: normal; overflow-wrap: anywhere; word-break: break-word; }

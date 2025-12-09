@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const desc = it?.description || '';
       return `
         <tr data-cdio-id="${it.id}" data-title="${escapeAttr(it.title || '')}" data-description="${escapeAttr(desc)}">
-          <td class="cdio-title text-wrap" title="${escapeAttr(title)}">${escapeHtml(title)}</td>
+          <td class="cdio-title" title="${escapeAttr(title)}">${escapeHtml(title)}</td>
           <td class="cdio-desc text-wrap text-break">${escapeHtml(desc)}</td>
           <td class="cdio-actions text-end">
             <button type="button" class="btn action-btn edit me-2" data-action="edit-cdio" data-id="${it.id}" title="Edit"><i data-feather="edit"></i></button>
