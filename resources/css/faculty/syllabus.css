@@ -192,6 +192,14 @@
 	background-color: inherit !important;
 }
 
+/* Constrain syllabus card width and center content */
+.syllabus-content-wrapper {
+	max-width: 960px;
+	width: 100%;
+	margin-left: auto;
+	margin-right: auto;
+}
+
 /* ------------------------------------------------------------------
 	 Toolbar Button UI: match Department Add mini button for top toolbar only
 	 ------------------------------------------------------------------ */
