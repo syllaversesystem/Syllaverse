@@ -46,6 +46,25 @@ class IloIgaController extends Controller
 
             DB::beginTransaction();
 
+            // Persist IGA column headers if provided (new lightweight format)
+            $igaLabels = $validated['iga_labels'] ?? [];
+
+            // Always clear existing IGA headers so deletions are reflected
+            SyllabusIga::where('syllabus_id', $syllabusId)->delete();
+
+            // Recreate IGA headers in the provided order (including empty labels to preserve columns)
+            if (is_array($igaLabels)) {
+                foreach ($igaLabels as $idx => $label) {
+                    SyllabusIga::create([
+                        'syllabus_id' => $syllabusId,
+                        'code' => is_string($label) ? $label : '',
+                        'title' => '',
+                        'description' => '',
+                        'position' => $idx,
+                    ]);
+                }
+            }
+
             // Delete existing ILO-IGA mappings for this syllabus
             SyllabusIloIga::where('syllabus_id', $syllabusId)->delete();
 

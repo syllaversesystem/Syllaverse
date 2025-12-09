@@ -21,31 +21,54 @@ class AIChatController extends Controller
     public function chat(Request $request, Syllabus $syllabus)
     {
         $userMessage = trim((string)$request->input('message', ''));
+        // Gather contexts from multiple fields
         $context = trim((string)$request->input('context', ''));
+        $contextAll = trim((string)$request->input('context_all', ''));
+        $contextPhase1 = trim((string)$request->input('context_phase1', ''));
+        $contextPhase2 = trim((string)$request->input('context_phase2', ''));
+        $contextPhase3 = trim((string)$request->input('context_phase3', ''));
+        $phaseReq = (string)$request->input('phase', '');
         $tlaOnly = false;
-        // Reorder: bring TLA block to the very top to avoid model missing it
+        // Build a combined context (prefer context_all, else concatenate phases, else single context)
+        $combinedContext = '';
+        if ($contextAll !== '') {
+            $combinedContext = $contextAll;
+        } elseif ($contextPhase1 !== '' || $contextPhase2 !== '' || $contextPhase3 !== '') {
+            $parts = [];
+            if ($contextPhase1 !== '') $parts[] = "--- Phase 1 ---\n".$contextPhase1;
+            if ($contextPhase2 !== '') $parts[] = "--- Phase 2 ---\n".$contextPhase2;
+            if ($contextPhase3 !== '') $parts[] = "--- Phase 3 ---\n".$contextPhase3;
+            $combinedContext = implode("\n\n", $parts);
+        } else {
+            $combinedContext = $context; // legacy single field
+        }
+        // Reorder: bring TLA block to the very top, but do not drop other blocks unless explicitly requested
         try {
-            if ($context !== '' && strpos($context, 'PARTIAL_BEGIN:tla') !== false) {
-                if (preg_match('/PARTIAL_BEGIN:tla[\s\S]*?PARTIAL_END:tla/', $context, $m)) {
+            if ($combinedContext !== '' && strpos($combinedContext, 'PARTIAL_BEGIN:tla') !== false) {
+                if (preg_match('/PARTIAL_BEGIN:tla[\s\S]*?PARTIAL_END:tla/', $combinedContext, $m)) {
                     $tlaBlock = $m[0];
-                    $rest = trim(preg_replace('/PARTIAL_BEGIN:tla[\s\S]*?PARTIAL_END:tla/', '', $context)) ?: '';
-                    // Force TLA-only mode: drop all other snapshot blocks entirely
-                    $context = $tlaBlock;
-                    $tlaOnly = true;
+                    $rest = trim(preg_replace('/PARTIAL_BEGIN:tla[\s\S]*?PARTIAL_END:tla/', '', $combinedContext)) ?: '';
+                    // TLA-only mode only when phase explicitly is 2
+                    if ($phaseReq === '2') {
+                        $combinedContext = $tlaBlock;
+                        $tlaOnly = true;
+                    } else {
+                        $combinedContext = $tlaBlock.(($rest !== '') ? ("\n\n".$rest) : '');
+                    }
                 }
             }
         } catch (\Throwable $e) { /* ignore reorder errors */ }
         // Server-side diagnostics: confirm context receipt and presence of key blocks
         try {
-            $len = mb_strlen($context);
-            $hasTla = ($context !== '' && (strpos($context, 'PARTIAL_BEGIN:tla') !== false));
+            $len = mb_strlen($combinedContext);
+            $hasTla = ($combinedContext !== '' && (strpos($combinedContext, 'PARTIAL_BEGIN:tla') !== false));
             // If TLA Activities block exists in snapshot, add a short structural guide for the model
             try {
-                if ($context !== '' && strpos($context, 'PARTIAL_BEGIN:tla') !== false) {
+                if ($combinedContext !== '' && strpos($combinedContext, 'PARTIAL_BEGIN:tla') !== false) {
                     // Extract optional columns line and count rows
                     $cols = null; $rowCount = 0;
-                    if (preg_match('/COLUMNS:\s*(.+)/', $context, $m)) { $cols = trim($m[1]); }
-                    if (preg_match_all('/^ROW:\d+\s\|/m', $context, $m)) { $rowCount = count($m[0]); }
+                    if (preg_match('/COLUMNS:\s*(.+)/', $combinedContext, $m)) { $cols = trim($m[1]); }
+                    if (preg_match_all('/^ROW:\d+\s\|/m', $combinedContext, $m)) { $rowCount = count($m[0]); }
                     $guide = "Use the on-page TLA Activities partial (PARTIAL_BEGIN:tla) only. "
                         ."It is structured with TLA_START/TLA_END and per-row lines (ROW and FIELDS_ROW). "
                         ."Columns: ".($cols ?: 'Ch. | Topics / Reading List | Wks. | Topic Outcomes | ILO | SO | Delivery Method').". "
@@ -53,14 +76,14 @@ class AIChatController extends Controller
                     $messages[] = ['role' => 'system', 'content' => $guide];
                 }
             } catch (\Throwable $e) { /* ignore TLA guide errors */ }
-            $hasCriteria = ($context !== '' && (strpos($context, 'PARTIAL_BEGIN:criteria_assessment') !== false));
-            $hasCourseInfo = ($context !== '' && (strpos($context, 'PARTIAL_BEGIN:course_info') !== false));
-            $hasMv = ($context !== '' && (strpos($context, 'PARTIAL_BEGIN:mission_vision') !== false));
+            $hasCriteria = ($combinedContext !== '' && (strpos($combinedContext, 'PARTIAL_BEGIN:criteria_assessment') !== false));
+            $hasCourseInfo = ($combinedContext !== '' && (strpos($combinedContext, 'PARTIAL_BEGIN:course_info') !== false));
+            $hasMv = ($combinedContext !== '' && (strpos($combinedContext, 'PARTIAL_BEGIN:mission_vision') !== false));
             $preview = '';
             if ($len > 0) {
                 // Take first 400 chars and last 200 chars for quick preview
-                $head = mb_substr($context, 0, min(400, $len));
-                $tail = $len > 200 ? mb_substr($context, $len - 200) : '';
+                $head = mb_substr($combinedContext, 0, min(400, $len));
+                $tail = $len > 200 ? mb_substr($combinedContext, $len - 200) : '';
                 $preview = $head . ($tail !== '' ? "\n…\n" . $tail : '');
             }
             Log::info('AIChat incoming context', [
@@ -216,19 +239,21 @@ class AIChatController extends Controller
 
         try {
             $messages = [];
-            // Include context only when provided (phased snapshots)
-            $phase = (string)$request->input('phase', '');
-            $contextPhase1 = (string)$request->input('context_phase1', '');
-            $contextPhase2 = (string)$request->input('context_phase2', '');
+            // Include context when provided (phased snapshots)
             if ($contextPhase1 !== '') {
                 $messages[] = ['role' => 'system', 'content' => "SYLLABUS_CONTEXT_PHASE1_BEGIN\n".$contextPhase1."\nSYLLABUS_CONTEXT_PHASE1_END"]; 
             }
             if ($contextPhase2 !== '') {
                 $messages[] = ['role' => 'system', 'content' => "SYLLABUS_CONTEXT_PHASE2_BEGIN\n".$contextPhase2."\nSYLLABUS_CONTEXT_PHASE2_END"]; 
             }
-            // Backward compatibility: single context field
-            if ($context !== '' && $contextPhase1 === '' && $contextPhase2 === '') {
-                $messages[] = ['role' => 'system', 'content' => "SYLLABUS_CONTEXT_BEGIN\n".$context."\nSYLLABUS_CONTEXT_END"]; 
+            if ($contextPhase3 !== '') {
+                $messages[] = ['role' => 'system', 'content' => "SYLLABUS_CONTEXT_PHASE3_BEGIN\n".$contextPhase3."\nSYLLABUS_CONTEXT_PHASE3_END"]; 
+            }
+            // Backward compatibility: context_all or single context field
+            if ($contextAll !== '') {
+                $messages[] = ['role' => 'system', 'content' => "SYLLABUS_CONTEXT_ALL_BEGIN\n".$contextAll."\nSYLLABUS_CONTEXT_ALL_END"]; 
+            } elseif ($combinedContext !== '') {
+                $messages[] = ['role' => 'system', 'content' => "SYLLABUS_CONTEXT_BEGIN\n".$combinedContext."\nSYLLABUS_CONTEXT_END"]; 
             }
             // Do not add edit/replace or creation boosters
             // Append compact DB context and program extras unless in TLA-only mode

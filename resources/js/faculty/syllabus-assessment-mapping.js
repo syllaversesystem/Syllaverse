@@ -140,53 +140,25 @@ document.addEventListener('DOMContentLoaded', function() {
 			return;
 		}
 
-		// Collect all week numbers from TLA rows
-		const weekNumbers = new Set();
+		// Collect all week labels from TLA rows (preserve ranges like "1-2" as single labels)
+		const weekLabels = [];
+		const seen = new Set();
 		tlaRows.forEach(function(row) {
 			const wksInput = row.querySelector('.tla-wks input');
-			if (wksInput && wksInput.value.trim()) {
-				// Parse week numbers (handle ranges like "1-3" or comma-separated like "1,2,3")
-				const wksValue = wksInput.value.trim();
-				
-				// Handle ranges (e.g., "1-3")
-				if (wksValue.includes('-')) {
-					const parts = wksValue.split('-');
-					const start = parseInt(parts[0]);
-					const end = parseInt(parts[1]);
-					if (!isNaN(start) && !isNaN(end)) {
-						for (let i = start; i <= end; i++) {
-							weekNumbers.add(i);
-						}
-					}
-				}
-				// Handle comma-separated (e.g., "1,2,3")
-				else if (wksValue.includes(',')) {
-					wksValue.split(',').forEach(function(num) {
-						const parsed = parseInt(num.trim());
-						if (!isNaN(parsed)) {
-							weekNumbers.add(parsed);
-						}
-					});
-				}
-				// Handle single number
-				else {
-					const parsed = parseInt(wksValue);
-					if (!isNaN(parsed)) {
-						weekNumbers.add(parsed);
-					}
-				}
-			}
+			const raw = (wksInput && wksInput.value) ? wksInput.value.trim() : '';
+			if (!raw) return;
+			// Split by commas only; do NOT expand hyphen ranges
+			raw.split(',').map(t => t.trim()).filter(Boolean).forEach(token => {
+				if (!seen.has(token)) { seen.add(token); weekLabels.push(token); }
+			});
 		});
-
-		// Sort week numbers
-		const sortedWeeks = Array.from(weekNumbers).sort((a, b) => a - b);
 		
 		const headerRow = weekTable.querySelector('tr:first-child');
 		const allDataRows = weekTable.querySelectorAll('tr:not(:first-child)');
 		const currentHeaders = Array.from(headerRow.querySelectorAll('th.week-number'));
 		
 		// If no weeks, show "No weeks" placeholder
-		if (sortedWeeks.length === 0) {
+		if (weekLabels.length === 0) {
 			// Check if placeholder already exists
 			const hasPlaceholder = currentHeaders.length === 1 && currentHeaders[0].textContent.trim() === 'No weeks';
 			if (hasPlaceholder) return;
@@ -219,11 +191,11 @@ document.addEventListener('DOMContentLoaded', function() {
 		// Check if we have a placeholder
 		const hasPlaceholder = currentHeaders.length === 1 && currentHeaders[0].textContent.trim() === 'No weeks';
 		
-		// Get current week numbers (excluding placeholder)
-		const currentWeeks = hasPlaceholder ? [] : currentHeaders.map(th => parseInt(th.textContent.trim())).filter(n => !isNaN(n));
+		// Get current header labels (excluding placeholder)
+		const currentLabels = hasPlaceholder ? [] : currentHeaders.map(th => th.textContent.trim());
 		
-		// If current weeks match sorted weeks, no need to update
-		if (JSON.stringify(currentWeeks) === JSON.stringify(sortedWeeks)) return;
+		// If current labels match collected labels, no need to update
+		if (JSON.stringify(currentLabels) === JSON.stringify(weekLabels)) return;
 
 		// Clear existing headers and cells
 		if (hasPlaceholder) {
@@ -240,14 +212,14 @@ document.addEventListener('DOMContentLoaded', function() {
 			});
 		}
 
-		// Add new week columns based on TLA weeks
-		sortedWeeks.forEach(function(weekNum, index) {
+		// Add new week columns based on TLA week labels
+		weekLabels.forEach(function(weekLabel, index) {
 			// Add header
 			const newTh = document.createElement('th');
 			newTh.className = 'week-number';
 			const borderLeft = index > 0 ? 'border-left:1px solid #343a40;' : '';
 			newTh.style.cssText = `border:none; border-bottom:1px solid #343a40; ${borderLeft} height:30px; padding:0.2rem 0.5rem; font-family:Georgia,serif; font-size:13px; color:#000; font-weight:bold; text-align:center;`;
-			newTh.textContent = weekNum;
+			newTh.textContent = weekLabel;
 			headerRow.appendChild(newTh);
 
 			// Add cells to all data rows
@@ -517,12 +489,12 @@ document.addEventListener('DOMContentLoaded', function() {
 			const weekRows = weekTable.querySelectorAll('tr:not(:first-child)');
 			const weekHeaders = weekTable.querySelectorAll('tr:first-child th.week-number');
 
-			// Build week numbers array (skip placeholder)
-			const weekNumbers = [];
+			// Build week labels array (skip placeholder), preserving ranges and text labels
+			const weekLabels = [];
 			weekHeaders.forEach(function(header) {
-				const weekText = header.textContent.trim();
-				if (weekText !== 'No weeks') {
-					weekNumbers.push(parseInt(weekText));
+				const label = header.textContent.trim();
+				if (label !== 'No weeks') {
+					weekLabels.push(label);
 				}
 			});
 
@@ -537,10 +509,11 @@ document.addEventListener('DOMContentLoaded', function() {
 				
 				const weekMarks = {};
 				weekCells.forEach(function(cell, cellIndex) {
-					if (cellIndex < weekNumbers.length) {
-						const weekNum = weekNumbers[cellIndex];
-						const marked = cell.textContent.trim() === 'x';
-						weekMarks[weekNum] = marked ? 'x' : '';
+					if (cellIndex < weekLabels.length) {
+						const label = weekLabels[cellIndex];
+						const txt = cell.textContent.trim();
+						const marked = txt.toLowerCase() === 'x' || cell.classList.contains('marked') || cell.getAttribute('data-mark') === 'x' || /x/i.test(cell.innerHTML);
+						weekMarks[label] = marked ? 'x' : '';
 					}
 				});
 
@@ -632,19 +605,19 @@ if (saveBtn) {
 		const weekTable = document.querySelector('.assessment-mapping table.week');
 		if (!distributionTable || !weekTable) return;
 
-		// Collect all unique week numbers from mappings
-		const allWeeks = new Set();
+		// Collect all unique week labels from mappings (preserve label strings such as "1-2")
+		const allWeekLabels = [];
+		const seenLabels = new Set();
 		mappings.forEach(mapping => {
 			if (mapping.week_marks) {
-				const weekMarks = typeof mapping.week_marks === 'string' 
-					? JSON.parse(mapping.week_marks) 
+				const weekMarks = typeof mapping.week_marks === 'string'
+					? JSON.parse(mapping.week_marks)
 					: mapping.week_marks;
-				Object.keys(weekMarks).forEach(week => allWeeks.add(parseInt(week)));
+				Object.keys(weekMarks).forEach(label => {
+					if (label && !seenLabels.has(label)) { seenLabels.add(label); allWeekLabels.push(label); }
+				});
 			}
 		});
-
-		// Sort weeks
-		const sortedWeeks = Array.from(allWeeks).sort((a, b) => a - b);
 
 		// Clear existing rows (keep header)
 		const distRows = distributionTable.querySelectorAll('tr:not(:first-child)');
@@ -657,14 +630,28 @@ if (saveBtn) {
 		const headers = headerRow.querySelectorAll('th.week-number');
 		headers.forEach(th => th.remove());
 
+		// Define a natural sort for labels: use starting number if present
+		function labelStartNumber(label) {
+			const m = /^\s*(\d+)/.exec(label);
+			return m ? parseInt(m[1], 10) : Number.POSITIVE_INFINITY;
+		}
+
+		// Sort labels by starting number, keeping non-numeric at the end
+		const sortedLabels = allWeekLabels.slice().sort((a, b) => {
+			const na = labelStartNumber(a);
+			const nb = labelStartNumber(b);
+			if (na === nb) return a.localeCompare(b); // tie-breaker by text
+			return na - nb;
+		});
+
 		// Add week columns
-		if (sortedWeeks.length > 0) {
-			sortedWeeks.forEach((weekNum, index) => {
+		if (sortedLabels.length > 0) {
+			sortedLabels.forEach((label, index) => {
 				const newTh = document.createElement('th');
 				newTh.className = 'week-number';
 				const borderLeft = index > 0 ? 'border-left:1px solid #343a40;' : '';
 				newTh.style.cssText = `border:none; border-bottom:1px solid #343a40; ${borderLeft} height:30px; padding:0.2rem 0.5rem; font-family:Georgia,serif; font-size:13px; color:#000; font-weight:bold; text-align:center;`;
-				newTh.textContent = weekNum;
+				newTh.textContent = label;
 				headerRow.appendChild(newTh);
 			});
 		} else {
@@ -698,19 +685,19 @@ if (saveBtn) {
 
 			// Add week row
 			const weekTr = document.createElement('tr');
-			const weekMarks = typeof mapping.week_marks === 'string' 
-				? JSON.parse(mapping.week_marks) 
+			const weekMarks = typeof mapping.week_marks === 'string'
+				? JSON.parse(mapping.week_marks)
 				: (mapping.week_marks || {});
 
-			if (sortedWeeks.length > 0) {
-				sortedWeeks.forEach((weekNum, index) => {
+			if (sortedLabels.length > 0) {
+				sortedLabels.forEach((label, index) => {
 					const weekTd = document.createElement('td');
 					weekTd.className = 'week-mapping';
 					const borderLeft = index > 0 ? 'border-left:1px solid #343a40;' : '';
 					weekTd.style.cssText = `border:none; ${borderTop} ${borderLeft} height:30px; padding:0.2rem 0.5rem; background-color:#fff; cursor:pointer; text-align:center;`;
 					
 					// Check if this week is marked
-					if (weekMarks[weekNum] === 'x') {
+					if (weekMarks[label] === 'x') {
 						weekTd.textContent = 'x';
 						weekTd.style.color = '#000';
 						weekTd.classList.add('marked');

@@ -580,7 +580,7 @@
     const endpoint = syllabusId ? `/faculty/syllabi/${syllabusId}/ai-chat` : null;
     if (!endpoint) { appendMsg('ai', 'AI service unavailable.'); return; }
     const loadingRow = appendLoading();
-    const fd = new FormData(); fd.append('message', val);
+    const fd = new FormData();
     try {
       // Phase 1: send a minimal snapshot (mission_vision, course_info, ilo, so, iga, cdio, sdg)
       function collectPhase1Snapshot(){
@@ -907,11 +907,245 @@
         return payload;
       }
       const phase2 = collectPhase2Snapshot();
-      // Attach both Phase 1 and Phase 2 if available, preserving order
+      // Phase 3: Assessment Mapping + ILO mappings (SO-CPA, IGA, CDIO-SDG)
+      function collectPhase3Snapshot(){
+        const md = [];
+        // SCHEMA: Provide save/render structure hints for the AI
+        md.push('### SCHEMA: Mapping Structures');
+        md.push('- Assessment Mapping: `Task | Week1 | Week2 | ...` where weeks are human-entered labels (e.g., "1-2"). Cells are marked with "x" if scheduled; saved keyed by the exact week label.');
+        md.push('- ILO–SO–CPA: `ILO | SO 1 | SO 2 | ... | C | P | A`. SO columns are numeric labels from header; rows save textarea values per column; C/P/A are plain text cells.');
+        md.push('- ILO–IGA: `ILO | IGA 1 | IGA 2 | ...`. IGA column headers come from header inputs; if blank, defaults like "IGA 1" are used. Values saved per column label.');
+        md.push('- ILO–CDIO–SDG: `ILO | CDIO... | | SDG...` (a divider column visually splits groups). CDIO and SDG headers come from inputs; defaults like "CDIO 1"/"SDG 1" when blank. Rows persist values keyed by the respective header labels.');
+        md.push('');
+        // Assessment Mapping (Task Calendar)
+        try {
+          const amRoot = document.querySelector('.assessment-mapping');
+          if (amRoot) {
+            md.push('### Assessment Mapping (Task Calendar)');
+            // Build a matrix: Task | [Week headers...] with per-cell value ('x' or '-')
+            const distRows = Array.from(amRoot.querySelectorAll('table.distribution tr')).slice(1);
+            const weekHeader = Array.from(amRoot.querySelectorAll('table.week tr:first-child th.week-number'))
+              .map(th => th.textContent.trim())
+              .filter(t => t && t.toLowerCase() !== 'no weeks');
+            const weekRows = Array.from(amRoot.querySelectorAll('table.week tr')).slice(1);
+            // Header
+            md.push('| Task | ' + (weekHeader.length ? weekHeader.join(' | ') : 'Week') + ' |');
+            md.push('|:--|' + (weekHeader.length ? weekHeader.map(()=>':--:').join('|') : ':--:') + '|');
+            // Rows
+            distRows.forEach((dr, idx) => {
+              const name = dr.querySelector('input.distribution-input')?.value?.trim() || '-';
+              const cells = Array.from(weekRows[idx]?.querySelectorAll('td.week-mapping') || []);
+              const vals = [];
+              for (let cIdx = 0; cIdx < (weekHeader.length || cells.length); cIdx++) {
+                const cell = cells[cIdx];
+                if (!cell) { vals.push('-'); continue; }
+                const txt = (cell.textContent || '').trim();
+                // Fallbacks: some UIs may mark via class or data attribute
+                const marked = txt.toLowerCase() === 'x' || cell.classList.contains('marked') || cell.getAttribute('data-mark') === 'x' || /x/i.test(cell.innerHTML);
+                vals.push(marked ? 'x' : '-');
+              }
+              // Pad/trim to match header count
+              const rowVals = (weekHeader.length ? vals.slice(0, weekHeader.length) : (vals.length ? vals : ['-']));
+              md.push('| ' + [name].concat(rowVals).join(' | ') + ' |');
+            });
+            if (!distRows.length) md.push('| - | - |');
+          }
+        } catch(e) { console.warn('[AIChat][Phase3][Assessment Mapping] parse error:', e); }
+
+        // ILO-SO-CPA mapping
+        try {
+          const soRoot = document.querySelector('.ilo-so-cpa-mapping');
+          if (soRoot) {
+            md.push('\n### ILO–SO–CPA Mapping');
+            const mapTable = soRoot.querySelector('.mapping');
+            const headerRow2 = mapTable?.querySelectorAll('tr')[1];
+            const headers = headerRow2 ? Array.from(headerRow2.querySelectorAll('th')).map(th => th.textContent.trim()) : [];
+            const soHeaders = headers.filter(h => /^\d+$/i.test(h));
+            // Data rows
+            const rows = Array.from((mapTable?.querySelector('tbody') || mapTable).querySelectorAll('tr')).filter(r => r.querySelector('td'));
+            md.push('| ILO | ' + (soHeaders.length ? soHeaders.map(h=>`SO ${h}`).join(' | ') : 'SO') + ' | C | P | A |');
+            md.push('|:--|'+ (soHeaders.length ? soHeaders.map(()=>':--:').join('|') : ':--:') +'|:--:|:--:|:--:|');
+            rows.forEach(r => {
+              const tds = Array.from(r.querySelectorAll('td'));
+              const ilo = (tds[0]?.querySelector('input')?.value || tds[0]?.textContent || '').toString().trim() || '-';
+              // SO cells are between ILO and C/P/A; detect count from headers
+              const soCount = Math.max(1, soHeaders.length);
+              const soVals = [];
+              for (let i = 1; i <= soCount; i++) {
+                const cell = tds[i];
+                const ta = cell?.querySelector('textarea');
+                const v = (ta ? ta.value : cell?.textContent || '').toString().trim();
+                soVals.push(v || '-');
+              }
+              const c = (tds[tds.length-3]?.querySelector('textarea')?.value || tds[tds.length-3]?.textContent || '').toString().trim() || '-';
+              const p = (tds[tds.length-2]?.querySelector('textarea')?.value || tds[tds.length-2]?.textContent || '').toString().trim() || '-';
+              const a = (tds[tds.length-1]?.querySelector('textarea')?.value || tds[tds.length-1]?.textContent || '').toString().trim() || '-';
+              md.push('| ' + [ilo].concat(soVals).concat([c,p,a]).join(' | ') + ' |');
+            });
+            if (!rows.length) md.push('| - | - | - | - | - |');
+          }
+        } catch(e) { console.warn('[AIChat][Phase3][ILO-SO-CPA] parse error:', e); }
+
+        // ILO-IGA mapping
+        try {
+          const igaRoot = document.querySelector('.ilo-iga-mapping');
+          if (igaRoot) {
+            md.push('\n### ILO–IGA Mapping');
+            const mapTable = igaRoot.querySelector('.mapping');
+            const headerRow2 = mapTable?.querySelectorAll('tr')[1];
+            const ths = headerRow2 ? Array.from(headerRow2.querySelectorAll('th')) : [];
+            const isPlaceholderOnly = ths.length === 1 && !ths[0]?.querySelector('input') && (ths[0]?.textContent || '').toString().trim().toLowerCase() === 'no iga';
+
+            // Build IGA header labels from inputs/text; use sensible defaults to preserve column count
+            const igaHeaders = [];
+            if (!isPlaceholderOnly) {
+              ths.forEach((th, i) => {
+                const inp = th.querySelector('input');
+                const raw = (inp?.value || th.textContent || '').toString().trim();
+                // Keep position with default label when empty
+                igaHeaders.push(raw || `IGA ${i+1}`);
+              });
+            }
+
+            const rows = Array.from((mapTable?.querySelector('tbody') || mapTable).querySelectorAll('tr')).filter(r => r.querySelector('td'));
+            // Header row
+            if (isPlaceholderOnly) {
+              md.push('| ILO | IGA |');
+              md.push('|:--|:--:|');
+            } else {
+              md.push('| ILO | ' + (igaHeaders.length ? igaHeaders.join(' | ') : 'IGA') + ' |');
+              md.push('|:--|' + (igaHeaders.length ? igaHeaders.map(()=>':--:').join('|') : ':--:') + '|');
+            }
+
+            // Data rows
+            rows.forEach(r => {
+              const tds = Array.from(r.querySelectorAll('td'));
+              const ilo = (tds[0]?.querySelector('input')?.value || tds[0]?.textContent || '').toString().trim() || '-';
+              const vals = [];
+              for (let i = 1; i < tds.length; i++) {
+                const cell = tds[i];
+                const ta = cell?.querySelector('textarea');
+                const v = (ta ? ta.value : cell?.textContent || '').toString().trim();
+                vals.push(v || '-');
+              }
+              // If placeholder-only, reduce to single value column
+              const outVals = isPlaceholderOnly ? [vals[0] || '-'] : vals;
+              md.push('| ' + [ilo].concat(outVals).join(' | ') + ' |');
+            });
+            if (!rows.length) md.push(isPlaceholderOnly ? '| - | - |' : '| - | - |');
+          }
+        } catch(e) { console.warn('[AIChat][Phase3][ILO-IGA] parse error:', e); }
+
+        // ILO-CDIO-SDG mapping
+        try {
+          const csRoot = document.querySelector('.ilo-cdio-sdg-mapping');
+          if (csRoot) {
+            md.push('\n### ILO–CDIO–SDG Mapping');
+            const mapTable = csRoot.querySelector('.mapping');
+            const headerRow1 = mapTable?.querySelectorAll('tr')[0];
+            const headerRow2 = mapTable?.querySelectorAll('tr')[1];
+            const cdioSpan = headerRow1 ? parseInt(headerRow1.children[1]?.getAttribute('colspan') || '1', 10) : 1;
+            const sdgSpan  = headerRow1 ? parseInt(headerRow1.children[2]?.getAttribute('colspan') || '1', 10) : 1;
+
+            // Prefer explicit class-based selection for labels; fallback to counts
+            const row2Cells = headerRow2 ? Array.from(headerRow2.children) : [];
+            let cdioHeaderCells = headerRow2 ? Array.from(headerRow2.querySelectorAll('th.cdio-label-cell')) : [];
+            let sdgHeaderCells  = headerRow2 ? Array.from(headerRow2.querySelectorAll('th.sdg-label-cell'))  : [];
+            if (!cdioHeaderCells.length && cdioSpan > 0) cdioHeaderCells = row2Cells.slice(0, cdioSpan);
+            if (!sdgHeaderCells.length && sdgSpan  > 0) sdgHeaderCells  = row2Cells.slice(cdioSpan, cdioSpan + sdgSpan);
+
+            const cdioPlaceholderOnly = (cdioHeaderCells.length === 1) && !cdioHeaderCells[0]?.querySelector('input') && ((cdioHeaderCells[0]?.textContent || '').toString().trim().toLowerCase() === 'no cdio');
+            const sdgPlaceholderOnly  = (sdgHeaderCells.length === 1)  && !sdgHeaderCells[0]?.querySelector('input')  && ((sdgHeaderCells[0]?.textContent  || '').toString().trim().toLowerCase()  === 'no sdg');
+
+            // Build header labels with defaults to preserve alignment
+            const cdioLabels = [];
+            const sdgLabels = [];
+            if (!cdioPlaceholderOnly) {
+              cdioHeaderCells.forEach((cell, i) => {
+                const inp = cell.querySelector('input');
+                let txt = (inp?.value || cell.textContent || '').toString().trim();
+                txt = txt.replace(/Remove CDIO column|Add CDIO column/gi, '').trim();
+                cdioLabels.push(txt || `CDIO ${i+1}`);
+              });
+            }
+            if (!sdgPlaceholderOnly) {
+              sdgHeaderCells.forEach((cell, j) => {
+                const inp = cell.querySelector('input');
+                let txt = (inp?.value || cell.textContent || '').toString().trim();
+                txt = txt.replace(/Remove SDG column|Add SDG column/gi, '').trim();
+                sdgLabels.push(txt || `SDG ${j+1}`);
+              });
+            }
+
+            // Data rows: the inner table has 3 initial rows (header1, header2, "No ILO").
+            // Actual data rows start from index 3 onwards regardless of section state.
+            const allTr = Array.from(mapTable.querySelectorAll('tr'));
+            const rows = allTr.slice(3).filter(r => r.querySelector('td'));
+            // Output combined side-by-side table: ILO | CDIO cols | [divider] | SDG cols
+            const realCdioCols = cdioPlaceholderOnly ? 1 : cdioHeaderCells.length;
+            const realSdgCols  = sdgPlaceholderOnly  ? 1 : sdgHeaderCells.length;
+            const cdioHeadersForTable = (cdioPlaceholderOnly || !cdioLabels.length) ? ['CDIO'] : cdioLabels;
+            const sdgHeadersForTable  = (sdgPlaceholderOnly  || !sdgLabels.length)  ? ['SDG']  : sdgLabels;
+            // Insert a blank spacer column between CDIO and SDG groups for visual separation
+            const headerLine = '| ILO | ' + cdioHeadersForTable.join(' | ') + ' |  | ' + sdgHeadersForTable.join(' | ') + ' |';
+            const alignLine  = '|:--|' + cdioHeadersForTable.map(()=>':--:').join('|') + '|---|' + sdgHeadersForTable.map(()=>':--:').join('|') + '|';
+            md.push(headerLine);
+            md.push(alignLine);
+            rows.forEach(r => {
+              const tds = Array.from(r.querySelectorAll('td'));
+              const ilo = (tds[0]?.querySelector('input')?.value || tds[0]?.textContent || '').toString().trim() || '-';
+              const cdioVals = [];
+              for (let i = 0; i < realCdioCols; i++) {
+                const cell = tds[1 + i];
+                const ta = cell?.querySelector('textarea');
+                const v = (ta ? ta.value : cell?.textContent || '').toString().trim();
+                cdioVals.push(v || '-');
+              }
+              const sdgVals = [];
+              const offset = 1 + realCdioCols + 1; // +1 for divider column
+              for (let j = 0; j < realSdgCols; j++) {
+                const cell = tds[offset + j];
+                const ta = cell?.querySelector('textarea');
+                const v = (ta ? ta.value : cell?.textContent || '').toString().trim();
+                sdgVals.push(v || '-');
+              }
+              md.push('| ' + [ilo].concat(cdioVals).concat(['']).concat(sdgVals).join(' | ') + ' |');
+            });
+            if (!rows.length) md.push('| - | - | - |');
+          }
+        } catch(e) { console.warn('[AIChat][Phase3][ILO-CDIO-SDG] parse error:', e); }
+
+        let payload = md.join('\n');
+        const MAX = 12000;
+        if (payload.length > MAX) payload = payload.slice(0, MAX) + '\n[Context trimmed]';
+        try {
+          const preview = payload.slice(0, 1000);
+          console.log('[AIChat][Phase3] Sending mappings snapshot', { length: payload.length });
+          console.log('[AIChat][Phase3] Preview:\n' + preview);
+          console.log('[AIChat][Phase3] Payload FULL:\n' + payload);
+        } catch(e) {}
+        return payload;
+      }
+      const phase3 = collectPhase3Snapshot();
+      // Attach Phase 1, 2, and 3, preserving order
       if (phase1) fd.append('context_phase1', phase1);
       if (phase2) fd.append('context_phase2', phase2);
-      // Set current phase indicator (prefer 2 when present)
-      if (phase2) fd.append('phase', '2'); else if (phase1) fd.append('phase', '1');
+      if (phase3) fd.append('context_phase3', phase3);
+      // Provide a single combined context blob for models expecting one field
+      const combined = [
+        phase1 ? '--- Phase 1 ---\n' + phase1 : '',
+        phase2 ? '--- Phase 2 ---\n' + phase2 : '',
+        phase3 ? '--- Phase 3 ---\n' + phase3 : ''
+      ].filter(Boolean).join('\n\n');
+      if (combined) {
+        fd.append('context_all', combined);
+        // Also set generic 'context' for backends expecting a single field
+        fd.append('context', combined);
+      }
+      // Keep user's message minimal; attach context separately to avoid 422 due to payload size/validation
+      fd.append('message', val);
+      // Set current phase indicator (prefer 3 when present)
+      if (phase3) fd.append('phase', '3'); else if (phase2) fd.append('phase', '2'); else if (phase1) fd.append('phase', '1');
       const hist = buildHistoryPayload(true);
       if (hist && hist.length) fd.append('history', JSON.stringify(hist));
     } catch(e) { /* noop */ }
