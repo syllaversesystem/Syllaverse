@@ -53,3 +53,14 @@
 	</thead>
 </table>
 </div>
+
+@push('scripts')
+<script src="{{ Vite::asset('resources/js/faculty/ai-map.js') }}" type="module"></script>
+<script>
+	// Ensure ai-map initializes after DOM
+	document.addEventListener('DOMContentLoaded', function(){
+		try { if (window._aiMap && typeof window._aiMap.collectPhasePayloads === 'function') window._aiMap.collectPhasePayloads(); } catch(e) {}
+	});
+	// Shortcut note: Cmd+Shift+R (mac) / Ctrl+Shift+R (win) opens AI Map Input Viewer
+</script>
+@endpush

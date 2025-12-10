@@ -7,6 +7,9 @@
 (function(){
   // In-memory conversation buffer
   const _convo = [];
+  // Last request/response snapshots for debugging/viewing
+  let _lastRequest = null; // { message, phase, context_phase1, context_phase2, context_phase3, context_all, history }
+  let _lastReply = null;   // string
   function pushConvo(role, content){
     if (!role || typeof content !== 'string') return;
     const r = (role.toLowerCase() === 'you' || role.toLowerCase() === 'user') ? 'user' : 'assistant';
@@ -1145,9 +1148,22 @@
       // Keep user's message minimal; attach context separately to avoid 422 due to payload size/validation
       fd.append('message', val);
       // Set current phase indicator (prefer 3 when present)
-      if (phase3) fd.append('phase', '3'); else if (phase2) fd.append('phase', '2'); else if (phase1) fd.append('phase', '1');
+      let phaseInd = '';
+      if (phase3) { fd.append('phase', '3'); phaseInd = '3'; }
+      else if (phase2) { fd.append('phase', '2'); phaseInd = '2'; }
+      else if (phase1) { fd.append('phase', '1'); phaseInd = '1'; }
       const hist = buildHistoryPayload(true);
       if (hist && hist.length) fd.append('history', JSON.stringify(hist));
+      // Stash full client-side request snapshot for viewer
+      _lastRequest = {
+        message: val,
+        phase: phaseInd,
+        context_phase1: phase1 || '',
+        context_phase2: phase2 || '',
+        context_phase3: phase3 || '',
+        context_all: combined || '',
+        history: hist || []
+      };
     } catch(e) { /* noop */ }
     fetch(endpoint, {
       method: 'POST',
@@ -1161,6 +1177,7 @@
       } catch(e) { /* noop */ }
       if (loadingRow) loadingRow.remove();
       appendMsg('ai', reply);
+      _lastReply = reply;
     }).catch(() => { if (loadingRow) loadingRow.remove(); appendMsg('ai', 'Network error reaching AI service.'); });
   }
   function init(){
@@ -1172,16 +1189,135 @@
       aiInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
       autosizeTextarea(aiInput);
     }
-    // Optional keyboard shortcut: Shift+T to open TLA context viewer
+    // Optional keyboard shortcut: Shift+T to open Chat I/O viewer
     document.addEventListener('keydown', (e) => {
       if (e.shiftKey && e.key.toLowerCase() === 't') {
-        try { if (typeof window._aiChat?.openTlaContextViewer === 'function') window._aiChat.openTlaContextViewer(); } catch(err) {}
+        try { if (typeof window._aiChat?.openChatIOViewer === 'function') window._aiChat.openChatIOViewer(); } catch(err) {}
       }
     });
   }
   document.addEventListener('DOMContentLoaded', init);
   // expose for debugging
   try {
+    function openChatIOViewer(){
+      const overlay = document.createElement('div');
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9999;display:flex;align-items:center;justify-content:center;';
+      const modal = document.createElement('div');
+      modal.style.cssText = 'width:80%;max-width:960px;max-height:80%;background:#fff;border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,0.25);display:flex;flex-direction:column;';
+      const head = document.createElement('div');
+      head.style.cssText = 'padding:12px 16px;border-bottom:1px solid #e5e5e5;display:flex;gap:8px;align-items:center;font-weight:600;';
+      head.textContent = 'AI Chat I/O Viewer';
+      const closeBtn = document.createElement('button');
+      closeBtn.textContent = 'Close';
+      closeBtn.style.cssText = 'margin-left:auto;padding:6px 10px;border:1px solid #ccc;background:#f7f7f7;border-radius:6px;cursor:pointer;';
+      closeBtn.addEventListener('click', () => overlay.remove());
+      head.appendChild(closeBtn);
+      const body = document.createElement('div');
+      body.style.cssText = 'padding:12px 16px;overflow:auto;';
+      // Build last request block (message + snapshots)
+      const reqWrap = document.createElement('div');
+      reqWrap.style.cssText = 'margin-bottom:16px;padding:10px;border:1px solid #e6e9ed;border-radius:8px;background:#fcfcfc;';
+      const reqTitle = document.createElement('div');
+      reqTitle.textContent = 'Last Request (client-side)';
+      reqTitle.style.cssText = 'font-weight:600;margin-bottom:8px;color:#111827;';
+      reqWrap.appendChild(reqTitle);
+      if (_lastRequest) {
+        const meta = document.createElement('div');
+        meta.style.cssText = 'font-size:.85rem;color:#374151;margin-bottom:6px;';
+        meta.textContent = 'Phase: ' + (_lastRequest.phase || '-') + ' • History msgs: ' + ((_lastRequest.history || []).length);
+        reqWrap.appendChild(meta);
+        const msgLbl = document.createElement('div');
+        msgLbl.textContent = 'Message:';
+        msgLbl.style.cssText = 'font-weight:600;color:#374151;margin:6px 0 4px;';
+        const msgPre = document.createElement('pre');
+        msgPre.style.cssText = 'white-space:pre-wrap;word-wrap:break-word;font-size:12px;line-height:1.4;margin:0;border:1px dashed #e5e7eb;border-radius:6px;padding:8px;background:#fff;';
+        msgPre.textContent = _lastRequest.message || '';
+        reqWrap.appendChild(msgLbl);
+        reqWrap.appendChild(msgPre);
+        function addCtx(label, text){
+          const lbl = document.createElement('div');
+          lbl.textContent = label;
+          lbl.style.cssText = 'font-weight:600;color:#374151;margin:10px 0 4px;';
+          const pre = document.createElement('pre');
+          pre.style.cssText = 'white-space:pre-wrap;word-wrap:break-word;font-size:12px;line-height:1.4;margin:0;border:1px dashed #e5e7eb;border-radius:6px;padding:8px;background:#fff;max-height:220px;overflow:auto;';
+          pre.textContent = text || '';
+          reqWrap.appendChild(lbl);
+          reqWrap.appendChild(pre);
+        }
+        addCtx('Context Phase 1', _lastRequest.context_phase1);
+        addCtx('Context Phase 2', _lastRequest.context_phase2);
+        addCtx('Context Phase 3', _lastRequest.context_phase3);
+        addCtx('Context ALL (combined)', _lastRequest.context_all);
+      } else {
+        const none = document.createElement('div');
+        none.textContent = 'No request captured yet.';
+        reqWrap.appendChild(none);
+      }
+      body.appendChild(reqWrap);
+      // Last reply block
+      const repWrap = document.createElement('div');
+      repWrap.style.cssText = 'margin-bottom:16px;padding:10px;border:1px solid #e6e9ed;border-radius:8px;background:#fcfcfc;';
+      const repTitle = document.createElement('div');
+      repTitle.textContent = 'Last Reply';
+      repTitle.style.cssText = 'font-weight:600;margin-bottom:8px;color:#111827;';
+      repWrap.appendChild(repTitle);
+      const repBody = document.createElement('div');
+      repBody.style.cssText = 'font-size:.9rem;line-height:1.45;color:#111827;';
+      try {
+        repBody.innerHTML = formatAIResponse(_lastReply || '[No reply captured yet]');
+      } catch(e) {
+        repBody.textContent = _lastReply || '[No reply captured yet]';
+      }
+      repWrap.appendChild(repBody);
+      body.appendChild(repWrap);
+      // Conversation list (last 20 entries)
+      const list = document.createElement('div');
+      list.style.cssText = 'display:flex;flex-direction:column;gap:10px;';
+      const max = 20;
+      const start = Math.max(0, _convo.length - max);
+      const slice = _convo.slice(start);
+      if (!slice.length){
+        const empty = document.createElement('div');
+        empty.textContent = 'No chat messages yet.';
+        list.appendChild(empty);
+      } else {
+        slice.forEach((m, idx) => {
+          const row = document.createElement('div');
+          row.style.cssText = 'border:1px solid #e6e9ed;border-radius:8px;padding:8px 10px;background:#fff;';
+          const meta = document.createElement('div');
+          meta.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:6px;';
+          const role = document.createElement('span');
+          role.textContent = (m.role === 'user' ? 'You' : 'AI');
+          role.style.cssText = 'font-size:.8rem;font-weight:600;color:#333;background:#f3f4f6;border:1px solid #e5e7eb;border-radius:999px;padding:2px 8px;';
+          const idxBadge = document.createElement('span');
+          idxBadge.textContent = '#' + (start + idx + 1);
+          idxBadge.style.cssText = 'font-size:.7rem;color:#6b7280;';
+          meta.appendChild(role);
+          meta.appendChild(idxBadge);
+          const content = document.createElement('div');
+          content.style.cssText = 'font-size:.9rem;line-height:1.45;color:#111827;';
+          try {
+            if (m.role === 'assistant') {
+              content.innerHTML = formatAIResponse(m.content || '');
+            } else {
+              // Escape basic HTML for user text
+              const txt = (m.content || '').replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+              content.innerHTML = '<pre style="margin:0;white-space:pre-wrap;word-wrap:break-word">' + txt + '</pre>';
+            }
+          } catch(e) {
+            content.textContent = m.content || '';
+          }
+          row.appendChild(meta);
+          row.appendChild(content);
+          list.appendChild(row);
+        });
+      }
+      body.appendChild(list);
+      modal.appendChild(head);
+      modal.appendChild(body);
+      overlay.appendChild(modal);
+      document.body.appendChild(overlay);
+    }
     function extractTlaBlocks(full){
       const blocks = [];
       if (!full) return blocks;
@@ -1224,7 +1360,7 @@
       overlay.appendChild(modal);
       document.body.appendChild(overlay);
     }
-    window._aiChat = { sendMessage, appendMsg, openTlaContextViewer };
+    window._aiChat = { sendMessage, appendMsg, openTlaContextViewer, openChatIOViewer };
     window._aiChatSnapshot = () => collectFullSnapshot();
   } catch(e) {}
 })();

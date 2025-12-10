@@ -62,18 +62,18 @@ class AIChatController extends Controller
         try {
             $len = mb_strlen($combinedContext);
             $hasTla = ($combinedContext !== '' && (strpos($combinedContext, 'PARTIAL_BEGIN:tla') !== false));
-            // If TLA Activities block exists in snapshot, add a short structural guide for the model
+            // If TLA Activities block exists in snapshot, prepare a short structural guide for the model (append later)
+            $tlaGuide = null;
             try {
                 if ($combinedContext !== '' && strpos($combinedContext, 'PARTIAL_BEGIN:tla') !== false) {
                     // Extract optional columns line and count rows
                     $cols = null; $rowCount = 0;
                     if (preg_match('/COLUMNS:\s*(.+)/', $combinedContext, $m)) { $cols = trim($m[1]); }
                     if (preg_match_all('/^ROW:\d+\s\|/m', $combinedContext, $m)) { $rowCount = count($m[0]); }
-                    $guide = "Use the on-page TLA Activities partial (PARTIAL_BEGIN:tla) only. "
+                    $tlaGuide = "Use the on-page TLA Activities partial (PARTIAL_BEGIN:tla) only. "
                         ."It is structured with TLA_START/TLA_END and per-row lines (ROW and FIELDS_ROW). "
                         ."Columns: ".($cols ?: 'Ch. | Topics / Reading List | Wks. | Topic Outcomes | ILO | SO | Delivery Method').". "
                         ."Detected rows: ".$rowCount.". Do not use TLAS (Teaching & Learning Strategies) as a substitute.";
-                    $messages[] = ['role' => 'system', 'content' => $guide];
                 }
             } catch (\Throwable $e) { /* ignore TLA guide errors */ }
             $hasCriteria = ($combinedContext !== '' && (strpos($combinedContext, 'PARTIAL_BEGIN:criteria_assessment') !== false));
@@ -239,6 +239,15 @@ class AIChatController extends Controller
 
         try {
             $messages = [];
+            // 1) Attach system guidance: external teaching prompt (if any) + core system prompt
+            try {
+                $sys = '';
+                if ($externalTeachingPrompt) {
+                    $sys .= "TEACHING_PROMPT_BEGIN\n".$externalTeachingPrompt."\nTEACHING_PROMPT_END\n\n";
+                }
+                $sys .= $systemPrompt;
+                $messages[] = ['role' => 'system', 'content' => $sys];
+            } catch (\Throwable $e) { /* ignore system prompt assembly */ }
             // Include context when provided (phased snapshots)
             if ($contextPhase1 !== '') {
                 $messages[] = ['role' => 'system', 'content' => "SYLLABUS_CONTEXT_PHASE1_BEGIN\n".$contextPhase1."\nSYLLABUS_CONTEXT_PHASE1_END"]; 
@@ -254,6 +263,10 @@ class AIChatController extends Controller
                 $messages[] = ['role' => 'system', 'content' => "SYLLABUS_CONTEXT_ALL_BEGIN\n".$contextAll."\nSYLLABUS_CONTEXT_ALL_END"]; 
             } elseif ($combinedContext !== '') {
                 $messages[] = ['role' => 'system', 'content' => "SYLLABUS_CONTEXT_BEGIN\n".$combinedContext."\nSYLLABUS_CONTEXT_END"]; 
+            }
+            // If we prepared TLA guide earlier, append it as a system hint now
+            if (!empty($tlaGuide)) {
+                $messages[] = ['role' => 'system', 'content' => $tlaGuide];
             }
             // Do not add edit/replace or creation boosters
             // Append compact DB context and program extras unless in TLA-only mode
@@ -459,7 +472,8 @@ class AIChatController extends Controller
                 // ignore textbook block errors
             }
 
-            $maxTokens = 300;
+            // Allow overriding max tokens via env; default to a practical length for structured outputs
+            $maxTokens = (int)env('OPENAI_MAX_TOKENS', 900);
             $payload = [
                 'model' => $model,
                 'messages' => $messages,
@@ -485,10 +499,12 @@ class AIChatController extends Controller
                 ]);
             } catch (\Throwable $e) { /* ignore */ }
 
+            // Support custom API base (e.g., proxy); default to official OpenAI
+            $apiBase = rtrim((string)env('OPENAI_API_BASE', 'https://api.openai.com/v1'), '/');
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer '.$apiKey,
                 'Content-Type' => 'application/json',
-            ])->post('https://api.openai.com/v1/chat/completions', $payload);
+            ])->post($apiBase.'/chat/completions', $payload);
 
             if (!$response->ok()) {
                 Log::warning('OpenAI chat error', ['status' => $response->status(), 'body' => $response->body()]);
@@ -502,8 +518,18 @@ class AIChatController extends Controller
                 'reply' => $reply,
             ]);
         } catch (\Throwable $e) {
-            Log::error('OpenAI chat exception', ['message' => $e->getMessage()]);
-            return response()->json(['error' => 'Unexpected AI error'], 500);
+            Log::error('OpenAI chat exception', [
+                'message' => $e->getMessage(),
+                'trace' => app()->hasDebugModeEnabled() ? $e->getTraceAsString() : null,
+            ]);
+            $errMsg = 'Unexpected AI error';
+            // In non-production, surface a concise hint to aid debugging
+            try {
+                if (!app()->environment('production')) {
+                    $errMsg .= ': ' . $e->getMessage();
+                }
+            } catch (\Throwable $ee) { /* ignore env check errors */ }
+            return response()->json(['error' => $errMsg], 500);
         }
     }
 }
