@@ -276,20 +276,45 @@ document.addEventListener('DOMContentLoaded', () => {
     const type = (typeInput?.value || 'main');
     const text = (textarea?.value || '').trim();
     if (!text) { alert('Please enter a reference.'); return; }
-
+    const originalHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="bi bi-hourglass-split"></i> Saving…';
     fetch(`${base}/${syllabusId}/textbook`, {
       method: 'POST',
       headers: { 'X-CSRF-TOKEN': csrfToken, 'Content-Type': 'application/json' },
       body: JSON.stringify({ type, reference: text })
     })
-      .then(res => res.json())
-      .then(result => {
-        if (result.success) {
-          try { const m = bootstrap.Modal.getInstance(modal); if (m) m.hide(); } catch(_){}
-          refreshSection(type);
+      .then(async (res) => {
+        let payload = {};
+        try { payload = await res.json(); } catch (_) {}
+        if (!res.ok || payload.success === false) {
+          const msg = payload?.message || 'Failed to save reference.';
+          if (window.showAlertOverlay) window.showAlertOverlay('danger', msg);
+          throw new Error(msg);
         }
+        return payload;
       })
-      .catch(err => console.error('Add reference failed:', err));
+      .then(() => {
+        try { const m = bootstrap.Modal.getInstance(modal); if (m) m.hide(); } catch(_){}
+        refreshSection(type);
+        if (window.showAlertOverlay) window.showAlertOverlay('success', 'Reference added');
+      })
+      .catch(err => {
+        console.error('Add reference failed:', err);
+        alert(err.message || 'Failed to add reference.');
+      })
+      .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+      });
+  });
+
+  // Allow Enter key to submit reference when textarea focused
+  document.getElementById('addReferenceText')?.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) {
+      const btn = document.getElementById('confirmAddReference');
+      if (btn) btn.click();
+    }
   });
 });
 

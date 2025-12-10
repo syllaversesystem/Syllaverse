@@ -36,8 +36,9 @@ class SyllabusTextbookController extends Controller
                     'type' => 'nullable|in:main,other',
                 ]);
             } else {
+                // Allow longer reference texts; many citations exceed 500 chars
                 $request->validate([
-                    'reference' => 'required|string|max:500',
+                    'reference' => 'required|string|max:2000',
                     'type' => 'nullable|in:main,other',
                 ]);
             }
@@ -92,6 +93,13 @@ class SyllabusTextbookController extends Controller
                 'message' => 'Textbooks uploaded successfully.',
                 'files' => $uploaded,
             ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Return proper 422 for validation errors
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'errors' => $e->errors(),
+            ], 422);
         } catch (\Throwable $e) {
             Log::error('[SyllabusTextbook] Upload failed', [
                 'error' => $e->getMessage(),

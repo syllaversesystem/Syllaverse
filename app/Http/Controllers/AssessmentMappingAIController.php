@@ -13,6 +13,32 @@ class AssessmentMappingAIController extends Controller
     public function autoMap(Request $request, Syllabus $syllabus)
     {
         $snapshot = trim((string)$request->input('snapshot', ''));
+        $contextAll = trim((string)$request->input('context_all', ''));
+        $contextPhase1 = trim((string)$request->input('context_phase1', ''));
+        $contextPhase2 = trim((string)$request->input('context_phase2', ''));
+        $contextPhase3 = trim((string)$request->input('context_phase3', ''));
+        $contextCombinedExact = trim((string)$request->input('context', ''));
+        $useSameChatContext = $request->boolean('use_same_chat_context');
+        // Prefer a single chat_payload object if provided (exact parity with AI Chat)
+        $chatPayload = $request->input('chat_payload');
+        if (is_array($chatPayload)) {
+            $chatMessage = (string)($chatPayload['message'] ?? '');
+            $contextCombinedExact = (string)($chatPayload['context'] ?? '');
+            $contextPhase1 = (string)($chatPayload['context_phase1'] ?? '');
+            $contextPhase2 = (string)($chatPayload['context_phase2'] ?? '');
+            $contextPhase3 = (string)($chatPayload['context_phase3'] ?? '');
+            $historyJson = (string)($chatPayload['history'] ?? '');
+            $phaseFromChat = (string)($chatPayload['phase'] ?? '');
+            if (!$request->has('phase') && $phaseFromChat !== '') {
+                $request->merge(['phase' => $phaseFromChat]);
+            }
+        }
+        $chatMessage = trim((string)$request->input('message', ''));
+        $historyJson = (string)$request->input('history', '');
+        $history = null;
+        if ($historyJson) {
+            try { $history = json_decode($historyJson, true, 512, JSON_THROW_ON_ERROR); } catch (\Throwable $e) { $history = null; }
+        }
         if ($snapshot === '') {
             return response()->json(['error' => 'Missing snapshot'], 422);
         }
@@ -41,6 +67,18 @@ class AssessmentMappingAIController extends Controller
         if ($externalTeachingPrompt) {
             $messages[] = ['role' => 'system', 'content' => $externalTeachingPrompt];
         }
+        // If chat history exists, include a compact summary to provide continuity
+        if (is_array($history) && count($history)) {
+            $summary = json_encode($history);
+            if (strlen($summary) > 8000) { $summary = substr($summary, 0, 8000) . ' [trimmed]'; }
+            $messages[] = ['role' => 'system', 'content' => "CHAT_HISTORY_SUMMARY:\n" . $summary];
+        }
+        // If chat history exists, include a compact summary to provide continuity
+        if (is_array($history) && count($history)) {
+            $summary = json_encode($history);
+            if (strlen($summary) > 8000) { $summary = substr($summary, 0, 8000) . ' [trimmed]'; }
+            $messages[] = ['role' => 'system', 'content' => "CHAT_HISTORY_SUMMARY:\n" . $summary];
+        }
 
         // Instruction: produce ONLY JSON of assessment schedule/mappings
                 $userInstruction = <<<TXT
@@ -63,7 +101,26 @@ Rules:
 - Do not include any text outside the JSON.
 TXT;
 
-        $messages[] = ['role' => 'user', 'content' => $userInstruction . "\n\nSNAPSHOT_BEGIN\n" . $snapshot . "\nSNAPSHOT_END"];
+        // Compose content with exact chat contexts when available to mirror AI Chat input
+        // If asked to use the same chat context, prefer the exact combined ordering provided
+        // Simplify prompt: use only the text "hotdog" as the user content
+        $userContent = 'hotdog';
+        $messages[] = ['role' => 'user', 'content' => $userContent];
+
+        // Build a sanitized preview of the OpenAI request
+        $systemContents = [];
+        foreach ($messages as $m) {
+            if (($m['role'] ?? '') === 'system') {
+                $c = (string)($m['content'] ?? '');
+                if (strlen($c) > 12000) $c = substr($c, 0, 12000) . ' [trimmed]';
+                $systemContents[] = $c;
+            }
+        }
+        $requestPreview = [
+            'model' => $model,
+            'system_messages' => $systemContents,
+            'user_message' => (strlen($userContent) > 12000) ? (substr($userContent, 0, 12000) . ' [trimmed]') : $userContent,
+        ];
 
         try {
             $resp = Http::withHeaders([
@@ -82,18 +139,27 @@ TXT;
 
             $data = $resp->json();
             $content = $data['choices'][0]['message']['content'] ?? '';
-            // Attempt to decode JSON directly
+            // If user wants plain text (no JSON), return as-is
+            $plainTextOnly = true;
+            if ($plainTextOnly) {
+                return response()->json([
+                    'success' => true,
+                    'text' => $content,
+                    'request_preview' => $requestPreview,
+                ]);
+            }
+            // Attempt to decode JSON directly (legacy path)
             $json = null;
             try { $json = json_decode($content, true, 512, JSON_THROW_ON_ERROR); } catch (\Throwable $e) {}
             if (!is_array($json) || !isset($json['mappings']) || !is_array($json['mappings'])) {
                 return response()->json(['error' => 'Invalid AI response format'], 500);
             }
 
-            // Return normalized mappings to client; client will render and save via existing flow
             return response()->json([
                 'success' => true,
                 'mappings' => $json['mappings'],
                 'weeks' => $json['weeks'] ?? [],
+                'request_preview' => $requestPreview,
             ]);
         } catch (\Throwable $e) {
             Log::error('AI autoMap exception', ['error' => $e->getMessage()]);
