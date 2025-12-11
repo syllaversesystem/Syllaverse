@@ -33,10 +33,126 @@
     });
     const phase1 = p1Blocks.length ? p1Blocks.join('\n\n') : '';
 
-    // Phase 2: TLA + Criteria + AT + Policies + Textbooks summaries
-    const tla = extractBlock(real || full, 'tla');
-    const criteria = extractBlock(real || full, 'criteria_assessment');
-    let phase2 = [tla, criteria].filter(Boolean).join('\n\n');
+    // Phase 2: Include TLA Activities from frontend snapshot (no backend changes)
+    // Use realtime-only TLA block (DOM snapshot); do not fallback to full
+    // Build TLA snapshot directly from DOM (no realtime context dependency)
+    function buildTlaMdFromDom(){
+      try {
+        const table = document.getElementById('tlaTable');
+        if (!table) return '';
+        const tbody = table.querySelector('tbody') || table;
+        const rows = Array.from(tbody.querySelectorAll('tr')).filter(r => r.id !== 'tla-placeholder');
+        const md = [];
+        md.push('### Teaching, Learning, and Assessment (TLA) Activities');
+        md.push('Columns: Ch. | Topics / Reading List | Wks. | Topic Outcomes | ILO | SO | Delivery Method');
+        md.push('| # | Ch. | Topics / Reading List | Wks. | Topic Outcomes | ILO | SO | Delivery |');
+        md.push('|:--:|:--:|:--|:--:|:--|:--:|:--:|:--|');
+        let count = 0;
+        const read = (row, selector) => {
+          const el = row.querySelector(selector);
+          if (!el) return '-';
+          // If element is a form field, use .value and do not fall back to textContent
+          if (typeof el.value === 'string') {
+            return (el.value || '').toString().trim();
+          }
+          // Otherwise, check for nested field
+          const inner = el.querySelector && el.querySelector('input,textarea,select');
+          if (inner && typeof inner.value === 'string') {
+            return (inner.value || '').toString().trim();
+          }
+          // Finally, non-form visible text
+          const txt = (el.textContent || '').trim();
+          return txt || '-';
+        };
+        rows.forEach((row) => {
+          const ch = read(row, '[name*="[ch]"]');
+          const topic = read(row, '[name*="[topic]"]');
+          const wks = read(row, '[name*="[wks]"]');
+          const outcomes = read(row, '[name*="[outcomes]"]');
+          const ilo = read(row, '[name*="[ilo]"]');
+          const so = read(row, '[name*="[so]"]');
+          const delivery = read(row, '[name*="[delivery]"]');
+          const any = [ch,topic,wks,outcomes,ilo,so,delivery].some(v => (v && v !== '-' && v.trim() !== ''));
+          if (any) {
+            count++;
+            md.push(`| ${count} | ${ch} | ${topic} | ${wks} | ${outcomes} | ${ilo} | ${so} | ${delivery} |`);
+          }
+        });
+        if (count === 0) md.push('| - | - | - | - | - | - | - | - |');
+        return md.join('\n');
+      } catch(e){ return ''; }
+    }
+    const tla = buildTlaMdFromDom();
+
+    // Build Assessment Tasks Distribution snapshot (DOM-based)
+    function buildAssessmentTasksDistributionMd(){
+      try {
+        const atRoot = document.querySelector('.at-map-outer');
+        if (!atRoot) return '';
+        const headerRow = atRoot.querySelector('thead tr:nth-child(2)');
+        let iloCount = 0;
+        if (headerRow) {
+          const totalCols = headerRow.children.length; // Code, Task, I/R/D, %, ILO*, C, P, A
+          iloCount = Math.max(1, totalCols - 7);
+        }
+        const tbody = atRoot.querySelector('#at-tbody');
+        const rows = tbody ? Array.from(tbody.querySelectorAll('tr')) : [];
+        const md = [];
+        md.push('### Assessment Tasks Distribution');
+        const hdr = ['Code','Task','I/R/D','%'];
+        for (let i = 1; i <= iloCount; i++) hdr.push(`ILO ${i}`);
+        hdr.push('C','P','A');
+        md.push('| ' + hdr.join(' | ') + ' |');
+        md.push('| ' + hdr.map(()=> '---').join(' | ') + ' |');
+
+        rows.forEach(tr => {
+          const tds = Array.from(tr.children);
+          const readCell = (idx, numeric=false) => {
+            const cell = tds[idx];
+            if (!cell) return '';
+            const ta = cell.querySelector('textarea');
+            let v = ta ? (ta.value || '') : (cell.textContent || '');
+            v = v.toString().trim();
+            if (numeric) {
+              const n = parseFloat(v.replace(/[^0-9.\-]/g,''));
+              return Number.isFinite(n) ? String(Math.round(n)) : '';
+            }
+            return v;
+          };
+          const code = readCell(0);
+          const task = readCell(1);
+          const ird = readCell(2);
+          const pct = readCell(3, true);
+          const iloVals = [];
+          for (let i = 4; i < tds.length - 3; i++) {
+            const ta = tds[i].querySelector('textarea');
+            iloVals.push((ta ? ta.value : '' ).toString().trim());
+          }
+          const c = readCell(tds.length - 3);
+          const p = readCell(tds.length - 2);
+          const a = readCell(tds.length - 1);
+          const rowVals = [code || '-', task || '-', ird || '-', pct ? pct + '%' : '-']
+            .concat(iloVals.length ? iloVals.map(v => v || '-') : Array.from({length: iloCount}, () => '-'))
+            .concat([c || '-', p || '-', a || '-']);
+          md.push('| ' + rowVals.join(' | ') + ' |');
+        });
+
+        if (!rows.length) {
+          let placeholder = ['-','-','-','-'];
+          for (let i = 0; i < iloCount; i++) placeholder.push('-');
+          placeholder.push('-','-','-');
+          md.push('Note: No assessment tasks defined; using placeholder.');
+          md.push('| ' + placeholder.join(' | ') + ' |');
+        }
+        return md.join('\n');
+      } catch(e){ return ''; }
+    }
+
+    const atDistribution = buildAssessmentTasksDistributionMd();
+    // Re-include Criteria-for-Assessment from realtime context if present
+    const reCriteria = /PARTIAL_BEGIN:criteria_assessment[\s\S]*?PARTIAL_END:criteria_assessment/;
+    const crit = (typeof real === 'string' && real) ? (real.match(reCriteria)?.[0] || '') : (full.match(reCriteria)?.[0] || '');
+    let phase2 = [tla, atDistribution, crit].filter(Boolean).join('\n\n');
 
     // Phase 3: mappings (Assessment Mapping grid, ILO–SO–CPA, ILO–IGA, ILO–CDIO–SDG)
     // These are visual DOM tables; build compact markdown from the page like chat did.
@@ -348,7 +464,18 @@
     const btn = document.getElementById('svAiAutoMapBtn');
     if (btn) {
       btn.addEventListener('click', async () => {
+        try { window._svAiMapProgress?.set('Preparing', 10, 'Gathering course details and schedule…', 'state-running'); } catch(e) {}
         const payloads = collectPhasePayloads();
+        // Check sufficiency before calling AI
+        const suff = assessDataSufficiency();
+        if (!suff.ok) {
+          try { window._svAiMapProgress?.set('Complete', 100, suff.message || 'Not enough details to place marks yet.', 'state-warn'); } catch(e) {}
+          _lastMapOutput = 'Data not sufficient to map X marks. ' + (suff.explain || 'Please complete TLA activities and week schedule.');
+          _lastParsedMap = [];
+          openInputViewer();
+          return;
+        }
+        try { window._svAiMapProgress?.set('Calling AI', 25, 'Checking the plan against your weeks…', 'state-running'); } catch(e) {}
         // Send to AI chat endpoint to generate Assessment Mapping first
         try {
           const syllabusId = document.getElementById('syllabus-document')?.getAttribute('data-syllabus-id') || null;
@@ -359,10 +486,11 @@
           const instruction = [
             'Analyze and generate ONLY the X marks for the Assessment Mapping (Task Calendar).',
             '- Do NOT change task names or week labels; use EXACTLY the tasks and week headers visible on the page.',
+            '- Only map a task if that task appears in the Teaching, Learning, and Assessment (TLA) Activities. If a task is not present in TLA Activities, do not place any X for it.',
+            '- Map weeks based on the weeks indicated in the TLA Activities for the corresponding task. If a task has weeks in TLA, place "x" in those same weeks; otherwise leave blank or "-".',
             '- Output strictly a Markdown table with the same columns as the UI: | Task | <week headers…> |.',
-            '- For each cell, put "x" where the task is scheduled; otherwise leave blank or "-".',
-            '- If there are existing X marks, CORRECT them when they do not align with weekly topics/TLA chronology (i.e., assessments must occur after topics are introduced).',
-            '- Assume weeks and tasks are already correct; your job is only to place or adjust X values based on TLA and schedule context.'
+            '- If there are existing X marks, CORRECT them when they do not align with weekly topics/TLA chronology (assessments must occur after topics are introduced).',
+            '- If TLA Activities or week data is missing for a task, explicitly leave it unmapped and do not infer new weeks.'
           ].join(' \n');
           fd.append('message', instruction);
           if (payloads?.context_phase1) fd.append('context_phase1', payloads.context_phase1);
@@ -379,13 +507,26 @@
           const j = await res.json().catch(()=>({}));
           if (res.ok && j && j.reply) {
             _lastMapOutput = j.reply;
+            try { window._svAiMapProgress?.set('Parsing', 55, 'Reading the suggested mapping…', 'state-running'); } catch(e) {}
             _lastParsedMap = parseMarkdownToJson(_lastMapOutput);
             // Auto-apply parsed map to database (no manual option)
+            try { window._svAiMapProgress?.set('Applying', 75, 'Placing X marks where they belong…', 'state-running'); } catch(e) {}
             await autoApplyParsedMap(_lastParsedMap);
             // Refresh UI grid to reflect applied X marks
+            try { window._svAiMapProgress?.set('Refreshing', 90, 'Refreshing the table…', 'state-running'); } catch(e) {}
             refreshAssessmentMappingGrid(_lastParsedMap);
             // Provide lightweight success feedback
             showToast('Assessment mapping auto-applied.');
+            // Decide sufficiency based on visible data & parsed result
+            const amRoot = document.querySelector('.assessment-mapping');
+            const weekHeader = Array.from(amRoot?.querySelectorAll('table.week tr:first-child th.week-number')||[])
+              .map(th => th.textContent.trim()).filter(t => t && t.toLowerCase() !== 'no weeks');
+            const distRows = Array.from(amRoot?.querySelectorAll('table.distribution tr')||[]).slice(1);
+            const hasTasks = distRows.some(dr => (dr.querySelector('input.distribution-input')?.value||'').trim());
+            const parsedOk = Array.isArray(_lastParsedMap) && _lastParsedMap.length > 0;
+            const sufficient = weekHeader.length > 0 && hasTasks && parsedOk;
+            try { window._svAiMapProgress?.set('Done', 100, sufficient ? 'All set — mapping applied.' : 'We need a bit more info to place everything.', sufficient ? 'state-ok' : 'state-warn'); } catch(e) {}
+            // Keep the progress bar visible after success per request.
           } else { _lastMapOutput = j.error ? ('AI Error: ' + j.error) : 'No reply received.'; _lastParsedMap = []; }
         } catch(err){ _lastMapOutput = 'Network/AI error: ' + (err?.message || String(err)); }
         // Still allow inspecting input/output if needed
@@ -398,8 +539,7 @@
       if (isShiftR) {
         e.preventDefault();
         collectPhasePayloads();
-        // Trigger auto-map flow as well on shortcut
-        triggerAutoMap();
+        // Shortcut will only open the viewer; mapping runs on button click
         openInputViewer();
       }
     });
@@ -514,6 +654,14 @@
     if (btn) { btn.click(); return; }
     // Fallback: simulate the same flow as button
     const payloads = collectPhasePayloads();
+    // Check sufficiency
+    const suff = assessDataSufficiency();
+    if (!suff.ok) {
+      try { const f=document.getElementById('svAiMapProgressFill'); if(f){ f.classList.remove('state-running','state-ok'); f.classList.add('state-warn'); } window._svAiMapProgress?.set('Complete', 100, suff.message || 'Not enough details to place marks yet.'); } catch(e) {}
+      _lastMapOutput = 'Data not sufficient to map X marks. ' + (suff.explain || 'Please complete TLA activities and week schedule.');
+      _lastParsedMap = [];
+      return;
+    }
     try {
       const syllabusId = document.getElementById('syllabus-document')?.getAttribute('data-syllabus-id') || null;
       const endpoint = syllabusId ? `/faculty/syllabi/${syllabusId}/ai-chat` : null;
@@ -522,10 +670,11 @@
       const instruction = [
         'Analyze and generate ONLY the X marks for the Assessment Mapping (Task Calendar).',
         '- Do NOT change task names or week labels; use EXACTLY the tasks and week headers visible on the page.',
+        '- Only map a task if that task appears in the Teaching, Learning, and Assessment (TLA) Activities. If a task is not present in TLA Activities, do not place any X for it.',
+        '- Map weeks based on the weeks indicated in the TLA Activities for the corresponding task. If a task has weeks in TLA, place "x" in those same weeks; otherwise leave blank or "-".',
         '- Output strictly a Markdown table with the same columns as the UI: | Task | <week headers…> |.',
-        '- For each cell, put "x" where the task is scheduled; otherwise leave blank or "-".',
-        '- If there are existing X marks, CORRECT them when they do not align with weekly topics/TLA chronology (i.e., assessments must occur after topics are introduced).',
-        '- Assume weeks and tasks are already correct; your job is only to place or adjust X values based on TLA and schedule context.'
+        '- If there are existing X marks, CORRECT them when they do not align with weekly topics/TLA chronology (assessments must occur after topics are introduced).',
+        '- If TLA Activities or week data is missing for a task, explicitly leave it unmapped and do not infer new weeks.'
       ].join(' \n');
       fd.append('message', instruction);
       if (payloads?.context_phase1) fd.append('context_phase1', payloads.context_phase1);
@@ -549,5 +698,29 @@
     } catch(err){ _lastMapOutput = 'Network/AI error: ' + (err?.message || String(err)); }
   }
 
-  window._aiMap = { collectPhasePayloads, openInputViewer, parseMarkdownToJson, triggerAutoMap };
+  // Assess sufficiency of data based on TLA activities presence and week headers
+  function assessDataSufficiency(){
+    try {
+      const amRoot = document.querySelector('.assessment-mapping');
+      const weekHeader = Array.from(amRoot?.querySelectorAll('table.week tr:first-child th.week-number')||[])
+        .map(th => th.textContent.trim()).filter(t => t && t.toLowerCase() !== 'no weeks');
+      const distRows = Array.from(amRoot?.querySelectorAll('table.distribution tr')||[]).slice(1);
+      const hasTasks = distRows.some(dr => (dr.querySelector('input.distribution-input')?.value||'').trim());
+      // TLA activities block presence: look for TLA textarea or context snapshot
+      const tlaBlock = (typeof window._svRealtimeContext === 'string') ? /PARTIAL_BEGIN:tla[\s\S]*PARTIAL_END:tla/m.test(window._svRealtimeContext) : false;
+      const tlaDom = document.querySelector('.tla-activities, .tla-section, .tla, .tla-partial, #tlaTable');
+      const hasTla = tlaBlock || !!tlaDom;
+      const messages = [];
+      if (!hasTla && !weekHeader.length && !hasTasks) {
+        return { ok: false, message: 'We need TLA activities, tasks, and weeks before we can map.', explain: 'No TLA details, tasks, or week schedule found.' };
+      }
+      if (!hasTla) messages.push('Add some Teaching, Learning, and Assessment activities.');
+      if (!hasTasks) messages.push('Add at least one task in Distribution.');
+      if (!weekHeader.length) messages.push('Add week headers to the schedule.');
+      const ok = hasTla && hasTasks && weekHeader.length > 0;
+      return { ok, message: ok ? '' : ('Looks like we need more info: ' + messages.join(' ')), explain: messages.join(' ') };
+    } catch(e){ return { ok: false, message: 'We need a bit more info to map correctly.', explain: '' }; }
+  }
+
+  window._aiMap = { collectPhasePayloads, openInputViewer, parseMarkdownToJson, triggerAutoMap, assessDataSufficiency };
 })();

@@ -358,58 +358,19 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function rebuildTlaRealtimeContext() {
+    // Disabled: only remove any existing TLA block from realtime context
     try {
-      const rows = Array.from(tbody.querySelectorAll('tr')).filter(r => r.id !== 'tla-placeholder');
-      const lines = [];
-      lines.push('PARTIAL_BEGIN:tla');
-      lines.push(headerTitle);
-      lines.push('TLA_START');
-      lines.push(columns);
-      if (rows.length) {
-        rows.forEach((row, index) => {
-          const ch = getRowValue(row, '[name*="[ch]"]');
-          const topic = getRowValue(row, '[name*="[topic]"]');
-          const wks = getRowValue(row, '[name*="[wks]"]');
-          const outcomes = getRowValue(row, '[name*="[outcomes]"]');
-          const ilo = getRowValue(row, '[name*="[ilo]"]');
-          const so = getRowValue(row, '[name*="[so]"]');
-          const delivery = getRowValue(row, '[name*="[delivery]"]');
-          lines.push(`ROW:${index+1} | Ch:${ch} | Wks:${wks} | Topic:${topic} | Outcomes:${outcomes} | ILO:${ilo} | SO:${so} | Delivery:${delivery}`);
-          lines.push(`FIELDS_ROW:${index+1} | ch=${ch} | wks=${wks} | topic=${topic} | outcomes=${outcomes} | ilo=${ilo} | so=${so} | delivery=${delivery}`);
-        });
-      } else {
-        lines.push('[No TLA rows entered yet – AI may suggest a weekly plan]');
-        lines.push('FIELDS_ROW:0 | ch=- | wks=- | topic=- | outcomes=- | ilo=- | so=- | delivery=-');
-      }
-      lines.push('TLA_END');
-      lines.push('PARTIAL_END:tla');
-      const block = lines.join('\n');
       const extra = (typeof window._svRealtimeContext === 'string') ? window._svRealtimeContext : '';
-      // Replace existing TLA block if present; otherwise, append
-      if (extra && extra.includes('PARTIAL_BEGIN:tla')) {
-        const replaced = extra.replace(/PARTIAL_BEGIN:tla[\s\S]*?PARTIAL_END:tla/g, block);
-        window._svRealtimeContext = replaced;
-      } else {
-        window._svRealtimeContext = extra ? (extra + '\n\n' + block) : block;
-      }
-      try { console.debug('[TLA][realtime]', { length: block.length, rows: rows.length }); } catch(e) {}
-      // Flash badge for a short duration to indicate snapshot updated
-      if (badge) {
-        badge.style.display = 'inline-block';
-        badge.style.opacity = '1';
-        setTimeout(() => {
-          badge.style.transition = 'opacity 400ms ease-in-out';
-          badge.style.opacity = '0';
-          setTimeout(() => { badge.style.display = 'none'; badge.style.transition = ''; badge.style.opacity = '1'; }, 450);
-        }, 600);
-      }
+      if (!extra) return;
+      const cleaned = extra.replace(/PARTIAL_BEGIN:tla[\s\S]*?PARTIAL_END:tla/g, '').trim();
+      window._svRealtimeContext = cleaned;
     } catch(e) { /* ignore */ }
   }
 
   // Expose globally so chat can force a rebuild before sending
   try { window.rebuildTlaRealtimeContext = rebuildTlaRealtimeContext; } catch(e) {}
 
-  // Initial build
+  // Initial cleanup only (no TLA snapshot build)
   rebuildTlaRealtimeContext();
 
   // Input listeners: update on typing and changes

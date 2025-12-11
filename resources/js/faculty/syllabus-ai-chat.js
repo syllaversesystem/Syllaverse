@@ -639,102 +639,69 @@
           console.debug('[AIChat][Phase1] No essentials snapshot found');
         }
       } catch(e) {}
-      // Phase 2: Assessment (TLA) Activities snapshot from TLA structure
+      // Phase 2: Assessment (TLA) Activities snapshot from DOM (frontend only, no realtime context dependency)
       function collectPhase2Snapshot(){
         const full = collectFullSnapshot() || '';
-        const real = (typeof window._svRealtimeContext === 'string') ? window._svRealtimeContext : '';
-        // Prefer realtime TLA block, fallback to full snapshot
-        const reTla = /PARTIAL_BEGIN:tla[\s\S]*?PARTIAL_END:tla/;
-        const mReal = real.match(reTla);
-        const mFull = full.match(reTla);
-        const tlaBlock = (mReal && mReal[0]) || (mFull && mFull[0]) || '';
-        if (!tlaBlock) return '';
-        // Parse lines to a compact table that mirrors the blade structure
-        const lines = tlaBlock.split('\n');
-        const headerTitle = lines.find(l => l.includes('Teaching, Learning, and Assessment')) || 'Teaching, Learning, and Assessment (TLA) Activities';
-        const tblHead = 'Columns: Ch. | Topics / Reading List | Wks. | Topic Outcomes | ILO | SO | Delivery Method';
-        const rowLines = lines.filter(l => /^ROW:\d+ \| /.test(l));
-        const fieldsLines = lines.filter(l => /^FIELDS_ROW:\d+ \| /.test(l));
-        // Build markdown table
-        const tableHeader = ['| # | Ch. | Topics / Reading List | Wks. | Topic Outcomes | ILO | SO | Delivery |','|:--:|:--:|:--|:--:|:--|:--:|:--:|:--|'];
-        const rowsMd = rowLines.map((rl, idx) => {
-          // Example: ROW:1 | Ch:1 | Wks:1 | Topic:... | Outcomes:... | ILO:... | SO:... | Delivery:...
-          const get = (label) => {
-            const m = rl.match(new RegExp(label+':([^|]+)'));
-            return m ? m[1].trim() : '-';
-          };
-          const ch = get('Ch');
-          const wks = get('Wks');
-          const topic = get('Topic');
-          const outcomes = get('Outcomes');
-          const ilo = get('ILO');
-          const so = get('SO');
-          const delivery = get('Delivery');
-          return `| ${idx+1} | ${ch} | ${topic} | ${wks} | ${outcomes} | ${ilo} | ${so} | ${delivery} |`;
-        });
-        let overview = [
-          `### ${headerTitle}`,
-          tblHead,
-          ...tableHeader,
-          ...rowsMd
-        ].join('\n');
+        let overview = '';
 
-        // Criteria for Assessment: attempt to extract and summarize sections with items and %
-        const reCriteria = /PARTIAL_BEGIN:criteria_assessment[\s\S]*?PARTIAL_END:criteria_assessment/;
-        const mCrit = full.match(reCriteria) || real.match(reCriteria);
-        if (mCrit && mCrit[0]) {
-          const critBlock = mCrit[0];
-          // Try to find JSON payload lines or simple text with percentages
-          // First, look for a JSON blob (criteria_data) if present
-          let sections = [];
+        // Build TLA markdown table directly from the visible TLA table
+        function buildTlaMdFromDom(){
           try {
-            const jsonMatch = critBlock.match(/criteria_data\s*=\s*(\[.*?\]|\{[\s\S]*?\})/);
-            if (jsonMatch && jsonMatch[1]) {
-              const parsed = JSON.parse(jsonMatch[1]);
-              if (Array.isArray(parsed)) sections = parsed;
-            }
-          } catch(e) { /* ignore parse errors */ }
-          // Fallback: parse lines with "<desc> <num>%"
-          if (!sections.length) {
-            const critLines = critBlock.split('\n');
-            const items = critLines.map(l => {
-              const m = l.match(/(.+?)\s+(\d+\s*%)/);
-              if (m) return { heading: '', value: [{ description: m[1].trim(), percent: m[2].trim() }] };
-              return null;
-            }).filter(Boolean);
-            if (items.length) sections = items;
-          }
-          const critHeader = ['| Section | Item | % |','|:--|:--|:--:|'];
-          const critRows = [];
-          sections.forEach(sec => {
-            const heading = (sec.heading || sec.key || '').toString() || '-';
-            const vals = Array.isArray(sec.value) ? sec.value : [];
-            if (!vals.length) {
-              critRows.push(`| ${heading} | - | - |`);
-              return;
-            }
-            vals.forEach(v => {
-              const desc = (v.description || v.label || '').toString() || '-';
-              const pct = (v.percent || '').toString() || '-';
-              critRows.push(`| ${heading} | ${desc} | ${pct} |`);
+            const table = document.getElementById('tlaTable');
+            if (!table) return '';
+            const tbody = table.querySelector('tbody') || table;
+            const rows = Array.from(tbody.querySelectorAll('tr')).filter(r => r.id !== 'tla-placeholder');
+            const md = [];
+            md.push('### Teaching, Learning, and Assessment (TLA) Activities');
+            md.push('Columns: Ch. | Topics / Reading List | Wks. | Topic Outcomes | ILO | SO | Delivery Method');
+            md.push('| # | Ch. | Topics / Reading List | Wks. | Topic Outcomes | ILO | SO | Delivery |');
+            md.push('|:--:|:--:|:--|:--:|:--|:--:|:--:|:--|');
+            let count = 0;
+            const read = (row, selector) => {
+              const el = row.querySelector(selector);
+              if (!el) return '-';
+              // If this element is an input/select/textarea, never fall back to textContent
+              if (typeof el.value === 'string') {
+                return (el.value || '').toString().trim();
+              }
+              // Otherwise, look for a nested form field first
+              const inner = el.querySelector && el.querySelector('input,textarea,select');
+              if (inner && typeof inner.value === 'string') {
+                return (inner.value || '').toString().trim();
+              }
+              // Finally, use visible text only for non-form containers
+              const txt = (el.textContent || '').trim();
+              return txt || '-';
+            };
+            rows.forEach((row, idx) => {
+              const ch = read(row, '[name*="[ch]"]');
+              const topic = read(row, '[name*="[topic]"]');
+              const wks = read(row, '[name*="[wks]"]');
+              const outcomes = read(row, '[name*="[outcomes]"]');
+              const ilo = read(row, '[name*="[ilo]"]');
+              const so = read(row, '[name*="[so]"]');
+              const delivery = read(row, '[name*="[delivery]"]');
+              const any = [ch,topic,wks,outcomes,ilo,so,delivery].some(v => (v && v !== '-' && v.trim() !== ''));
+              if (any) {
+                count++;
+                md.push(`| ${count} | ${ch} | ${topic} | ${wks} | ${outcomes} | ${ilo} | ${so} | ${delivery} |`);
+              }
             });
-          });
-          overview += '\n\n' + ['### Criteria for Assessment', ...critHeader, ...critRows].join('\n');
-          try {
-            console.debug('[AIChat][Phase2][Criteria] Sections:', sections.length, 'Rows:', critRows.length);
-            const critPreview = ['### Criteria for Assessment', ...critHeader, ...critRows].join('\n').slice(0, 800);
-            console.debug('[AIChat][Phase2][Criteria] Preview:\n' + critPreview);
-          } catch(e) {}
-          // Append raw criteria block for fidelity later
-          tlaBlock; // keep reference to satisfy linter, raw appended below
-        } else {
-          // Include an explicit empty criteria table so model knows it's absent
-          const critHeader = ['| Section | Item | % |','|:--|:--|:--:|'];
-          const critRows = ['| - | - | - |'];
-          overview += '\n\n' + ['### Criteria for Assessment', ...critHeader, ...critRows, '', '[No criteria section found – include best‑practice defaults or ask for details]'].join('\n');
-          try {
-            console.debug('[AIChat][Phase2][Criteria] No criteria block found; sending placeholder table');
-          } catch(e) {}
+            if (count === 0) md.push('| - | - | - | - | - | - | - | - |');
+            return md.join('\n');
+          } catch(e){ return ''; }
+        }
+        const tlaMd = buildTlaMdFromDom();
+        if (tlaMd) overview = tlaMd;
+
+        // Criteria for Assessment: include realtime block if available
+        const reCriteria = /PARTIAL_BEGIN:criteria_assessment[\s\S]*?PARTIAL_END:criteria_assessment/;
+        const real = (typeof window._svRealtimeContext === 'string') ? window._svRealtimeContext : '';
+        const mCrit = real.match(reCriteria) || full.match(reCriteria);
+        let critRaw = '';
+        if (mCrit && mCrit[0]) {
+          critRaw = "\n\n" + mCrit[0];
+          try { console.debug('[AIChat][Phase2][Criteria] Reattached realtime Criteria block'); } catch(e) {}
         }
 
         // Assessment Tasks Distribution (AT) summary — parse DOM table if present
@@ -897,14 +864,13 @@
         } catch(err) {
           console.warn('[AIChat][Phase2][Textbooks] Error building textbooks section:', err);
         }
-        // Attach raw block at the end for fidelity
-        const critRaw = (mCrit && mCrit[0]) ? ("\n\n" + mCrit[0]) : '';
-        let payload = overview + '\n\n' + tlaBlock + critRaw;
+        // Final Phase 2 payload with Criteria block (raw)
+        let payload = overview + critRaw;
         const MAX = 12000; // allow more for phase 2
         if (payload.length > MAX) payload = payload.slice(0, MAX) + '\n[Context trimmed]';
         try {
           const preview = payload.slice(0, 1000);
-          console.debug('[AIChat][Phase2] Sending TLA + Criteria snapshot', { rows: rowsMd.length, length: payload.length, preview });
+          console.debug('[AIChat][Phase2] Sending TLA (DOM) + Criteria snapshot', { length: payload.length, preview });
           console.debug('[AIChat][Phase2] Payload FULL:\n' + payload);
         } catch(e) {}
         return payload;

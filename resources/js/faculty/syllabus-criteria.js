@@ -79,7 +79,7 @@ function initCriteriaModule() {
       const ta = document.createElement('textarea');
       ta.rows = 1;
       ta.className = 'sub-input cis-input autosize';
-      ta.placeholder = '-';
+      ta.placeholder = 'Task';
       let descValue = '';
       let pct = '';
       if (initial && typeof initial === 'object') {
@@ -93,7 +93,7 @@ function initCriteriaModule() {
       ta.value = descValue; el.appendChild(ta);
       const p = document.createElement('textarea');
       p.rows = 1; p.className = 'sub-percent cis-number autosize';
-      p.placeholder = '%'; p.value = pct || '';
+      p.placeholder = '0%'; p.value = pct || '';
       el.appendChild(p);
       return el;
     }
@@ -345,6 +345,9 @@ function initCriteriaModule() {
     }
     recomputeAutosizeAll();
 
+    // Initial realtime merge so snapshot exists even before typing
+    try { mergeRealtimeCriteria(); } catch (e) { /* noop */ }
+
     let __critSerializeTimer = null;
     document.addEventListener('criteriaChanged', function(){
       try {
@@ -363,6 +366,18 @@ function initCriteriaModule() {
     document.addEventListener('criteria:subChanged', function(){
       try { mergeRealtimeCriteria(); } catch (e) { /* noop */ }
     });
+
+    // Observe DOM changes in criteria sections to keep snapshot updated (add/remove rows/sections)
+    try {
+      const container = document.getElementById('criteria-sections-container');
+      if (container && window.MutationObserver) {
+        const mo = new MutationObserver(function(){
+          try { window.serializeCriteriaData(); } catch (e) { /* noop */ }
+          try { mergeRealtimeCriteria(); } catch (e) { /* noop */ }
+        });
+        mo.observe(container, { childList: true, subtree: true, attributes: true, attributeFilter: ['value'] });
+      }
+    } catch (e) { /* noop */ }
 
     function updateAddSectionState(){
       const container = document.getElementById('criteria-sections-container');
@@ -394,7 +409,7 @@ function initCriteriaModule() {
         section.className = 'section'; section.dataset.sectionKey = key;
         section.innerHTML = `
           <div class="section-head">
-            <textarea rows="1" name="criteria_${key}_display" data-section="${key}" class="main-input cis-input autosize" placeholder="-"></textarea>
+            <textarea rows="1" name="criteria_${key}_display" data-section="${key}" class="main-input cis-input autosize" placeholder="Category"></textarea>
           </div>
           <div class="sub-list" aria-live="polite" data-init='[]'></div>
           <div class="criteria-actions-row">

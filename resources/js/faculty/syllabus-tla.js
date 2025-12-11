@@ -54,23 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
       
       updateTlaIndices();
       
-      // Try to persist immediately via append endpoint
-      if (syllabusId) {
-        try {
-          const res = await fetch(`/faculty/syllabi/${syllabusId}/tla/append`, {
-            method: 'POST',
-            headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
-          });
-          const j = await res.json();
-          if (j && j.success && j.row && j.row.id) {
-            templateRow.setAttribute('data-tla-id', j.row.id);
-            const idInput = templateRow.querySelector('.tla-id-field');
-            const delBtn = templateRow.querySelector('.remove-tla-row');
-            if (idInput) idInput.value = j.row.id;
-            if (delBtn) delBtn.setAttribute('data-id', j.row.id);
-          }
-        } catch(e) { /* silent fallback */ }
-      }
+      // Removed backend auto-append: keep row creation strictly frontend
 
       // Focus first input
       const firstInput = templateRow.querySelector('input, textarea');
@@ -125,23 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
     updateTlaIndices();
 
     try { rebuildTlaRealtimeContext(); } catch(e) {}
-    // Try to persist the newly added row too, assigning its DB id
-    if (syllabusId) {
-      try {
-        const res = await fetch(`/faculty/syllabi/${syllabusId}/tla/append`, {
-          method: 'POST',
-          headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
-        });
-        const j = await res.json();
-        if (j && j.success && j.row && j.row.id) {
-          newRow.setAttribute('data-tla-id', j.row.id);
-          const idInput2 = newRow.querySelector('.tla-id-field');
-          const delBtn2 = newRow.querySelector('.remove-tla-row');
-          if (idInput2) idInput2.value = j.row.id;
-          if (delBtn2) delBtn2.setAttribute('data-id', j.row.id);
-        }
-      } catch(e) { /* silent fallback */ }
-    }
+    // Removed backend auto-append: keep row creation strictly frontend
 
     newRow.classList.add('tla-new-row');
     setTimeout(() => newRow.classList.remove('tla-new-row'), 1000);
@@ -157,81 +125,28 @@ document.addEventListener('DOMContentLoaded', () => {
       // Silently fail
     }
   }
-  // 🚀 Auto-append a blank row on load if none exist so AI snapshot has content
-  (async function ensureInitialRow(){
-    try {
-      const hasRows = tlaBody.querySelector('tr:not(#tla-placeholder)');
-      if (!hasRows && syllabusId) {
-        await addTlaRow();
-        try { rebuildTlaRealtimeContext(); } catch(e) {}
-      }
-    } catch(e) {}
-  })();
+  // Removed auto-append on load: do not create rows via backend automatically
 
   // === Realtime TLA snapshot builder (updates window._svRealtimeContext) ===
   function rebuildTlaRealtimeContext() {
     try {
-      const table = document.getElementById('tlaTable');
-      if (!table) return;
-      const tbody = table.querySelector('tbody') || table;
-      const rows = Array.from(tbody.querySelectorAll('tr')).filter(r => r.id !== 'tla-placeholder');
-
-      const headerTitle = 'Teaching, Learning, and Assessment (TLA) Activities';
-      const columns = 'COLUMNS: Ch. | Topics / Reading List | Wks. | Topic Outcomes | ILO | SO | Delivery Method';
-
-      const lines = [];
-      lines.push('PARTIAL_BEGIN:tla');
-      lines.push(headerTitle);
-      lines.push(columns);
-
-      if (rows.length) {
-        rows.forEach((row, index) => {
-          const read = (selector) => {
-            const el = row.querySelector(selector);
-            if (!el) return '-';
-            if (typeof el.value === 'string' && el.value.trim()) return el.value.trim();
-            const inner = el.querySelector ? el.querySelector('input,textarea') : null;
-            if (inner && typeof inner.value === 'string' && inner.value.trim()) return inner.value.trim();
-            const txt = (el.textContent || '').trim();
-            return txt || '-';
-          };
-          const ch = read('[name*="[ch]"]');
-          const topic = read('[name*="[topic]"]');
-          const wks = read('[name*="[wks]"]');
-          const outcomes = read('[name*="[outcomes]"]');
-          const ilo = read('[name*="[ilo]"]');
-          const so = read('[name*="[so]"]');
-          const delivery = read('[name*="[delivery]"]');
-
-          lines.push(`ROW:${index+1} | Ch:${ch} | Wks:${wks} | Topic:${topic} | Outcomes:${outcomes} | ILO:${ilo} | SO:${so} | Delivery:${delivery}`);
-          lines.push(`FIELDS_ROW:${index+1} | ch=${ch} | wks=${wks} | topic=${topic} | outcomes=${outcomes} | ilo=${ilo} | so=${so} | delivery=${delivery}`);
-        });
-      } else {
-        lines.push('[No TLA rows entered yet – AI may suggest a weekly plan]');
-        lines.push('FIELDS_ROW:0 | ch=- | wks=- | topic=- | outcomes=- | ilo=- | so=- | delivery=-');
-      }
-      lines.push('PARTIAL_END:tla');
-
-      const block = lines.join('\n');
       const prev = typeof window._svRealtimeContext === 'string' ? window._svRealtimeContext : '';
+      if (!prev) return;
       const cleaned = prev.replace(/PARTIAL_BEGIN:tla[\s\S]*?PARTIAL_END:tla/g, '').trim();
-      window._svRealtimeContext = (cleaned ? (cleaned + '\n\n' + block) : block);
-    } catch (e) {
-      // silent
-    }
+      window._svRealtimeContext = cleaned;
+    } catch (e) { /* noop */ }
   }
 
   // Rebuild on initial load
   document.addEventListener('DOMContentLoaded', () => {
+    // Initial cleanup only (no snapshot build)
     try { rebuildTlaRealtimeContext(); } catch(e) {}
   });
 
   // Hook input/textarea changes within the TLA table to rebuild snapshot
   document.addEventListener('input', (e) => {
     const el = e.target;
-    if (!el) return;
-    const table = document.getElementById('tlaTable');
-    if (table && table.contains(el) && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT')) {
+    if (el && table.contains(el) && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT')) {
       try { rebuildTlaRealtimeContext(); } catch(e) {}
     }
   });

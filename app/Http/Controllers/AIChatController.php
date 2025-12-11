@@ -42,40 +42,12 @@ class AIChatController extends Controller
         } else {
             $combinedContext = $context; // legacy single field
         }
-        // Reorder: bring TLA block to the very top, but do not drop other blocks unless explicitly requested
-        try {
-            if ($combinedContext !== '' && strpos($combinedContext, 'PARTIAL_BEGIN:tla') !== false) {
-                if (preg_match('/PARTIAL_BEGIN:tla[\s\S]*?PARTIAL_END:tla/', $combinedContext, $m)) {
-                    $tlaBlock = $m[0];
-                    $rest = trim(preg_replace('/PARTIAL_BEGIN:tla[\s\S]*?PARTIAL_END:tla/', '', $combinedContext)) ?: '';
-                    // TLA-only mode only when phase explicitly is 2
-                    if ($phaseReq === '2') {
-                        $combinedContext = $tlaBlock;
-                        $tlaOnly = true;
-                    } else {
-                        $combinedContext = $tlaBlock.(($rest !== '') ? ("\n\n".$rest) : '');
-                    }
-                }
-            }
-        } catch (\Throwable $e) { /* ignore reorder errors */ }
+        // Do not reorder or elevate TLA on the backend; keep snapshot order as provided by the frontend
         // Server-side diagnostics: confirm context receipt and presence of key blocks
         try {
             $len = mb_strlen($combinedContext);
             $hasTla = ($combinedContext !== '' && (strpos($combinedContext, 'PARTIAL_BEGIN:tla') !== false));
-            // If TLA Activities block exists in snapshot, prepare a short structural guide for the model (append later)
-            $tlaGuide = null;
-            try {
-                if ($combinedContext !== '' && strpos($combinedContext, 'PARTIAL_BEGIN:tla') !== false) {
-                    // Extract optional columns line and count rows
-                    $cols = null; $rowCount = 0;
-                    if (preg_match('/COLUMNS:\s*(.+)/', $combinedContext, $m)) { $cols = trim($m[1]); }
-                    if (preg_match_all('/^ROW:\d+\s\|/m', $combinedContext, $m)) { $rowCount = count($m[0]); }
-                    $tlaGuide = "Use the on-page TLA Activities partial (PARTIAL_BEGIN:tla) only. "
-                        ."It is structured with TLA_START/TLA_END and per-row lines (ROW and FIELDS_ROW). "
-                        ."Columns: ".($cols ?: 'Ch. | Topics / Reading List | Wks. | Topic Outcomes | ILO | SO | Delivery Method').". "
-                        ."Detected rows: ".$rowCount.". Do not use TLAS (Teaching & Learning Strategies) as a substitute.";
-                }
-            } catch (\Throwable $e) { /* ignore TLA guide errors */ }
+            // Do not append any TLA-specific structural guide on the backend
             $hasCriteria = ($combinedContext !== '' && (strpos($combinedContext, 'PARTIAL_BEGIN:criteria_assessment') !== false));
             $hasCourseInfo = ($combinedContext !== '' && (strpos($combinedContext, 'PARTIAL_BEGIN:course_info') !== false));
             $hasMv = ($combinedContext !== '' && (strpos($combinedContext, 'PARTIAL_BEGIN:mission_vision') !== false));
@@ -264,10 +236,7 @@ class AIChatController extends Controller
             } elseif ($combinedContext !== '') {
                 $messages[] = ['role' => 'system', 'content' => "SYLLABUS_CONTEXT_BEGIN\n".$combinedContext."\nSYLLABUS_CONTEXT_END"]; 
             }
-            // If we prepared TLA guide earlier, append it as a system hint now
-            if (!empty($tlaGuide)) {
-                $messages[] = ['role' => 'system', 'content' => $tlaGuide];
-            }
+            // Do not append TLA structural hints here; frontend snapshot suffices
             // Do not add edit/replace or creation boosters
             // Append compact DB context and program extras unless in TLA-only mode
             // Do not append DB context or program extras

@@ -46,10 +46,9 @@
       ];
     }
   } else {
-    // fallback: two editable sections (lecture + laboratory) — preserve existing legacy text where available
+    // fallback: single editable section — preserve existing legacy text where available (prefer lecture)
     $sections = [
       ['key' => 'lecture', 'heading' => preg_replace('/\s*\(?\d+%?\)?$/','', explode('\n', trim($lectureText))[0] ?? ''), 'value' => []],
-      ['key' => 'laboratory', 'heading' => preg_replace('/\s*\(?\d+%?\)?$/','', explode('\n', trim($labText))[0] ?? ''), 'value' => []],
     ];
   }
   // Don't override sections - render all saved sections
@@ -202,7 +201,7 @@
               @foreach($sections as $idx => $sec)
                 <div class="section" data-section-key="{{ $sec['key'] ?? ('section_' . ($idx+1)) }}">
                   <div class="section-head">
-                    <textarea rows="1" name="criteria_{{ $sec['key'] ?? ($idx+1) }}_display" data-section="{{ $sec['key'] ?? ('section_' . ($idx+1)) }}" class="main-input cis-input autosize" placeholder="-">{{ old('criteria_section_heading.' . $idx, $sec['heading'] ?? '') }}</textarea>
+                    <textarea rows="1" name="criteria_{{ $sec['key'] ?? ($idx+1) }}_display" data-section="{{ $sec['key'] ?? ('section_' . ($idx+1)) }}" class="main-input cis-input autosize" placeholder="Category">{{ old('criteria_section_heading.' . $idx, $sec['heading'] ?? '') }}</textarea>
                   </div>
                   <div class="sub-list" aria-live="polite" data-init='{{ json_encode($sec['value'] ?? []) }}'></div>
                   <div class="criteria-actions-row">
