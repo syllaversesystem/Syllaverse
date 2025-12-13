@@ -584,6 +584,26 @@
     if (!endpoint) { appendMsg('ai', 'AI service unavailable.'); return; }
     const loadingRow = appendLoading();
     const fd = new FormData();
+    // Phase 1 snapshot: include IGA, SO, CDIO, SDG blocks
+    try {
+      const full = typeof collectFullSnapshot === 'function' ? collectFullSnapshot() : '';
+      const real = (typeof window._svRealtimeContext === 'string') ? window._svRealtimeContext : '';
+      function extractBlock(src, key){
+        if (!src) return '';
+        const re = new RegExp(`PARTIAL_BEGIN:${key}[\\s\\S]*?PARTIAL_END:${key}`, 'm');
+        const m = src.match(re);
+        return (m && m[0]) ? m[0] : '';
+      }
+      const keys1 = ['iga','so','cdio','sdg'];
+      const p1Blocks = [];
+      keys1.forEach(k => {
+        let blk = extractBlock(full, k);
+        if (!blk && real) blk = extractBlock(real, k);
+        if (blk) p1Blocks.push(blk);
+      });
+      const phase1 = p1Blocks.length ? p1Blocks.join('\n\n') : '';
+      if (phase1) fd.append('context_phase1', phase1);
+    } catch(e) {}
     try {
       // Phase 1: send a minimal snapshot (mission_vision, course_info, ilo, so, iga, cdio, sdg)
       function collectPhase1Snapshot(){
