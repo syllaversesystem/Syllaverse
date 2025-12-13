@@ -9,6 +9,8 @@
   let _lastMapInput = null; // { phase, context_phase1, context_phase2, context_phase3, context_all }
   let _lastMapOutput = null; // string (AI reply)
   let _lastParsedMap = null; // array of rows { name, week_marks, position }
+  let _lastAmOutput = null; // string (AI reply for Assessment Mapping)
+  let _lastIloSoCpaOutput = null; // string (AI reply for ILO–SO–CPA)
 
   // Build Phase 1–3 payloads by reusing chat snapshot utilities when available
   function collectPhasePayloads(){
@@ -186,21 +188,31 @@
       return md.join('\n');
     }
 
+    // ILO–SO–CPA mapping (smart snapshot: ILO number, SO number columns, and C/P/A)
     function buildIloSoCpaMd(){
       const soRoot = document.querySelector('.ilo-so-cpa-mapping');
       if (!soRoot) return '';
       const mapTable = soRoot.querySelector('.mapping');
       const headerRow2 = mapTable?.querySelectorAll('tr')[1];
-      const headers = headerRow2 ? Array.from(headerRow2.querySelectorAll('th')).map(th => th.textContent.trim()) : [];
-      const soHeaders = headers.filter(h => /^\d+$/i.test(h));
+      const soHeaders = [];
+      if (headerRow2) {
+        Array.from(headerRow2.querySelectorAll('th')).forEach(th => {
+          const inp = th.querySelector('input');
+          const raw = (inp ? inp.value : th.textContent || '').toString().trim();
+          const num = (raw.match(/\d+/) || [null])[0];
+          if (num) soHeaders.push(num);
+        });
+      }
       const rows = Array.from((mapTable?.querySelector('tbody') || mapTable).querySelectorAll('tr')).filter(r => r.querySelector('td'));
       const md = [];
       md.push('### ILO–SO–CPA Mapping');
-      md.push('| ILO | ' + (soHeaders.length ? soHeaders.map(h=>`SO ${h}`).join(' | ') : 'SO') + ' | C | P | A |');
+      md.push('| ILO | ' + (soHeaders.length ? soHeaders.map(n=>`SO ${n}`).join(' | ') : 'SO') + ' | C | P | A |');
       md.push('|:--|'+ (soHeaders.length ? soHeaders.map(()=>':--:').join('|') : ':--:') +'|:--:|:--:|:--:|');
       rows.forEach(r => {
         const tds = Array.from(r.querySelectorAll('td'));
-        const ilo = (tds[0]?.querySelector('input')?.value || tds[0]?.textContent || '').toString().trim() || '-';
+        const rawIlo = (tds[0]?.querySelector('input')?.value || tds[0]?.textContent || '').toString().trim();
+        const iloNum = (rawIlo.match(/\d+/) || [null])[0];
+        const ilo = iloNum ? `ILO ${iloNum}` : (rawIlo || '-');
         const soCount = Math.max(1, soHeaders.length);
         const soVals = [];
         for (let i = 1; i <= soCount; i++) {
@@ -394,30 +406,32 @@
     // Output block (if any)
     const outWrap = document.createElement('div');
     outWrap.style.cssText = 'margin-bottom:16px;padding:10px;border:1px solid #e6e9ed;border-radius:8px;background:#fcfcfc;';
-    const outTitle = document.createElement('div');
-    outTitle.textContent = 'AI Map Output';
-    outTitle.style.cssText = 'font-weight:600;margin-bottom:8px;color:#111827;';
-    outWrap.appendChild(outTitle);
-    const outBody = document.createElement('div');
-    outBody.style.cssText = 'font-size:.9rem;line-height:1.45;color:#111827;';
-    try {
-      outBody.innerHTML = (typeof window._aiChat?.appendMsg === 'function') ? '' : '';
-      // Use the same formatter as chat
-      if (typeof window.formatAIResponse === 'function') {
-        outBody.innerHTML = window.formatAIResponse(_lastMapOutput || '');
-      } else {
-        const safe = (_lastMapOutput || '').replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
-        outBody.innerHTML = '<pre style="margin:0;white-space:pre-wrap;word-wrap:break-word">' + safe + '</pre>';
-      }
-    } catch(e){ outBody.textContent = _lastMapOutput || ''; }
-    outWrap.appendChild(outBody);
+    // Two outputs: Assessment Mapping and ILO–SO–CPA
+    const makeOut = (title, text) => {
+      const t = document.createElement('div');
+      t.textContent = title;
+      t.style.cssText = 'font-weight:600;margin:10px 0 8px;color:#111827;';
+      outWrap.appendChild(t);
+      const body = document.createElement('div');
+      body.style.cssText = 'font-size:.9rem;line-height:1.45;color:#111827;';
+      try {
+        if (typeof window.formatAIResponse === 'function') body.innerHTML = window.formatAIResponse(text || '');
+        else {
+          const safe = (text || '').replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+          body.innerHTML = '<pre style="margin:0;white-space:pre-wrap;word-wrap:break-word">' + safe + '</pre>';
+        }
+      } catch(e){ body.textContent = text || ''; }
+      outWrap.appendChild(body);
+    };
+    makeOut('AI Output — Assessment Mapping', _lastAmOutput || '');
+    makeOut('AI Output — ILO–SO–CPA', _lastIloSoCpaOutput || '');
     body.appendChild(outWrap);
 
-    // Parsed JSON payload (if available)
+    // Parsed JSON payload (Assessment Mapping) if available
     const jsonWrap = document.createElement('div');
     jsonWrap.style.cssText = 'margin-bottom:16px;padding:10px;border:1px solid #e6e9ed;border-radius:8px;background:#fcfcfc;';
     const jsonTitle = document.createElement('div');
-    jsonTitle.textContent = 'Parsed AI Map (JSON)';
+    jsonTitle.textContent = 'Parsed Assessment Mapping (JSON)';
     jsonTitle.style.cssText = 'font-weight:600;margin-bottom:8px;color:#111827;';
     jsonWrap.appendChild(jsonTitle);
     const jsonPre = document.createElement('pre');
@@ -453,6 +467,22 @@
     jsonWrap.appendChild(applyBtn);
     body.appendChild(jsonWrap);
 
+    // Parsed ILO–SO–CPA JSON if available
+    const iloWrap = document.createElement('div');
+    iloWrap.style.cssText = 'margin-bottom:16px;padding:10px;border:1px solid #e6e9ed;border-radius:8px;background:#fcfcfc;';
+    const iloTitle = document.createElement('div');
+    iloTitle.textContent = 'Parsed ILO–SO–CPA (JSON)';
+    iloTitle.style.cssText = 'font-weight:600;margin-bottom:8px;color:#111827;';
+    iloWrap.appendChild(iloTitle);
+    const iloPre = document.createElement('pre');
+    iloPre.style.cssText = 'white-space:pre-wrap;word-wrap:break-word;font-size:12px;line-height:1.4;';
+    try {
+      const parsed = window._lastParsedIloSoCpa || null;
+      iloPre.textContent = JSON.stringify(parsed || { so_columns: [], mappings: [] }, null, 2);
+    } catch(e){ iloPre.textContent = '{"so_columns":[],"mappings":[]}'; }
+    iloWrap.appendChild(iloPre);
+    body.appendChild(iloWrap);
+
     modal.appendChild(head);
     modal.appendChild(body);
     overlay.appendChild(modal);
@@ -464,72 +494,11 @@
     const btn = document.getElementById('svAiAutoMapBtn');
     if (btn) {
       btn.addEventListener('click', async () => {
-        try { window._svAiMapProgress?.set('Preparing', 10, 'Gathering course details and schedule…', 'state-running'); } catch(e) {}
-        const payloads = collectPhasePayloads();
-        // Check sufficiency before calling AI
-        const suff = assessDataSufficiency();
-        if (!suff.ok) {
-          try { window._svAiMapProgress?.set('Complete', 100, suff.message || 'Not enough details to place marks yet.', 'state-warn'); } catch(e) {}
-          _lastMapOutput = 'Data not sufficient to map X marks. ' + (suff.explain || 'Please complete TLA activities and week schedule.');
-          _lastParsedMap = [];
-          openInputViewer();
-          return;
-        }
-        try { window._svAiMapProgress?.set('Calling AI', 25, 'Checking the plan against your weeks…', 'state-running'); } catch(e) {}
-        // Send to AI chat endpoint to generate Assessment Mapping first
-        try {
-          const syllabusId = document.getElementById('syllabus-document')?.getAttribute('data-syllabus-id') || null;
-          const endpoint = syllabusId ? `/faculty/syllabi/${syllabusId}/ai-chat` : null;
-          if (!endpoint) { _lastMapOutput = 'AI service unavailable.'; openInputViewer(); return; }
-          const fd = new FormData();
-          // Compose a focused instruction for Assessment Mapping generation
-          const instruction = [
-            'Analyze and generate ONLY the X marks for the Assessment Mapping (Task Calendar).',
-            '- Do NOT change task names or week labels; use EXACTLY the tasks and week headers visible on the page.',
-            '- Only map a task if that task appears in the Teaching, Learning, and Assessment (TLA) Activities. If a task is not present in TLA Activities, do not place any X for it.',
-            '- Map weeks based on the weeks indicated in the TLA Activities for the corresponding task. If a task has weeks in TLA, place "x" in those same weeks; otherwise leave blank or "-".',
-            '- Output strictly a Markdown table with the same columns as the UI: | Task | <week headers…> |.',
-            '- If there are existing X marks, CORRECT them when they do not align with weekly topics/TLA chronology (assessments must occur after topics are introduced).',
-            '- If TLA Activities or week data is missing for a task, explicitly leave it unmapped and do not infer new weeks.'
-          ].join(' \n');
-          fd.append('message', instruction);
-          if (payloads?.context_phase1) fd.append('context_phase1', payloads.context_phase1);
-          if (payloads?.context_phase2) fd.append('context_phase2', payloads.context_phase2);
-          if (payloads?.context_phase3) fd.append('context_phase3', payloads.context_phase3);
-          if (payloads?.context_all) fd.append('context_all', payloads.context_all);
-          fd.append('phase', payloads?.phase || '3');
-          // Reuse chat history lightly (optional); not required here
-          const res = await fetch(endpoint, {
-            method: 'POST',
-            headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '', 'Accept':'application/json' },
-            body: fd
-          });
-          const j = await res.json().catch(()=>({}));
-          if (res.ok && j && j.reply) {
-            _lastMapOutput = j.reply;
-            try { window._svAiMapProgress?.set('Parsing', 55, 'Reading the suggested mapping…', 'state-running'); } catch(e) {}
-            _lastParsedMap = parseMarkdownToJson(_lastMapOutput);
-            // Auto-apply parsed map to database (no manual option)
-            try { window._svAiMapProgress?.set('Applying', 75, 'Placing X marks where they belong…', 'state-running'); } catch(e) {}
-            await autoApplyParsedMap(_lastParsedMap);
-            // Refresh UI grid to reflect applied X marks
-            try { window._svAiMapProgress?.set('Refreshing', 90, 'Refreshing the table…', 'state-running'); } catch(e) {}
-            refreshAssessmentMappingGrid(_lastParsedMap);
-            // Provide lightweight success feedback
-            showToast('Assessment mapping auto-applied.');
-            // Decide sufficiency based on visible data & parsed result
-            const amRoot = document.querySelector('.assessment-mapping');
-            const weekHeader = Array.from(amRoot?.querySelectorAll('table.week tr:first-child th.week-number')||[])
-              .map(th => th.textContent.trim()).filter(t => t && t.toLowerCase() !== 'no weeks');
-            const distRows = Array.from(amRoot?.querySelectorAll('table.distribution tr')||[]).slice(1);
-            const hasTasks = distRows.some(dr => (dr.querySelector('input.distribution-input')?.value||'').trim());
-            const parsedOk = Array.isArray(_lastParsedMap) && _lastParsedMap.length > 0;
-            const sufficient = weekHeader.length > 0 && hasTasks && parsedOk;
-            try { window._svAiMapProgress?.set('Done', 100, sufficient ? 'All set — mapping applied.' : 'We need a bit more info to place everything.', sufficient ? 'state-ok' : 'state-warn'); } catch(e) {}
-            // Keep the progress bar visible after success per request.
-          } else { _lastMapOutput = j.error ? ('AI Error: ' + j.error) : 'No reply received.'; _lastParsedMap = []; }
-        } catch(err){ _lastMapOutput = 'Network/AI error: ' + (err?.message || String(err)); }
-        // Still allow inspecting input/output if needed
+        // Run Assessment Mapping flow first
+        await triggerAutoMap();
+        // Then run ILO–SO–CPA auto-map
+        await runIloSoCpaAutoMap();
+        // Finally, open viewer to show both outputs
         openInputViewer();
       });
     }
@@ -650,18 +619,22 @@
   }
 
   async function triggerAutoMap(){
-    const btn = document.getElementById('svAiAutoMapBtn');
-    if (btn) { btn.click(); return; }
-    // Fallback: simulate the same flow as button
+    // Run Assessment Mapping flow directly (do not re-click the button)
+    try { window._svAiMapProgress?.set('Preparing', 5, 'Checking Assessment Mapping details…', 'state-running'); } catch(e) {}
     const payloads = collectPhasePayloads();
     // Check sufficiency
     const suff = assessDataSufficiency();
     if (!suff.ok) {
-      try { const f=document.getElementById('svAiMapProgressFill'); if(f){ f.classList.remove('state-running','state-ok'); f.classList.add('state-warn'); } window._svAiMapProgress?.set('Complete', 100, suff.message || 'Not enough details to place marks yet.'); } catch(e) {}
+      try {
+        const f=document.getElementById('svAiMapProgressFill');
+        if(f){ f.classList.remove('state-running','state-ok'); f.classList.add('state-warn'); }
+        window._svAiMapProgress?.set('Complete', 100, suff.message || 'Not enough details to place marks yet.', 'state-warn');
+      } catch(e) {}
       _lastMapOutput = 'Data not sufficient to map X marks. ' + (suff.explain || 'Please complete TLA activities and week schedule.');
       _lastParsedMap = [];
       return;
     }
+    try { window._svAiMapProgress?.set('Calling AI', 20, 'Generating Assessment Mapping (Task Calendar)…', 'state-running'); } catch(e) {}
     try {
       const syllabusId = document.getElementById('syllabus-document')?.getAttribute('data-syllabus-id') || null;
       const endpoint = syllabusId ? `/faculty/syllabi/${syllabusId}/ai-chat` : null;
@@ -689,13 +662,271 @@
       });
       const j = await res.json().catch(()=>({}));
       if (res.ok && j && j.reply) {
-        _lastMapOutput = j.reply;
-        _lastParsedMap = parseMarkdownToJson(_lastMapOutput);
+        _lastAmOutput = j.reply;
+        try { window._svAiMapProgress?.set('Parsing', 45, 'Reading suggested Assessment Mapping…', 'state-running'); } catch(e) {}
+        _lastParsedMap = parseMarkdownToJson(_lastAmOutput);
+        try { window._svAiMapProgress?.set('Applying', 65, 'Applying Assessment Mapping to grid…', 'state-running'); } catch(e) {}
         await autoApplyParsedMap(_lastParsedMap);
+        try { window._svAiMapProgress?.set('Refreshing', 80, 'Updating Assessment Schedule UI…', 'state-running'); } catch(e) {}
         refreshAssessmentMappingGrid(_lastParsedMap);
         showToast('Assessment mapping auto-applied.');
+                // Leave headroom for next flow (ILO–SO–CPA) to continue progress
+                try { window._svAiMapProgress?.set('Done', 90, 'Assessment Mapping applied.', 'state-ok'); } catch(e) {}
       }
     } catch(err){ _lastMapOutput = 'Network/AI error: ' + (err?.message || String(err)); }
+  }
+
+  // Parse ILO–SO–CPA markdown to JSON payload for saving
+  function parseIloSoCpaMarkdown(md){
+    try {
+      if (!md || typeof md !== 'string') return { so_columns: [], mappings: [] };
+      const lines = md.split(/\r?\n/);
+      // Find header for ILO–SO–CPA table
+      let start = -1;
+      for (let i = 0; i < lines.length - 1; i++){
+        const l = lines[i].trim();
+        const sep = lines[i+1].trim();
+        if (/^\|\s*ILO\s*\|/i.test(l) && /^\|.*-+.*\|$/i.test(sep)) { start = i; break; }
+      }
+      if (start === -1) return { so_columns: [], mappings: [] };
+      const headerCells = lines[start].replace(/^\|/,'').replace(/\|$/,'').split('|').map(c => c.trim());
+      // Header format: ILO | SO n ... | C | P | A
+      const soCols = [];
+      for (let i = 1; i < headerCells.length - 3; i++){
+        const raw = headerCells[i] || '';
+        const num = (raw.match(/\d+/) || [null])[0];
+        soCols.push(num ? `SO ${num}` : (raw || `SO ${i}`));
+      }
+      const rows = [];
+      for (let i = start + 2; i < lines.length; i++){
+        const ln = lines[i];
+        if (!/^\|/.test(ln.trim())) break;
+        const cells = ln.replace(/^\|/,'').replace(/\|$/,'').split('|').map(c => c.trim());
+        if (cells.length < 2) continue;
+        const iloText = cells[0] || '-';
+        const sos = {};
+        for (let j = 0; j < soCols.length; j++){
+          const v = (cells[1 + j] || '').trim();
+          sos[soCols[j]] = v || null;
+        }
+        const c = (cells[1 + soCols.length] || '').trim();
+        const p = (cells[2 + soCols.length] || '').trim();
+        const a = (cells[3 + soCols.length] || '').trim();
+        rows.push({ ilo_text: iloText, sos, c, p, a, position: rows.length });
+      }
+      return { so_columns: soCols, mappings: rows };
+    } catch(e){ return { so_columns: [], mappings: [] }; }
+  }
+
+  // Auto-map ILO–SO–CPA using AI similar to Assessment Mapping
+  async function runIloSoCpaAutoMap(){
+    // Continue a single progress flow: advance from current percentage without resetting
+    const currentPctText = document.getElementById('svAiMapPct')?.textContent || '0%';
+    const currentPct = Math.max(parseInt(String(currentPctText).replace(/[^0-9]/g,''), 10) || 0, 90);
+    try { window._svAiMapProgress?.set('Preparing', Math.min(currentPct + 2, 92), 'Checking ILO–SO–CPA details…', 'state-running'); } catch(e) {}
+    const payloads = collectPhasePayloads();
+    // Sufficiency: need some ILO rows and SO columns present in DOM
+    const soRoot = document.querySelector('.ilo-so-cpa-mapping');
+    const mapTable = soRoot?.querySelector('.mapping');
+    const headerRow2 = mapTable?.querySelectorAll('tr')[1];
+    const soHeaders = headerRow2 ? Array.from(headerRow2.querySelectorAll('th')) : [];
+    const bodyRows = Array.from((mapTable?.querySelector('tbody') || mapTable)?.querySelectorAll('tr') || []).filter(r => r.querySelector('td'));
+    const ok = soHeaders.length > 0 && bodyRows.length > 0;
+    if (!ok){
+      try { window._svAiMapProgress?.set('Complete', 100, 'Add SO columns and ILO rows first.', 'state-warn'); } catch(e) {}
+      _lastMapOutput = 'Insufficient ILO–SO–CPA data. Please add SO columns and at least one ILO row.';
+      _lastParsedMap = [];
+      openInputViewer();
+      return;
+    }
+    try { window._svAiMapProgress?.set('Calling AI', Math.min(currentPct + 4, 94), 'Generating ILO–SO–CPA mapping…', 'state-running'); } catch(e) {}
+    try {
+      const syllabusId = document.getElementById('syllabus-document')?.getAttribute('data-syllabus-id') || null;
+      const endpoint = syllabusId ? `/faculty/syllabi/${syllabusId}/ai-chat` : null;
+      if (!endpoint) { _lastMapOutput = 'AI service unavailable.'; openInputViewer(); return; }
+      const fd = new FormData();
+      const instruction = [
+        'Generate ONLY the ILO–SO–CPA mapping table based on Phase 3 snapshots.',
+        '- Base linkages on the Teaching, Learning, and Assessment (TLA) Activities and the Assessment Method & Distribution Map. Use task codes such as FE/ME only when they appear in these sections.',
+        '- Map ALL possible alignments: for each ILO, consider every SO that appears alongside that ILO in the TLA Activities, and include any assessment task codes (FE, ME, QCT, etc.) that occur in the Distribution Map after the related topics/weeks. Do not omit valid alignments visible in TLA.',
+        '- Keep existing ILO row labels and SO columns as shown. Use numeric ILO and SO labels when available (e.g., ILO 1, SO 2).',
+        '- Fill each SO cell with the appropriate linkage mark or short note if present; leave blank if not linked.',
+        '- Include C, P, A values per row using assessment task CODES (e.g., FE, ME, QCT, PR, LE, LEX), not numbers. Derive these codes from the Assessment Method & Distribution Map and the TLA alignment (task occurs after the related topics and ILO/SO). Do not infer missing values; leave blank if unknown.',
+        '- Do NOT include SO columns that have no linkages for any ILO (drop empty SO columns).',
+        '- Output strictly one Markdown table with columns: | ILO | <SO columns…> | C | P | A |',
+        '',
+        'After the table, also output a JSON object with keys `so_columns` and `mappings` (array of rows with `ilo_text`, `sos` object keyed by SO column (e.g., "SO1": "FE,ME"), `c`, `p`, `a`, `position`). Use the exact SO column order from the table and DO NOT include any empty SO columns.'
+      ].join(' \\n');
+      fd.append('message', instruction);
+      if (payloads?.context_phase1) fd.append('context_phase1', payloads.context_phase1);
+      if (payloads?.context_phase2) fd.append('context_phase2', payloads.context_phase2);
+      // Build candidate ILO–SO pairs from TLA and append to Phase 3 context
+      function buildTlaIloSoPairsMd(){
+        try {
+          const table = document.getElementById('tlaTable');
+          if (!table) return '';
+          const tbody = table.querySelector('tbody') || table;
+          const rows = Array.from(tbody.querySelectorAll('tr')).filter(r => r.id !== 'tla-placeholder');
+          const md = [];
+          md.push('### Candidate ILO–SO Pairs (derived from TLA)');
+          md.push('| ILO | SO |');
+          md.push('|:--:|:--:|');
+          function parseNums(val){
+            return (String(val || '').match(/\d+/g) || []).map(s => s.trim()).filter(Boolean);
+          }
+          rows.forEach(row => {
+            const iloVal = (row.querySelector('[name*="[ilo]"]')?.value || '').toString().trim();
+            const soVal  = (row.querySelector('[name*="[so]"]')?.value  || '').toString().trim();
+            const ilos = parseNums(iloVal);
+            const sos  = parseNums(soVal);
+            ilos.forEach(i => { sos.forEach(s => { md.push(`| ILO ${i} | SO ${s} |`); }); });
+          });
+          return md.length > 3 ? md.join('\n') : '';
+        } catch(e){ return ''; }
+      }
+      const pairsMd = buildTlaIloSoPairsMd();
+      const phase3WithPairs = (payloads?.context_phase3 || '') + (pairsMd ? ('\n\n' + pairsMd) : '');
+      if (phase3WithPairs) fd.append('context_phase3', phase3WithPairs);
+      if (payloads?.context_all) fd.append('context_all', payloads.context_all);
+      fd.append('phase', payloads?.phase || '3');
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '', 'Accept':'application/json' },
+        body: fd
+      });
+      const j = await res.json().catch(()=>({}));
+      if (res.ok && j && j.reply){
+        _lastIloSoCpaOutput = j.reply;
+        try { window._svAiMapProgress?.set('Parsing', Math.min(currentPct + 6, 96), 'Reading suggested ILO–SO–CPA mapping…', 'state-running'); } catch(e) {}
+        let parsed = parseIloSoCpaMarkdown(_lastIloSoCpaOutput);
+        // Validate CPA values: enforce assessment task codes from Distribution Map
+        try {
+          const atRoot = document.querySelector('.at-map-outer');
+          // Collect valid codes from Distribution Map (left Code column)
+          const codes = new Set();
+          if (atRoot) {
+            const tbody = atRoot.querySelector('#at-tbody');
+            const rows = tbody ? Array.from(tbody.querySelectorAll('tr')) : [];
+            rows.forEach(tr => {
+              const tdCode = tr.children?.[0];
+              const v = (tdCode?.querySelector('textarea')?.value || tdCode?.textContent || '').toString().trim();
+              if (v) codes.add(v);
+            });
+          }
+          const normalize = (val) => {
+            const raw = (val || '').toString().trim();
+            if (!raw) return '';
+            // split by comma and filter to known codes
+            const parts = raw.split(/\s*,\s*/).filter(Boolean);
+            const kept = parts.filter(p => codes.has(p));
+            return kept.join(', ');
+          };
+          parsed.mappings = (parsed.mappings || []).map(r => ({
+            ...r,
+            c: normalize(r.c),
+            p: normalize(r.p),
+            a: normalize(r.a)
+          }));
+        } catch(e) { /* ignore CPA validation errors */ }
+        // Prune SO columns with no mappings across all rows
+        try {
+          const cols = parsed?.so_columns || [];
+          const rows = parsed?.mappings || [];
+          const keep = cols.filter(col => rows.some(r => {
+            const v = (r?.sos || {})[col];
+            return v && String(v).trim() !== '' && String(v).toLowerCase() !== 'null';
+          }));
+          if (keep.length !== cols.length) {
+            parsed.so_columns = keep;
+            parsed.mappings = rows.map(r => {
+              const sosObj = r.sos || {};
+              const pruned = {};
+              keep.forEach(k => { pruned[k] = sosObj[k] || null; });
+              return { ...r, sos: pruned };
+            });
+          }
+        } catch(e) { /* ignore prune errors */ }
+        window._lastParsedIloSoCpa = parsed; // store globally for viewer
+        // Save via backend endpoint
+        try { window._svAiMapProgress?.set('Applying', Math.min(currentPct + 8, 98), 'Saving ILO–SO–CPA to database…', 'state-running'); } catch(e) {}
+        await saveIloSoCpa(parsed);
+        // Refresh UI grid to reflect applied mapping
+        try { window._svAiMapProgress?.set('Refreshing', Math.min(currentPct + 9, 99), 'Updating ILO–SO–CPA table…', 'state-running'); } catch(e) {}
+        refreshIloSoCpaGridFromParsed(parsed);
+        try { window._svAiMapProgress?.set('Done', 100, 'ILO–SO–CPA mapping applied.', 'state-ok'); } catch(e) {}
+      } else {
+        _lastMapOutput = j?.error ? ('AI Error: ' + j.error) : 'No reply received.';
+        try { window._svAiMapProgress?.set('Complete', 100, 'AI did not return mapping.', 'state-warn'); } catch(e) {}
+      }
+    } catch(err){ _lastMapOutput = 'Network/AI error: ' + (err?.message || String(err)); try { window._svAiMapProgress?.set('Complete', 100, 'Network/AI error.', 'state-warn'); } catch(e) {} }
+    openInputViewer();
+  }
+
+  function refreshIloSoCpaGridFromParsed(parsed){
+    try {
+      if (!parsed || !Array.isArray(parsed.mappings)) return;
+      const soRoot = document.querySelector('.ilo-so-cpa-mapping');
+      if (!soRoot) return;
+      const mapTable = soRoot.querySelector('.mapping');
+      const headerRow2 = mapTable?.querySelectorAll('tr')[1];
+      const ths = headerRow2 ? Array.from(headerRow2.querySelectorAll('th')) : [];
+      const soColIndex = {}; // label -> column index in row tds (starting at 1 after ILO)
+      ths.forEach((th, i) => {
+        const raw = (th.querySelector('input')?.value || th.textContent || '').toString().trim();
+        const num = (raw.match(/\d+/) || [null])[0];
+        const key = num ? `SO ${num}` : (raw || `SO ${i+1}`);
+        soColIndex[key] = 1 + i; // first col is ILO
+      });
+      const bodyRows = Array.from((mapTable?.querySelector('tbody') || mapTable).querySelectorAll('tr')).filter(r => r.querySelector('td'));
+      parsed.mappings.forEach((r, pos) => {
+        // find row by ILO text; fallback to position
+        let rowEl = null;
+        for (let i = 0; i < bodyRows.length; i++){
+          const tds = Array.from(bodyRows[i].querySelectorAll('td'));
+          const rawIlo = (tds[0]?.querySelector('input')?.value || tds[0]?.textContent || '').toString().trim();
+          if (rawIlo === r.ilo_text) { rowEl = bodyRows[i]; break; }
+        }
+        if (!rowEl && typeof r.position === 'number') rowEl = bodyRows[r.position] || null;
+        if (!rowEl) return;
+        const tds = Array.from(rowEl.querySelectorAll('td'));
+        // fill SO cells
+        (parsed.so_columns || []).forEach(col => {
+          const idx = soColIndex[col];
+          if (!idx || !tds[idx]) return;
+          const val = (r.sos || {})[col] || '';
+          const ta = tds[idx].querySelector('textarea');
+          if (ta) ta.value = val; else tds[idx].textContent = val;
+        });
+        // fill C, P, A (last 3)
+        const cIdx = tds.length - 3;
+        const pIdx = tds.length - 2;
+            try { window._svAiMapProgress?.set('Done', 100, 'ILO–SO–CPA mapping applied.', 'state-ok'); } catch(e) {}
+        const setCell = (cell, val) => { const ta = cell?.querySelector('textarea'); if (ta) ta.value = val || ''; else if (cell) cell.textContent = val || ''; };
+        setCell(tds[cIdx], r.c || '');
+        setCell(tds[pIdx], r.p || '');
+        setCell(tds[aIdx], r.a || '');
+      });
+    } catch(e){ /* ignore refresh errors */ }
+  }
+
+  async function saveIloSoCpa(parsed){
+    try {
+      const syllabusId = document.getElementById('syllabus-document')?.getAttribute('data-syllabus-id') || null;
+      if (!syllabusId) { showToast('No syllabus ID found.'); return; }
+      const endpoint = '/faculty/syllabus/save-ilo-so-cpa-mapping';
+      const payload = { syllabus_id: syllabusId, so_columns: parsed?.so_columns || [], mappings: parsed?.mappings || [] };
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+      const j = await res.json().catch(()=>({}));
+      if (!res.ok){ showToast('Save failed: ' + (j?.error || res.status)); }
+    } catch(err){ showToast('Network error: ' + (err?.message || String(err))); }
   }
 
   // Assess sufficiency of data based on TLA activities presence and week headers
@@ -722,5 +953,5 @@
     } catch(e){ return { ok: false, message: 'We need a bit more info to map correctly.', explain: '' }; }
   }
 
-  window._aiMap = { collectPhasePayloads, openInputViewer, parseMarkdownToJson, triggerAutoMap, assessDataSufficiency };
+  window._aiMap = { collectPhasePayloads, openInputViewer, parseMarkdownToJson, triggerAutoMap, assessDataSufficiency, runIloSoCpaAutoMap, parseIloSoCpaMarkdown, refreshIloSoCpaGridFromParsed };
 })();

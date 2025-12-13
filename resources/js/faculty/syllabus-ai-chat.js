@@ -921,23 +921,33 @@
           }
         } catch(e) { console.warn('[AIChat][Phase3][Assessment Mapping] parse error:', e); }
 
-        // ILO-SO-CPA mapping
+        // ILO–SO–CPA mapping (smart snapshot: ILO number, SO number columns, and C/P/A)
         try {
           const soRoot = document.querySelector('.ilo-so-cpa-mapping');
           if (soRoot) {
             md.push('\n### ILO–SO–CPA Mapping');
             const mapTable = soRoot.querySelector('.mapping');
             const headerRow2 = mapTable?.querySelectorAll('tr')[1];
-            const headers = headerRow2 ? Array.from(headerRow2.querySelectorAll('th')).map(th => th.textContent.trim()) : [];
-            const soHeaders = headers.filter(h => /^\d+$/i.test(h));
-            // Data rows
+            // Derive SO column numbers from header inputs/text (strip non-digits)
+            const soHeaders = [];
+            if (headerRow2) {
+              Array.from(headerRow2.querySelectorAll('th')).forEach(th => {
+                const inp = th.querySelector('input');
+                const raw = (inp ? inp.value : th.textContent || '').toString().trim();
+                const num = (raw.match(/\d+/) || [null])[0];
+                if (num) soHeaders.push(num);
+              });
+            }
             const rows = Array.from((mapTable?.querySelector('tbody') || mapTable).querySelectorAll('tr')).filter(r => r.querySelector('td'));
-            md.push('| ILO | ' + (soHeaders.length ? soHeaders.map(h=>`SO ${h}`).join(' | ') : 'SO') + ' | C | P | A |');
+            // Header row with numeric SO columns
+            md.push('| ILO | ' + (soHeaders.length ? soHeaders.map(n=>`SO ${n}`).join(' | ') : 'SO') + ' | C | P | A |');
             md.push('|:--|'+ (soHeaders.length ? soHeaders.map(()=>':--:').join('|') : ':--:') +'|:--:|:--:|:--:|');
             rows.forEach(r => {
               const tds = Array.from(r.querySelectorAll('td'));
-              const ilo = (tds[0]?.querySelector('input')?.value || tds[0]?.textContent || '').toString().trim() || '-';
-              // SO cells are between ILO and C/P/A; detect count from headers
+              // ILO number from input/text (extract digits), fallback to raw
+              const rawIlo = (tds[0]?.querySelector('input')?.value || tds[0]?.textContent || '').toString().trim();
+              const iloNum = (rawIlo.match(/\d+/) || [null])[0];
+              const ilo = iloNum ? `ILO ${iloNum}` : (rawIlo || '-');
               const soCount = Math.max(1, soHeaders.length);
               const soVals = [];
               for (let i = 1; i <= soCount; i++) {
