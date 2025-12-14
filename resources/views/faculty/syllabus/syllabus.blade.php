@@ -94,6 +94,23 @@
         <div class="sv-partial" data-partial-key="sdg">@include('faculty.syllabus.partials.sdg')</div>
         <div class="sv-partial" data-partial-key="course-policies">@include('faculty.syllabus.partials.course-policies')</div>
         <div class="sv-partial" data-partial-key="tla">@include('faculty.syllabus.partials.tla')</div>
+        <!-- AI Map separator/button moved into syllabus structure, above Assessment Mapping -->
+        <div class="sv-partial-sep" role="separator" aria-label="Section divider">
+          <style>
+            .sv-partial-sep { display:flex; align-items:center; gap:10px; margin: 12px 0 16px; }
+            .sv-partial-sep .sep-line { flex:1 1 auto; height:1px; background:#e2e5e9; }
+            .sv-partial-sep .sv-ai-map-btn { background:#fff; border:1px solid #e2e5e9; border-radius:999px; padding:.3rem .7rem; font-size:.85rem; color:#CB3737; display:inline-flex; align-items:center; gap:.4rem; }
+            .sv-partial-sep .sv-ai-map-btn i { font-size:1rem; }
+            .sv-partial-sep .sv-ai-map-btn:hover { background: linear-gradient(135deg, rgba(255,240,235,.88), rgba(255,255,255,.46)); box-shadow: 0 4px 10px rgba(203,55,55,.12); }
+            .sv-partial-sep .sv-ai-map-btn:active { transform: translateY(0); filter: brightness(.98); }
+          </style>
+          <div class="sep-line" aria-hidden="true"></div>
+          <button type="button" class="btn btn-sm sv-ai-map-btn" id="svAiAutoMapBtn" title="Map Assessment Schedule" aria-label="Map Assessment Schedule">
+            <i class="bi bi-stars" aria-hidden="true"></i>
+            Assessment Schedule
+          </button>
+          <div class="sep-line" aria-hidden="true"></div>
+        </div>
         <div class="sv-partial" data-partial-key="assessment-mapping">@include('faculty.syllabus.partials.assessment-mapping')</div>
         <div class="sv-partial" data-partial-key="ilo-so-cpa-mapping">@include('faculty.syllabus.partials.ilo-so-cpa-mapping')</div>
         <div class="sv-partial" data-partial-key="ilo-iga-mapping">@include('faculty.syllabus.partials.ilo-iga-mapping')</div>

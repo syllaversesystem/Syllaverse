@@ -1,20 +1,4 @@
-<!-- Section divider above Assessment Mapping: centered AI mapping button (no functionality yet) -->
-<div class="sv-partial-sep" role="separator" aria-label="Section divider">
-	<style>
-		.sv-partial-sep { display:flex; align-items:center; gap:10px; margin: 12px 0 16px; }
-		.sv-partial-sep .sep-line { flex:1 1 auto; height:1px; background:#e2e5e9; }
-		.sv-partial-sep .sv-ai-map-btn { background:#fff; border:1px solid #e2e5e9; border-radius:999px; padding:.3rem .7rem; font-size:.85rem; color:#CB3737; display:inline-flex; align-items:center; gap:.4rem; }
-		.sv-partial-sep .sv-ai-map-btn i { font-size:1rem; }
-		.sv-partial-sep .sv-ai-map-btn:hover { background: linear-gradient(135deg, rgba(255,240,235,.88), rgba(255,255,255,.46)); box-shadow: 0 4px 10px rgba(203,55,55,.12); }
-		.sv-partial-sep .sv-ai-map-btn:active { transform: translateY(0); filter: brightness(.98); }
-	</style>
-	<div class="sep-line" aria-hidden="true"></div>
-	<button type="button" class="btn btn-sm sv-ai-map-btn" id="svAiAutoMapBtn" title="AI Map" aria-label="AI Map">
-		<i class="bi bi-stars" aria-hidden="true"></i>
-		AI Map
-	</button>
-	<div class="sep-line" aria-hidden="true"></div>
-</div>
+<!-- AI Map separator moved to syllabus.blade layout above this partial -->
 
 <!-- AI Map validation + progress (hidden until AI Map runs) -->
 <div id="svAiMapProgressWrap" class="sv-ai-progress" aria-live="polite" style="display:none; margin:-6px 0 16px;">
@@ -72,7 +56,7 @@
 </div>
 
 @push('scripts')
-<script src="{{ Vite::asset('resources/js/faculty/ai-map.js') }}" type="module"></script>
+<script src="{{ Vite::asset('resources/js/faculty/ai/assessment-map.js') }}" type="module"></script>
 <script>
 	// Ensure ai-map initializes after DOM
 	document.addEventListener('DOMContentLoaded', function(){

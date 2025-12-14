@@ -10,98 +10,9 @@
   // Last request/response snapshots for debugging/viewing
   let _lastRequest = null; // { message, phase, context_phase1, context_phase2, context_phase3, context_all, history }
   let _lastReply = null;   // string
-  function pushConvo(role, content){
-    if (!role || typeof content !== 'string') return;
-    const r = (role.toLowerCase() === 'you' || role.toLowerCase() === 'user') ? 'user' : 'assistant';
-    _convo.push({ role: r, content: content });
-  }
-  function buildHistoryPayload(excludeLastUser){
-    const MAX_MSGS = 10;
-    const MAX_TOTAL = 8000;
-    let msgs = _convo.slice();
-    if (excludeLastUser && msgs.length){
-      const last = msgs[msgs.length - 1];
-      if (last.role === 'user') msgs = msgs.slice(0, msgs.length - 1);
-    }
-    // take last MAX_MSGS
-    msgs = msgs.slice(Math.max(0, msgs.length - MAX_MSGS));
-    let total = 0;
-    const trimmed = [];
-    for (const m of msgs){
-      let c = m.content || '';
-      if (!c) continue;
-      if (total >= MAX_TOTAL) break;
-      const room = MAX_TOTAL - total;
-      if (c.length > room) c = c.slice(0, room);
-      trimmed.push({ role: m.role, content: c });
-      total += c.length;
-    }
-    return trimmed;
-  }
-  // Basic Markdown formatter (headings, lists, code blocks, bold/italic, tables) with HTML sanitization
+  // Minimal markdown formatter placeholder to avoid syntax errors
   function formatAIResponse(raw){
-    if (!raw) return '';
-    let text = String(raw);
-    // Escape HTML first
-    text = text.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
-    // Code blocks ```lang\n...```
-    text = text.replace(/```([a-zA-Z0-9_-]+)?\n([\s\S]*?)```/g, (m, lang, code) => {
-      const safeCode = code.replace(/\n$/,'').replace(/&/g,'&amp;').replace(/</g,'&lt;');
-      const cls = lang ? ` class="lang-${lang.toLowerCase()}"` : '';
-      return `<pre><code${cls}>${safeCode}</code></pre>`;
-    });
-    // Inline code `code`
-    text = text.replace(/`([^`]+)`/g, (m, code) => `<code>${code}</code>`);
-    // Headings ###, ##, #
-    text = text.replace(/^###\s*(.+)$/gm, '<h4>$1</h4>');
-    text = text.replace(/^##\s*(.+)$/gm, '<h3>$1</h3>');
-    text = text.replace(/^#\s*(.+)$/gm, '<h2>$1</h2>');
-    // Bold **text** and italic *text*
-    text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-    text = text.replace(/\*(?!\*)([^*]+)\*/g, '<em>$1</em>');
-    // Lists - item / * item
-    function listify(src){
-      return src.replace(/^(?:-|\*)\s.+(?:\n(?:-|\*)\s.+)*/gm, block => {
-        const items = block.split(/\n/).map(l => l.replace(/^(?:-|\*)\s*/, '').trim());
-        return '<ul>' + items.map(it => `<li>${it}</li>`).join('') + '</ul>';
-      });
-    }
-    text = listify(text);
-    // Numbered lists 1. item
-    text = text.replace(/^(?:\d+)\.\s.+(?:\n(?:\d+)\.\s.+)*/gm, block => {
-      const items = block.split(/\n/).map(l => l.replace(/^\d+\.\s*/, '').trim());
-      return '<ol>' + items.map(it => `<li>${it}</li>`).join('') + '</ol>';
-    });
-    // Tables: detect blocks starting and ending with pipe rows + separator
-    // Simple markdown table pattern: header row, separator row of --- and optional alignment colons, then data rows
-    function convertTables(src){
-      return src.replace(/((?:^\|.*\n)+)(?=^\S|$)/gm, block => {
-        const lines = block.trim().split(/\n/).filter(l => /^\|/.test(l.trim()));
-        if (lines.length < 2) return block; // need at least header + separator
-        const header = lines[0];
-        const separator = lines[1];
-        if (!/\|\s*:?-{3,}:?\s*/.test(separator)) return block; // second line must be separator style
-        const rows = lines.slice(2);
-        function splitRow(r){
-          return r.replace(/^\|/,'').replace(/\|$/,'').split(/\|/).map(c => c.trim());
-        }
-        const headers = splitRow(header);
-        const body = rows.map(r => splitRow(r));
-        // Build HTML table
-        let html = '<div class="sv-ai-table-wrap"><table class="sv-ai-table"><thead><tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr></thead>';        
-        if (body.length){
-          html += '<tbody>' + body.map(cells => '<tr>' + cells.map(c => `<td>${c}</td>`).join('') + '</tr>').join('') + '</tbody>';
-        }
-        html += '</table></div>';
-        return html;
-      });
-    }
-    text = convertTables(text);
-    // Paragraphs: wrap remaining lines not already block-level
-    const blockPattern = /<(h[2-5]|ul|ol|pre|code|blockquote|table|div class="sv-ai-table-wrap")/i;
-    const lines = text.split(/\n+/).filter(l => l.trim() !== '');
-    text = lines.map(l => blockPattern.test(l) || /^<li>/.test(l) ? l : `<p>${l}</p>`).join('');
-    return text;
+    try { return String(raw || ''); } catch(e) { return ''; }
   }
   function getSyllabusId(){
     return document.getElementById('syllabus-document')?.getAttribute('data-syllabus-id') || null;
@@ -584,68 +495,170 @@
     if (!endpoint) { appendMsg('ai', 'AI service unavailable.'); return; }
     const loadingRow = appendLoading();
     const fd = new FormData();
-    // Phase 1 snapshot: include IGA, SO, CDIO, SDG blocks
-    try {
-      const full = typeof collectFullSnapshot === 'function' ? collectFullSnapshot() : '';
-      const real = (typeof window._svRealtimeContext === 'string') ? window._svRealtimeContext : '';
-      function extractBlock(src, key){
-        if (!src) return '';
-        const re = new RegExp(`PARTIAL_BEGIN:${key}[\\s\\S]*?PARTIAL_END:${key}`, 'm');
-        const m = src.match(re);
-        return (m && m[0]) ? m[0] : '';
-      }
-      const keys1 = ['iga','so','cdio','sdg'];
-      const p1Blocks = [];
-      keys1.forEach(k => {
-        let blk = extractBlock(full, k);
-        if (!blk && real) blk = extractBlock(real, k);
-        if (blk) p1Blocks.push(blk);
-      });
-      const phase1 = p1Blocks.length ? p1Blocks.join('\n\n') : '';
-      if (phase1) fd.append('context_phase1', phase1);
-    } catch(e) {}
     try {
       // Phase 1: send a minimal snapshot (mission_vision, course_info, ilo, so, iga, cdio, sdg)
       function collectPhase1Snapshot(){
-        const full = collectFullSnapshot() || '';
-        const real = (typeof window._svRealtimeContext === 'string') ? window._svRealtimeContext : '';
-        const keys = ['mission_vision','course_info','tlas','ilo','so','iga','cdio','sdg'];
-        const blocks = [];
-        const found = [];
-        keys.forEach(k => {
-          const re = new RegExp(`PARTIAL_BEGIN:${k}[\\s\\S]*?PARTIAL_END:${k}`, 'm');
-          let m = full.match(re);
-          if (!m && real) { m = real.match(re); }
-          if (m && m[0]) { blocks.push(m[0]); found.push(k); }
-        });
-        // Build a compact table overview for Phase 1
-        function summarizeBlock(b){
-          if (!b) return '-';
-          // Prefer HEADINGS line then first TEXT or first ROW
-          const mHead = b.match(/HEADINGS:(.+)/);
-          const mText = b.match(/TEXT_START\n([\s\S]*?)\nTEXT_END/);
-          const mRow = b.match(/^(ROW:.*)$/m);
-          const head = mHead ? mHead[1].trim() : '';
-          const txt = mText ? mText[1].trim().replace(/\s+/g,' ') : (mRow ? mRow[1] : '');
-          const s = (head ? head + ' — ' : '') + txt;
-          return s.length > 240 ? (s.slice(0,240) + ' …') : (s || '-');
+        // Phase 1: Mission & Vision + Course Information (structured markdown tables)
+        function sanitize(val){
+          const s = String(val == null ? '' : val).trim();
+          return s.length ? s : '-';
         }
-        const overviewRows = keys.map(k => {
-          const re = new RegExp(`PARTIAL_BEGIN:${k}[\\s\\S]*?PARTIAL_END:${k}`, 'm');
-          const blk = blocks.find(b => re.test(b));
-          const present = blk ? 'Yes' : 'No';
-          const summary = blk ? summarizeBlock(blk) : '-';
-          return `| ${k} | ${present} | ${summary} |`;
+        const vEl = document.getElementById('vision-text') || document.querySelector('[name="vision"]');
+        const mEl = document.getElementById('mission-text') || document.querySelector('[name="mission"]');
+        const vision = sanitize(vEl ? vEl.value : '');
+        const mission = sanitize(mEl ? mEl.value : '');
+        const md = [];
+        md.push('### Institutional Vision & Mission');
+        md.push('| Label | Text |');
+        md.push('|:--|:--|');
+        md.push(`| Vision | ${vision} |`);
+        md.push(`| Mission | ${mission} |`);
+
+        // Course Information
+        function getVal(name){
+          const el = document.querySelector(`[name="${name}"]`);
+          return sanitize(el ? el.value : '-');
+        }
+        const courseFields = [
+          ['Course Title','course_title'],
+          ['Course Code','course_code'],
+          ['Course Category','course_category'],
+          ['Pre-requisite(s)','course_prerequisites'],
+          ['Teaching, Learning, and Assessment Strategies','tla_strategies'],
+          ['Semester','semester'],
+          ['Year Level','year_level'],
+          ['Credit Hours','credit_hours_text'],
+          ['Instructor Name','instructor_name'],
+          ['Employee No.','employee_code'],
+          ['Reference CMO','reference_cmo'],
+          ['Instructor Designation','instructor_designation'],
+          ['Date Prepared','date_prepared'],
+          ['Instructor Email','instructor_email'],
+          ['Revision No.','revision_no'],
+          ['Period of Study','academic_year'],
+          ['Revision Date','revision_date'],
+          ['Course Rationale and Description','course_description'],
+          ['Contact Hours','contact_hours']
+        ];
+        md.push('');
+        md.push('### Course Information');
+        md.push('| Field | Value |');
+        md.push('|:--|:--|');
+        courseFields.forEach(([label, name]) => {
+          md.push(`| ${label} | ${getVal(name)} |`);
         });
-        const table = [
-          '| Section | Present | Summary |',
-          '|:--|:--:|:--|',
-          ...overviewRows
-        ].join('\n');
-        let payload = table + (blocks.length ? ('\n\n' + blocks.join('\n\n')) : '');
-        const MAX = 8000; // keep small for phase 1
-        if (payload.length > MAX) payload = payload.slice(0, MAX) + '\n[Context trimmed]';
-        try { console.debug('[AIChat][Phase1] Found keys:', found); } catch(e) {}
+
+        // ILOs: read from ILO list and append a structured table
+        try {
+          const list = document.getElementById('syllabus-ilo-sortable');
+          const rows = list ? Array.from(list.querySelectorAll('tr')).filter(r => r.querySelector('textarea[name="ilos[]"]') || r.querySelector('.ilo-badge')) : [];
+          const ilos = rows.map((r, i) => {
+            const code = `ILO${i+1}`;
+            const ta = r.querySelector('textarea[name="ilos[]"]');
+            const desc = (ta && ta.value ? ta.value.trim() : '').replace(/\r?\n/g, ' ');
+            return { code, desc };
+          }).filter(x => x.desc.length);
+          md.push('');
+          md.push('### Intended Learning Outcomes (ILO)');
+          md.push('| ILO | Description |');
+          md.push('|:--:|:--|');
+          if (ilos.length) {
+            ilos.forEach(it => md.push(`| ${it.code} | ${it.desc} |`));
+          } else {
+            md.push('| - | no ilo |');
+          }
+        } catch(e) { /* ignore ILO block errors */ }
+
+        // IGAs: read from IGA list and append a structured table
+        try {
+          const listIga = document.getElementById('syllabus-iga-sortable');
+          const rowsIga = listIga ? Array.from(listIga.querySelectorAll('tr.iga-row')) : [];
+          const igas = rowsIga.map((r, i) => {
+            const code = r.querySelector('.iga-badge')?.textContent?.trim() || `IGA${i+1}`;
+            const title = (r.querySelector('textarea[name="iga_titles[]"]')?.value || '').trim();
+            const desc  = (r.querySelector('textarea[name="igas[]"]')?.value || '').trim();
+            const text = [title, desc].filter(Boolean).join(' — ').replace(/\r?\n/g, ' ');
+            return { code, text };
+          }).filter(x => x.text.length);
+          md.push('');
+          md.push('### Institutional Graduate Attributes (IGA)');
+          md.push('| IGA | Statement |');
+          md.push('|:--:|:--|');
+          if (igas.length) {
+            igas.forEach(it => md.push(`| ${it.code} | ${it.text} |`));
+          } else {
+            md.push('| - | no iga |');
+          }
+        } catch(e) { /* ignore IGA block errors */ }
+
+        // SOs: read from SO list and append a structured table
+        try {
+          const listSo = document.getElementById('syllabus-so-sortable');
+          const rowsSo = listSo ? Array.from(listSo.querySelectorAll('tr')).filter(r => !r.id || r.id !== 'so-placeholder') : [];
+          const sos = rowsSo.map((r, i) => {
+            const code = r.querySelector('.so-badge')?.textContent?.trim() || `SO${i+1}`;
+            const title = (r.querySelector('textarea[name="so_titles[]"]')?.value || '').trim();
+            const desc  = (r.querySelector('textarea[name="sos[]"]')?.value || '').trim();
+            const text = [title, desc].filter(Boolean).join(' — ').replace(/\r?\n/g, ' ');
+            return { code, text };
+          }).filter(x => x.text.length);
+          md.push('');
+          md.push('### Student Outcomes (SO)');
+          md.push('| SO | Statement |');
+          md.push('|:--:|:--|');
+          if (sos.length) {
+            sos.forEach(it => md.push(`| ${it.code} | ${it.text} |`));
+          } else {
+            md.push('| - | no so |');
+          }
+        } catch(e) { /* ignore SO block errors */ }
+
+        // CDIOs: read from CDIO list and append a structured table
+        try {
+          const listCdio = document.getElementById('syllabus-cdio-sortable');
+          const rowsCdio = listCdio ? Array.from(listCdio.querySelectorAll('tr')).filter(r => !r.id || r.id !== 'cdio-placeholder') : [];
+          const cdios = rowsCdio.map((r, i) => {
+            const code = r.querySelector('.cdio-badge')?.textContent?.trim() || `CDIO${i+1}`;
+            const title = (r.querySelector('textarea[name="cdio_titles[]"]')?.value || '').trim();
+            const desc  = (r.querySelector('textarea[name="cdios[]"]')?.value || '').trim();
+            const text = [title, desc].filter(Boolean).join(' — ').replace(/\r?\n/g, ' ');
+            return { code, text };
+          }).filter(x => x.text.length);
+          md.push('');
+          md.push('### CDIO Framework Skills (CDIO)');
+          md.push('| CDIO | Statement |');
+          md.push('|:--:|:--|');
+          if (cdios.length) {
+            cdios.forEach(it => md.push(`| ${it.code} | ${it.text} |`));
+          } else {
+            md.push('| - | no cdio |');
+          }
+        } catch(e) { /* ignore CDIO block errors */ }
+
+        // SDGs: read from SDG list and append a structured table
+        try {
+          const listSdg = document.getElementById('syllabus-sdg-sortable');
+          const rowsSdg = listSdg ? Array.from(listSdg.querySelectorAll('tr')).filter(r => !r.id || r.id !== 'sdg-placeholder') : [];
+          const sdgs = rowsSdg.map((r, i) => {
+            const code = r.querySelector('.sdg-badge')?.textContent?.trim() || `SDG${i+1}`;
+            const title = (r.querySelector('textarea[name="sdg_titles[]"]')?.value || '').trim();
+            const desc  = (r.querySelector('textarea[name="sdgs[]"]')?.value || '').trim();
+            const text = [title, desc].filter(Boolean).join(' — ').replace(/\r?\n/g, ' ');
+            return { code, text };
+          }).filter(x => x.text.length);
+          md.push('');
+          md.push('### Sustainable Development Goals (SDG)');
+          md.push('| SDG | Statement |');
+          md.push('|:--:|:--|');
+          if (sdgs.length) {
+            sdgs.forEach(it => md.push(`| ${it.code} | ${it.text} |`));
+          } else {
+            md.push('| - | no sdg |');
+          }
+        } catch(e) { /* ignore SDG block errors */ }
+
+        const payload = md.join('\n');
+        try { console.debug('[AIChat][Phase1] Built Mission/Vision + Course Information'); } catch(e) {}
         return payload;
       }
       const phase1 = collectPhase1Snapshot();
