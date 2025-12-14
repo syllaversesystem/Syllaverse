@@ -131,15 +131,51 @@ document.addEventListener('DOMContentLoaded', () => {
   function rebuildTlaRealtimeContext() {
     try {
       const prev = typeof window._svRealtimeContext === 'string' ? window._svRealtimeContext : '';
-      if (!prev) return;
-      const cleaned = prev.replace(/PARTIAL_BEGIN:tla[\s\S]*?PARTIAL_END:tla/g, '').trim();
-      window._svRealtimeContext = cleaned;
+      // Remove any existing TLA snapshot block
+      const cleaned = prev ? prev.replace(/PARTIAL_BEGIN:tla[\s\S]*?PARTIAL_END:tla/g, '').trim() : '';
+
+      // Build deterministic snapshot from current table inputs
+      const rows = Array.from(tlaBody.querySelectorAll('tr:not(#tla-placeholder)'));
+      const headerTitle = 'Teaching, Learning, and Assessment (TLA) Activities';
+      const columns = 'Columns: Ch. | Topics / Reading List | Wks. | Topic Outcomes | ILO | SO | Delivery Method';
+
+      function valOrDash(el) {
+        if (!el) return '-';
+        const v = (el.value ?? '').toString().trim();
+        return v ? v : '-';
+      }
+
+      const lines = [];
+      lines.push('PARTIAL_BEGIN:tla');
+      lines.push(`<!-- TLA_ROWS:${rows.length} -->`);
+      lines.push(headerTitle);
+      lines.push(columns);
+      lines.push('');
+      lines.push('| Ch. | Topics / Reading List | Wks. | Topic Outcomes | ILO | SO | Delivery Method |');
+      lines.push('|:---:|:----------------------|:----:|:---------------|:---:|:--:|:-----------------|');
+
+      rows.forEach((row) => {
+        const ch = valOrDash(row.querySelector('[name*="[ch]"]'));
+        const topic = valOrDash(row.querySelector('[name*="[topic]"]'));
+        const wks = valOrDash(row.querySelector('[name*="[wks]"]'));
+        const outcomes = valOrDash(row.querySelector('[name*="[outcomes]"]'));
+        const ilo = valOrDash(row.querySelector('[name*="[ilo]"]'));
+        const so = valOrDash(row.querySelector('[name*="[so]"]'));
+        const delivery = valOrDash(row.querySelector('[name*="[delivery]"]'));
+        lines.push(`| ${ch} | ${topic} | ${wks} | ${outcomes} | ${ilo} | ${so} | ${delivery} |`);
+      });
+
+      lines.push('PARTIAL_END:tla');
+
+      const snapshot = lines.join('\n');
+      // Append snapshot separated by two newlines if existing context
+      window._svRealtimeContext = cleaned ? `${cleaned}\n\n${snapshot}` : snapshot;
     } catch (e) { /* noop */ }
   }
 
   // Rebuild on initial load
   document.addEventListener('DOMContentLoaded', () => {
-    // Initial cleanup only (no snapshot build)
+    // Initial snapshot build
     try { rebuildTlaRealtimeContext(); } catch(e) {}
   });
 

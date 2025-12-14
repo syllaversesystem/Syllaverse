@@ -105,10 +105,16 @@
             .sv-partial-sep .sv-ai-map-btn:active { transform: translateY(0); filter: brightness(.98); }
           </style>
           <div class="sep-line" aria-hidden="true"></div>
-          <button type="button" class="btn btn-sm sv-ai-map-btn" id="svAiAutoMapBtn" title="Map Assessment Schedule" aria-label="Map Assessment Schedule">
-            <i class="bi bi-stars" aria-hidden="true"></i>
-            Assessment Schedule
-          </button>
+          <div class="d-flex align-items-center gap-2">
+            <button type="button" class="btn btn-sm sv-ai-map-btn" id="svAiAutoMapBtn" title="Map Assessment Schedule" aria-label="Map Assessment Schedule">
+              <i class="bi bi-stars" aria-hidden="true"></i>
+              Assessment Schedule
+            </button>
+            <button type="button" class="btn btn-sm sv-ai-map-btn" id="svAiIloSoCpaBtn" title="ILO–SO and ILO–CPA Mapping" aria-label="ILO–SO and ILO–CPA Mapping">
+              <i class="bi bi-stars" aria-hidden="true"></i>
+              ILO–SO & ILO–CPA
+            </button>
+          </div>
           <div class="sep-line" aria-hidden="true"></div>
         </div>
         <div class="sv-partial" data-partial-key="assessment-mapping">@include('faculty.syllabus.partials.assessment-mapping')</div>
