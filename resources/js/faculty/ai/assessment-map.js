@@ -227,11 +227,11 @@
         'STRICT mode: Derive schedule ONLY from TLA activities and their `Wks.` values.',
         'Task eligibility: Map a calendar task ONLY if it explicitly matches a TLA-referenced activity by name/type (e.g., Quizzes/Chapter Tests ↔ Quiz, Laboratory Exercises ↔ Lab Exercises, Laboratory Exams ↔ Lab Exam). Do NOT invent tasks.',
         'Week eligibility: Mark x ONLY on week columns that are explicitly present in TLA `Wks.` ranges for the corresponding activity. Do NOT infer additional weeks.',
-        'Completeness rule: For any eligible task, mark ALL weeks that are present in TLA `Wks.` (i.e., fill every allowed week) unless the snapshot clearly indicates the task should be limited to a subset. Do not leave eligible weeks empty.',
+        'Completeness rule: For any eligible task, mark ALL weeks that are present in TLA `Wks.` (expand ranges like 1-3 into 1,2,3). Do not leave eligible weeks empty.',
         'Correction rule: The snapshot is CURRENT. Scan TLA + Assessment Mapping. If an existing x in the calendar does NOT align to that task’s TLA week(s), REMOVE it (leave empty).',
         'Output two parts in order:',
-        '1) A single Markdown table: | Task | <Week columns…> | with x marks, from TLA weeks only (mark all eligible weeks).',
-        '2) A JSON array `schedule`: [{"name":"<task>","weeks":[true|false,...]}] strictly derived from TLA weeks for that task, marking all eligible weeks.',
+        '1) A single Markdown table: | Task | <Week columns…> | with x marks, from TLA weeks only (mark all eligible weeks; expand ranges).',
+        '2) A JSON array `schedule` with items of the form: {"name":"<task>","week_marks": {"<week>": "x" | null, ...}} where weeks are derived from TLA (expand ranges) and only include weeks that exist in the calendar header. Use "x" for marked weeks, null for unmarked.',
         'Keep existing task names and week columns. No prose. Place JSON after the table.',
         'Treat all provided context blocks as the latest updates; never rely on older versions or inferred fields.'
       ].join('\n');
@@ -271,12 +271,18 @@
       if (!m) return null;
       const arr = JSON.parse(m[0]);
       if (!Array.isArray(arr)) return null;
-      // Normalize to { name, week_marks, position }
-      const rows = arr.map((r, idx) => ({
-        name: (r.name || '').toString(),
-        week_marks: Array.isArray(r.weeks) ? r.weeks.map(b => (b ? 'x' : '-')) : [],
-        position: idx
-      }));
+      // Normalize to { name, week_marks (object), position }
+      const rows = arr.map((r, idx) => {
+        const name = (r.name || '').toString();
+        let wm = r.week_marks;
+        if (Array.isArray(r.weeks)) {
+          // Convert boolean array to object with 1-based week keys: "x"/null
+          wm = {};
+          r.weeks.forEach((b, i) => { wm[String(i+1)] = b ? 'x' : null; });
+        }
+        if (!wm || typeof wm !== 'object') wm = {};
+        return { name, week_marks: wm, position: idx };
+      });
       return rows;
     } catch(e){ return null; }
   }
@@ -367,7 +373,6 @@
         return;
       }
       for (let c=0;c<cells.length;c++){
-        const mark = row.week_marks[c];
         const cell = cells[c];
         if (!cell) continue;
         // Determine the week label for this column from header row
@@ -376,7 +381,9 @@
         const wkAllowed = allowed.has(String(wkLabel)) || // single week
                           // support ranges like 1-2 in header by expanding
                           (() => { const m = wkLabel.match(/^(\d+)-(\d+)$/); if (m){ const s=parseInt(m[1],10), e=parseInt(m[2],10); for (let w=s; w<=e; w++){ if (allowed.has(String(w))) return true; } } return false; })();
-        if (mark === 'x' && wkAllowed) {
+        const mark = (row.week_marks && typeof row.week_marks === 'object') ? row.week_marks[String(wkLabel)] : undefined;
+        const isMarked = mark === 'x';
+        if (isMarked && wkAllowed) {
           cell.classList.add('marked');
           cell.setAttribute('data-mark','x');
           cell.textContent = 'x';
