@@ -94,6 +94,7 @@
   @vite('resources/js/faculty/syllabus-tla.js')
   @vite('resources/js/faculty/syllabus-assessment-mapping.js')
   @vite('resources/js/faculty/syllabus-ai-chat.js')
+  @vite('resources/js/faculty/ai/assessment-map.js')
   {{-- ░░░ END: Vite JS ░░░ --}}
   @if(isset($fullscreen) && $fullscreen)
   <style>

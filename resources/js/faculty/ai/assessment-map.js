@@ -204,24 +204,24 @@
 
   async function callAiForAssessment(){
     // Validate sufficiency
-    setProgress('Preparing', 5, 'Checking schedule and tasks…', 'state-running');
+    setProgress('Preparing', 5, 'Getting things ready…', 'state-running');
     const snap = buildAssessmentMappingSnapshot();
     _lastInput = snap;
-    if (!snap){ setProgress('Complete', 100, 'Add weeks and tasks to map.', 'state-warn'); return; }
+    if (!snap){ setProgress('Complete', 100, 'Please add tasks and week columns first.', 'state-warn'); return; }
     // Require TLA context presence
     const hasTla = /PARTIAL_BEGIN:tla[\s\S]*?PARTIAL_END:tla/.test(snap);
     const tlaRowsMatch = snap.match(/<!--\s*TLA_ROWS:(\d+)\s*-->/);
     const tlaRows = tlaRowsMatch ? parseInt(tlaRowsMatch[1], 10) : 0;
     if (!hasTla || tlaRows <= 0){
-      setProgress('Complete', 100, 'TLA activities missing. Add TLA rows (with Wks.) first.', 'state-warn');
+      setProgress('Complete', 100, 'Add Teaching–Learning Activities with weeks to continue.', 'state-warn');
       openPreviewModal();
       return;
     }
     try {
-      setProgress('Calling AI', 35, 'Generating suggested schedule…', 'state-running');
+      setProgress('Calling AI', 35, 'Asking AI for a schedule…', 'state-running');
       const syllabusId = document.getElementById('syllabus-document')?.getAttribute('data-syllabus-id') || null;
       const endpoint = syllabusId ? `/faculty/syllabi/${syllabusId}/ai-chat` : null;
-      if (!endpoint) { setProgress('Complete', 100, 'AI service unavailable.', 'state-warn'); return; }
+      if (!endpoint) { setProgress('Complete', 100, 'AI service is not available right now.', 'state-warn'); return; }
       const fd = new FormData();
       const instruction = [
         'STRICT mode: Derive schedule ONLY from TLA activities and their `Wks.` values.',
@@ -242,26 +242,26 @@
       const j = await res.json().catch(()=>({}));
       if (res.ok && j && j.reply){
         _lastReply = j.reply;
-        setProgress('Parsing', 65, 'Reading table…', 'state-running');
+        setProgress('Processing', 65, 'Reviewing AI suggestion…', 'state-running');
         _lastParsed = parseAssessmentMarkdown(_lastReply);
         // Try parse JSON part
         _lastJson = parseAssessmentJson(_lastReply);
         // Auto-apply to calendar if enabled
         if (_autoApply) {
           try {
-            setProgress('Applying', 90, 'Auto-applying to calendar…', 'state-running');
+            setProgress('Applying', 90, 'Applying changes to your calendar…', 'state-running');
             applyParsedToCalendar();
-            setProgress('Applied', 95, 'Applied to calendar.', 'state-ok');
+            setProgress('Applied', 95, 'Your calendar has been updated.', 'state-ok');
           } catch(e) {
-            setProgress('Complete', 100, 'Auto-apply failed: '+(e?.message||e), 'state-warn');
+            setProgress('Complete', 100, 'We couldn’t update the calendar. Please try again.', 'state-warn');
           }
         }
         // Do not open preview automatically in flow; keep modal accessible via shortcut/button
-        setProgress('Done', 100, 'Applied. Preview available on demand.', 'state-ok');
+        setProgress('Done', 100, 'All set.', 'state-ok');
       } else {
-        setProgress('Complete', 100, j?.error ? ('AI Error: '+j.error) : 'No reply received.', 'state-warn');
+        setProgress('Complete', 100, 'We didn’t get a valid AI response. Please try again.', 'state-warn');
       }
-    } catch(err){ setProgress('Complete', 100, 'Network/AI error: '+(err?.message||String(err)), 'state-warn'); }
+    } catch(err){ setProgress('Complete', 100, 'There was a problem reaching AI. Please try again.', 'state-warn'); }
   }
 
   function parseAssessmentJson(text){
