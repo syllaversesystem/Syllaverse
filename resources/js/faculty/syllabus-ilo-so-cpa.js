@@ -353,10 +353,14 @@ document.addEventListener('DOMContentLoaded', function() {
 		// Add column to colgroup (before C, P, A columns)
 		const newCol = document.createElement('col');
 		colgroup.insertBefore(newCol, colgroup.children[colgroup.children.length - 3]);
-		
-		// Update header colspan
+
+		// Update header colspan to span SOs + C/P/A
 		const soHeaderSpan = headerRow1.querySelectorAll('th')[1];
-		soHeaderSpan.setAttribute('colspan', parseInt(soHeaderSpan.getAttribute('colspan')) + 1);
+		const hdr2All = Array.from(headerRow2.querySelectorAll('th'));
+		const iloIdx2 = hdr2All.findIndex(th => th.textContent.includes('ILOs'));
+		const cIdx2 = hdr2All.findIndex(th => th.textContent.trim() === 'C');
+		const soCountNow = hdr2All.slice(iloIdx2 + 1, cIdx2).length + 1; // +1 for new
+		soHeaderSpan.setAttribute('colspan', String(soCountNow + 3));
 		
 		// Add new SO header in row 2 (before C header)
 		const cHeader = allHeaders.find(th => th.textContent.trim() === 'C');
@@ -476,10 +480,14 @@ document.addEventListener('DOMContentLoaded', function() {
 		
 		// Remove last SO column from colgroup
 		colgroup.removeChild(colgroup.children[colgroup.children.length - 4]);
-		
-		// Update header colspan
+
+		// Update header colspan to span SOs + C/P/A
 		const soHeaderSpan = headerRow1.querySelectorAll('th')[1];
-		soHeaderSpan.setAttribute('colspan', parseInt(soHeaderSpan.getAttribute('colspan')) - 1);
+		const hdr2All = Array.from(headerRow2.querySelectorAll('th'));
+		const iloIdx2 = hdr2All.findIndex(th => th.textContent.includes('ILOs'));
+		const cIdx2 = hdr2All.findIndex(th => th.textContent.trim() === 'C');
+		const soCountNow = hdr2All.slice(iloIdx2 + 1, cIdx2).length;
+		soHeaderSpan.setAttribute('colspan', String(Math.max(1, soCountNow) + 3));
 		
 		// Remove last SO header
 		const lastSoHeader = soHeaders[soHeaders.length - 1];
@@ -806,37 +814,105 @@ document.addEventListener('DOMContentLoaded', function() {
 	// Refresh function: rebuild partial from provided data (called after AI insert)
 	window.refreshIloSoCpaPartial = function(soColumns, mappings){
 		try {
+			// Preserve current focus and cursor position
+			const activeEl = document.activeElement;
+			let restoreSelection = null;
+			if (activeEl && (activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'INPUT')) {
+				const start = activeEl.selectionStart;
+				const end = activeEl.selectionEnd;
+				restoreSelection = (el) => { try { el.focus(); el.setSelectionRange(start, end); } catch(_){} };
+			}
+			// Persist new state on the root for resilience
 			mapping.setAttribute('data-so-columns', JSON.stringify(soColumns || []));
 			mapping.setAttribute('data-mappings', JSON.stringify(mappings || []));
-			// Reset table to initial state by reloading from attributes
-			// Remove existing dynamic rows beyond first, convert first to placeholder
+
 			const mappingTable = mapping.querySelector('.mapping');
-			const tbody = mappingTable.querySelector('tbody') || mappingTable;
-			const dataRows = Array.from(tbody.querySelectorAll('tr')).filter(r => r.querySelector('td'));
-			if (dataRows.length) {
-				const firstRow = dataRows[0];
-				const cells = Array.from(firstRow.querySelectorAll('td'));
-				cells[0].textContent = 'No ILO';
-				for (let i = 1; i < cells.length; i++) {
-					const ta = cells[i].querySelector('textarea');
-					if (ta) { ta.disabled = true; ta.value = ''; ta.style.backgroundColor = '#f8f9fa'; ta.style.cursor = 'not-allowed'; }
-				}
-				for (let i = 1; i < dataRows.length; i++) { dataRows[i].remove(); }
-			}
-			// Reset SO headers to single placeholder by removing extra SO headers
+			const headerRow1 = mappingTable.querySelectorAll('tr')[0];
 			const headerRow2 = mappingTable.querySelectorAll('tr')[1];
+			const tbody = mappingTable.querySelector('tbody') || mappingTable;
+
+			// --- Sync SO headers (between ILOs and C) ---
 			const allHeaders = Array.from(headerRow2.querySelectorAll('th'));
 			const iloHeaderIndex = allHeaders.findIndex(th => th.textContent.includes('ILOs'));
 			const cHeaderIndex = allHeaders.findIndex(th => th.textContent.trim() === 'C');
-			const soHeaders = allHeaders.slice(iloHeaderIndex + 1, cHeaderIndex);
-			for (let i = 1; i < soHeaders.length; i++) soHeaders[i].remove();
-			const firstSoHeader = soHeaders[0];
-			if (firstSoHeader) {
-				firstSoHeader.innerHTML = '<div class="so-header-controls"><button type="button" class="btn btn-sm so-remove-btn" onclick="removeSoColumn()" title="Remove SO column" aria-label="Remove SO column"><i data-feather="minus"></i></button></div>No SO';
+			let soHdrs = allHeaders.slice(iloHeaderIndex + 1, cHeaderIndex);
+			const desiredSo = Array.isArray(soColumns) ? soColumns : [];
+			const desiredCount = desiredSo.length;
+			const currentCount = soHdrs.length;
+
+			if (desiredCount === 0) {
+				// Ensure a single placeholder header remains
+				for (let i = 1; i < soHdrs.length; i++) soHdrs[i].remove();
+				const firstSo = headerRow2.querySelectorAll('th')[iloHeaderIndex + 1];
+				if (firstSo) {
+					firstSo.innerHTML = '<div class="so-header-controls"><button type="button" class="btn btn-sm so-remove-btn" onclick="removeSoColumn()" title="Remove SO column" aria-label="Remove SO column"><i data-feather="minus"></i></button></div>No SO';
+				}
+				// Keep the SO group header's colspan covering SO + C/P/A (1 SO placeholder + 3)
+				const soSpanTh = headerRow1.querySelectorAll('th')[1];
+				if (soSpanTh) soSpanTh.setAttribute('colspan', String(1 + 3));
+			} else {
+				// Update SO header span to cover SO columns + C/P/A
+				const soSpanTh = headerRow1.querySelectorAll('th')[1];
+				if (soSpanTh) soSpanTh.setAttribute('colspan', String(Math.max(1, desiredCount) + 3));
+				// Add/remove columns to match desired count
+				while (soHdrs.length < desiredCount) { addSoColumn(); soHdrs = Array.from(headerRow2.querySelectorAll('th')).slice(iloHeaderIndex + 1, headerRow2.querySelectorAll('th').length - 3); }
+				while (soHdrs.length > desiredCount) { removeSoColumn(); soHdrs = Array.from(headerRow2.querySelectorAll('th')).slice(iloHeaderIndex + 1, headerRow2.querySelectorAll('th').length - 3); }
+				// Set labels
+				soHdrs.forEach((th, idx) => {
+					const input = th.querySelector('input');
+					if (input) input.value = desiredSo[idx] || '';
+				});
 			}
-			// Now load from updated attributes
-			loadSavedData();
+
+			// --- Sync ILO rows ---
+			let dataRows = Array.from(tbody.querySelectorAll('tr')).filter(r => r.querySelector('td'));
+			const desiredRows = Array.isArray(mappings) ? mappings.length : 0;
+			if (desiredRows === 0) {
+				// Convert first row to placeholder and remove extras
+				if (dataRows.length) {
+					const first = dataRows[0];
+					const cells = Array.from(first.querySelectorAll('td'));
+					cells[0].textContent = 'No ILO';
+					for (let i = 1; i < cells.length; i++) {
+						const ta = cells[i].querySelector('textarea');
+						if (ta) { ta.disabled = true; ta.value = ''; ta.style.backgroundColor = '#f8f9fa'; ta.style.cursor = 'not-allowed'; }
+					}
+				}
+				for (let i = 1; i < dataRows.length; i++) dataRows[i].remove();
+			} else {
+				while (dataRows.length < desiredRows) { addIloRow(); dataRows = Array.from(tbody.querySelectorAll('tr')).filter(r => r.querySelector('td')); }
+				while (dataRows.length > desiredRows) { removeIloRow(); dataRows = Array.from(tbody.querySelectorAll('tr')).filter(r => r.querySelector('td')); }
+				// Fill values per row
+				const hdrs = Array.from(headerRow2.querySelectorAll('th'));
+				const iIdx = hdrs.findIndex(th => th.textContent.includes('ILOs'));
+				const cIdx = hdrs.findIndex(th => th.textContent.trim() === 'C');
+				const soKeys = hdrs.slice(iIdx + 1, cIdx).map(th => th.querySelector('input')?.value.trim() || th.textContent.trim());
+				mappings.forEach((m, idx) => {
+					const row = dataRows[idx];
+					const cells = Array.from(row.querySelectorAll('td'));
+					const iloInput = cells[0].querySelector('input');
+					if (iloInput) iloInput.value = m.ilo_text || '';
+					soKeys.forEach((key, sIdx) => {
+						const cell = cells[sIdx + 1];
+						const ta = cell?.querySelector('textarea');
+						const val = m.sos?.[key];
+						if (ta) { ta.value = Array.isArray(val) ? val.join(',') : (val || ''); if (typeof autoResize === 'function') autoResize(ta); }
+					});
+					const cCell = cells[cells.length - 3];
+					const pCell = cells[cells.length - 2];
+					const aCell = cells[cells.length - 1];
+					if (cCell?.querySelector('textarea')) { const el = cCell.querySelector('textarea'); el.value = m.c || ''; if (typeof autoResize === 'function') autoResize(el); }
+					if (pCell?.querySelector('textarea')) { const el = pCell.querySelector('textarea'); el.value = m.p || ''; if (typeof autoResize === 'function') autoResize(el); }
+					if (aCell?.querySelector('textarea')) { const el = aCell.querySelector('textarea'); el.value = m.a || ''; if (typeof autoResize === 'function') autoResize(el); }
+				});
+			}
+
+			checkPartialLabelOverflow();
 			updateInputStates();
+			// Re-render feather icons for control buttons after DOM changes
+			if (window.feather && typeof window.feather.replace === 'function') { try { window.feather.replace(); } catch(_){} }
+			// Restore focus if possible
+			if (restoreSelection) { const el = document.activeElement; if (el && (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT')) restoreSelection(el); }
 			return true;
 		} catch(e){ console.error('refreshIloSoCpaPartial failed', e); return false; }
 	};

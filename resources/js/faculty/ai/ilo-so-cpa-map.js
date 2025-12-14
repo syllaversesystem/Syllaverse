@@ -504,8 +504,14 @@
 
 	// Fetch the syllabus page and update the partial via its data attributes
 	async function ajaxRefreshIloSoCpaPartial(){
-		const m = (location.pathname||'').match(/\/faculty\/syllabi\/(\d+)/);
-		const syllabusId = m ? m[1] : null;
+		// Prefer DOM attribute, fallback to URL
+		let syllabusId = null;
+		const syllabusDoc = document.getElementById('syllabus-document');
+		if (syllabusDoc) syllabusId = syllabusDoc.getAttribute('data-syllabus-id');
+		if (!syllabusId) {
+			const m = (location.pathname||'').match(/\/faculty\/syllabi\/(\d+)/);
+			syllabusId = m ? m[1] : null;
+		}
 		if (!syllabusId) throw new Error('Syllabus ID not found for refresh');
 		const res = await fetch(`/faculty/syllabi/${syllabusId}`, { headers: { 'Accept': 'text/html' } });
 		if (!res.ok) throw new Error('Failed to fetch syllabus page');
@@ -520,7 +526,8 @@
 		try { soColumns = JSON.parse(soColumnsData); } catch(e) { soColumns = []; }
 		try { mappings = JSON.parse(mappingsData); } catch(e) { mappings = []; }
 		if (window.refreshIloSoCpaPartial) {
-			window.refreshIloSoCpaPartial(soColumns, mappings);
+			// Defer to next frame to avoid layout thrash
+			requestAnimationFrame(() => window.refreshIloSoCpaPartial(soColumns, mappings));
 		}
 		return { soColumns, mappings };
 	}
