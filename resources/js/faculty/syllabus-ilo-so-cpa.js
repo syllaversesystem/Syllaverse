@@ -802,4 +802,42 @@ document.addEventListener('DOMContentLoaded', function() {
 			throw err;
 		}
 	};
+
+	// Refresh function: rebuild partial from provided data (called after AI insert)
+	window.refreshIloSoCpaPartial = function(soColumns, mappings){
+		try {
+			mapping.setAttribute('data-so-columns', JSON.stringify(soColumns || []));
+			mapping.setAttribute('data-mappings', JSON.stringify(mappings || []));
+			// Reset table to initial state by reloading from attributes
+			// Remove existing dynamic rows beyond first, convert first to placeholder
+			const mappingTable = mapping.querySelector('.mapping');
+			const tbody = mappingTable.querySelector('tbody') || mappingTable;
+			const dataRows = Array.from(tbody.querySelectorAll('tr')).filter(r => r.querySelector('td'));
+			if (dataRows.length) {
+				const firstRow = dataRows[0];
+				const cells = Array.from(firstRow.querySelectorAll('td'));
+				cells[0].textContent = 'No ILO';
+				for (let i = 1; i < cells.length; i++) {
+					const ta = cells[i].querySelector('textarea');
+					if (ta) { ta.disabled = true; ta.value = ''; ta.style.backgroundColor = '#f8f9fa'; ta.style.cursor = 'not-allowed'; }
+				}
+				for (let i = 1; i < dataRows.length; i++) { dataRows[i].remove(); }
+			}
+			// Reset SO headers to single placeholder by removing extra SO headers
+			const headerRow2 = mappingTable.querySelectorAll('tr')[1];
+			const allHeaders = Array.from(headerRow2.querySelectorAll('th'));
+			const iloHeaderIndex = allHeaders.findIndex(th => th.textContent.includes('ILOs'));
+			const cHeaderIndex = allHeaders.findIndex(th => th.textContent.trim() === 'C');
+			const soHeaders = allHeaders.slice(iloHeaderIndex + 1, cHeaderIndex);
+			for (let i = 1; i < soHeaders.length; i++) soHeaders[i].remove();
+			const firstSoHeader = soHeaders[0];
+			if (firstSoHeader) {
+				firstSoHeader.innerHTML = '<div class="so-header-controls"><button type="button" class="btn btn-sm so-remove-btn" onclick="removeSoColumn()" title="Remove SO column" aria-label="Remove SO column"><i data-feather="minus"></i></button></div>No SO';
+			}
+			// Now load from updated attributes
+			loadSavedData();
+			updateInputStates();
+			return true;
+		} catch(e){ console.error('refreshIloSoCpaPartial failed', e); return false; }
+	};
 });
