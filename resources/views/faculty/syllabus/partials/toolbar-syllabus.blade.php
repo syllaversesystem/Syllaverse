@@ -30,6 +30,37 @@
     </div>
   @endif
 
+  @if(!$inFinalApprovalMinimal)
+  <!-- Mapping Tools: Assessment Schedule, ILO–SO & CPA, ILO–IGA -->
+  <div class="sv-toolbar-button-section d-flex flex-column gap-2 mt-2">
+    <div class="d-grid gap-2">
+      <button type="button" class="btn btn-outline-danger btn-sm" id="svAiAssessmentScheduleBtn" aria-label="AI: Assessment Schedule">
+        <i class="bi bi-stars"></i> Assessment Schedule
+      </button>
+      <button type="button" class="btn btn-outline-danger btn-sm" id="svAiIloSoCpaBtn" aria-label="AI: ILO–SO &amp; CPA">
+        <i class="bi bi-stars"></i> ILO–SO &amp; CPA
+      </button>
+      <button type="button" class="btn btn-outline-danger btn-sm" id="svAiIloIgaBtn" aria-label="AI: ILO–IGA">
+        <i class="bi bi-stars"></i> ILO–IGA
+      </button>
+      <button type="button" class="btn btn-outline-danger btn-sm" id="svAiIloCdioSdgBtn" aria-label="AI: ILO–CDIO–SDG">
+        <i class="bi bi-stars"></i> ILO–CDIO–SDG
+      </button>
+    </div>
+    <!-- Shared AI Progress -->
+    <div id="svAiMapProgressWrap" class="mt-2" style="display:none;">
+      <div class="d-flex align-items-center justify-content-between mb-1">
+        <div id="svAiMapStage" class="small text-muted">Processing</div>
+        <div id="svAiMapPct" class="small fw-semibold">0%</div>
+      </div>
+      <div class="progress" style="height:6px;">
+        <div id="svAiMapProgressFill" class="progress-bar" role="progressbar" style="width:0%"></div>
+      </div>
+      <div id="svAiMapValidation" class="mt-1 small text-muted"><span></span></div>
+    </div>
+  </div>
+  @endif
+
   @if(!empty($reviewMode))
   <!-- Button Section: Return / Approve (hidden when not in review mode) -->
   <div class="sv-toolbar-button-section sv-review-actions d-flex gap-2">

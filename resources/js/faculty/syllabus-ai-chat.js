@@ -10,9 +10,91 @@
   // Last request/response snapshots for debugging/viewing
   let _lastRequest = null; // { message, phase, context_phase1, context_phase2, context_phase3, context_all, history }
   let _lastReply = null;   // string
-  // Minimal markdown formatter placeholder to avoid syntax errors
+  // Markdown-ish formatter: supports code fences and GFM-style tables
   function formatAIResponse(raw){
-    try { return String(raw || ''); } catch(e) { return ''; }
+    try {
+      const text = String(raw || '');
+      return mdToHtmlWithTables(text);
+    } catch(e) { return ''; }
+  }
+  function escapeHtml(s){
+    return String(s||'')
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;');
+  }
+  function mdToHtmlWithTables(src){
+    // Handle code fences first
+    let working = String(src||'');
+    const codeBlocks = [];
+    working = working.replace(/```([\s\S]*?)```/g, function(_, code){
+      const idx = codeBlocks.push(code) - 1;
+      return `[[CODE_BLOCK_${idx}]]`;
+    });
+    const lines = working.split(/\r?\n/);
+    const out = [];
+    let i = 0;
+    function isTableLine(line){
+      return /\|/.test(line) && /\S/.test(line);
+    }
+    function isSeparator(line){
+      // e.g., | --- |:---:| --- |
+      const cleaned = line.trim();
+      if (!cleaned.startsWith('|')) return false;
+      const cells = cleaned.split('|').slice(1,-1).map(c => c.trim());
+      if (!cells.length) return false;
+      return cells.every(c => /^:?-{3,}:?$/.test(c));
+    }
+    function buildTable(start){
+      const block = [];
+      let j = start;
+      while (j < lines.length && isTableLine(lines[j])) { block.push(lines[j]); j++; }
+      // Require at least header + separator
+      if (block.length < 2 || !isSeparator(block[1])) return null;
+      const headerRow = block[0];
+      const bodyRows = block.slice(2);
+      function splitRow(row){
+        const cells = row.trim().replace(/^\|/,'').replace(/\|$/,'').split('|');
+        return cells.map(c => c.trim());
+      }
+      const headers = splitRow(headerRow);
+      const thead = '<thead><tr>' + headers.map(h => `<th>${escapeHtml(h)}</th>`).join('') + '</tr></thead>';
+      const tbody = '<tbody>' + bodyRows.map(r => {
+        const cells = splitRow(r);
+        return '<tr>' + headers.map((_, idx) => `<td>${escapeHtml(cells[idx] || '')}</td>`).join('') + '</tr>';
+      }).join('') + '</tbody>';
+      const tableHtml = `<div class="sv-ai-table-wrap"><table class="sv-ai-table">${thead}${tbody}</table></div>`;
+      return { html: tableHtml, next: j };
+    }
+    while (i < lines.length) {
+      const line = lines[i];
+      if (isTableLine(line) && i+1 < lines.length && isSeparator(lines[i+1])){
+        const built = buildTable(i);
+        if (built){ out.push(built.html); i = built.next; continue; }
+      }
+      // Basic headings
+      if (/^\s*###\s+/.test(line)) { out.push('<h3>'+escapeHtml(line.replace(/^\s*###\s+/,''))+'</h3>'); i++; continue; }
+      if (/^\s*##\s+/.test(line)) { out.push('<h2>'+escapeHtml(line.replace(/^\s*##\s+/,''))+'</h2>'); i++; continue; }
+      if (/^\s*#\s+/.test(line)) { out.push('<h2>'+escapeHtml(line.replace(/^\s*#\s+/,''))+'</h2>'); i++; continue; }
+      // Bullets (very light)
+      if (/^\s*[-*]\s+/.test(line)) {
+        const items = [];
+        while (i < lines.length && /^\s*[-*]\s+/.test(lines[i])) { items.push('<li>'+escapeHtml(lines[i].replace(/^\s*[-*]\s+/,''))+'</li>'); i++; }
+        out.push('<ul>'+items.join('')+'</ul>');
+        continue;
+      }
+      // Paragraph / blank lines
+      if (line.trim() === '') { out.push(''); i++; continue; }
+      out.push('<p>'+escapeHtml(line)+'</p>');
+      i++;
+    }
+    let html = out.join('\n');
+    // Restore code blocks, escaped inside <pre><code>
+    html = html.replace(/\[\[CODE_BLOCK_(\d+)\]\]/g, function(_, idx){
+      const code = escapeHtml(codeBlocks[idx] || '');
+      return '<pre><code>'+code+'</code></pre>';
+    });
+    return html;
   }
   function getSyllabusId(){
     return document.getElementById('syllabus-document')?.getAttribute('data-syllabus-id') || null;

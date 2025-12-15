@@ -94,50 +94,6 @@
         <div class="sv-partial" data-partial-key="sdg">@include('faculty.syllabus.partials.sdg')</div>
         <div class="sv-partial" data-partial-key="course-policies">@include('faculty.syllabus.partials.course-policies')</div>
         <div class="sv-partial" data-partial-key="tla">@include('faculty.syllabus.partials.tla')</div>
-        <!-- AI Map separator/button moved into syllabus structure, above Assessment Mapping -->
-        <div class="sv-partial-sep" role="separator" aria-label="Section divider">
-          <style>
-            .sv-partial-sep { display:flex; align-items:center; gap:10px; margin: 12px 0 16px; }
-            .sv-partial-sep .sep-line { flex:1 1 auto; height:1px; background:#e2e5e9; }
-            .sv-partial-sep .sv-ai-map-btn { background:#fff; border:1px solid #e2e5e9; border-radius:999px; padding:.3rem .7rem; font-size:.85rem; color:#CB3737; display:inline-flex; align-items:center; gap:.4rem; }
-            .sv-partial-sep .sv-ai-map-btn i { font-size:1rem; }
-            .sv-partial-sep .sv-ai-map-btn:hover { background: linear-gradient(135deg, rgba(255,240,235,.88), rgba(255,255,255,.46)); box-shadow: 0 4px 10px rgba(203,55,55,.12); }
-            .sv-partial-sep .sv-ai-map-btn:active { transform: translateY(0); filter: brightness(.98); }
-          </style>
-          <div class="sep-line" aria-hidden="true"></div>
-          <div class="d-flex align-items-center gap-2">
-            <button type="button" class="btn btn-sm sv-ai-map-btn" id="svAiAssessmentScheduleBtn" title="Assessment Schedule" aria-label="Assessment Schedule">
-              <i class="bi bi-stars" aria-hidden="true"></i>
-              Assessment Schedule
-            </button>
-            
-            <button type="button" class="btn btn-sm sv-ai-map-btn" id="svAiIloSoCpaBtn" title="ILO–SO and ILO–CPA Mapping" aria-label="ILO–SO and ILO–CPA Mapping">
-              <i class="bi bi-stars" aria-hidden="true"></i>
-              ILO–SO & ILO–CPA
-            </button>
-            <button type="button" class="btn btn-sm sv-ai-map-btn" id="svAiIloIgaBtn" title="ILO–IGA Mapping" aria-label="ILO–IGA Mapping">
-              <i class="bi bi-stars" aria-hidden="true"></i>
-              ILO–IGA
-            </button>
-          </div>
-          <div class="sep-line" aria-hidden="true"></div>
-        </div>
-        <!-- AI Map validation + progress (hidden until AI Map runs); placed below ILO–SO & ILO–CPA button and separator -->
-        <div id="svAiMapProgressWrap" class="sv-ai-progress" aria-live="polite" style="display:none; margin:8px 0 16px;">
-          <style>
-            .sv-ai-progress .msg { display:flex; align-items:center; gap:8px; font-size:.9rem; color:#374151; margin-bottom:6px; }
-            .sv-ai-progress .msg i { color:#CB3737; }
-            .sv-ai-progress .bar { position:relative; width:100%; height:8px; background:#f3f4f6; border-radius:999px; overflow:hidden; box-shadow:inset 0 1px 2px rgba(0,0,0,0.06); }
-            .sv-ai-progress .bar .fill { position:absolute; left:0; top:0; height:100%; width:0%; border-radius:999px; transition:width .25s ease, background .2s ease; }
-            .sv-ai-progress .bar .fill.state-running { background-color:#CB3737; background-image:linear-gradient(90deg, #CB3737, #e76f51); }
-            .sv-ai-progress .bar .fill.state-warn { background-color:#f59e0b; background-image:linear-gradient(90deg, #f59e0b, #fbbf24); }
-            .sv-ai-progress .bar .fill.state-ok { background-color:#10b981; background-image:linear-gradient(90deg, #10b981, #34d399); }
-            .sv-ai-progress .detail { display:flex; justify-content:space-between; font-size:.8rem; color:#6b7280; margin-top:6px; }
-          </style>
-          <div class="msg" id="svAiMapValidation"><i class="bi bi-shield-check" aria-hidden="true"></i><span>Getting things ready…</span></div>
-          <div class="bar" aria-label="Progress bar"><div class="fill" id="svAiMapProgressFill" style="width:0%"></div></div>
-          <div class="detail"><span id="svAiMapStage">Idle</span><span id="svAiMapPct">0%</span></div>
-        </div>
         <div class="sv-partial" data-partial-key="assessment-mapping">@include('faculty.syllabus.partials.assessment-mapping')</div>
         <div class="sv-partial" data-partial-key="ilo-so-cpa-mapping">@include('faculty.syllabus.partials.ilo-so-cpa-mapping')</div>
         <div class="sv-partial" data-partial-key="ilo-iga-mapping">@include('faculty.syllabus.partials.ilo-iga-mapping')</div>
@@ -418,51 +374,6 @@
             // Remove placeholder now that a card exists
             const emptyEl = commentsEl.querySelector('.sv-comment-empty');
             if (emptyEl) { emptyEl.remove(); commentsEl.classList.remove('sv-comments-empty'); }
-              {{-- ILO–IGA AI Modal (Shift+3) --}}
-              <div class="modal fade sv-ilo-modal" id="aiIloIgaModal" tabindex="-1" aria-labelledby="aiIloIgaModalLabel" aria-hidden="true" data-bs-backdrop="static">
-                <div class="modal-dialog modal-xl modal-dialog-centered">
-                  <div class="modal-content">
-                    <style>
-                      #aiIloIgaModal { --sv-bdr:#E3E3E3; }
-                      #aiIloIgaModal .modal-content { border:1px solid var(--sv-bdr); border-radius:16px; background:#fff; box-shadow:0 10px 30px rgba(0,0,0,.08), 0 2px 12px rgba(0,0,0,.06); overflow:hidden; }
-                      #aiIloIgaModal .modal-header { padding:.85rem 1rem; border-bottom:1px solid var(--sv-bdr); background:#fff; }
-                      #aiIloIgaModal .modal-title { font-weight:600; font-size:1rem; display:inline-flex; align-items:center; gap:.5rem; }
-                      #aiIloIgaModal .split { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
-                      #aiIloIgaModal .panel { border:1px solid #e6e9ed; border-radius:12px; padding:.75rem; background:#fff; }
-                      #aiIloIgaModal pre { margin:0; white-space:pre-wrap; word-break:break-word; font-family:Menlo,Consolas,monospace; font-size:.82rem; line-height:1.35; }
-                      #aiIloIgaModal .panel h6 { font-weight:600; font-size:.9rem; margin:0 0 .5rem; }
-                      #aiIloIgaModal .btn { display:inline-flex; align-items:center; gap:.5rem; }
-                    </style>
-                    <div class="modal-header">
-                      <h5 class="modal-title" id="aiIloIgaModalLabel"><i class="bi bi-stars"></i> ILO–IGA AI Preview</h5>
-                      <button type="button" class="btn btn-light" data-bs-dismiss="modal" aria-label="Close"><i class="bi bi-x-lg"></i> Close</button>
-                    </div>
-                    <div class="modal-body">
-                      <div class="split">
-                        <div class="panel">
-                          <h6>Input Snapshot</h6>
-                          <pre id="aiIloIgaInput">Loading…</pre>
-                        </div>
-                        <div class="panel">
-                          <h6>AI Output</h6>
-                          <pre id="aiIloIgaOutput">No AI output yet.</pre>
-                        </div>
-                      </div>
-                    </div>
-                    <div class="modal-footer d-flex align-items-center gap-2">
-                      <button type="button" class="btn btn-light" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i> Close</button>
-                    </div>
-                  </div>
-                </div>
-                <script>
-                  document.addEventListener('DOMContentLoaded', function(){
-                    try {
-                      const el = document.getElementById('aiIloIgaModal');
-                      if (el && el.parentElement !== document.body) { document.body.appendChild(el); }
-                    } catch(e){}
-                  });
-                </script>
-                </div>
             const closeBtn = card.querySelector('#'+closeId);
             if (closeBtn) closeBtn.addEventListener('click', function(){ 
               card.remove(); 
@@ -1196,10 +1107,6 @@
 </script>
 @endpush
 
-@push('scripts')
-  @vite('resources/js/faculty/ai/ilo-iga-map.js')
-@endpush
-
 @push('styles')
 <style>
   /* Toolbar look – align with index page */
@@ -1578,5 +1485,16 @@
     .syllabus-content-wrapper { padding:16px; }
     /* (Removed) Left toolbar resize handle on mobile */
   }
+  /* AI progress bar states */
+  #svAiMapProgressFill.state-running { background-color:#0d6efd !important; }
+  #svAiMapProgressFill.state-ok { background-color:#28a745 !important; }
+  #svAiMapProgressFill.state-warn { background-color:#fd7e14 !important; }
 </style>
+@endpush
+
+@push('scripts')
+  @vite('resources/js/faculty/ai/assessment-schedule.js')
+  @vite('resources/js/faculty/ai/ilo-so-cpa-map.js')
+  @vite('resources/js/faculty/ai/ilo-iga-map.js')
+  @vite('resources/js/faculty/ai/ilo-cdio-sdg-map.js')
 @endpush
