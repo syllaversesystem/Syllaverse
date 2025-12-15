@@ -765,6 +765,13 @@ if (saveBtn) {
 	// Load mappings on page load (after TLA sync delay)
 	setTimeout(loadAssessmentMappings, 1000);
 
+	// Expose a global reload helper for AJAX refresh after saves
+	try {
+		window.reloadAssessmentMappings = function(){
+			loadAssessmentMappings();
+		};
+	} catch(e) {}
+
 	// Function to check if Assessment Method text overflows and hide if needed
 	function checkAssessmentMethodOverflow() {
 		const header = document.querySelector('.assessment-method-header');

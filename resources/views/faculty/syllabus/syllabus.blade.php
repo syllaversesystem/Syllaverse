@@ -106,6 +106,10 @@
           </style>
           <div class="sep-line" aria-hidden="true"></div>
           <div class="d-flex align-items-center gap-2">
+            <button type="button" class="btn btn-sm sv-ai-map-btn" id="svAiAssessmentScheduleBtn" title="Assessment Schedule" aria-label="Assessment Schedule">
+              <i class="bi bi-stars" aria-hidden="true"></i>
+              Assessment Schedule
+            </button>
             
             <button type="button" class="btn btn-sm sv-ai-map-btn" id="svAiIloSoCpaBtn" title="ILO–SO and ILO–CPA Mapping" aria-label="ILO–SO and ILO–CPA Mapping">
               <i class="bi bi-stars" aria-hidden="true"></i>
@@ -113,6 +117,22 @@
             </button>
           </div>
           <div class="sep-line" aria-hidden="true"></div>
+        </div>
+        <!-- AI Map validation + progress (hidden until AI Map runs); placed below ILO–SO & ILO–CPA button and separator -->
+        <div id="svAiMapProgressWrap" class="sv-ai-progress" aria-live="polite" style="display:none; margin:8px 0 16px;">
+          <style>
+            .sv-ai-progress .msg { display:flex; align-items:center; gap:8px; font-size:.9rem; color:#374151; margin-bottom:6px; }
+            .sv-ai-progress .msg i { color:#CB3737; }
+            .sv-ai-progress .bar { position:relative; width:100%; height:8px; background:#f3f4f6; border-radius:999px; overflow:hidden; box-shadow:inset 0 1px 2px rgba(0,0,0,0.06); }
+            .sv-ai-progress .bar .fill { position:absolute; left:0; top:0; height:100%; width:0%; border-radius:999px; transition:width .25s ease, background .2s ease; }
+            .sv-ai-progress .bar .fill.state-running { background-color:#CB3737; background-image:linear-gradient(90deg, #CB3737, #e76f51); }
+            .sv-ai-progress .bar .fill.state-warn { background-color:#f59e0b; background-image:linear-gradient(90deg, #f59e0b, #fbbf24); }
+            .sv-ai-progress .bar .fill.state-ok { background-color:#10b981; background-image:linear-gradient(90deg, #10b981, #34d399); }
+            .sv-ai-progress .detail { display:flex; justify-content:space-between; font-size:.8rem; color:#6b7280; margin-top:6px; }
+          </style>
+          <div class="msg" id="svAiMapValidation"><i class="bi bi-shield-check" aria-hidden="true"></i><span>Getting things ready…</span></div>
+          <div class="bar" aria-label="Progress bar"><div class="fill" id="svAiMapProgressFill" style="width:0%"></div></div>
+          <div class="detail"><span id="svAiMapStage">Idle</span><span id="svAiMapPct">0%</span></div>
         </div>
         <div class="sv-partial" data-partial-key="assessment-mapping">@include('faculty.syllabus.partials.assessment-mapping')</div>
         <div class="sv-partial" data-partial-key="ilo-so-cpa-mapping">@include('faculty.syllabus.partials.ilo-so-cpa-mapping')</div>

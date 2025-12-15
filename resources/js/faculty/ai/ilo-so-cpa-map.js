@@ -732,10 +732,21 @@
 				if (btn && !btn.dataset.boundAiIloSoCpa) {
 					btn.dataset.boundAiIloSoCpa = '1';
 					btn.addEventListener('click', async function(){
-						setProgress('Preparing', 5, 'Building snapshot…', 'state-running');
-						await sendAllSnapshotsToAI();
-						// After AI responds, auto-insert mapping to DB and refresh partial
-						await insertAiMapping();
+						// Prevent double-trigger while in flight and disable the button
+						if (btn.disabled) return;
+						btn.disabled = true;
+						btn.setAttribute('aria-disabled', 'true');
+						btn.classList.add('disabled');
+						try {
+							setProgress('Preparing', 5, 'Building snapshot…', 'state-running');
+							await sendAllSnapshotsToAI();
+							// After AI responds, auto-insert mapping to DB and refresh partial
+							await insertAiMapping();
+						} finally {
+							btn.disabled = false;
+							btn.removeAttribute('aria-disabled');
+							btn.classList.remove('disabled');
+						}
 					});
 				}
 			} catch(e) {}

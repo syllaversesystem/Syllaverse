@@ -441,8 +441,11 @@ class AIChatController extends Controller
                 // ignore textbook block errors
             }
 
-            // Allow overriding max tokens via env; default to a practical length for structured outputs
-            $maxTokens = (int)env('OPENAI_MAX_TOKENS', 900);
+            // Allow overriding max tokens via env or request; keep a safe upper cap
+            $reqMax = (int)$request->input('max_tokens', 0);
+            $envMax = (int)env('OPENAI_MAX_TOKENS', 4000);
+            // Cap at 8000 to avoid runaway costs/errors
+            $maxTokens = max(1, min(($reqMax > 0 ? $reqMax : $envMax), 8000));
             $payload = [
                 'model' => $model,
                 'messages' => $messages,
