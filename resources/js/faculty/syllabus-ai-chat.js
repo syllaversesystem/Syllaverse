@@ -1187,6 +1187,25 @@
       if (loadingRow) loadingRow.remove();
       appendMsg('ai', reply);
       _lastReply = reply;
+      // Auto-save ILO–IGA mapping if the reply contains a valid fenced JSON payload
+      try {
+        const syllabusIdAuto = getSyllabusId();
+        if (syllabusIdAuto && reply) {
+          const jsonBlock = _svExtractFencedJson(reply);
+          if (jsonBlock) {
+            const parsed = JSON.parse(jsonBlock);
+            if (_svLooksLikeIloIgaPayload(parsed)) {
+              const normalized = _svNormalizeIloIgaJson(parsed);
+              if (normalized) {
+                await _svPostIloIgaMapping(syllabusIdAuto, normalized);
+                appendMsg('ai', '[Saved] ILO–IGA mapping stored.');
+              }
+            }
+          }
+        }
+      } catch(err) {
+        try { console.warn('[AIChat] ILO–IGA auto-save skipped:', err); } catch(_){}
+      }
     }).catch(() => { if (loadingRow) loadingRow.remove(); appendMsg('ai', 'Network error reaching AI service.'); });
   }
   function init(){
@@ -1326,6 +1345,75 @@
       modal.appendChild(body);
       overlay.appendChild(modal);
       document.body.appendChild(overlay);
+    }
+    // ----------------------
+    // Auto-save helpers (ILO–IGA)
+    // ----------------------
+    function _svExtractFencedJson(text){
+      try {
+        if (!text) return '';
+        const re = /```json\s*\n([\s\S]*?)\n```/i;
+        const m = text.match(re);
+        if (m && m[1]) return m[1].trim();
+        const re2 = /```\s*\n([\s\S]*?)\n```/i;
+        const m2 = text.match(re2);
+        if (m2 && m2[1]) return m2[1].trim();
+        return '';
+      } catch(e){ return ''; }
+    }
+    function _svLooksLikeIloIgaPayload(obj){
+      try {
+        if (!obj || !Array.isArray(obj.iga_labels) || !Array.isArray(obj.mappings)) return false;
+        if (!obj.mappings.length) return true;
+        const first = obj.mappings[0];
+        if (!first || typeof first !== 'object') return false;
+        if (!('ilo_text' in first) || !('igas' in first)) return false;
+        return true;
+      } catch(e){ return false; }
+    }
+    function _svNormalizeIloIgaJson(obj){
+      try {
+        if (!obj || !Array.isArray(obj.iga_labels) || !Array.isArray(obj.mappings)) return null;
+        const labels = obj.iga_labels.map(x => String(x ?? '')).filter(x => x !== 'No IGA');
+        const rows = [];
+        obj.mappings.forEach((row, idx) => {
+          const iloText = String(row.ilo_text ?? '');
+          const igasRaw = row.igas && typeof row.igas === 'object' ? row.igas : {};
+          const seen = new Set();
+          const igas = {};
+          labels.forEach(lbl => {
+            const raw = String(igasRaw[lbl] ?? '').trim();
+            if (!raw) { igas[lbl] = ''; return; }
+            const codes = raw.split(',').map(s => s.trim()).filter(Boolean);
+            const kept = [];
+            for (const code of codes) {
+              const key = code.toUpperCase();
+              if (seen.has(key)) continue; // enforce uniqueness within the row across columns
+              seen.add(key);
+              kept.push(code.replace(/\s+/g, ''));
+            }
+            igas[lbl] = kept.join(',');
+          });
+          rows.push({ ilo_text: iloText, igas, position: (typeof row.position === 'number' ? row.position : idx) });
+        });
+        return { iga_labels: labels, mappings: rows };
+      } catch(e){ return null; }
+    }
+    async function _svPostIloIgaMapping(syllabusId, payload){
+      const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+      const res = await fetch('/faculty/syllabus/save-ilo-iga-mapping', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(token ? { 'X-CSRF-TOKEN': token } : {}) },
+        body: JSON.stringify({ syllabus_id: syllabusId, iga_labels: payload.iga_labels, mappings: payload.mappings })
+      });
+      if (!res.ok) {
+        let msg = 'Failed to save ILO–IGA mapping';
+        try { const j = await res.json(); if (j && j.message) msg = j.message; } catch(_){}
+        throw new Error(msg);
+      }
+      const j = await res.json();
+      if (!j.success) throw new Error(j.message || 'Save not successful');
+      return j;
     }
     function extractTlaBlocks(full){
       const blocks = [];

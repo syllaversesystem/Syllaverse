@@ -115,6 +115,10 @@
               <i class="bi bi-stars" aria-hidden="true"></i>
               ILO–SO & ILO–CPA
             </button>
+            <button type="button" class="btn btn-sm sv-ai-map-btn" id="svAiIloIgaBtn" title="ILO–IGA Mapping" aria-label="ILO–IGA Mapping">
+              <i class="bi bi-stars" aria-hidden="true"></i>
+              ILO–IGA
+            </button>
           </div>
           <div class="sep-line" aria-hidden="true"></div>
         </div>
@@ -414,6 +418,51 @@
             // Remove placeholder now that a card exists
             const emptyEl = commentsEl.querySelector('.sv-comment-empty');
             if (emptyEl) { emptyEl.remove(); commentsEl.classList.remove('sv-comments-empty'); }
+              {{-- ILO–IGA AI Modal (Shift+3) --}}
+              <div class="modal fade sv-ilo-modal" id="aiIloIgaModal" tabindex="-1" aria-labelledby="aiIloIgaModalLabel" aria-hidden="true" data-bs-backdrop="static">
+                <div class="modal-dialog modal-xl modal-dialog-centered">
+                  <div class="modal-content">
+                    <style>
+                      #aiIloIgaModal { --sv-bdr:#E3E3E3; }
+                      #aiIloIgaModal .modal-content { border:1px solid var(--sv-bdr); border-radius:16px; background:#fff; box-shadow:0 10px 30px rgba(0,0,0,.08), 0 2px 12px rgba(0,0,0,.06); overflow:hidden; }
+                      #aiIloIgaModal .modal-header { padding:.85rem 1rem; border-bottom:1px solid var(--sv-bdr); background:#fff; }
+                      #aiIloIgaModal .modal-title { font-weight:600; font-size:1rem; display:inline-flex; align-items:center; gap:.5rem; }
+                      #aiIloIgaModal .split { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+                      #aiIloIgaModal .panel { border:1px solid #e6e9ed; border-radius:12px; padding:.75rem; background:#fff; }
+                      #aiIloIgaModal pre { margin:0; white-space:pre-wrap; word-break:break-word; font-family:Menlo,Consolas,monospace; font-size:.82rem; line-height:1.35; }
+                      #aiIloIgaModal .panel h6 { font-weight:600; font-size:.9rem; margin:0 0 .5rem; }
+                      #aiIloIgaModal .btn { display:inline-flex; align-items:center; gap:.5rem; }
+                    </style>
+                    <div class="modal-header">
+                      <h5 class="modal-title" id="aiIloIgaModalLabel"><i class="bi bi-stars"></i> ILO–IGA AI Preview</h5>
+                      <button type="button" class="btn btn-light" data-bs-dismiss="modal" aria-label="Close"><i class="bi bi-x-lg"></i> Close</button>
+                    </div>
+                    <div class="modal-body">
+                      <div class="split">
+                        <div class="panel">
+                          <h6>Input Snapshot</h6>
+                          <pre id="aiIloIgaInput">Loading…</pre>
+                        </div>
+                        <div class="panel">
+                          <h6>AI Output</h6>
+                          <pre id="aiIloIgaOutput">No AI output yet.</pre>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="modal-footer d-flex align-items-center gap-2">
+                      <button type="button" class="btn btn-light" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i> Close</button>
+                    </div>
+                  </div>
+                </div>
+                <script>
+                  document.addEventListener('DOMContentLoaded', function(){
+                    try {
+                      const el = document.getElementById('aiIloIgaModal');
+                      if (el && el.parentElement !== document.body) { document.body.appendChild(el); }
+                    } catch(e){}
+                  });
+                </script>
+                </div>
             const closeBtn = card.querySelector('#'+closeId);
             if (closeBtn) closeBtn.addEventListener('click', function(){ 
               card.remove(); 
@@ -1145,6 +1194,10 @@
     try { window._svUndoRedo = { past, future, capture: captureSnapshot, apply: applySnapshot }; } catch(e){}
   });
 </script>
+@endpush
+
+@push('scripts')
+  @vite('resources/js/faculty/ai/ilo-iga-map.js')
 @endpush
 
 @push('styles')

@@ -567,6 +567,8 @@ document.addEventListener('DOMContentLoaded', function() {
 		.then(data => {
 			if (data.success) {
 				if (showAlert) alert('ILO-IGA mapping saved successfully!');
+				// After successful save, refresh the partial via AJAX to rehydrate state
+				try { if (typeof window.ajaxRefreshIloIgaPartial === 'function') window.ajaxRefreshIloIgaPartial(); } catch(_){}
 				return data;
 			} else {
 				throw new Error(data.message || 'Unknown error');
@@ -689,6 +691,121 @@ document.addEventListener('DOMContentLoaded', function() {
 			console.error('Error loading saved ILO-IGA data:', e);
 		}
 	}
+
+	// Refresh function: rebuild partial from provided data (called after AI insert / manual save)
+	window.refreshIloIgaPartial = function(igaLabels, mappings){
+		try {
+			// Persist new state on the root for resilience
+			mapping.setAttribute('data-iga-headers', JSON.stringify(igaLabels || []));
+			mapping.setAttribute('data-mappings', JSON.stringify(mappings || []));
+
+			const mappingTable = mapping.querySelector('.mapping');
+			const headerRow1 = mappingTable.querySelectorAll('tr')[0];
+			const headerRow2 = mappingTable.querySelectorAll('tr')[1];
+			const tbody = mappingTable.querySelector('tbody') || mappingTable;
+
+			// --- Sync IGA headers (after ILOs) ---
+			const allHeaders = Array.from(headerRow2.querySelectorAll('th'));
+			const iloHeaderIndex = allHeaders.findIndex(th => th.textContent.includes('ILOs'));
+			let igaHdrs = allHeaders.slice(iloHeaderIndex + 1);
+			function currentIgaRealCount(){
+				return igaHdrs.filter(th => {
+					const input = th.querySelector('input');
+					const label = input ? input.value.trim() : th.textContent.trim();
+					return label !== 'No IGA';
+				}).length;
+			}
+			let desired = Array.isArray(igaLabels) ? igaLabels.length : 0;
+			let real = currentIgaRealCount();
+			if (desired === 0) {
+				// Reduce to placeholder
+				while (real > 0) { window.removeIgaColumn(); igaHdrs = Array.from(headerRow2.querySelectorAll('th')).slice(iloHeaderIndex + 1); real = currentIgaRealCount(); }
+				// Update group span (IGA group only) to at least 1 column
+				const igaSpanTh = headerRow1.querySelectorAll('th')[1];
+				if (igaSpanTh) igaSpanTh.setAttribute('colspan', '1');
+			} else {
+				// Ensure exact number of IGA columns
+				while (real < desired) { window.addIgaColumn(); igaHdrs = Array.from(headerRow2.querySelectorAll('th')).slice(iloHeaderIndex + 1); real = currentIgaRealCount(); }
+				while (real > desired) { window.removeIgaColumn(); igaHdrs = Array.from(headerRow2.querySelectorAll('th')).slice(iloHeaderIndex + 1); real = currentIgaRealCount(); }
+				// Set labels
+				igaHdrs = Array.from(headerRow2.querySelectorAll('th')).slice(iloHeaderIndex + 1);
+				igaHdrs.forEach((th, idx) => {
+					const input = th.querySelector('input');
+					if (input) input.value = igaLabels[idx] || '';
+				});
+				// Update IGA header group colspan
+				const igaSpanTh = headerRow1.querySelectorAll('th')[1];
+				if (igaSpanTh) igaSpanTh.setAttribute('colspan', String(Math.max(1, desired)));
+			}
+
+			// --- Sync ILO rows ---
+			let dataRows = Array.from(tbody.querySelectorAll('tr')).filter(r => r.querySelector('td'));
+			const desiredRows = Array.isArray(mappings) ? mappings.length : 0;
+			if (desiredRows === 0) {
+				// Convert first row to placeholder and remove extras
+				if (dataRows.length) {
+					const first = dataRows[0];
+					const cells = Array.from(first.querySelectorAll('td'));
+					cells[0].textContent = 'No ILO';
+					for (let i = 1; i < cells.length; i++) {
+						const ta = cells[i].querySelector('textarea');
+						if (ta) { ta.disabled = false; ta.value = ''; ta.style.backgroundColor = ''; ta.style.cursor = ''; }
+					}
+				}
+				for (let i = 1; i < dataRows.length; i++) dataRows[i].remove();
+			} else {
+				while (dataRows.length < desiredRows) { window.addIloRowIga(); dataRows = Array.from(tbody.querySelectorAll('tr')).filter(r => r.querySelector('td')); }
+				while (dataRows.length > desiredRows) { window.removeIloRowIga(); dataRows = Array.from(tbody.querySelectorAll('tr')).filter(r => r.querySelector('td')); }
+				// Fill values per row
+				const headersNow = Array.from(headerRow2.querySelectorAll('th'));
+				const iloIdx = headersNow.findIndex(th => th.textContent.includes('ILOs'));
+				const igaKeys = headersNow.slice(iloIdx + 1).map(th => th.querySelector('input')?.value.trim() || th.textContent.trim()).filter(lbl => lbl !== 'No IGA');
+				mappings.forEach((m, idx) => {
+					const row = dataRows[idx];
+					const cells = Array.from(row.querySelectorAll('td'));
+					const iloInput = cells[0].querySelector('input');
+					if (iloInput) iloInput.value = m.ilo_text || '';
+					igaKeys.forEach((key, kIdx) => {
+						const cell = cells[kIdx + 1];
+						const ta = cell?.querySelector('textarea');
+						const val = (m.igas && typeof m.igas === 'object') ? (m.igas[key] ?? '') : '';
+						if (ta) { ta.value = String(val || ''); autoResize(ta); }
+					});
+				});
+			}
+
+			checkPartialLabelOverflow();
+			// Re-render feather icons for control buttons after DOM changes
+			if (window.feather && typeof window.feather.replace === 'function') { try { window.feather.replace(); } catch(_){} }
+			return true;
+		} catch(e){ console.error('refreshIloIgaPartial failed', e); return false; }
+	};
+
+	// AJAX refresh helper: fetch syllabus page and update this partial
+	window.ajaxRefreshIloIgaPartial = async function(){
+		let syllabusId = null;
+		const syllabusDoc = document.getElementById('syllabus-document');
+		if (syllabusDoc) syllabusId = syllabusDoc.getAttribute('data-syllabus-id');
+		if (!syllabusId) {
+			const m = (location.pathname||'').match(/\/faculty\/syllabi\/(\d+)/);
+			syllabusId = m ? m[1] : null;
+		}
+		if (!syllabusId) throw new Error('Syllabus ID not found for refresh');
+		const res = await fetch(`/faculty/syllabi/${syllabusId}`, { headers: { 'Accept': 'text/html' } });
+		if (!res.ok) throw new Error('Failed to fetch syllabus page');
+		const html = await res.text();
+		const parser = new DOMParser();
+		const doc = parser.parseFromString(html, 'text/html');
+		const partial = doc.querySelector('.ilo-iga-mapping');
+		if (!partial) throw new Error('ILO-IGA partial not found in response');
+		const igaHeadersData = partial.getAttribute('data-iga-headers') || '[]';
+		const mappingsData = partial.getAttribute('data-mappings') || '[]';
+		let igaHeaders = []; let mappings = [];
+		try { igaHeaders = JSON.parse(igaHeadersData); } catch(_) { igaHeaders = []; }
+		try { mappings = JSON.parse(mappingsData); } catch(_) { mappings = []; }
+		if (typeof window.refreshIloIgaPartial === 'function') window.refreshIloIgaPartial(igaHeaders, mappings);
+		return { igaHeaders, mappings };
+	};
 	
 	// Load data after a short delay to ensure DOM is fully ready
 	setTimeout(() => {
