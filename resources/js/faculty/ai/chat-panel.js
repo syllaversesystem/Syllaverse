@@ -124,8 +124,8 @@
     const loadingMsg = appendMessage('ai', 'Thinking...', true);
 
     try {
-      // Send to backend
-      const response = await sendToBackend(message);
+      // Send via core AI module
+      const response = await (window.SVAI ? window.SVAI.send(message, conversationHistory) : Promise.reject(new Error('SVAI not loaded')));
       
       // Remove loading
       if (loadingMsg) loadingMsg.remove();
@@ -239,98 +239,8 @@
   }
 
   /**
-   * Send message to backend
+   * Backend is handled by SVAI in ai.js; UI-only below
    */
-  async function sendToBackend(message) {
-    const syllabusId = getSyllabusId();
-    if (!syllabusId) {
-      throw new Error('Syllabus ID not found');
-    }
-
-    // Collect context from the page
-    const context = collectContext();
-    
-    // Prepare payload
-    const formData = new FormData();
-    formData.append('message', message);
-    formData.append('context', context);
-    formData.append('history', JSON.stringify(conversationHistory.slice(-10))); // Last 10 messages
-    
-    // Get CSRF token
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-    
-    // Send request
-    const response = await fetch(`/faculty/syllabi/${syllabusId}/ai-chat`, {
-      method: 'POST',
-      headers: {
-        'X-CSRF-TOKEN': csrfToken || '',
-        'Accept': 'application/json',
-      },
-      body: formData
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `HTTP ${response.status}`);
-    }
-
-    const data = await response.json();
-    
-    if (!data.reply) {
-      throw new Error('No reply from server');
-    }
-
-    return data.reply;
-  }
-
-  /**
-   * Get syllabus ID from the page
-   */
-  function getSyllabusId() {
-    const syllabusDoc = document.getElementById('syllabus-document');
-    return syllabusDoc?.getAttribute('data-syllabus-id') || null;
-  }
-
-  /**
-   * Collect context from the current syllabus page
-   */
-  function collectContext() {
-    const context = {
-      sections: []
-    };
-
-    // Get all partial sections
-    const partials = document.querySelectorAll('.sv-partial');
-    
-    partials.forEach(partial => {
-      const key = partial.getAttribute('data-partial-key');
-      if (!key || key === 'status') return;
-      
-      // Get section text (limit length)
-      let text = partial.textContent || '';
-      text = text.replace(/\s+/g, ' ').trim();
-      
-      if (text.length > 800) {
-        text = text.slice(0, 800) + '...';
-      }
-      
-      if (text) {
-        context.sections.push({
-          key,
-          text
-        });
-      }
-    });
-
-    // Get basic course info
-    const courseTitle = document.querySelector('[name="course_title"]')?.value || '';
-    const courseCode = document.querySelector('[name="course_code"]')?.value || '';
-    
-    if (courseTitle) context.courseTitle = courseTitle;
-    if (courseCode) context.courseCode = courseCode;
-
-    return JSON.stringify(context);
-  }
 
   /**
    * Public API

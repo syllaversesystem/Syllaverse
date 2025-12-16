@@ -445,3 +445,10 @@
   }
 }
 </style>
+
+@push('scripts')
+  @vite([
+    'resources/js/faculty/ai/ai.js',
+    'resources/js/faculty/ai/chat-panel.js',
+  ])
+@endpush
