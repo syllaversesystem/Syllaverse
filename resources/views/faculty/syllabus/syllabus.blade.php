@@ -58,11 +58,7 @@
       @endif
 
       @if((($reviewMode && !$fromApprovals) || !$isLockedSubmitted || $isApproved || ($isFinalApproved && !$fromApprovals)))
-      <!-- AI Assist button (opens floating overlay) -->
-      <button class="btn btn-outline-secondary d-flex flex-column align-items-center gap-1 toolbar-btn mt-3" type="button" id="syllabusAiBtn" title="AI Assist" aria-haspopup="true" aria-expanded="false" aria-controls="syllabusAiPanel">
-        <i class="bi bi-stars fs-5"></i>
-        <span class="small">AI Assist</span>
-      </button>
+      <!-- (Removed) AI Assist button -->
       @endif
 
       @if((($reviewMode && !$fromApprovals) || !$isLockedSubmitted || $isApproved || ($isFinalApproved && !$fromApprovals)))
@@ -94,6 +90,34 @@
         <div class="sv-partial" data-partial-key="sdg">@include('faculty.syllabus.partials.sdg')</div>
         <div class="sv-partial" data-partial-key="course-policies">@include('faculty.syllabus.partials.course-policies')</div>
         <div class="sv-partial" data-partial-key="tla">@include('faculty.syllabus.partials.tla')</div>
+        @if(!($fromApprovals && $submissionStatus === 'final_approval'))
+        <!-- AI Mapping Tools moved from right toolbar: placed above Assessment Mapping -->
+        <div class="sv-ai-mapping-actions d-flex flex-wrap gap-2 align-items-center mb-3">
+          <button type="button" class="btn btn-outline-danger btn-sm" id="svAiAssessmentScheduleBtn" aria-label="AI: Assessment Schedule">
+            <i class="bi bi-stars"></i> Assessment Schedule
+          </button>
+          <button type="button" class="btn btn-outline-danger btn-sm" id="svAiIloSoCpaBtn" aria-label="AI: ILO–SO &amp; CPA">
+            <i class="bi bi-stars"></i> ILO–SO &amp; CPA
+          </button>
+          <button type="button" class="btn btn-outline-danger btn-sm" id="svAiIloIgaBtn" aria-label="AI: ILO–IGA">
+            <i class="bi bi-stars"></i> ILO–IGA
+          </button>
+          <button type="button" class="btn btn-outline-danger btn-sm" id="svAiIloCdioSdgBtn" aria-label="AI: ILO–CDIO–SDG">
+            <i class="bi bi-stars"></i> ILO–CDIO–SDG
+          </button>
+        </div>
+        <!-- Shared AI Progress (kept IDs for existing JS hooks) -->
+        <div id="svAiMapProgressWrap" class="mt-2" style="display:none;">
+          <div class="d-flex align-items-center justify-content-between mb-1">
+            <div id="svAiMapStage" class="small text-muted">Processing</div>
+            <div id="svAiMapPct" class="small fw-semibold">0%</div>
+          </div>
+          <div class="progress" style="height:6px;">
+            <div id="svAiMapProgressFill" class="progress-bar" role="progressbar" style="width:0%"></div>
+          </div>
+          <div id="svAiMapValidation" class="mt-1 small text-muted"><span></span></div>
+        </div>
+        @endif
         <div class="sv-partial" data-partial-key="assessment-mapping">@include('faculty.syllabus.partials.assessment-mapping')</div>
         <div class="sv-partial" data-partial-key="ilo-so-cpa-mapping">@include('faculty.syllabus.partials.ilo-so-cpa-mapping')</div>
         <div class="sv-partial" data-partial-key="ilo-iga-mapping">@include('faculty.syllabus.partials.ilo-iga-mapping')</div>
@@ -111,6 +135,9 @@
 @if(((!$isLockedSubmitted) || $reviewMode || $isApproved || ($isFinalApproved && !$fromApprovals)) && !($fromApprovals && $submissionStatus === 'final_approval'))
   @include('faculty.syllabus.partials.toolbar-syllabus')
 @endif
+
+{{-- AI Chat Panel (FAB + Slide-in) --}}
+@include('faculty.syllabus.partials.ai-chat-panel')
 @if($reviewMode)
   <!-- Approve Confirmation Modal (sidebar context) -->
   <div class="modal fade" id="approveConfirmModal" tabindex="-1" aria-labelledby="approveConfirmLabel" aria-hidden="true" data-bs-backdrop="static">
@@ -1497,4 +1524,6 @@
   @vite('resources/js/faculty/ai/ilo-so-cpa-map.js')
   @vite('resources/js/faculty/ai/ilo-iga-map.js')
   @vite('resources/js/faculty/ai/ilo-cdio-sdg-map.js')
+  @vite('resources/js/faculty/ai/snapshot.js')
+  @vite('resources/js/faculty/ai/chat-panel.js')
 @endpush

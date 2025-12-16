@@ -68,15 +68,35 @@
                       {{ $status['label'] }}
                     </span>
                   </div>
-                  <h6 class="fw-semibold mb-0 syllabus-title">{{ $syllabus->title }}</h6>
                   @if(!empty($syllabus->course?->title))
-                    <div class="text-muted small syllabus-course-title">{{ $syllabus->course->title }}</div>
+                    <h6 class="fw-semibold mb-0 syllabus-title">{{ $syllabus->course->title }}</h6>
                   @endif
                   <div class="svx-meta mt-2 small">
                     <span class="chip"><i class="bi bi-calendar3"></i> AY {{ $syllabus->academic_year }}</span>
                     <span class="chip"><i class="bi bi-collection"></i> {{ $syllabus->semester }}</span>
-                    <span class="chip"><i class="bi bi-people"></i> {{ $syllabus->year_level ?? '-' }}</span>
+                    <span class="chip"><i class="bi bi-mortarboard"></i> {{ $syllabus->year_level ?? '-' }}</span>
                   </div>
+                  @php
+                    $viewerId = auth()->id();
+                    $owner = $syllabus->faculty ?? null;
+                    $members = ($syllabus->facultyMembers ?? collect());
+                    $names = collect();
+                    $isOwner = (int)($syllabus->faculty_id) === (int)($viewerId);
+                    if (!$isOwner && $owner) {
+                      $names->push($owner->name);
+                    }
+                    $members->each(function($u) use (&$names, $viewerId, $owner){
+                      if ((int)$u->id === (int)$viewerId) return;
+                      if ($owner && (int)$u->id === (int)$owner->id) return;
+                      $names->push($u->name);
+                    });
+                    $names = $names->filter()->unique()->values();
+                  @endphp
+                  @if($names->count() > 0)
+                    <div class="svx-collaborators small text-muted mt-1">
+                      <span class="chip"><i class="bi bi-people"></i> {{ $names->join(', ') }}</span>
+                    </div>
+                  @endif
                   
                 </div>
                 <div class="svx-card-footer d-flex justify-content-between align-items-center gap-2">

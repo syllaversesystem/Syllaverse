@@ -357,10 +357,7 @@
         {{-- Phase 2: Syllabus Details --}}
         <div id="phase2" class="sv-card p-3" style="display: none;">
           <div class="row g-3">
-            <div class="col-md-12">
-              <label class="form-label">Syllabus Title <span class="text-danger">*</span></label>
-              <input type="text" name="title" class="form-control" placeholder="e.g., Syllabus in BAT 403" required>
-            </div>
+            {{-- Syllabus Title removed as per new requirements --}}
             <div class="col-md-6">
               <label class="form-label">Program</label>
               <select name="program_id" class="form-select">

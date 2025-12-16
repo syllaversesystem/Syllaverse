@@ -13,53 +13,9 @@
     </div>
   @endif
 
-  <!-- AI Chat Section (hidden by default; toggled by AI button) -->
-  @if(!$inFinalApprovalMinimal)
-    <div class="sv-toolbar-ai-section" id="svAiChatSection" style="display:none;">
-      <div class="sv-ai-header d-flex align-items-center justify-content-between mb-1">
-        <div class="sv-ai-title"><i class="bi bi-stars me-1"></i> AI Assist</div>
-      </div>
-      <div class="sv-ai-chat" id="svAiChatMessages" aria-live="polite"></div>
-      <div class="sv-ai-input">
-        <div class="input-group input-group-sm sv-ai-input-group">
-          <span class="input-group-text" aria-hidden="true"><i class="bi bi-stars"></i></span>
-          <textarea id="svAiChatInput" class="form-control sv-ai-textarea" rows="1" placeholder="Ask AI about this syllabus..." aria-label="AI chat input"></textarea>
-          <button class="btn btn-danger" type="button" id="svAiChatSend" aria-label="Send AI message"><i class="bi bi-send-fill"></i></button>
-        </div>
-      </div>
-    </div>
-  @endif
+  {{-- AI Chat Section removed --}}
 
-  @if(!$inFinalApprovalMinimal)
-  <!-- Mapping Tools: Assessment Schedule, ILO–SO & CPA, ILO–IGA -->
-  <div class="sv-toolbar-button-section d-flex flex-column gap-2 mt-2">
-    <div class="d-grid gap-2">
-      <button type="button" class="btn btn-outline-danger btn-sm" id="svAiAssessmentScheduleBtn" aria-label="AI: Assessment Schedule">
-        <i class="bi bi-stars"></i> Assessment Schedule
-      </button>
-      <button type="button" class="btn btn-outline-danger btn-sm" id="svAiIloSoCpaBtn" aria-label="AI: ILO–SO &amp; CPA">
-        <i class="bi bi-stars"></i> ILO–SO &amp; CPA
-      </button>
-      <button type="button" class="btn btn-outline-danger btn-sm" id="svAiIloIgaBtn" aria-label="AI: ILO–IGA">
-        <i class="bi bi-stars"></i> ILO–IGA
-      </button>
-      <button type="button" class="btn btn-outline-danger btn-sm" id="svAiIloCdioSdgBtn" aria-label="AI: ILO–CDIO–SDG">
-        <i class="bi bi-stars"></i> ILO–CDIO–SDG
-      </button>
-    </div>
-    <!-- Shared AI Progress -->
-    <div id="svAiMapProgressWrap" class="mt-2" style="display:none;">
-      <div class="d-flex align-items-center justify-content-between mb-1">
-        <div id="svAiMapStage" class="small text-muted">Processing</div>
-        <div id="svAiMapPct" class="small fw-semibold">0%</div>
-      </div>
-      <div class="progress" style="height:6px;">
-        <div id="svAiMapProgressFill" class="progress-bar" role="progressbar" style="width:0%"></div>
-      </div>
-      <div id="svAiMapValidation" class="mt-1 small text-muted"><span></span></div>
-    </div>
-  </div>
-  @endif
+  {{-- Mapping tools moved to main content above Assessment Mapping --}}
 
   @if(!empty($reviewMode))
   <!-- Button Section: Return / Approve (hidden when not in review mode) -->
