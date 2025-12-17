@@ -933,6 +933,20 @@
         return;
       }
 
+      // Extract text while preserving line breaks inside each cell
+      const readCell = (cell, trim = false) => {
+        if (!cell) return '';
+        // Prefer innerHTML to capture explicit <br> tags, then normalize to newlines
+        let value = cell.innerHTML
+          .replace(/\r\n/g, '\n')
+          .replace(/<br\s*\/?>(?!\n)/gi, '\n')
+          .replace(/<\/(p|div)>/gi, '\n')
+          .replace(/<[^>]+>/g, ''); // strip remaining tags
+        // Collapse Windows CRLF to LF again after HTML removal
+        value = value.replace(/\r\n/g, '\n');
+        return trim ? value.trim() : value;
+      };
+
       // Remove placeholder if exists
       const placeholder = tlaBody.querySelector('#tla-placeholder');
       if (placeholder) {
@@ -948,14 +962,13 @@
         if (cells.length < 7) return; // Skip malformed rows (need 7 columns)
 
         // Extract data from each cell
-        const ch = cells[0].textContent.trim();
-        // Preserve newlines and blank lines in topic cell (for main topic + tasks formatting)
-        const topic = cells[1].textContent.split('\n').map(line => line.trim()).join('\n');
-        const wks = cells[2].textContent.trim();
-        const outcomes = cells[3].textContent.trim();
-        const ilo = cells[4].textContent.trim();
-        const so = cells[5].textContent.trim();
-        const delivery = cells[6].textContent.trim();
+        const ch = readCell(cells[0], true);
+        const topic = readCell(cells[1]);
+        const wks = readCell(cells[2], true);
+        const outcomes = readCell(cells[3]);
+        const ilo = readCell(cells[4], true);
+        const so = readCell(cells[5], true);
+        const delivery = readCell(cells[6]);
 
         // Create new row matching the partial's structure
         const newRow = document.createElement('tr');
@@ -966,13 +979,13 @@
             <input name="tla[${index}][ch]" form="syllabusForm" class="form-control cis-input text-center" value="${ch}" placeholder="-">
           </td>
           <td class="tla-topic text-start">
-            <textarea name="tla[${index}][topic]" form="syllabusForm" class="form-control cis-textarea autosize cis-field" rows="2" placeholder="-">${topic}</textarea>
+            <textarea name="tla[${index}][topic]" form="syllabusForm" class="form-control cis-textarea autosize cis-field" rows="2" placeholder="-" style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">${topic}</textarea>
           </td>
           <td class="tla-wks">
             <input name="tla[${index}][wks]" form="syllabusForm" class="form-control cis-input text-center" value="${wks}" placeholder="-">
           </td>
           <td class="tla-outcomes text-start">
-            <textarea name="tla[${index}][outcomes]" form="syllabusForm" class="form-control cis-textarea autosize cis-field" rows="2" placeholder="-">${outcomes}</textarea>
+            <textarea name="tla[${index}][outcomes]" form="syllabusForm" class="form-control cis-textarea autosize cis-field" rows="2" placeholder="-" style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">${outcomes}</textarea>
           </td>
           <td class="tla-ilo">
             <input name="tla[${index}][ilo]" form="syllabusForm" class="form-control cis-input text-center" value="${ilo}" placeholder="-">
@@ -981,7 +994,7 @@
             <input name="tla[${index}][so]" form="syllabusForm" class="form-control cis-input text-center" value="${so}" placeholder="-">
           </td>
           <td class="tla-delivery">
-            <textarea name="tla[${index}][delivery]" form="syllabusForm" class="form-control cis-textarea autosize cis-field" rows="1" placeholder="-">${delivery}</textarea>
+            <textarea name="tla[${index}][delivery]" form="syllabusForm" class="form-control cis-textarea autosize cis-field" rows="1" placeholder="-" style="display:block;width:100%;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;">${delivery}</textarea>
           </td>
           <td class="tla-actions text-center">
             <button type="button" class="btn btn-sm btn-outline-danger remove-tla-row" data-id="" title="Delete Row">
