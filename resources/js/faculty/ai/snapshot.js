@@ -181,7 +181,7 @@
 
     const md = [];
     md.push('### Criteria for Assessment');
-    md.push('| Section | Description | Percent |');
+    md.push('| Category | Assessment | Percent |');
     md.push('|:--|:--|:--|');
     
     const raw = { sections: [] };
@@ -1106,15 +1106,28 @@
           row.push('-', '-', '-');
           md.push('| ' + row.join(' | ') + ' |');
         } else {
-          section.subRows.forEach((subRow, idx) => {
-            const row = [];
-            row.push(idx === 0 ? (section.code || '-') : '');
-            row.push(idx === 0 ? (section.task || '-') : '');
-            row.push(subRow.ird || '-');
-            row.push(idx === 0 ? (section.percent || '-') : '');
-            row.push(...subRow.iloColumns.map(v => v || '-'));
-            row.push(subRow.cpa.c || '-', subRow.cpa.p || '-', subRow.cpa.a || '-');
-            md.push('| ' + row.join(' | ') + ' |');
+          // First, show main category row
+          const mainRow = [section.code || '-', section.task || '-', '-', section.percent || ''];
+          mainRow.push(...section.iloColumns.map(v => v || '-'));
+          mainRow.push('-', '-', '-');
+          md.push('| ' + mainRow.join(' | ') + ' |');
+          
+          // Then show each sub-row with subtask in same Task column
+          section.subRows.forEach((subRow) => {
+            const subRowArray = [];
+            // Sub-task code in Code column
+            subRowArray.push(subRow.code || '-');
+            // Sub-task name in Task column (indented with dash for clarity)
+            subRowArray.push(`- ${subRow.task || '-'}`);
+            // Sub-task I/R/D type
+            subRowArray.push(subRow.ird || '-');
+            // Empty % column
+            subRowArray.push('');
+            // Sub-row ILO distribution
+            subRowArray.push(...subRow.iloColumns.map(v => v || '-'));
+            // CPA values
+            subRowArray.push(subRow.cpa.c || '-', subRow.cpa.p || '-', subRow.cpa.a || '-');
+            md.push('| ' + subRowArray.join(' | ') + ' |');
           });
         }
       });

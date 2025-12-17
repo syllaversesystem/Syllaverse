@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\DB;
 
 class AIController extends Controller
 {
@@ -24,16 +25,25 @@ class AIController extends Controller
     public function chat(Request $request, $syllabusId)
     {
         try {
-            // Validate request
+            // Validate request (no max length caps)
             $validated = $request->validate([
-                'message' => 'required|string|max:2000',
-                'context' => 'nullable|string|max:50000',
+                'message' => 'required|string',
+                'context' => 'nullable|string',
+                'snapshots' => 'nullable|json',
+                'prompt' => 'nullable|string',
+                'prompts' => 'nullable|json',
                 'history' => 'nullable|json',
             ]);
 
             $userMessage = $validated['message'];
             $context = $validated['context'] ?? '';
+            $snapshots = json_decode($validated['snapshots'] ?? '[]', true);
+            $prompt = $validated['prompt'] ?? '';
+            $allPrompts = json_decode($validated['prompts'] ?? '{}', true);
             $history = json_decode($validated['history'] ?? '[]', true);
+
+            // Load ALL textbook chunks for this syllabus (no limit)
+            $textbookChunks = $this->loadTextbookChunks($syllabusId, null);
 
             // Get OpenAI API key from environment
             $apiKey = config('services.openai.api_key');
@@ -46,7 +56,7 @@ class AIController extends Controller
             }
 
             // Build conversation messages for OpenAI
-            $messages = $this->buildMessages($userMessage, $context, $history);
+            $messages = $this->buildMessages($userMessage, $context, $history, $snapshots, $prompt, $allPrompts, $textbookChunks);
 
             // Call OpenAI API
             $response = Http::withHeaders([
@@ -58,7 +68,7 @@ class AIController extends Controller
                 'model' => config('services.openai.model', 'gpt-4-turbo-preview'),
                 'messages' => $messages,
                 'temperature' => 0.7,
-                'max_tokens' => 2000,
+                // Intentionally omit max_tokens to avoid capping output
                 'top_p' => 1,
                 'frequency_penalty' => 0,
                 'presence_penalty' => 0,
@@ -110,9 +120,13 @@ class AIController extends Controller
      * @param string $userMessage
      * @param string $context
      * @param array $history
+     * @param array $snapshots
+     * @param string $prompt
+     * @param array $allPrompts
+     * @param array $textbookChunks
      * @return array
      */
-    private function buildMessages(string $userMessage, string $context, array $history): array
+    private function buildMessages(string $userMessage, string $context, array $history, array $snapshots = [], string $prompt = '', array $allPrompts = [], array $textbookChunks = []): array
     {
         $messages = [];
 
@@ -148,6 +162,61 @@ class AIController extends Controller
                     'content' => $contextMessage
                 ];
             }
+        }
+
+        // Add comprehensive prompt library
+        $promptLibrary = "You have access to specialized guidance for analyzing syllabus sections:\n\n";
+        
+        if (!empty($allPrompts) && is_array($allPrompts)) {
+            foreach ($allPrompts as $promptKey => $promptText) {
+                if (!empty($promptText)) {
+                    $promptLibrary .= "## {$promptKey}\n{$promptText}\n\n";
+                }
+            }
+        }
+
+        // Add partial-specific prompt if provided
+        if (!empty($prompt)) {
+            $promptLibrary .= "## Current Focus\n{$prompt}\n";
+        }
+
+        $messages[] = [
+            'role' => 'system',
+            'content' => $promptLibrary,
+        ];
+
+        // Add textbook chunks if available
+        if (!empty($textbookChunks) && is_array($textbookChunks)) {
+            $textbookContext = "Uploaded Textbook Content (use this as reference material):\n\n";
+            $chunkCount = count($textbookChunks);
+            $textbookContext .= "Total chunks available: {$chunkCount}\n\n";
+            
+            foreach ($textbookChunks as $chunk) {
+                $name = $chunk['original_name'] ?? 'Textbook';
+                $index = $chunk['chunk_index'] ?? 0;
+                $content = $chunk['content'] ?? '';
+                // Include full content of each chunk (no truncation)
+                $textbookContext .= "### {$name} (Chunk {$index})\n{$content}\n\n";
+            }
+            $messages[] = [
+                'role' => 'system',
+                'content' => $textbookContext,
+            ];
+        }
+
+        // Add structured snapshots (markdown per partial)
+        if (!empty($snapshots) && is_array($snapshots)) {
+            $snapshotMessage = "Structured syllabus snapshots (all partials):\n\n";
+            foreach ($snapshots as $snap) {
+                $key = $snap['key'] ?? 'snapshot';
+                $markdown = $snap['markdown'] ?? '';
+                $snapshotMessage .= "## {$key}\n{$markdown}\n\n";
+            }
+
+            $messages[] = [
+                'role' => 'system',
+                'content' => $snapshotMessage,
+            ];
         }
 
         // Add conversation history (last 10 messages)
@@ -206,5 +275,50 @@ Format your responses clearly:
 
 Remember: You're assisting in creating high-quality, accreditation-ready syllabi that enhance student learning.
 PROMPT;
+    }
+
+    /**
+     * Load textbook chunks for the given syllabus
+     *
+     * @param int $syllabusId
+     * @param int|null $limit Number of chunks to load (null = all chunks)
+     * @return array
+     */
+    private function loadTextbookChunks(int $syllabusId, ?int $limit = null): array
+    {
+        try {
+            $query = DB::table('textbook_chunks')
+                ->join('syllabus_textbooks', 'textbook_chunks.textbook_id', '=', 'syllabus_textbooks.id')
+                ->where('syllabus_textbooks.syllabus_id', $syllabusId)
+                ->select(
+                    'syllabus_textbooks.original_name',
+                    'textbook_chunks.chunk_index',
+                    'textbook_chunks.content'
+                )
+                ->orderBy('syllabus_textbooks.id')
+                ->orderBy('textbook_chunks.chunk_index');
+
+            // Apply limit only if specified
+            if ($limit !== null) {
+                $query->limit($limit);
+            }
+
+            $chunks = $query->get()->toArray();
+
+            return array_map(function($chunk) {
+                return [
+                    'original_name' => $chunk->original_name,
+                    'chunk_index' => $chunk->chunk_index,
+                    'content' => $chunk->content,
+                ];
+            }, $chunks);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to load textbook chunks', [
+                'syllabus_id' => $syllabusId,
+                'error' => $e->getMessage()
+            ]);
+            return [];
+        }
     }
 }

@@ -31,13 +31,64 @@
     return JSON.stringify(ctx);
   }
 
-  async function send(message, history){
+  function collectSnapshots(){
+    if (!window.SVSnapshot || typeof window.SVSnapshot.collectAllSnapshots !== 'function') {
+      return '';
+    }
+    try {
+      const snapshots = window.SVSnapshot.collectAllSnapshots();
+      return JSON.stringify(snapshots);
+    } catch (e) {
+      console.warn('[AI] Failed to collect snapshots', e);
+      return '';
+    }
+  }
+
+  function collectPrompt(partialKey){
+    if (!window.SVPrompts || typeof window.SVPrompts.get !== 'function') {
+      return '';
+    }
+    try {
+      const prompt = window.SVPrompts.get(partialKey);
+      return prompt || '';
+    } catch (e) {
+      console.warn('[AI] Failed to collect prompt', e);
+      return '';
+    }
+  }
+
+  function collectAllPrompts(){
+    if (!window.SVPrompts || typeof window.SVPrompts.getAll !== 'function') {
+      return '';
+    }
+    try {
+      const allPrompts = window.SVPrompts.getAll();
+      return JSON.stringify(allPrompts);
+    } catch (e) {
+      console.warn('[AI] Failed to collect all prompts', e);
+      return '';
+    }
+  }
+
+  async function send(message, history, partialKey){
     const syllabusId = getSyllabusId();
     if (!syllabusId) throw new Error('Syllabus ID not found');
 
     const formData = new FormData();
     formData.append('message', message);
     formData.append('context', collectContext());
+    const snapshotsJson = collectSnapshots();
+    if (snapshotsJson) {
+      formData.append('snapshots', snapshotsJson);
+    }
+    const promptText = partialKey ? collectPrompt(partialKey) : '';
+    if (promptText) {
+      formData.append('prompt', promptText);
+    }
+    const promptsInfo = collectAllPrompts();
+    if (promptsInfo) {
+      formData.append('prompts', promptsInfo);
+    }
     formData.append('history', JSON.stringify(Array.isArray(history) ? history.slice(-10) : []));
 
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';

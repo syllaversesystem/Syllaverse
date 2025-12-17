@@ -86,7 +86,7 @@
   .ilo-header-actions .btn:active { transform: scale(.97); filter: brightness(.98); }
   </style>
 
-  <table class="table table-bordered mb-4 cis-table cis">
+  <table id="ilo-section-table" class="table table-bordered mb-4 cis-table cis">
     <colgroup>
       <col style="width:16%">
       <col style="width:84%">

@@ -85,7 +85,6 @@ export default defineConfig({
                 'resources/js/faculty/syllabus-cdio.js',
                 'resources/js/faculty/syllabus-create.js',
                 'resources/js/faculty/syllabus-status.js',
-                'resources/js/faculty/syllabus-ai-chat.js',
                 'resources/js/faculty/syllabus-criteria.js',
                 'resources/js/faculty/syllabus-iga.js',
                 'resources/js/faculty/syllabus-ilo-iga.js',

@@ -163,13 +163,19 @@ class SyllabusTextbookController extends Controller
         try {
             Log::info("[SyllabusTextbook] Deleting textbook ID: {$textbook->id}");
 
+            // Delete chunks first (before deleting textbook record)
+            $deletedChunks = DB::table('textbook_chunks')
+                ->where('textbook_id', $textbook->id)
+                ->delete();
+            
+            Log::info("[SyllabusTextbook] Deleted {$deletedChunks} chunks for textbook ID: {$textbook->id}");
+
+            // Delete file from storage if it exists
             if ($textbook->file_path && Storage::disk('public')->exists($textbook->file_path)) {
                 Storage::disk('public')->delete($textbook->file_path);
             }
 
-            // Remove any stored chunks tied to this textbook
-            try { DB::table('textbook_chunks')->where('textbook_id', $textbook->id)->orWhere('source_path', $textbook->file_path)->delete(); } catch (\Throwable $e) { /* skip */ }
-
+            // Delete textbook record
             $textbook->delete();
 
             return response()->json([

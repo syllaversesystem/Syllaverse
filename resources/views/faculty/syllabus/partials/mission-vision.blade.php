@@ -41,7 +41,7 @@ Description: Institutional Vision & Mission section (refactored for semantic, ac
 <!-- Local save button removed; toolbar Save handles mission & vision -->
 
 @push('scripts')
-  @vite(['resources/js/faculty/syllabus-mission-vision.js'])
+  @vite(['resources/js/faculty/syllabus-mission-vision.js', 'resources/js/faculty/mission-vision-input-handler.js'])
   <script>
     (function(){
       function sanitize(val){
@@ -121,6 +121,14 @@ Description: Institutional Vision & Mission section (refactored for semantic, ac
   .sv-mv-textarea { min-height: unset; height:auto; font-size:10pt; font-family:'Times New Roman', Times, serif; line-height:1.35; resize:vertical; }
   .sv-mv-textarea:focus { box-shadow:none; border-color:#666; }
   /* table layout is responsive by default */
+
+  /* Mission/Vision partial drop zone highlighting */
+  .sv-partial.mv-drop-active {
+    border: 2px solid #dc2626 !important;
+    background-color: #fef2f2 !important;
+    box-shadow: 0 0 12px rgba(220, 38, 38, 0.2) !important;
+    transition: all 0.15s ease;
+  }
 </style>
 @endpush
 @endonce
