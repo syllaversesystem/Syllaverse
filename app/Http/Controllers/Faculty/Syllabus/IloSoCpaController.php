@@ -15,18 +15,29 @@ class IloSoCpaController extends Controller
      */
     public function save(Request $request)
     {
-        $request->validate([
-            'syllabus_id' => 'required|exists:syllabi,id',
-            'so_columns' => 'nullable|array',
-            'so_columns.*' => 'string',
-            'mappings' => 'array', // Allow empty array to delete all
-            'mappings.*.ilo_text' => 'nullable|string', // Allow empty ILO text
-            'mappings.*.sos' => 'nullable',
-            'mappings.*.c' => 'nullable|string',
-            'mappings.*.p' => 'nullable|string',
-            'mappings.*.a' => 'nullable|string',
-            'mappings.*.position' => 'required|integer',
-        ]);
+        try {
+            $request->validate([
+                'syllabus_id' => 'required|exists:syllabi,id',
+                'so_columns' => 'nullable|array',
+                'so_columns.*' => 'string',
+                'mappings' => 'array', // Allow empty array to delete all
+                'mappings.*.ilo_text' => 'nullable|string', // Allow empty ILO text
+                'mappings.*.sos' => 'nullable|array', // sos should be an array/object
+                'mappings.*.c' => 'nullable|string',
+                'mappings.*.p' => 'nullable|string',
+                'mappings.*.a' => 'nullable|string',
+                'mappings.*.position' => 'required|integer',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::error('ILO-SO-CPA validation failed', [
+                'errors' => $e->errors(),
+                'request_data' => $request->all()
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed: ' . json_encode($e->errors())
+            ], 422);
+        }
 
         try {
             DB::beginTransaction();
@@ -63,7 +74,11 @@ class IloSoCpaController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Error saving ILO-SO-CPA mapping: ' . $e->getMessage());
+            Log::error('Error saving ILO-SO-CPA mapping: ' . $e->getMessage(), [
+                'exception' => $e,
+                'trace' => $e->getTraceAsString(),
+                'request_data' => $request->all()
+            ]);
 
             return response()->json([
                 'success' => false,

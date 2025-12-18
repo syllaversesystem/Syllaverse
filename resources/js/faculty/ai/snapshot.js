@@ -14,6 +14,11 @@
     if (!el) return '';
     return textTrim(el.value ?? el.textContent ?? '');
   }
+  // Format value to show newlines as " \n " (with spaces)
+  function formatWithNewlines(val) {
+    if (!val) return '';
+    return String(val).replace(/\n/g, ' \\n ').trim();
+  }
 
   // ---------- Course Policies Snapshot ----------
   function snapshotCoursePolicies(){
@@ -650,7 +655,7 @@
         if (soLabel === 'No SO') return;
 
         const soCell = cells[soIdx + 1];
-        const soValue = soCell ? textTrim(soCell.querySelector('textarea')?.value ?? soCell.textContent ?? '') : '';
+        const soValue = soCell ? formatWithNewlines(soCell.querySelector('textarea')?.value ?? soCell.textContent ?? '') : '';
         sos[soLabel] = soValue;
       });
 
@@ -659,9 +664,9 @@
       const pCell = cells[cells.length - 2];
       const aCell = cells[cells.length - 1];
 
-      const cValue = textTrim(cCell?.querySelector('textarea')?.value ?? cCell?.textContent ?? '');
-      const pValue = textTrim(pCell?.querySelector('textarea')?.value ?? pCell?.textContent ?? '');
-      const aValue = textTrim(aCell?.querySelector('textarea')?.value ?? aCell?.textContent ?? '');
+      const cValue = formatWithNewlines(cCell?.querySelector('textarea')?.value ?? cCell?.textContent ?? '');
+      const pValue = formatWithNewlines(pCell?.querySelector('textarea')?.value ?? pCell?.textContent ?? '');
+      const aValue = formatWithNewlines(aCell?.querySelector('textarea')?.value ?? aCell?.textContent ?? '');
 
       if (iloText) {
         raw.mappings.push({
@@ -764,7 +769,7 @@
         if (igaLabel === 'No IGA') return;
 
         const igaCell = cells[igaIdx + 1];
-        const igaValue = igaCell ? textTrim(igaCell.querySelector('textarea')?.value ?? igaCell.textContent ?? '') : '';
+        const igaValue = igaCell ? formatWithNewlines(igaCell.querySelector('textarea')?.value ?? igaCell.textContent ?? '') : '';
         igas[igaLabel] = igaValue;
       });
 
@@ -879,7 +884,7 @@
         if (cdioLabel === 'No CDIO') return;
 
         const cdioCell = cells[1 + cdioIdx];
-        const cdioValue = cdioCell ? textTrim(cdioCell.querySelector('textarea')?.value ?? cdioCell.textContent ?? '') : '';
+        const cdioValue = cdioCell ? formatWithNewlines(cdioCell.querySelector('textarea')?.value ?? cdioCell.textContent ?? '') : '';
         cdios[cdioLabel] = cdioValue;
       });
 
@@ -893,7 +898,7 @@
         if (sdgLabel === 'No SDG') return;
 
         const sdgCell = cells[1 + cdioHeaders.length + sdgIdx];
-        const sdgValue = sdgCell ? textTrim(sdgCell.querySelector('textarea')?.value ?? sdgCell.textContent ?? '') : '';
+        const sdgValue = sdgCell ? formatWithNewlines(sdgCell.querySelector('textarea')?.value ?? sdgCell.textContent ?? '') : '';
         sdgs[sdgLabel] = sdgValue;
       });
 

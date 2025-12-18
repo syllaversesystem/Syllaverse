@@ -229,13 +229,18 @@
         })
       });
 
+      console.log('[ILO-SO-CPA Mapping] Response status:', response.status);
+      
       const data = await response.json();
+      console.log('[ILO-SO-CPA Mapping] Response data:', data);
 
       if (!response.ok) {
+        console.error('[ILO-SO-CPA Mapping] Server error response:', data);
         throw new Error(data.message || `HTTP Error: ${response.status}`);
       }
 
       if (!data.success) {
+        console.error('[ILO-SO-CPA Mapping] Save failed:', data);
         throw new Error(data.message || 'Failed to save mappings');
       }
 
@@ -244,6 +249,7 @@
 
     } catch (error) {
       console.error('[ILO-SO-CPA Mapping] Save error:', error);
+      console.error('[ILO-SO-CPA Mapping] Error stack:', error.stack);
       throw error;
     }
   }
@@ -265,12 +271,11 @@
       // Show loading message
       const loadingMsg = appendChatMessage('ai', 'Processing ILO-SO-CPA mapping...', true);
 
-      // Prepare message for AI
-      const snapshots = collectAllSnapshots();
-      const prompts = collectAllPrompts();
-      const message = `Generate ILO-SO-CPA mapping using these snapshots: ${snapshots}`;
+      // Prepare message for AI - do not include snapshots in message body
+      // SVAI.send will automatically collect snapshots via AIController
+      const message = `Generate ILO-SO-CPA mapping for this syllabus.`;
 
-      console.log('[ILO-SO-CPA Mapping] Sending to AI:', message.substring(0, 100));
+      console.log('[ILO-SO-CPA Mapping] Sending request to AI...');
 
       // Send to AI using SVAI module
       if (!window.SVAI || typeof window.SVAI.send !== 'function') {
@@ -283,11 +288,14 @@
 
       // Parse response
       const parsedData = parseILOSOCPAMappingJson(response);
+      console.log('[ILO-SO-CPA Mapping] Parsed data:', parsedData);
 
       // Save to database
       try {
+        console.log('[ILO-SO-CPA Mapping] Attempting to save mappings...');
         await saveILOSOCPAMappings(parsedData);
       } catch (saveError) {
+        console.error('[ILO-SO-CPA Mapping] Save failed:', saveError);
         throw new Error(`Failed to save mappings: ${saveError.message}`);
       }
 
