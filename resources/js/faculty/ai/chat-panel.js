@@ -210,6 +210,26 @@
           }
           return;
         }
+
+        // Special handling for ILO-CDIO-SDG Mapping - use dedicated mapping module
+        if (buttonText === 'ILO-CDIO-SDG') {
+          if (!isOpen) {
+            openPanel();
+          }
+          
+          // Check if ILO-CDIO-SDG mapping module is loaded
+          if (window.SVILOCDIOSDGMapping && typeof window.SVILOCDIOSDGMapping.generate === 'function') {
+            // Call the ILO-CDIO-SDG mapping module (no user message shown)
+            window.SVILOCDIOSDGMapping.generate().then(success => {
+              if (success) {
+                // Done message will be added by the module
+              }
+            });
+          } else {
+            appendMessage('ai', 'ILO-CDIO-SDG Mapping module is not loaded. Please reload the page.');
+          }
+          return;
+        }
         
         // Open panel if not already open
         if (!isOpen) {

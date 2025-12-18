@@ -6,6 +6,14 @@
 -------------------------------------------------------------------------------
 --}}
 
+@php
+	// Derive IGA column headers from saved mappings so the partial hydrates immediately from DB state
+	$igaHeaders = collect($iloIgaMappings ?? [])->map(function($row){
+		$igas = $row['igas'] ?? ($row->igas ?? []);
+		return is_array($igas) ? array_keys($igas) : [];
+	})->flatten()->unique()->values()->all();
+@endphp
+
 <style>
 	.ilo-iga-mapping .ilo-header-controls {
 		position: absolute;
@@ -163,7 +171,7 @@
 </style>
 
 <div class="ilo-iga-mapping mb-4"
-	data-iga-headers="{{ json_encode([]) }}"
+	data-iga-headers="{{ json_encode($igaHeaders) }}"
 	data-mappings="{{ json_encode($iloIgaMappings ?? []) }}">
 	<table class="table table-bordered" style="width:100%; border:1px solid #343a40; border-collapse:collapse; overflow:visible;">
 		<thead>

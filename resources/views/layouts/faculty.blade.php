@@ -94,10 +94,14 @@
   @vite('resources/js/faculty/syllabus-tla.js')
   @vite('resources/js/faculty/syllabus-assessment-mapping.js')
   @vite('resources/js/faculty/syllabus-ai-chat.js')
+  @vite('resources/js/faculty/ai/prompts.js')
+  @vite('resources/js/faculty/ai/snapshot.js')
   @vite('resources/js/faculty/ai/assessment-map.js')
   @vite('resources/js/faculty/ai/ilo-so-cpa-mapping.js')
   @vite('resources/js/faculty/ai/assessment-schedule.js')
   @vite('resources/js/faculty/ai/ilo-iga-mapping.js')
+  @vite('resources/js/faculty/ai/ilo-cdio-sdg-mapping.js')
+  @vite('resources/js/faculty/ai/chat-panel.js')
   {{-- ░░░ END: Vite JS ░░░ --}}
   @if(isset($fullscreen) && $fullscreen)
   <style>

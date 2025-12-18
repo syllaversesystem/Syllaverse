@@ -706,8 +706,20 @@ document.addEventListener('DOMContentLoaded', function() {
 	// Refresh function: rebuild partial from provided data (called after AI insert / manual save)
 	window.refreshIloIgaPartial = function(igaLabels, mappings){
 		try {
+			// Normalize headers; derive from mappings if not supplied so DB data still renders after save
+			const normalizedIgaLabels = Array.isArray(igaLabels) ? igaLabels.filter(l => typeof l === 'string') : [];
+			if (!normalizedIgaLabels.length && Array.isArray(mappings)) {
+				const derived = new Set();
+				mappings.forEach(m => {
+					if (m && m.igas && typeof m.igas === 'object') {
+						Object.keys(m.igas).forEach(k => derived.add(k));
+					}
+				});
+				normalizedIgaLabels.push(...derived);
+			}
+
 			// Persist new state on the root for resilience
-			mapping.setAttribute('data-iga-headers', JSON.stringify(igaLabels || []));
+			mapping.setAttribute('data-iga-headers', JSON.stringify(normalizedIgaLabels));
 			mapping.setAttribute('data-mappings', JSON.stringify(mappings || []));
 
 			const mappingTable = mapping.querySelector('.mapping');
@@ -726,7 +738,7 @@ document.addEventListener('DOMContentLoaded', function() {
 					return label !== 'No IGA';
 				}).length;
 			}
-			let desired = Array.isArray(igaLabels) ? igaLabels.length : 0;
+			let desired = normalizedIgaLabels.length;
 			let real = currentIgaRealCount();
 			if (desired === 0) {
 				// Reduce to placeholder
@@ -742,7 +754,7 @@ document.addEventListener('DOMContentLoaded', function() {
 				igaHdrs = Array.from(headerRow2.querySelectorAll('th')).slice(iloHeaderIndex + 1);
 				igaHdrs.forEach((th, idx) => {
 					const input = th.querySelector('input');
-					if (input) input.value = igaLabels[idx] || '';
+					if (input) input.value = normalizedIgaLabels[idx] || '';
 				});
 				// Update IGA header group colspan
 				const igaSpanTh = headerRow1.querySelectorAll('th')[1];
