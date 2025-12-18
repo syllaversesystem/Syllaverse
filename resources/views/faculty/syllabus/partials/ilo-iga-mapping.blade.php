@@ -163,8 +163,8 @@
 </style>
 
 <div class="ilo-iga-mapping mb-4"
-     data-iga-headers="{{ json_encode($igas->pluck('code')->toArray() ?? []) }}"
-     data-mappings="{{ json_encode($iloIgaMappings ?? []) }}">
+	data-iga-headers="{{ json_encode([]) }}"
+	data-mappings="{{ json_encode($iloIgaMappings ?? []) }}">
 	<table class="table table-bordered" style="width:100%; border:1px solid #343a40; border-collapse:collapse; overflow:visible;">
 		<thead>
 			<tr>

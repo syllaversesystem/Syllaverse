@@ -190,6 +190,26 @@
           }
           return;
         }
+
+        // Special handling for ILO-IGA Mapping - use dedicated mapping module
+        if (buttonText === 'ILO-IGA') {
+          if (!isOpen) {
+            openPanel();
+          }
+          
+          // Check if ILO-IGA mapping module is loaded
+          if (window.SVILOIGAMapping && typeof window.SVILOIGAMapping.generate === 'function') {
+            // Call the ILO-IGA mapping module (no user message shown)
+            window.SVILOIGAMapping.generate().then(success => {
+              if (success) {
+                // Done message will be added by the module
+              }
+            });
+          } else {
+            appendMessage('ai', 'ILO-IGA Mapping module is not loaded. Please reload the page.');
+          }
+          return;
+        }
         
         // Open panel if not already open
         if (!isOpen) {

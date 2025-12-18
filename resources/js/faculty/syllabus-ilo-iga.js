@@ -589,10 +589,21 @@ document.addEventListener('DOMContentLoaded', function() {
 		if (!igaHeadersData || !mappingsData) return;
 		
 		try {
-			const igaHeaders = JSON.parse(igaHeadersData);
+			let igaHeaders = JSON.parse(igaHeadersData);
 			const mappings = JSON.parse(mappingsData);
 			
 			if (!mappings || mappings.length === 0) return;
+			
+			// Derive IGA headers from saved mapping if none were provided
+			if (!Array.isArray(igaHeaders) || igaHeaders.length === 0) {
+				const derived = new Set();
+				mappings.forEach(row => {
+					if (row && row.igas && typeof row.igas === 'object') {
+						Object.keys(row.igas).forEach(k => derived.add(k));
+					}
+				});
+				igaHeaders = Array.from(derived);
+			}
 			
 			// First, add IGA columns
 			if (igaHeaders && igaHeaders.length > 0) {
