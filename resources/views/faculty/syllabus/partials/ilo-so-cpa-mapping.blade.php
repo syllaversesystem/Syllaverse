@@ -269,6 +269,34 @@
 	</table>
 </div>
 
+<script>
+	function registerValidationField() {
+		if (typeof window.addRequiredField === 'function') {
+			window.addRequiredField('ilo_so_cpa', 'ilo-so-cpa-data', 'ILO-SO-CPA Mapping');
+			setupTableMutationObserver();
+		} else {
+			setTimeout(registerValidationField, 500);
+		}
+	}
+
+	function setupTableMutationObserver() {
+		const mapping = document.querySelector('.ilo-so-cpa-mapping');
+		const mappingTable = mapping ? mapping.querySelector('.mapping') : null;
+		
+		if (!mappingTable) return;
+		
+		const observer = new MutationObserver(() => {
+			if (typeof window.updateProgressBar === 'function') {
+				window.updateProgressBar();
+			}
+		});
+		
+		observer.observe(mappingTable, { childList: true, subtree: true, characterData: true });
+	}
+
+	document.addEventListener('DOMContentLoaded', registerValidationField);
+</script>
+
 @push('scripts')
 	@vite('resources/js/app.js')
 @endpush

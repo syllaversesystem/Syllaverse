@@ -437,3 +437,44 @@ document.addEventListener('DOMContentLoaded', function() {
   if (confirmDel) confirmDel.addEventListener('click', () => setTimeout(rebuildTlaRealtimeContext, 100));
 });
 </script>
+
+<script>
+  /**
+   * Register TLA Activities with validation system
+   */
+  function registerValidationField() {
+    if (typeof window.addRequiredField === 'function') {
+      window.addRequiredField('tla', 'tla[]', 'Teaching, Learning, and Assessment Activities');
+      setupTableMutationObserver();
+    } else {
+      // Retry if validation system not ready
+      setTimeout(registerValidationField, 500);
+    }
+  }
+
+  /**
+   * Monitor table mutations for TLA changes
+   */
+  function setupTableMutationObserver() {
+    const tlaTable = document.getElementById('tlaTable');
+    if (!tlaTable) return;
+
+    const observer = new MutationObserver(() => {
+      if (typeof window.updateProgressBar === 'function') {
+        window.updateProgressBar();
+      }
+    });
+
+    observer.observe(tlaTable, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+      attributes: false,
+      attributeOldValue: false,
+      characterDataOldValue: false,
+    });
+  }
+
+  // Register field and setup mutation observer on page load
+  document.addEventListener('DOMContentLoaded', registerValidationField);
+</script>

@@ -142,8 +142,9 @@ if (!window.__svFacultyCoursesInit) {
 
   // ░░░ START: Table helpers (rows + prerequisites column) ░░░
   // Build row HTML (now includes prerequisites column placeholder)
-  function rowHtml({ id, code, title, lec, lab, prereqIds = [], description = '', course_category = '', department_code = '', department_id = '', department_name = '' }) {
+  function rowHtml({ id, code, title, lec, lab, prereqIds = [], description = '', course_category = '', cmo_reference = '', department_code = '', department_id = '', department_name = '' }) {
     const total = (Number(lec) || 0) + (Number(lab) || 0);
+    const safeCmoText = String(cmo_reference ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
     
     // Check if department column should be visible based on user permissions and filter state
     const showDepartmentColumn = window.coursesConfig?.showDepartmentColumn;
@@ -160,6 +161,7 @@ if (!window.__svFacultyCoursesInit) {
           data-code="${String(code).replace(/"/g,'&quot;')}"
           data-title="${String(title).replace(/"/g,'&quot;')}"
           data-course-category="${String(course_category).replace(/"/g,'&quot;')}"
+          data-cmo-reference="${String(cmo_reference ?? '').replace(/"/g,'&quot;')}"
           data-description="${String(description).replace(/"/g,'&quot;')}"
           data-contact-hours-lec="${Number(lec) || 0}"
           data-contact-hours-lab="${Number(lab) || 0}"
@@ -168,6 +170,7 @@ if (!window.__svFacultyCoursesInit) {
           data-prereq='${JSON.stringify(prereqIds)}'>
         <td class="course-title-cell">${title}</td>
         <td class="course-code-cell">${code}</td>
+        <td class="course-cmo-cell text-muted">${safeCmoText || '—'}</td>
         ${departmentColumnHtml}
         <td class="course-prerequisites-cell text-muted prereq-cell"><span class="js-prereq-preview">—</span></td>
         <td class="course-contact-hours-cell text-muted">
@@ -531,6 +534,7 @@ if (!window.__svFacultyCoursesInit) {
     const lec   = tr.dataset.contactHoursLec || '0';
     const lab   = tr.dataset.contactHoursLab || '0';
     const category = tr.dataset.courseCategory || '';
+    const cmoReference = tr.dataset.cmoReference || '';
     const desc  = tr.dataset.description || '';
     const departmentId = tr.dataset.departmentId || '';
 
@@ -547,6 +551,7 @@ if (!window.__svFacultyCoursesInit) {
     $('#editContactHoursLec').value    = lec;
     $('#editContactHoursLab').value    = lab;
     const d = $('#editCourseDescription'); if (d) d.value = desc;
+    const cmo = $('#editCourseCmoReference'); if (cmo) cmo.value = cmoReference;
     
     // Set contact hours checkboxes and enable/disable fields accordingly
     const lecCheckbox = $('#editLecCheckbox');
@@ -581,13 +586,14 @@ if (!window.__svFacultyCoursesInit) {
     const code  = $('#editCourseCode').value.trim();
     const title = $('#editCourseTitle').value.trim();
     const course_category = $('#editCourseCategory')?.value?.trim() || '';
+    const cmo_reference = $('#editCourseCmoReference')?.value?.trim() || '';
     const department_id = $('#editCourseDepartment')?.value || '';
     const lec   = Number($('#editContactHoursLec').value || 0);
     const lab   = Number($('#editContactHoursLab').value || 0);
     const description = $('#editCourseDescription')?.value || '';
     const prereqIds = Array.from($('#editPrereqList')?.querySelectorAll('input[type="checkbox"]:checked') || [])
       .map(i => Number(i.value));
-    return { id, code, title, lec, lab, description, prereqIds, course_category, department_id };
+    return { id, code, title, lec, lab, description, prereqIds, course_category, cmo_reference, department_id };
   }
   // ░░░ END: EDIT modal ░░░
 
@@ -629,6 +635,7 @@ if (!window.__svFacultyCoursesInit) {
           const code = $('#addCourseCode').value.trim();
           const title = $('#addCourseTitle').value.trim();
           const course_category = $('#addCourseCategory')?.value?.trim() || '';
+          const cmo_reference = $('#addCourseCmoReference')?.value?.trim() || '';
           const lec = Number($('#addContactHoursLec').value || 0);
           const lab = Number($('#addContactHoursLab').value || 0);
           const description = $('#addCourseDescription')?.value || '';
@@ -649,7 +656,7 @@ if (!window.__svFacultyCoursesInit) {
           if (tbody) {
             tbody.querySelector('.courses-empty-row')?.remove();
             tbody.insertAdjacentHTML('afterbegin', rowHtml({
-              id: data.id, code, title, lec, lab, description, prereqIds: chosenPrereqIds, course_category, 
+              id: data.id, code, title, lec, lab, description, prereqIds: chosenPrereqIds, course_category, cmo_reference,
               department_code, department_id, department_name
             }));
             const newTr = document.getElementById(`course-row-${data.id}`);
@@ -738,7 +745,7 @@ if (!window.__svFacultyCoursesInit) {
             
             old.insertAdjacentHTML('afterend', rowHtml({
               id: p.id, code: p.code, title: p.title, lec: p.lec, lab: p.lab,
-              description: p.description, prereqIds: p.prereqIds, course_category: p.course_category, 
+              description: p.description, prereqIds: p.prereqIds, course_category: p.course_category, cmo_reference: p.cmo_reference,
               department_code, department_id, department_name
             }));
             const newTr = old.nextElementSibling;
@@ -990,6 +997,7 @@ if (!window.__svFacultyCoursesInit) {
     const titleField = $('#addCourseTitle');
     const codeField = $('#addCourseCode');
     const categoryField = $('#addCourseCategory');
+    const cmoField = $('#addCourseCmoReference');
     const descField = $('#addCourseDescription');
     const lecHoursField = $('#addContactHoursLec');
     const labHoursField = $('#addContactHoursLab');
@@ -998,6 +1006,7 @@ if (!window.__svFacultyCoursesInit) {
     if (titleField) titleField.value = course.title;
     if (codeField) codeField.value = course.code;
     if (categoryField) categoryField.value = course.course_category || '';
+    if (cmoField) cmoField.value = course.cmo_reference || '';
     if (descField) descField.value = course.description || '';
     if (lecHoursField) lecHoursField.value = course.contact_hours_lec || 0;
     if (labHoursField) labHoursField.value = course.contact_hours_lab || 0;
@@ -1479,6 +1488,7 @@ if (!window.__svFacultyCoursesInit) {
     const titleField = $('#addCourseTitle');
     const categoryField = $('#addCourseCategory');
     const descriptionField = $('#addCourseDescription');
+    const cmoField = $('#addCourseCmoReference');
     const lecHoursField = $('#addContactHoursLec');
     const labHoursField = $('#addContactHoursLab');
     const departmentField = $('#addCourseDepartment') || $('[name="department_id"]');
@@ -1486,6 +1496,7 @@ if (!window.__svFacultyCoursesInit) {
     if (codeField) codeField.value = courseData.code;
     if (titleField) titleField.value = courseData.title;
     if (categoryField && courseData.course_category) categoryField.value = courseData.course_category;
+    if (cmoField) cmoField.value = courseData.cmo_reference || '';
     if (descriptionField && courseData.description) descriptionField.value = courseData.description;
     if (lecHoursField && courseData.contact_hours_lec) lecHoursField.value = courseData.contact_hours_lec;
     if (labHoursField && courseData.contact_hours_lab) labHoursField.value = courseData.contact_hours_lab;

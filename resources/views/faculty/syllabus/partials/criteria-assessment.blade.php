@@ -234,3 +234,29 @@
 {{-- Scripts moved to resources/js/faculty/syllabus-criteria.js via Vite import --}}
 
 {{-- Local Criteria Save button removed; toolbar Save handles persistence --}}
+
+@push('scripts')
+<script>
+  (function(){
+    // Register criteria validation field
+    function registerValidationField(){
+      if (typeof window.addRequiredField === 'function') {
+        window.addRequiredField('criteria_assessment', 'criteria_data', 'Criteria for Assessment');
+        console.log('Criteria Assessment validation field registered');
+      } else {
+        setTimeout(registerValidationField, 500);
+      }
+    }
+    
+    // Also re-validate when criteria changes
+    document.addEventListener('criteriaChanged', function(){
+      if (typeof window.updateProgressBar === 'function') {
+        // Force re-calculation by calling internal update
+        try { window.getSyllabusValidationStatus(); } catch (e) { /* noop */ }
+      }
+    });
+    
+    registerValidationField();
+  })();
+</script>
+@endpush

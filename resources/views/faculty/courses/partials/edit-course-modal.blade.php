@@ -351,6 +351,11 @@
               <input type="text" class="form-control form-control-sm" id="editCourseCategory" name="course_category" required>
             </div>
 
+            <div class="course-field-group mb-3">
+              <label for="editCourseCmoReference" class="form-label small fw-medium text-muted">CMO Reference <span class="text-muted">(Optional)</span></label>
+              <input type="text" class="form-control form-control-sm" id="editCourseCmoReference" name="cmo_reference" placeholder="e.g., CMO No. 25, s. 2015">
+            </div>
+
             <div class="row g-3 mb-4">
               <div class="col-sm-6">
                 <div class="d-flex align-items-center mb-2">

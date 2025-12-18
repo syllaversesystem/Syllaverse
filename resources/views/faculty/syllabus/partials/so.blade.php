@@ -354,6 +354,47 @@
       });
     </script>
 
+<script>
+  /**
+   * Register Student Outcomes with validation system
+   */
+  function registerValidationField() {
+    if (typeof window.addRequiredField === 'function') {
+      window.addRequiredField('so', 'sos[]', 'Student Outcomes');
+      setupTableMutationObserver();
+    } else {
+      // Retry if validation system not ready
+      setTimeout(registerValidationField, 500);
+    }
+  }
+
+  /**
+   * Monitor table mutations for SO changes
+   */
+  function setupTableMutationObserver() {
+    const soList = document.getElementById('syllabus-so-sortable');
+    if (!soList) return;
+
+    const observer = new MutationObserver(() => {
+      if (typeof window.updateProgressBar === 'function') {
+        window.updateProgressBar();
+      }
+    });
+
+    observer.observe(soList, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+      attributes: false,
+      attributeOldValue: false,
+      characterDataOldValue: false,
+    });
+  }
+
+  // Register field and setup mutation observer on page load
+  document.addEventListener('DOMContentLoaded', registerValidationField);
+</script>
+
 @push('scripts')
   @vite([
     'resources/js/faculty/syllabus-so.js'

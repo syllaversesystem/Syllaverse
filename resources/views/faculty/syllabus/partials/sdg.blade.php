@@ -307,6 +307,47 @@
       });
     </script>
 
+<script>
+  /**
+   * Register Sustainable Development Goals with validation system
+   */
+  function registerValidationField() {
+    if (typeof window.addRequiredField === 'function') {
+      window.addRequiredField('sdg', 'sdgs[]', 'Sustainable Development Goals');
+      setupTableMutationObserver();
+    } else {
+      // Retry if validation system not ready
+      setTimeout(registerValidationField, 500);
+    }
+  }
+
+  /**
+   * Monitor table mutations for SDG changes
+   */
+  function setupTableMutationObserver() {
+    const sdgList = document.getElementById('syllabus-sdg-sortable');
+    if (!sdgList) return;
+
+    const observer = new MutationObserver(() => {
+      if (typeof window.updateProgressBar === 'function') {
+        window.updateProgressBar();
+      }
+    });
+
+    observer.observe(sdgList, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+      attributes: false,
+      attributeOldValue: false,
+      characterDataOldValue: false,
+    });
+  }
+
+  // Register field and setup mutation observer on page load
+  document.addEventListener('DOMContentLoaded', registerValidationField);
+</script>
+
 @push('scripts')
   @vite(['resources/js/faculty/syllabus-sdg.js'])
 @endpush

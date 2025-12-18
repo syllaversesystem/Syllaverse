@@ -174,7 +174,7 @@ class SyllabusCourseInfoController extends Controller
             'employee_code' => implode("\n", array_filter($employeeCodes)),
             'instructor_designation' => implode("\n", array_filter($designations)),
             'instructor_email' => implode("\n", array_filter($emails)),
-            'reference_cmo' => $course->reference_cmo ?? null,
+            'reference_cmo' => $course->cmo_reference ?? null,
             'date_prepared' => optional($syllabus->created_at)->format('F d, Y') ?? null,
             'revision_no' => $syllabus->revision_no ?? null,
             'revision_date' => optional($syllabus->revision_date)->format('F d, Y') ?? null,

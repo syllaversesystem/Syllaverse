@@ -254,6 +254,7 @@ class CourseController extends Controller
         $validationRules = [
             'title'              => 'required|string|max:255',
             'course_category'    => 'required|string|max:255',
+            'cmo_reference'      => 'nullable|string|max:255',
             'contact_hours_lec'  => 'required|integer|min:0',
             'contact_hours_lab'  => 'nullable|integer|min:0',
             'description'        => 'nullable|string',
@@ -312,6 +313,7 @@ class CourseController extends Controller
             $deletedCourse->update([
                 'department_id'     => $departmentId,
                 'course_category'   => $request->course_category,
+                'cmo_reference'     => $request->cmo_reference,
                 'title'             => $request->title,
                 'contact_hours_lec' => $lec,
                 'contact_hours_lab' => $lab,
@@ -341,6 +343,7 @@ class CourseController extends Controller
         $course = Course::create([
             'department_id'     => $departmentId,
             'course_category'   => $request->course_category,
+            'cmo_reference'     => $request->cmo_reference,
             'code'              => $request->code,
             'title'             => $request->title,
             'contact_hours_lec' => $lec,
@@ -390,6 +393,7 @@ class CourseController extends Controller
             ],
             'title'              => 'required|string|max:255',
             'course_category'    => 'required|string|max:255',
+            'cmo_reference'      => 'nullable|string|max:255',
             'contact_hours_lec'  => 'required|integer|min:0',
             'contact_hours_lab'  => 'nullable|integer|min:0',
             'description'        => 'nullable|string',
@@ -431,6 +435,7 @@ class CourseController extends Controller
 
         $course->update([
             'course_category'   => $request->course_category,
+            'cmo_reference'     => $request->cmo_reference,
             'code'              => $request->code,
             'title'             => $request->title,
             'contact_hours_lec' => $lec,
@@ -523,6 +528,7 @@ class CourseController extends Controller
                 'code' => $course->code,
                 'description' => $course->description,
                 'course_category' => $course->course_category,
+                'cmo_reference' => $course->cmo_reference,
                 'contact_hours_lec' => $course->contact_hours_lec,
                 'contact_hours_lab' => $course->contact_hours_lab,
                 'department_id' => $course->department_id,

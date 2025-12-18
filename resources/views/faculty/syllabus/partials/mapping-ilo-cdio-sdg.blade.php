@@ -270,6 +270,34 @@
 	</table>
 </div>
 
+<script>
+	function registerValidationField() {
+		if (typeof window.addRequiredField === 'function') {
+			window.addRequiredField('ilo_cdio_sdg', 'ilo-cdio-sdg-data', 'ILO-CDIO-SDG Mapping');
+			setupTableMutationObserver();
+		} else {
+			setTimeout(registerValidationField, 500);
+		}
+	}
+
+	function setupTableMutationObserver() {
+		const mapping = document.querySelector('.ilo-cdio-sdg-mapping');
+		const mappingTable = mapping ? mapping.querySelector('.mapping') : null;
+		
+		if (!mappingTable) return;
+		
+		const observer = new MutationObserver(() => {
+			if (typeof window.updateProgressBar === 'function') {
+				window.updateProgressBar();
+			}
+		});
+		
+		observer.observe(mappingTable, { childList: true, subtree: true, characterData: true });
+	}
+
+	document.addEventListener('DOMContentLoaded', registerValidationField);
+</script>
+
 @push('scripts')
 	@vite('resources/js/app.js')
 @endpush

@@ -1051,7 +1051,44 @@ document.addEventListener('DOMContentLoaded', function() {
   // Initial calculation
   calculatePercentTotal();
 
+  /**
+   * Register assessment tasks with validation system
+   */
+  function registerValidationField() {
+    if (typeof window.addRequiredField === 'function') {
+      window.addRequiredField('assessment_tasks', 'assessment_tasks_data', 'Assessment Tasks Distribution');
+      setupTableMutationObserver();
+    } else {
+      // Retry if validation system not ready
+      setTimeout(registerValidationField, 500);
+    }
+  }
 
+  /**
+   * Monitor table mutations for assessment task changes
+   */
+  function setupTableMutationObserver() {
+    const atTbody = document.getElementById('at-tbody');
+    if (!atTbody) return;
+
+    const observer = new MutationObserver(() => {
+      if (typeof window.updateProgressBar === 'function') {
+        window.updateProgressBar();
+      }
+    });
+
+    observer.observe(atTbody, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+      attributes: false,
+      attributeOldValue: false,
+      characterDataOldValue: false,
+    });
+  }
+
+  // Register field and setup mutation observer on page load
+  registerValidationField();
 
   // Save Assessment Tasks function
   window.saveAssessmentTasks = function() {
@@ -1153,6 +1190,10 @@ document.addEventListener('DOMContentLoaded', function() {
     if (hiddenInput) {
       hiddenInput.value = JSON.stringify(payload);
       hiddenInput.dispatchEvent(new Event('input', { bubbles: true }));
+      // Trigger validation update
+      if (typeof window.updateProgressBar === 'function') {
+        window.updateProgressBar();
+      }
     }
     
     // Send to server

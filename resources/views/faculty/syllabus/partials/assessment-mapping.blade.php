@@ -37,6 +37,35 @@
 </div>
 
 
+<script>
+	function registerValidationField() {
+		if (typeof window.addRequiredField === 'function') {
+			window.addRequiredField('assessment_mapping', 'assessment-mapping-data', 'Assessment Schedule Mapping');
+			setupTableMutationObserver();
+		} else {
+			setTimeout(registerValidationField, 500);
+		}
+	}
+
+	function setupTableMutationObserver() {
+		const distTable = document.querySelector('.assessment-mapping table.distribution');
+		const weekTable = document.querySelector('.assessment-mapping table.week');
+		
+		if (!distTable || !weekTable) return;
+		
+		const observer = new MutationObserver(() => {
+			if (typeof window.updateProgressBar === 'function') {
+				window.updateProgressBar();
+			}
+		});
+		
+		observer.observe(distTable, { childList: true, subtree: true, characterData: true });
+		observer.observe(weekTable, { childList: true, subtree: true, characterData: true });
+	}
+
+	document.addEventListener('DOMContentLoaded', registerValidationField);
+</script>
+
 @push('scripts')
 <script>
 	// Ensure ai-map initializes after DOM

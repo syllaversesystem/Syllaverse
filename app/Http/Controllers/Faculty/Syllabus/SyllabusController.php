@@ -90,11 +90,227 @@ class SyllabusController extends Controller
         return view('faculty.syllabus.index', compact('syllabi', 'programs', 'courses'));
     }
 
+    /**
+     * Get validation status for a syllabus (used by index cards to show completion)
+     */
+    public function validationStatus($id)
+    {
+        $syllabus = Syllabus::with([
+            'ilos',
+            'igas',
+            'sos',
+            'cdios',
+            'sdgs',
+            'tlas',
+            'assessmentMapping',
+            'iloSoCpa',
+            'iloIgaMappings',
+            'iloCdioSdg'
+        ])->findOrFail($id);
+        $this->authorize('view', $syllabus);
+
+        // Calculate validation status matching the JS validation logic
+        $status = $this->calculateValidationStatus($syllabus);
+        
+        return response()->json($status);
+    }
+
+    /**
+     * Calculate validation status for a syllabus based on required fields
+     */
+    private function calculateValidationStatus($syllabus)
+    {
+        $completedFields = [];
+        $totalRequired = 0;
+        $completedRequired = 0;
+
+        // Define required fields matching syllabus-validation.js
+        $requiredFields = [
+            'course_description' => 'Course Rationale and Description',
+            'tla_strategies' => 'Teaching, Learning, and Assessment Strategies',
+            'criteria_data' => 'Criteria for Assessment',
+            'ilos[]' => 'Intended Learning Outcomes',
+            'assessment_tasks_data' => 'Assessment Tasks Distribution',
+            'igas[]' => 'Institutional Graduate Attributes',
+            'sos[]' => 'Student Outcomes',
+            'cdios[]' => 'CDIO Framework Skills',
+            'sdgs[]' => 'Sustainable Development Goals',
+            'tla[]' => 'Teaching, Learning, and Assessment Activities',
+            'assessment-mapping-data' => 'Assessment Schedule Mapping',
+            'ilo-so-cpa-data' => 'ILO-SO-CPA Mapping',
+            'ilo-iga-data' => 'ILO-IGA Mapping',
+            'ilo-cdio-sdg-data' => 'ILO-CDIO-SDG Mapping',
+        ];
+
+        foreach ($requiredFields as $fieldName => $label) {
+            $totalRequired++;
+            $isComplete = $this->isFieldComplete($syllabus, $fieldName);
+            $completedFields[$fieldName] = $isComplete;
+            if ($isComplete) {
+                $completedRequired++;
+            }
+        }
+
+        $percentage = $totalRequired > 0 ? round(($completedRequired / $totalRequired) * 100) : 0;
+
+        return [
+            'percentage' => $percentage,
+            'completed' => $completedRequired,
+            'total' => $totalRequired,
+            'is_complete' => $percentage === 100,
+            'fields' => $completedFields,
+        ];
+    }
+
+    /**
+     * Check if a single field is complete based on field type and syllabus data
+     */
+    private function isFieldComplete($syllabus, $fieldName)
+    {
+        switch ($fieldName) {
+            case 'course_description':
+                return !empty(trim($syllabus->course_description ?? ''));
+            
+            case 'tla_strategies':
+                return !empty(trim($syllabus->tla_strategies ?? ''));
+            
+            case 'criteria_data':
+                try {
+                    $data = json_decode($syllabus->criteria_data ?? '[]', true);
+                    if (!is_array($data) || empty($data)) return false;
+                    return collect($data)->some(function($section) {
+                        $heading = trim($section['heading'] ?? '');
+                        $hasValues = !empty($section['value']) && is_array($section['value']) && 
+                                   collect($section['value'])->some(function($v) {
+                                       return !empty(trim($v['description'] ?? '')) || !empty(trim($v['percent'] ?? ''));
+                                   });
+                        return !empty($heading) || $hasValues;
+                    });
+                } catch (\Exception $e) {
+                    return false;
+                }
+            
+            case 'ilos[]':
+                $ilos = $syllabus->ilos ?? collect();
+                return $ilos->isNotEmpty() && $ilos->some(function($ilo) {
+                    return !empty(trim($ilo->code ?? '') . trim($ilo->description ?? ''));
+                });
+            
+            case 'assessment_tasks_data':
+                try {
+                    $data = json_decode($syllabus->assessment_tasks_data ?? '{}', true);
+                    if (!is_array($data) || empty($data['sections'] ?? [])) return false;
+                    return collect($data['sections'])->some(function($section) {
+                        return !empty($section['sub_rows']) && is_array($section['sub_rows']) &&
+                               collect($section['sub_rows'])->some(function($row) {
+                                   return !empty(trim($row['at'] ?? '') . trim($row['date'] ?? ''));
+                               });
+                    });
+                } catch (\Exception $e) {
+                    return false;
+                }
+            
+            case 'igas[]':
+                $igas = $syllabus->igas ?? collect();
+                return $igas->isNotEmpty() && $igas->some(function($iga) {
+                    return !empty(trim($iga->code ?? '') . trim($iga->description ?? ''));
+                });
+            
+            case 'sos[]':
+                $sos = $syllabus->sos ?? collect();
+                return $sos->isNotEmpty() && $sos->some(function($so) {
+                    return !empty(trim($so->code ?? '') . trim($so->description ?? ''));
+                });
+            
+            case 'cdios[]':
+                $cdios = $syllabus->cdios ?? collect();
+                return $cdios->isNotEmpty() && $cdios->some(function($cdio) {
+                    return !empty(trim($cdio->code ?? '') . trim($cdio->description ?? ''));
+                });
+            
+            case 'sdgs[]':
+                $sdgs = $syllabus->sdgs ?? collect();
+                return $sdgs->isNotEmpty() && $sdgs->some(function($sdg) {
+                    return !empty(trim($sdg->code ?? '') . trim($sdg->description ?? ''));
+                });
+            
+            case 'tla[]':
+                $tlas = $syllabus->tlas ?? collect();
+                return $tlas->isNotEmpty() && $tlas->some(function($tla) {
+                    $topic = trim($tla->topic ?? '');
+                    $outcomes = trim($tla->outcomes ?? '');
+                    return !empty($topic) || !empty($outcomes);
+                });
+            
+            case 'assessment-mapping-data':
+                $assessmentMapping = $syllabus->assessmentMapping ?? collect();
+                if ($assessmentMapping->isEmpty()) return false;
+                return $assessmentMapping->some(function($mapping) {
+                    $hasName = !empty(trim($mapping->assessment_method ?? ''));
+                    $hasMarks = !empty($mapping->marks ?? 0);
+                    return $hasName || $hasMarks;
+                });
+            
+            case 'ilo-so-cpa-data':
+                $iloCpaMappings = $syllabus->iloSoCpa ?? collect();
+                return $iloCpaMappings->isNotEmpty() && $iloCpaMappings->some(function($mapping) {
+                    $iloText = trim($mapping->ilo_text ?? '');
+                    if ($iloText === 'No ILO' || empty($iloText)) return false;
+                    $sos = $mapping->sos ?? [];
+                    $hasContent = !empty($iloText);
+                    if (is_array($sos)) {
+                        $hasContent = $hasContent || collect($sos)->some(function($v) {
+                            return !empty(trim($v ?? ''));
+                        });
+                    }
+                    return $hasContent;
+                });
+            
+            case 'ilo-iga-data':
+                $iloIgaMappings = $syllabus->iloIgaMappings ?? collect();
+                return $iloIgaMappings->isNotEmpty() && $iloIgaMappings->some(function($mapping) {
+                    $iloText = trim($mapping->ilo_text ?? '');
+                    if ($iloText === 'No ILO' || empty($iloText)) return false;
+                    $igas = $mapping->igas ?? [];
+                    $hasContent = !empty($iloText);
+                    if (is_array($igas)) {
+                        $hasContent = $hasContent || collect($igas)->some(function($v) {
+                            return !empty(trim($v ?? ''));
+                        });
+                    }
+                    return $hasContent;
+                });
+            
+            case 'ilo-cdio-sdg-data':
+                $iloCdioSdgMappings = $syllabus->iloCdioSdg ?? collect();
+                return $iloCdioSdgMappings->isNotEmpty() && $iloCdioSdgMappings->some(function($mapping) {
+                    $iloText = trim($mapping->ilo_text ?? '');
+                    if ($iloText === 'No ILO' || empty($iloText)) return false;
+                    $cdios = $mapping->cdios ?? [];
+                    $sdgs = $mapping->sdgs ?? [];
+                    $hasContent = !empty($iloText);
+                    if (is_array($cdios)) {
+                        $hasContent = $hasContent || collect($cdios)->some(function($v) {
+                            return !empty(trim($v ?? ''));
+                        });
+                    }
+                    if (is_array($sdgs)) {
+                        $hasContent = $hasContent || collect($sdgs)->some(function($v) {
+                            return !empty(trim($v ?? ''));
+                        });
+                    }
+                    return $hasContent;
+                });
+            
+            default:
+                return false;
+        }
+    }
+
     public function store(Request $request)
     {
         try {
             $request->validate([
-                'title' => 'required|string|max:255',
                 'program_id' => 'nullable|exists:programs,id',
                 'faculty_id' => 'nullable|exists:users,id',
                 'course_id' => 'required|exists:courses,id',
@@ -120,7 +336,6 @@ class SyllabusController extends Controller
                 'faculty_id' => $ownerId,
                 'program_id' => $request->program_id,
                 'course_id' => $request->course_id,
-                'title' => $request->title,
                 'academic_year' => $request->academic_year,
                 'semester' => $request->semester,
                 'year_level' => $request->year_level,
@@ -493,7 +708,7 @@ class SyllabusController extends Controller
         $designation = trim((string) ($courseInfo?->instructor_designation ?? $faculty->designation ?? ''));
         $facultyDetails = trim(collect([$designation, $courseInfo?->instructor_email ?? $faculty->email])->filter()->implode("\n"));
         $email = trim((string) ($courseInfo?->instructor_email ?? $faculty->email ?? ''));
-        $referenceCMO = $courseInfo?->reference_cmo ?? $course->reference_cmo ?? '';
+        $referenceCMO = $courseInfo?->reference_cmo ?? $course->cmo_reference ?? '';
         $datePrepared = $courseInfo?->date_prepared ?? optional($syllabus->created_at)->format('F d, Y') ?: '-';
         $periodOfStudy = $courseInfo?->academic_year ?? $syllabus->academic_year ?? '';
         $revisionNo = $courseInfo?->revision_no ?? $syllabus->revision_no ?? '-';

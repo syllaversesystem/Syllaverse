@@ -288,6 +288,8 @@
           const codeInput = r.querySelector('input[name="code[]"]'); if(codeInput) codeInput.value = code;
         });
         try { window.markAsUnsaved && window.markAsUnsaved('ilos'); } catch {}
+        // Trigger validation update
+        try { if (typeof window.updateProgressBar === 'function') window.updateProgressBar(); } catch (e) { /* noop */ }
       }
 
       // Load Predefined ILOs button - opens modal
@@ -384,6 +386,8 @@
             });
 
             try { window.markAsUnsaved && window.markAsUnsaved('ilos'); } catch {}
+            // Trigger validation update
+            try { if (typeof window.updateProgressBar === 'function') window.updateProgressBar(); } catch (e) { /* noop */ }
             
             // Close modal
             const modal = bootstrap.Modal.getInstance(loadPredefinedModal);
@@ -415,6 +419,32 @@
 
 @push('scripts')
   @vite('resources/js/faculty/syllabus-ilo.js')
+  <script>
+    (function(){
+      // Register ILO validation field
+      function registerValidationField(){
+        if (typeof window.addRequiredField === 'function') {
+          window.addRequiredField('ilo', 'ilos[]', 'Intended Learning Outcomes');
+          console.log('ILO validation field registered');
+          
+          // Also listen to ILO changes for validation updates
+          const list = document.getElementById('syllabus-ilo-sortable');
+          if (list && window.MutationObserver) {
+            const mo = new MutationObserver(function(){
+              if (typeof window.updateProgressBar === 'function') {
+                window.updateProgressBar();
+              }
+            });
+            mo.observe(list, { childList: true, subtree: true, attributes: true, attributeFilter: ['value'] });
+          }
+        } else {
+          setTimeout(registerValidationField, 500);
+        }
+      }
+      
+      registerValidationField();
+    })();
+  </script>
 @endpush
 <!-- Local ILO Save button removed — saving is handled by the main syllabus Save button -->
 

@@ -303,6 +303,19 @@
     window.addEventListener('load', function(){ bind(); updateRealtime(); });
     // Initial run
     updateRealtime();
+
+    // Register required fields for validation
+    function registerValidationFields(){
+      if (typeof window.addRequiredField === 'function') {
+        window.addRequiredField('course_info', 'course_description', 'Course Rationale and Description');
+        window.addRequiredField('course_info', 'tla_strategies', 'Teaching, Learning, and Assessment Strategies');
+        console.log('Course Info validation fields registered');
+      } else {
+        console.warn('Validation system not yet ready; retrying in 500ms...');
+        setTimeout(registerValidationFields, 500);
+      }
+    }
+    registerValidationFields();
   })();
 </script>
 @endpush

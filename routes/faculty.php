@@ -115,6 +115,7 @@ Route::middleware([FacultyAuth::class])->group(function () {
     Route::get('/faculty/syllabi/{id}', [SyllabusController::class, 'show'])->name('faculty.syllabi.show');
     Route::put('/faculty/syllabi/{id}', [SyllabusController::class, 'update'])->name('faculty.syllabi.update');
     Route::delete('/faculty/syllabi/{id}', [SyllabusController::class, 'destroy'])->name('faculty.syllabi.destroy');
+    Route::get('/faculty/syllabi/{id}/validation-status', [SyllabusController::class, 'validationStatus'])->name('faculty.syllabi.validation-status');
     Route::get('/faculty/syllabi/{id}/predefined-policies', [\App\Http\Controllers\Faculty\Syllabus\SyllabusCoursePolicyController::class, 'getPredefinedPolicies'])->name('faculty.syllabi.predefined-policies');
     Route::post('/faculty/syllabi/{id}/load-predefined-policies', [\App\Http\Controllers\Faculty\Syllabus\SyllabusCoursePolicyController::class, 'loadPredefinedPolicies'])->name('faculty.syllabi.course-policies.load-predefined');
     

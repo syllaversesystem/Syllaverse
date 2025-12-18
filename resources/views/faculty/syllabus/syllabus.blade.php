@@ -71,6 +71,16 @@
     </div>
   </div>
 
+  {{-- Progress indicator bar --}}
+  <div class="syllabus-progress-bar-container">
+    <div id="syllabus-progress-container" class="progress" style="height: 6px; background-color: #f0f0f0;">
+      <div id="syllabus-progress-bar" class="progress-bar bg-danger transition-all" role="progressbar" style="width: 0%; height: 100%;"></div>
+    </div>
+    <div class="syllabus-progress-text-container">
+      <small id="syllabus-progress-text" class="text-muted">0/1 required fields completed</small>
+    </div>
+  </div>
+
   <div class="syllabus-content-wrapper">
     <div class="svx-card">
       <div class="svx-card-body">
@@ -616,6 +626,18 @@
     })();
     // Helper: open submit modal via proxy (used in draft and non-draft)
     function openSubmitModal(){
+      // Check validation before allowing submit
+      if (typeof window.isSyllabusValid === 'function') {
+        if (!window.isSyllabusValid()) {
+          if (window.showAlertOverlay) {
+            window.showAlertOverlay('warning', 'Please complete all required fields before submitting.');
+          } else {
+            alert('Please complete all required fields before submitting.');
+          }
+          return;
+        }
+      }
+
       const syllabusId = document.getElementById('syllabus-document')?.getAttribute('data-syllabus-id');
       if (!syllabusId) return;
       try {
@@ -1516,10 +1538,88 @@
   #svAiMapProgressFill.state-running { background-color:#0d6efd !important; }
   #svAiMapProgressFill.state-ok { background-color:#28a745 !important; }
   #svAiMapProgressFill.state-warn { background-color:#fd7e14 !important; }
+
+  /* Syllabus Validation Progress Bar Styles */
+  .syllabus-progress-bar-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1050;
+    background: #fff;
+    border-bottom: 1px solid #e3e3e3;
+    padding: 0;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .syllabus-progress-bar-container #syllabus-progress-container {
+    margin: 0;
+    border-radius: 0;
+    height: 6px;
+  }
+
+  .syllabus-progress-text-container {
+    padding: 4px 16px;
+    font-size: 0.75rem;
+    background: #fafafa;
+    border-top: 1px solid #e3e3e3;
+    height: 24px;
+    display: flex;
+    align-items: center;
+  }
+
+  #syllabus-progress-text {
+    margin: 0;
+  }
+
+  .progress-bar.transition-all {
+    transition: width 0.3s ease, background-color 0.3s ease;
+  }
+
+  /* Adjust layout for fixed progress bar */
+  html, body {
+    overflow: hidden;
+  }
+
+  .syllabus-doc {
+    margin-top: 30px;
+    height: calc(100vh - 30px);
+  }
+
+  /* Disable submit button styles */
+  #syllabusSubmitBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  #syllabusSubmitBtn:disabled .bi,
+  #syllabusSubmitBtn:disabled .small {
+    opacity: 0.7;
+  }
+
+  /* Tooltip for disabled submit button */
+  #syllabusSubmitBtn[disabled] {
+    position: relative;
+  }
+
+  @media (max-width: 768px) {
+    /* Keep three-column layout even on small screens; allow inner scrolls */
+    .syllabus-vertical-toolbar { border-right:1px solid #e2e5e9; }
+    .syllabus-vertical-toolbar .toolbar-inner { gap:12px; }
+    .syllabus-content-wrapper { padding:16px; }
+    /* (Removed) Left toolbar resize handle on mobile */
+    .syllabus-progress-text-container {
+      padding: 4px 12px;
+      font-size: 0.7rem;
+    }
+  }
 </style>
 @endpush
 
 @push('scripts')
+  @vite('resources/js/faculty/syllabus-validation.js')
   @vite('resources/js/faculty/ai/assessment-schedule.js')
   @vite('resources/js/faculty/ai/ilo-so-cpa-mapping.js')
   @vite('resources/js/faculty/ai/ilo-iga-mapping.js')

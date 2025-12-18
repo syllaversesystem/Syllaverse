@@ -331,6 +331,47 @@
   </div>
 </div>
 
+<script>
+  /**
+   * Register CDIO Framework Skills with validation system
+   */
+  function registerValidationField() {
+    if (typeof window.addRequiredField === 'function') {
+      window.addRequiredField('cdio', 'cdios[]', 'CDIO Framework Skills');
+      setupTableMutationObserver();
+    } else {
+      // Retry if validation system not ready
+      setTimeout(registerValidationField, 500);
+    }
+  }
+
+  /**
+   * Monitor table mutations for CDIO changes
+   */
+  function setupTableMutationObserver() {
+    const cdioList = document.getElementById('syllabus-cdio-sortable');
+    if (!cdioList) return;
+
+    const observer = new MutationObserver(() => {
+      if (typeof window.updateProgressBar === 'function') {
+        window.updateProgressBar();
+      }
+    });
+
+    observer.observe(cdioList, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+      attributes: false,
+      attributeOldValue: false,
+      characterDataOldValue: false,
+    });
+  }
+
+  // Register field and setup mutation observer on page load
+  document.addEventListener('DOMContentLoaded', registerValidationField);
+</script>
+
 @push('scripts')
   @vite([
   'resources/js/faculty/syllabus-cdio.js'

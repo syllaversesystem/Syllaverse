@@ -22,6 +22,7 @@
       data-course-type="{{ $course->course_type ?? '' }}"
       data-has-iga="{{ $course->has_iga ? 'true' : 'false' }}"
       data-description="{{ $course->description }}"
+      data-cmo-reference="{{ $course->cmo_reference ?? '' }}"
       data-contact-hours-lec="{{ $course->contact_hours_lec }}"
       data-contact-hours-lab="{{ $course->contact_hours_lab }}"
       data-department-id="{{ $course->department_id ?? '' }}"
@@ -31,6 +32,7 @@
       {{ $course->title }}
     </td>
     <td class="course-code-cell">{{ $course->code }}</td>
+    <td class="course-cmo-cell text-muted">{{ $course->cmo_reference ?? '—' }}</td>
     @if(($showDepartmentColumn ?? true) && ($departmentFilter ?? 'all') == 'all')
       <td class="course-department-cell department-column" data-dept-code="{{ $course->department->code ?? 'N/A' }}">{{ $course->department->code ?? 'N/A' }}</td>
     @endif
@@ -105,7 +107,7 @@
 @empty
   @php($searching = isset($isSearch) && $isSearch)
   <tr class="courses-empty-row">
-    <td colspan="{{ (($showDepartmentColumn ?? true) && ($departmentFilter ?? 'all') == 'all') ? '6' : '5' }}">
+    <td colspan="{{ (($showDepartmentColumn ?? true) && ($departmentFilter ?? 'all') == 'all') ? '7' : '6' }}">
       <div class="courses-empty">
         @if($searching)
           <h6>No matching courses</h6>

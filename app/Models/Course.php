@@ -21,6 +21,7 @@ class Course extends Model
     protected $fillable = [
         'department_id',
         'course_category',
+        'cmo_reference',
         'code',
         'title',
         'has_iga',

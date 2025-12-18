@@ -357,3 +357,46 @@
     </div>
   </div>
 </div>
+
+@push('scripts')
+<script>
+  /**
+   * Register IGAs with validation system
+   */
+  function registerValidationField() {
+    if (typeof window.addRequiredField === 'function') {
+      window.addRequiredField('iga', 'igas[]', 'Institutional Graduate Attributes');
+      setupTableMutationObserver();
+    } else {
+      // Retry if validation system not ready
+      setTimeout(registerValidationField, 500);
+    }
+  }
+
+  /**
+   * Monitor table mutations for IGA changes
+   */
+  function setupTableMutationObserver() {
+    const igaList = document.getElementById('syllabus-iga-sortable');
+    if (!igaList) return;
+
+    const observer = new MutationObserver(() => {
+      if (typeof window.updateProgressBar === 'function') {
+        window.updateProgressBar();
+      }
+    });
+
+    observer.observe(igaList, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+      attributes: false,
+      attributeOldValue: false,
+      characterDataOldValue: false,
+    });
+  }
+
+  // Register field and setup mutation observer on page load
+  document.addEventListener('DOMContentLoaded', registerValidationField);
+</script>
+@endpush

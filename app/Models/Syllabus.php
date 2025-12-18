@@ -49,7 +49,6 @@ class Syllabus extends Model
         'faculty_id',
         'program_id',
         'course_id',
-        'title',
         'academic_year',
         'semester',
         'year_level',
