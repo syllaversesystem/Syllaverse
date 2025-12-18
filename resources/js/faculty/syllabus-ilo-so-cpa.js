@@ -352,6 +352,7 @@ document.addEventListener('DOMContentLoaded', function() {
 		
 		// Add column to colgroup (before C, P, A columns)
 		const newCol = document.createElement('col');
+		newCol.style.width = '80px';
 		colgroup.insertBefore(newCol, colgroup.children[colgroup.children.length - 3]);
 
 		// Update header colspan to span SOs + C/P/A
@@ -440,10 +441,8 @@ document.addEventListener('DOMContentLoaded', function() {
 		}
 		
 		if (soHeaders.length <= 1) {
-			// If removing the last SO column, add a placeholder column
-			// Don't remove from colgroup - keep the column structure
-			
-			// Don't update header colspan - keep the same span
+			// If removing the last SO column, convert to placeholder but keep the column
+			// This maintains table structure with 1 SO column (placeholder) + 3 CPA columns
 			
 			// Replace last SO header with placeholder but keep buttons
 			const lastSoHeader = soHeaders[soHeaders.length - 1];
@@ -462,7 +461,7 @@ document.addEventListener('DOMContentLoaded', function() {
 			
 			lastSoHeader.style.cssText = 'border:none; border-bottom:1px solid #343a40; border-right:1px solid #343a40; height:30px; padding:0.2rem 0.5rem; font-weight:400; font-style:italic; font-family:Georgia, serif; font-size:13px; line-height:1.4; color:#999; text-align:center; position:relative;';
 			
-			// Replace SO cells with placeholder and disable CPA inputs in each data row
+			// Replace SO cells with placeholder in each data row
 			dataRows.forEach(row => {
 				const cells = Array.from(row.querySelectorAll('td'));
 				// Last SO cell is at index length - 4 (before C, P, A)
@@ -472,14 +471,15 @@ document.addEventListener('DOMContentLoaded', function() {
 					soCell.innerHTML = '<span style="color:#999; font-style:italic;">-</span>';
 					soCell.style.cssText = 'border:none; border-top:1px solid #343a40; border-right:1px solid #343a40; padding:0.2rem 0.5rem; text-align:center; vertical-align:middle; background:#f9f9f9;';
 				}
-				
-				// CPA inputs remain enabled (no need to disable)
 			});
 			return;
 		}
 		
-		// Remove last SO column from colgroup
-		colgroup.removeChild(colgroup.children[colgroup.children.length - 4]);
+		// Remove last SO column from colgroup (4th from end: SO before C, P, A)
+		const colToRemove = colgroup.children[colgroup.children.length - 4];
+		if (colToRemove) {
+			colgroup.removeChild(colToRemove);
+		}
 
 		// Update header colspan to span SOs + C/P/A
 		const soHeaderSpan = headerRow1.querySelectorAll('th')[1];

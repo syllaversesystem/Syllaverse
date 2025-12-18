@@ -1521,7 +1521,7 @@
 
 @push('scripts')
   @vite('resources/js/faculty/ai/assessment-schedule.js')
-  @vite('resources/js/faculty/ai/ilo-so-cpa-map.js')
+  @vite('resources/js/faculty/ai/ilo-so-cpa-mapping.js')
   @vite('resources/js/faculty/ai/ilo-iga-map.js')
   @vite('resources/js/faculty/ai/ilo-cdio-sdg-map.js')
   @vite('resources/js/faculty/ai/snapshot.js')

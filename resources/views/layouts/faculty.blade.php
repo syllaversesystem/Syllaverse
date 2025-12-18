@@ -95,7 +95,7 @@
   @vite('resources/js/faculty/syllabus-assessment-mapping.js')
   @vite('resources/js/faculty/syllabus-ai-chat.js')
   @vite('resources/js/faculty/ai/assessment-map.js')
-  @vite('resources/js/faculty/ai/ilo-so-cpa-map.js')
+  @vite('resources/js/faculty/ai/ilo-so-cpa-mapping.js')
   @vite('resources/js/faculty/ai/assessment-schedule.js')
   @vite('resources/js/faculty/ai/ilo-iga-map.js')
   {{-- ░░░ END: Vite JS ░░░ --}}

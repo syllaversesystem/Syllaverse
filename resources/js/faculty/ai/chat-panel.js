@@ -151,6 +151,46 @@
       btn.addEventListener('click', function() {
         const buttonText = this.textContent.trim();
         
+        // Special handling for Assessment Schedule - use dedicated mapping module
+        if (buttonText === 'Assessment Schedule') {
+          if (!isOpen) {
+            openPanel();
+          }
+          
+          // Check if assessment schedule mapping module is loaded
+          if (window.SVAssessmentSchedule && typeof window.SVAssessmentSchedule.generate === 'function') {
+            // Call the assessment schedule mapping module (no user message shown)
+            window.SVAssessmentSchedule.generate().then(success => {
+              if (success) {
+                // Done message will be added by the module
+              }
+            });
+          } else {
+            appendMessage('ai', 'Assessment Schedule module is not loaded. Please reload the page.');
+          }
+          return;
+        }
+
+        // Special handling for ILO-SO-CPA Mapping - use dedicated mapping module
+        if (buttonText === 'ILO-SO-CPA') {
+          if (!isOpen) {
+            openPanel();
+          }
+          
+          // Check if ILO-SO-CPA mapping module is loaded
+          if (window.SVILOSOCPAMapping && typeof window.SVILOSOCPAMapping.generate === 'function') {
+            // Call the ILO-SO-CPA mapping module (no user message shown)
+            window.SVILOSOCPAMapping.generate().then(success => {
+              if (success) {
+                // Done message will be added by the module
+              }
+            });
+          } else {
+            appendMessage('ai', 'ILO-SO-CPA Mapping module is not loaded. Please reload the page.');
+          }
+          return;
+        }
+        
         // Open panel if not already open
         if (!isOpen) {
           openPanel();
@@ -170,9 +210,6 @@
             break;
           case 'Teaching, Learning, and Assessment (TLA) Activities':
             message = 'Generate teaching, learning, and assessment activities';
-            break;
-          case 'Assessment Schedule':
-            message = 'Generate an assessment schedule';
             break;
           case 'ILO-SO-CPA':
             message = 'Create ILO-SO-CPA mapping';

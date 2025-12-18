@@ -205,13 +205,13 @@
 					<div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%) rotate(-90deg); writing-mode:horizontal-tb; white-space:nowrap; max-width:500px; overflow:hidden; text-overflow:ellipsis;">ILO-SO and ILO-CPA<br>Mapping</div>
 				</th>
 				<th style="border:none; padding:0;">
-					<table class="mapping" style="width:100%; border:none; border-collapse:collapse; table-layout:fixed;">
+					<table class="mapping" style="width:100%; border:none; border-collapse:collapse; table-layout:auto;">
 						<colgroup>
-							<col style="width:60px">
-							<col>
-							<col>
-							<col>
-							<col>
+							<col style="width:90px">
+							<col style="width:80px">
+							<col style="width:80px">
+							<col style="width:80px">
+							<col style="width:80px">
 						</colgroup>
 					<tr>
 						<th rowspan="2" style="border:none; border-bottom:1px solid #343a40; border-right:1px solid #343a40; width:90px; height:30px; padding:0.2rem 0.5rem; font-weight:700; font-family:Georgia, serif; font-size:13px; line-height:1.4; color:#111; text-align:center; vertical-align:middle; position:relative;">
